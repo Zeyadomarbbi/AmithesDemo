@@ -1,3 +1,4 @@
+1- 
 Context: This is the core of the topic, where we will start to create scenario projections. So, we have filled out the Portfolio module, the Financials module, and the Cashflow module.
 Now, let's imagine that we have already created Scenario 1, and we will be able to modify our assumptions.
 
@@ -5,6 +6,97 @@ The most important part:
 Making assumptions (performance, results)
 KPI = IRR, MOIC
 -------------
+2- 
 # Create a scenario
 Yann will create a scenario and give it a title.
 We pull information from the Portfolio, Financials, and Cashflow modules, and it generates the view.
+-------------
+Note:
+Scenarios must also be linked so that we know who created each one. Even if we can use a scenario created by Yann, I can use it, but I cannot modify it. 
+I can base my own scenario on his to make my own adjustments and create mine if I want. But no one can modify another person's scenarios.
+-------------
+3-
+Navigate through scenarios
+Yann will be able to navigate through the different saved scenarios (“eoptimistic” or “mathieu”).
+-------------
+4-
+Scenario the exit
+Yann will be able to model the MOIC (performance) and the sale date.
+-------------
+5-
+Portfolio tab in the scenarios section
+Model proto-deals
+Yann will create a proto-purchase or sale with a date (after today).
+-------------
+6-
+View results in the right-hand panel
+Changes happen in real time.
+Yann will primarily look at the amount to be distributed and the type of share.
+The four steps we had modeled in the waterfall.
+Two key indicators: TVPI and IRR (rate of return: 8%).
+Below this rate, the waterfall changes—the break-even hurdle → the target multiple that allows us to reach 8% and repay the LPs.
+
+Yann will present this table in a committee and modify the values live.
+Example: “If we sell today at 10, it’s more attractive than selling at 12 in three years; the hurdle model tells us we should sell today.”
+
+This module must be very user-friendly, with a color-coded system.
+-------------
+7-
+Upload rules
+Yann will upload rules that we predefine based on the client from Excel.
+
+If he overrides these rules, he will receive alerts.
+
+Where are these rules set? Settings.
+Example of rules
+Alerts if rules are not respected.
+
+For instance, they will specify that we have a recurring audit amount of at least €15,000.
+Then, for each line in the portfolio that needs auditing, it will be €5,000 per line.
+-------------
+8-
+Projection of capital calls
+Yann wants to project cash flow with our funds:
+“I know I will call up to X; I make four capital calls, one per quarter, where I call a quarter of my management fee.”
+
+The idea is to understand how often the client makes capital calls—quarterly, monthly, or all at the beginning of the year—and whether they call all their management fees at once or spread them quarterly.
+
+⚠️ The treasury plan must be aligned with my business plan (BP).
+-------------
+9-
+Bridge/Sensitivity/Target
+These are simulations.
+
+Target (inverse view)
+Instead of manually changing information in the Portfolio, Yann specifies the target. He wants an IRR of 12% and modifies three cells.
+
+= Excel function: target value
+
+Yann must be able to save all scenarios.
+-------------
+10-
+Bridge/Sensitivity/Target
+
+Sensitivity
+Here, Yann will be able to isolate a deal and run simulations on multiple MOICs and durations.
+Example: “If I sell my investment at a MOIC of 2.77 and hold it for 4 years, I would have a net IRR of 10.4% (if it exceeds 8%).”
+Yann will want to compare multiple simulations.
+
+= Excel function: scenario analysis
+-------------
+11-
+Bridge/Sensitivity/Target
+
+Bridge
+Here, Yann wants to model a “bridge” on realized cash flows to see the impact (e.g., would we have made more money by borrowing from the bank?).
+Example: We can borrow roughly 30% from the bank, so €30 million/100, for a 2-year period. Instead of calling his LPs on Feb 2, 2025, he would repay the bank on Feb 2, 2027.
+He enters the interest rate, structuring fees, setup costs, etc., and then starts the simulation.
+This produces KPIs with and without the bridge.
+https://app.noota.io/transcribe/MWUqlmVFZTYstWch9mbOJEToZERCR2dx821dK5yZNlXUE1UMFRVT
+-------------
+12-
+Summary scenario
+Yann can view a summary table of these three scenarios with the KPIs: net IRR, TVPI.
+
+He can also drill down for more detail, e.g., the MOICs for each deal.
+-------------

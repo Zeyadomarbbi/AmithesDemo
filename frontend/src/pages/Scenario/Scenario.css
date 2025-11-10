@@ -1,0 +1,28 @@
+/* in: frontend/src/pages/Scenario/Scenario.css */
+
+/* This turns our list into a 3-column grid */
+.scenario-list-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
+  gap: 20px; /* Space between the cards */
+}
+
+/* Style for the card itself */
+.scenario-card {
+  border: 1px solid #ddd; /* Light grey border */
+  border-radius: 8px; /* Rounded corners */
+  padding: 16px;
+  background-color: #ffffff; /* White background */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+}
+
+.scenario-card h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.scenario-card p {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 4px 0;
+}

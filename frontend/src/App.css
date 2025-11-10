@@ -1,42 +1,23 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* in: frontend/src/App.css */
+
+/* Remove any default Vite styles if you want */
+
+.app-layout {
+  display: flex;
+  height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Style for the SidePanel component */
+.side-panel {
+  width: 250px; /* Set a fixed width for the panel */
+  background-color: #f4f4f4; /* A light grey, change this later */
+  padding: 20px;
+  height: 100%; /* Make it full-height */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+/* Style for the main content area */
+.main-content {
+  flex-grow: 1; /* Takes up the rest of the space */
+  padding: 24px;
+  overflow-y: auto; /* Adds a scrollbar if content is long */
 }
