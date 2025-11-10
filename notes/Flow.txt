@@ -1,0 +1,10 @@
+Context: This is the core of the topic, where we will start to create scenario projections. So, we have filled out the Portfolio module, the Financials module, and the Cashflow module.
+Now, let's imagine that we have already created Scenario 1, and we will be able to modify our assumptions.
+
+The most important part:
+Making assumptions (performance, results)
+KPI = IRR, MOIC
+-------------
+# Create a scenario
+Yann will create a scenario and give it a title.
+We pull information from the Portfolio, Financials, and Cashflow modules, and it generates the view.

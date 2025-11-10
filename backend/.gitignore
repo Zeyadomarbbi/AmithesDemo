@@ -1,0 +1,24 @@
+# Python Bytecode
+__pycache__/
+*.pyc
+
+# Conda/Venv environments
+# (Conda usually manages envs centrally, but good to add)
+venv/
+*.env
+.env
+
+# Django database
+# (Do not commit your local development database)
+*.sqlite3
+db.sqlite3
+
+# Django-specific
+# (Do not commit user-uploaded files or collected static files)
+media/
+staticfiles/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/

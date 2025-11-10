@@ -1,0 +1,5 @@
+# VS Code settings (if specific to your machine)
+.vscode/
+
+# Global environment files
+.env
