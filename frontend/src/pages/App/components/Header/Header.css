@@ -1,0 +1,46 @@
+/* in: frontend/src/components/Header.css */
+
+.top-header {
+  /* Layout */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  
+  /* Dimensions & Spacing */
+  height: 69px;
+  padding: 0px 40px;
+  box-sizing: border-box;
+  
+  /* Styling */
+  background: #FAFAF9; /* Off-white background from Figma */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5); /* Semi-transparent grey border */
+  
+  /* Positioning in RootLayout */
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* This container mimics "Frame 1261155388" */
+.header-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.header-fund-name {
+  /* Typography from "Asterium Fund I" layer */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  
+  /* Color */
+  color: #375A89; /* The blue color from your design */
+  
+  display: flex;
+  align-items: center;
+}

@@ -1,0 +1,116 @@
+/* Full Screen Background */
+.login-page {
+  height: 100vh;
+  width: 100vw;
+  /* Matches your Sidebar Gradient */
+  background: linear-gradient(180deg, #0F1A2A 0%, #375A89 100%);
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+/* The White Card */
+.login-card {
+  background: #FFFFFF;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+/* Logo Styling */
+.login-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.login-logo {
+  height: 40px;
+  /* IMPORTANT: Since the SVG is white, and the card is white,
+     we use a filter to turn the logo Dark Blue to match the text */
+  filter: invert(16%) sepia(31%) saturate(1046%) hue-rotate(178deg) brightness(96%) contrast(96%);
+  /* Alternatively, you can just use: filter: invert(1); to make it black */
+}
+
+/* Text Styles */
+.login-body h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1A202C;
+  text-align: center;
+}
+
+.login-body p {
+  margin: 0 0 32px 0;
+  font-size: 14px;
+  color: #718096;
+  text-align: center;
+}
+
+/* Inputs */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4A5568;
+}
+
+.input-group input {
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+  border-color: #375A89;
+}
+
+/* Button */
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #375A89; /* Brand Blue */
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background-color 0.2s;
+}
+
+.login-btn:hover {
+  background-color: #2C4A70;
+}
+
+/* Footer Links */
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.login-footer span {
+  color: #375A89;
+  cursor: pointer;
+  font-weight: 500;
+}
+.login-footer span:hover {
+  text-decoration: underline;
+}

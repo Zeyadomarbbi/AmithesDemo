@@ -1,0 +1,334 @@
+/* in: frontend/src/components/SidePanel.css */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.side-panel,
+.frame-1,
+.frame-3,
+.fund-selector-button,
+.nav-item,
+.footer-item {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* --- MAIN FRAME (SidePanel) --- */
+.side-panel {
+  width: 280px;
+  height: 982px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  
+  /* Appearance */
+  background: linear-gradient(180deg, #0F1A2A 0%, #375A89 100%);
+  border-right: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: 6px 0px 12px rgba(53, 62, 58, 0.1);
+  opacity: 1;
+  
+  /* Padding */
+  padding: 20px 16px 32px 16px;
+  box-sizing: border-box;
+  
+  /* Clipping */
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- FRAME 1: TOP SECTION --- */
+.frame-1 {
+  width: 248px;
+  height: 399.99017333984375px;
+  display: flex;
+  flex-direction: column;
+  gap: 23px; /* adjust for visual layout */
+  opacity: 1;
+  transform: rotate(0deg);
+  position: relative;
+  z-index: 2;
+}
+
+/* Logo */
+.logo-container {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+.logo-img { height: 100%; width: auto; display: block; }
+
+/* Frame 1_2 (Selector + Tabs + Line) */
+.frame-1-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; 
+  width: 100%;
+}
+
+/* --- FRAME 2: WAVY IMAGE (Absolute Background) --- */
+.frame-2-waves {
+  width: 280px; /* or 565px if you want it wider */
+  height: 336px;
+  background: url('../../assets/side-panel-waves.svg') no-repeat center;
+  background-size: 100% 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+
+  /* Flex placement */
+  align-self: center; /* centers horizontally */
+}
+
+/* --- FRAME 3: FOOTER --- */
+.frame-3 {
+  width: 248px;
+  height: 168px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  position: relative;
+  transform: rotate(0deg);
+  z-index: 2;
+  opacity: 1;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; 
+}
+
+/* --- COMPONENT STYLES (Unchanged) --- */
+
+/* Fund Selector */
+.fund-selector-container { position: relative; width: 100%; }
+.fund-selector-button {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1); 
+  border: 1px solid rgba(255, 255, 255, 0.3); 
+  border-radius: 7px;
+  height: 60px; 
+  padding: 0 12px; 
+  text-align: left; 
+  color: #FFFFFF; 
+  transition: background 0.2s;
+  cursor: default; /* Not clickable as a whole */
+}
+.fund-info-section {
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: 2px;
+  flex-grow: 1; /* Allows it to take available space */
+  padding-right: 12px; /* Add some space before the arrow */
+}
+
+/* .fund-selector-button:hover { background: rgba(255, 255, 255, 0.15); } */
+.fund-name { 
+  /* Font family/font-body */
+  font-family: 'Inter', sans-serif; 
+  
+  /* Medium */
+  font-weight: 500; 
+  
+  /* Font size/text-md */
+  font-size: 16px; 
+  
+  line-height: 24px; 
+  letter-spacing: 0; 
+  
+  color: #FFFFFF; 
+}
+.fund-setup-row {
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: opacity 0.2s, color 0.2s;
+}
+.clickable-setup {
+  cursor: pointer;
+}
+
+.fund-setup { 
+  /* Font family/font-body */
+  font-family: 'Inter', sans-serif; 
+  
+  /* Regular */
+  font-weight: 400; 
+  font-style: normal;
+  
+  /* Font size/text-sm */
+  font-size: 14px; 
+  
+  line-height: 20px; 
+  letter-spacing: 0.01em; /* 1% */
+  
+  /* Color inherits from the row opacity settings or white */
+  color: inherit; 
+}
+.dropdown-arrow-icon { 
+  color: #FFFFFF; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  
+  /* Smooth transitions */
+  transition: transform 0.3s ease, opacity 0.2s; 
+  opacity: 0.8;
+  
+  /* Clickable area */
+  cursor: pointer;
+  height: 100%; 
+  
+  /* --- FIX 1: Remove Border --- */
+  /* border-left: 1px solid rgba(255,255,255,0.1);  <-- DELETED */
+  
+  /* --- FIX 2: Adjust Padding --- */
+  /* Give it equal padding or margin to keep it stable */
+  padding: 0 8px; 
+  margin-left: auto; /* Push to the right naturally */
+}
+
+.dropdown-arrow-icon.open { 
+  /* Rotate 180 degrees without shifting position */
+  transform: rotate(180deg); 
+  opacity: 1;
+}
+
+/* Tabs */
+.side-panel-nav { display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; height: 36px; border-radius: 8px; 
+  font-family: 'Inter', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.7); text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  border-left: 3px solid transparent; 
+}
+.nav-item:hover { background-color: rgba(255, 255, 255, 0.05); color: #FFFFFF; }
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: inset 3px 0 0 0 #FAA837; 
+  padding-left: 9px; 
+  color: #FFFFFF; font-weight: 500;
+  border-top-left-radius: 2px; border-bottom-left-radius: 2px;
+}
+
+/* Line */
+.sidebar-separator {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0.12) 100%);
+  width: 100%; flex-shrink: 0; margin: 0; 
+}
+
+/* Footer Items */
+.footer-item { 
+  /* Layout */
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 8px 12px; 
+  height: 36px; 
+  border-radius: 8px; 
+  
+  /* --- TYPOGRAPHY UPDATE --- */
+  font-family: 'Inter', sans-serif; /* font-body */
+  font-size: 14px;         /* text-sm */
+  line-height: 20px;       /* line-height: 20px */
+  font-weight: 400;        /* Regular */
+  letter-spacing: 0.01em;  /* 1% */
+  color: #FFFFFF;
+  
+  text-decoration: none;
+  opacity: 0.9;
+  transition: all 0.2s;
+}
+.footer-item:hover { opacity: 1; background-color: rgba(255, 255, 255, 0.1); }
+
+/* User Profile */
+.user-profile { 
+  display: flex; align-items: center; gap: 12px; 
+  padding: 8px; border-radius: 6px; cursor: pointer; width: 100%; 
+  margin-left: -8px;
+}
+.user-profile:hover { background-color: rgba(255, 255, 255, 0.1); }
+.user-avatar { 
+  width: 32px; 
+  height: 32px; 
+  flex-shrink: 0;
+  background: rgba(250, 250, 249, 0.21); 
+  border: 0.875px solid rgba(204, 205, 206, 0.5); 
+  border-radius: 9999px; 
+  color: #FFFFFF; 
+  
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  
+  /* --- TYPOGRAPHY: Initials (MR) --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;        /* Semi Bold */
+  font-size: 12px;
+  line-height: 17.5px;
+  letter-spacing: 0;
+  text-align: center;
+}
+.user-details { display: flex; flex-direction: column; justify-content: center; overflow: hidden; flex-grow: 1; }
+.user-name { 
+  /* --- TYPOGRAPHY: Name --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;        /* Medium */
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #FFFFFF;
+}
+.user-email { 
+  /* --- TYPOGRAPHY: Email --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;        /* Regular */
+  font-size: 12px;         /* text-xs */
+  line-height: 16px;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.8); 
+  
+  /* Overflow handling */
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
+/* Dropdown */
+.fund-selector-dropdown { 
+  position: absolute; 
+  top: 110%; 
+  right: 0; 
+  width: 217px;
+  height: 320px;
+  background-color: #FFFFFF; 
+  color: #2D3748; 
+  border: 1px solid #E2E8F0; 
+  border-radius: 8px; 
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3); 
+  padding: 8px; 
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.dropdown-scroll { 
+  flex-grow: 1;
+  overflow-y: auto; 
+}
+.dropdown-search { width: 100%; padding: 8px; border: 1px solid #E2E8F0; border-radius: 4px; margin-bottom: 8px; box-sizing: border-box; font-size: 0.9rem; }
+.dropdown-item { padding: 10px 12px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: #2D3748; font-size: 0.95rem; }
+.dropdown-item:hover { background-color: #EDF2F7; }
+.dropdown-item .fund-code { color: #A0AEC0; font-size: 0.85rem; font-weight: 600; }
