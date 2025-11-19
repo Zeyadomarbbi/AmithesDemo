@@ -20,12 +20,6 @@ function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      
-      {/* --- NEW: Small Top Headline --- */}
-      <div className="dashboard-top-bar">
-        <span className="fund-context-name">{currentFund.name}</span>
-      </div>
-
       {/* Header Section */}
       <div className="dashboard-header">
         {/* Dynamic Welcome Message */}

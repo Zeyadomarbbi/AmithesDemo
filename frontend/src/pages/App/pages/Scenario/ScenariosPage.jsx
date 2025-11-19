@@ -8,8 +8,8 @@ import { useParams } from 'react-router-dom';
 import AddNewScenarioModal from './components/AddNewScenarioModal/AddNewScenarioModal';
 import ScenarioList from './components/ScenarioList/ScenarioList';
 import SynthesisList from './components/SynthesisList/SynthesisList';
-import Button from '../../components/Button';
-import SearchBar from '../../components/SearchBar';
+import Button from '../../../../components/Button';
+import SearchBar from '../../../../components/SearchBar';
 import './ScenariosPage.css'; 
 
 // --- We no longer need the DUMMY_SCENARIOS here ---

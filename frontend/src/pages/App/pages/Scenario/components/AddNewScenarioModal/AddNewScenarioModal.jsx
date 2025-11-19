@@ -1,7 +1,7 @@
 // in: frontend/src/pages/Scenario/AddNewScenarioModal.jsx
 
 import React from 'react';
-import Button from '../../../../components/Button';
+import Button from '../../../../../../components/Button';
 import './AddNewScenarioModal.css'; // We will create this CSS file
 
 // 'onClose' is a function we will pass from ScenariosPage

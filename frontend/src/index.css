@@ -1,14 +1,23 @@
-/* ... (other default styles) ... */
-
-/* This code MUST be in this file */
+/* Ensure the app fills the screen and doesn't scroll the body */
 .app-layout {
   display: flex;
   height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Prevents double scrollbars */
 }
 
+/* The container for Header + Main Content */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Fill remaining width next to SidePanel */
+  height: 100%;
+  background-color: #F7FAFC; /* Global background color */
+}
+
+/* The content area scrolls independently */
 .main-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 24px;
-  background-color: #F7FAFC;
+  flex-grow: 1; /* Fills space below Header */
+  overflow-y: auto; /* Scrollbar appears ONLY here */
+  padding: 32px; /* Global padding for all pages */
 }

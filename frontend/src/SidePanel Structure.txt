@@ -1,0 +1,49 @@
+Okay I will tell you the whole design of sidepanel from figma, I dont want you to code anything
+
+just answer shortly to the questions will be asked
+
+
+
+We have Main Frame
+
+it consists of Frame 1, Frame 2, Frame 3
+
+Frame 1:
+
+1- LOGO
+
+2- Frame 1_2
+
+Frame 1_2 is Separated into
+
+1- Dropdown funds
+
+2- The Tabs *Dashboard, Portofolio etc...*
+
+3- The Line
+
+24px gap
+
+
+
+Frame 2:
+
+The wavy image
+
+width: 565;
+
+height: 336;
+
+angle: 0 deg;
+
+opacity: 1;
+
+
+
+Frame 3:
+
+Footer *All Funds, Admins, Help, Email/User*
+
+8px gap
+
+so in our code, we should have 3 sections split like the above
