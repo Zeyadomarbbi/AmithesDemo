@@ -137,15 +137,17 @@ function SidePanel() {
       {/* This sits at the bottom, on top of the waves */}
       <div className="frame-3">
         <div className="footer-links">
-          <Link to="/allfunds" className="footer-item">
+          <NavLink to="/allfunds" className="footer-item">
               <AllFundsIcons /> <span>All funds</span>
-          </Link>
-          <Link to="/admins" className="footer-item">
+          </NavLink>
+          
+          <NavLink to="/admins" className="footer-item">
               <AdminsIcon /> <span>Admins</span>
-          </Link>
-          <Link to="/help" className="footer-item">
+          </NavLink>
+          
+          <NavLink to="/help" className="footer-item">
               <HelpIcon /> <span>Help</span>
-          </Link>
+          </NavLink>
         </div>
 
         <div className="user-profile">
