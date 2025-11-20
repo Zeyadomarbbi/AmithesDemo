@@ -22,6 +22,8 @@ function SidePanel() {
     { id: 2, name: 'Lynx Capital II', code: 'LYN' },
     { id: 3, name: 'Orion Partners III', code: 'ORI' },
     { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
+    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
+    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
   ];
   const currentFund = funds.find(f => f.id.toString() === activeFundId.toString()) || funds[0];
   
@@ -30,18 +32,14 @@ function SidePanel() {
       
       {/* === FRAME 1: TOP SECTION === */}
       <div className="frame-1">
-        
         {/* 1. Logo */}
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
         </div>
-
         {/* 2. Frame 1_2 (Fund + Tabs + Line) */}
         <div className="frame-1-2">
-          
           <div className="fund-selector-container">
             <div className="fund-selector-button">
-              
               <div className="fund-info-section">
                 <span className="fund-name">{currentFund.name}</span>
                 
@@ -69,8 +67,21 @@ function SidePanel() {
             </div>
             
             {isFundSelectorOpen && (
-              <div className="fund-selector-dropdown">
-                <input type="text" placeholder="Search" className="dropdown-search" />
+              <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
+                
+                {/* 1. Search Bar */}
+                <div className="dropdown-search-container">
+                  <input type="text" placeholder="Search" className="dropdown-search-input" />
+                </div>
+
+                {/* 2. "See all funds" Link */}
+                <div className="dropdown-action-row">
+                  <Link to="/allfunds" className="see-all-funds-link">
+                    See all funds
+                  </Link>
+                </div>
+
+                {/* 3. Scrollable List */}
                 <div className="dropdown-scroll">
                   {funds.map(fund => (
                     <Link
@@ -79,8 +90,8 @@ function SidePanel() {
                       className="dropdown-item"
                       onClick={() => setIsFundSelectorOpen(false)}
                     >
-                      <span>{fund.name}</span> 
-                      <span className="fund-code">{fund.code}</span>
+                      <span className="item-name">{fund.name}</span> 
+                      <span className="item-code">{fund.code}</span>
                     </Link>
                   ))}
                 </div>
