@@ -168,31 +168,45 @@ html, body {
 /* .........................................
    COMPONENT: Dropdown Menu (UPDATED)
    ......................................... */
-.fund-selector-dropdown { 
-  position: absolute; 
-  top: calc(100% + 8px); /* Spacing below button */
-  
-  /* Right Alignment */
-  left: 0;
+.fund-selector-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
   right: auto;
-  
-  /* Specs */
+  left: 0;
   width: 217px;
-  height: 274px;
+  height: 274px; 
   
-  background-color: #FFFFFF; 
-  color: #2D3748; 
-  border: 1px solid #E4E7EC; 
-  border-radius: 8px; 
+  background-color: #FFFFFF;
+  color: #2D3748;
+  border: 1px solid #E4E7EC;
+  border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   
-  /* Inner Layout */
-  padding: 8px 0; /* Vertical padding only, items handle horizontal */
+  /* --- THE FIX: Scroll happens here --- */
+  overflow-y: auto; /* The PARENT scrolls now */
+  overflow-x: hidden;
+  padding: 0; /* Remove padding so scrollbar hits the edge */
   z-index: 100;
   
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+
+  /* Firefox Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #E4E7EC transparent;
+}
+
+/* Webkit Scrollbar (Target the PARENT now) */
+.fund-selector-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.fund-selector-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fund-selector-dropdown::-webkit-scrollbar-thumb {
+  background: #E4E7EC;
+  border-radius: 9999px;
+  border: 2px solid #FFFFFF; /* Padding effect */
 }
 
 /* 1. Search Bar */
@@ -200,10 +214,20 @@ html, body {
   height: 46px;
   width: 100%;
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  
   display: flex;
   align-items: center;
+  /* Add gap between Icon and Text Input */
+  gap: 8px; 
+  
   padding: 0 16px;
+  box-sizing: border-box;
   flex-shrink: 0;
+  
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF; 
+  z-index: 10;
 }
 
 .dropdown-search-input {
@@ -211,10 +235,22 @@ html, body {
   outline: none;
   width: 100%;
   background: transparent;
+  
+  /* --- TYPOGRAPHY UPDATE --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;        /* Medium */
+  font-style: normal;
+  font-size: 14px;         /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em;  /* 1% */
+  color: #7B7D7E;          /* Specific Grey from Figma */
+}
+
+.dropdown-search-input::placeholder {
+  color: #7B7D7E;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  color: #7B7D7E;
+  opacity: 1; /* Ensures full color visibility */
 }
 
 /* 2. See All Funds Link */
@@ -236,76 +272,79 @@ html, body {
   cursor: pointer;
 }
 
-/* 3. Scroll List */
-.dropdown-scroll { 
-  flex-grow: 1; 
-  overflow-y: auto; 
-  display: flex;
-  flex-direction: column;
-  padding: 4px 0;
-  
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: #E4E7EC transparent;
-}
-
-/* Scrollbar (Webkit) */
-.dropdown-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-.dropdown-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.dropdown-scroll::-webkit-scrollbar-thumb {
-  background: #E4E7EC;
-  border-radius: 9999px;
-  border: 2px solid #FFFFFF;
-}
-
 /* 4. List Items */
 .dropdown-item { 
-  height: 46px;
-  padding: 10px 18px;
-  gap: 8px;
+  /* Match Figma Outer Frame vertical spacing */
+  padding: 1px 6px; 
+  
   cursor: pointer; 
-  display: flex; 
-  justify-content: flex-start;
-  align-items: center; 
   text-decoration: none; 
   color: #2D3748; 
+  
+  /* Layout: Center the inner content horizontally */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  /* Ensure it takes full width of dropdown */
+  width: 100%;
+  box-sizing: border-box; /* Crucial for padding to work right */
+
+  /* No background here! */
+  background-color: transparent;
 }
 
-.dropdown-item:hover { 
-  background-color: #F9FAFB; 
+.dropdown-item-content {
+  /* Layout: Items inside the box (Name + Code) */
+  display: flex;
+  justify-content: flex-start; /* Align text left */
+  align-items: center;
+  gap: 8px; /* Gap between Name and Code */
+  
+  /* Dimensions matching Figma */
+  height: 44px; 
+  width: 100%; /* Fill the available space inside the padding */
+  
+  /* Internal Padding for the text */
+  padding: 10px 8px; 
+  box-sizing: border-box;
+  
+  /* Rounded Corners */
+  border-radius: 6px; 
+
+  /* Transition for hover effect */
+  transition: background-color 0.1s;
 }
 
+/* Apply Hover Effect to the INNER box */
+.dropdown-item:hover .dropdown-item-content {
+  background-color: #D7DEE7; /* Light grey hover */
+}
+
+/* Typography (Unchanged) */
 .dropdown-item .item-name {
   font-family: 'Inter', sans-serif;
-  font-style: normal;      /* corrected from 'medium' */
-  font-weight: 500;        /* Medium */
-  font-size: 14px;         /* text-sm */
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
   line-height: 20px;
-  letter-spacing: 0.01em;  /* 1% */
-  color: #1C1917;          /* text-main-title */
-  flex: none;
-  order: 1;
-  flex-grow: 0;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  
+  flex-grow: 0; /* Push code to the right if needed, or remove to keep tight */
 }
 
 .dropdown-item .item-code { 
   font-family: 'Inter', sans-serif;
-  font-weight: 400;        /* Regular */
+  font-weight: 400;
   font-style: normal;
-  font-size: 16px;         /* text-md */
+  font-size: 16px;
   line-height: 24px;
-  letter-spacing: 0;       /* 0% */
-  color: #375A89;          /* text-subtitle */
-  flex: none;
-  order: 2;
-  flex-grow: 0;
+  letter-spacing: 0;
+  color: #375A89; 
+  white-space: nowrap;
+  flex-grow: 1;
 }
-
-
 /* .........................................
    COMPONENT: Navigation Tabs
    ......................................... */
@@ -358,30 +397,25 @@ html, body {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0.12) 100%);
   width: 100%; 
   flex-shrink: 0; 
-  margin: 0; 
+/* Top: 0, Right: 0, Bottom: 24px, Left: 0 */
+  margin: 0 0 48px 0;
 }
-
 
 /* =========================================
    FRAME 2: WAVY IMAGE
    ========================================= */
 .frame-2-waves {
-  position: absolute;
-  width: 565px; /* Full width of image */
-  height: 336px;
-  
-  bottom: 0px;
-  left: -16px; /* Figma X position */
-  
-  background: url('../../../../../assets/side-panel-waves.svg') no-repeat center;
+  width: 280px; /* or 565px if you want it wider */
+  height: 360px;
+  background: url('../../assets/side-panel-waves.svg') no-repeat center;
   background-size: 100% 100%;
-  
   pointer-events: none;
-  z-index: 0; /* Behind content */
+  z-index: 0;
   opacity: 1;
+
+  /* Flex placement */
+  align-self: center; /* centers horizontally */
 }
-
-
 /* =========================================
    FRAME 3: FOOTER
    ========================================= */

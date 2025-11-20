@@ -5,7 +5,8 @@ import { useActiveFund } from '../../hooks/useActiveFund';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
   LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
-  SettingsIcon, ChevronDownIcon, ProfileExpandIcon
+  SettingsIcon, ChevronDownIcon, ProfileExpandIcon,
+  SearchIcon
 } from '../Icons';
 
 import './SidePanel.css';
@@ -71,6 +72,7 @@ function SidePanel() {
                 
                 {/* 1. Search Bar */}
                 <div className="dropdown-search-container">
+                  <SearchIcon />
                   <input type="text" placeholder="Search" className="dropdown-search-input" />
                 </div>
 
@@ -84,15 +86,20 @@ function SidePanel() {
                 {/* 3. Scrollable List */}
                 <div className="dropdown-scroll">
                   {funds.map(fund => (
-                    <Link
+                    <div
                       key={fund.id}
-                      to={`/funds/${fund.id}/${currentSection}`}
-                      className="dropdown-item"
-                      onClick={() => setIsFundSelectorOpen(false)}
+                      className="dropdown-item" // Outer container for layout/spacing only
+                      onClick={() => {
+                        navigate(`/funds/${fund.id}/${currentSection}`);
+                        setIsFundSelectorOpen(false);
+                      }}
                     >
-                      <span className="item-name">{fund.name}</span> 
-                      <span className="item-code">{fund.code}</span>
-                    </Link>
+                      {/* Inner container for the Visuals (Hover, Padding, Radius) */}
+                      <div className="dropdown-item-content">
+                        <span className="item-name">{fund.name}</span> 
+                        <span className="item-code">{fund.code}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
