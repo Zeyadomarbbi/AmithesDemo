@@ -3,9 +3,12 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* REMOVED: margin-bottom */
   margin-bottom: 0;
-  padding-bottom: 24px; 
+  box-sizing: border-box;
+}
+
+.limits-card-financials * {
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -90,15 +93,15 @@
   word-wrap: break-word; 
 }
 
-/* --- EXACT PIXEL COLUMN WIDTHS --- */
-.td-name, .th-name { width: 180px; }
+/* --- COLUMN WIDTHS --- */
+.td-name, .th-name { width: 17.58%; }
 .name-primary { font-weight: 500; color: #1C1917; line-height: 20px; margin-bottom: 2px; }
 .name-secondary { font-weight: 400; font-size: 14px; color: #375A89; line-height: 20px; }
 
-.td-desc, .th-desc { width: 500px; }
+.td-desc, .th-desc { width: 48.83%; }
 .td-desc { font-weight: 400; color: #1C1917; line-height: 20px; }
 
-.td-limit, .th-limit { width: 344px; text-align: right; }
+.td-limit, .th-limit { width: 33.59%; text-align: right; }
 .td-limit { padding-right: 12px; font-weight: 500; color: #1C1917; }
 .th-limit { text-align: right !important; }
 .th-limit .icon { margin-left: 2px; }
