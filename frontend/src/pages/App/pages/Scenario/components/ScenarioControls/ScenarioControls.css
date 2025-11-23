@@ -1,0 +1,136 @@
+/* =========================================
+   FRAME 2: Controls Container
+   ========================================= */
+.scenarios-frame-2 {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; 
+  align-items: center;
+  
+  /* --- THE FIX --- */
+  /* Changed from 100% to 1024px to match the grid below */
+  width: 1024px; 
+  
+  height: 40px;
+  gap: 22px;
+  
+  flex: none;
+  flex-grow: 0;
+}
+
+/* --- Left Group: Search + Badge --- */
+.scenarios-controls-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 8px; /* Gap between Search and Badge */
+}
+
+/* 1. SEARCH BAR */
+.scenarios-search-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px; /* Icon to Text gap */
+
+  width: 280px;
+  height: 40px;
+
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.scenarios-search-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89; /* Icon Color from Figma */
+}
+
+.scenarios-search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  background: transparent;
+  
+  /* Text-SM/Medium */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #7B7D7E;
+}
+
+.scenarios-search-input::placeholder {
+  color: #7B7D7E;
+}
+
+/* 2. BADGE */
+.created-by-badge {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 12px;
+  gap: 2px;
+
+  width: 112px;
+  height: 24px;
+
+  background: rgba(55, 90, 137, 0.2); /* Blueish tint */
+  border-radius: 6px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.created-by-badge span {
+  /* Text-XS/Medium */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  color: #7B7D7E;
+}
+
+/* 3. ADD BUTTON (Right Side) */
+.add-scenario-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 6px;
+
+  /* Dimensions */
+  /* min-width: 181px; */ /* Optional: Uncomment if you want fixed width like Figma */
+  height: 40px;
+
+  background: #F7A93B; /* Orange */
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  
+  /* Text Styles */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #FFFFFF;
+  
+  transition: background-color 0.2s;
+}
+
+.add-scenario-button:hover {
+  background-color: #E5962A; /* Slightly darker orange on hover */
+}
+
+.add-scenario-button svg {
+  width: 13.33px;
+  height: 13.33px;
+}

@@ -1,17 +1,19 @@
 import React from 'react';
-import SynthesisCard from './SynthesisCard'; // 1. Import the card
-import './SynthesisList.css'; // 2. Import the CSS
+import SynthesisCard from './SynthesisCard';
+import './SynthesisList.css';
 
-// This component receives 'title' and 'syntheses' as props
 function SynthesisList({ title, syntheses }) {
   return (
-    <section className="synthesis-list-section">
-      {/* Section Header */}
-      <h2>{title} ({syntheses.length})</h2>
+    <div className="synthesis-list-section">
+      
+      {/* Header */}
+      <div className="list-header">
+        <span className="list-title">{title}</span>
+        <span className="list-count">{syntheses.length}</span>
+      </div>
 
-      {/* Grid of cards */}
+      {/* Grid */}
       <div className="synthesis-list-grid">
-        {/* 3. Map over the data and render cards */}
         {syntheses.map(synth => (
           <SynthesisCard
             key={synth.id}
@@ -22,7 +24,8 @@ function SynthesisList({ title, syntheses }) {
           />
         ))}
       </div>
-    </section>
+      
+    </div>
   );
 }
 
