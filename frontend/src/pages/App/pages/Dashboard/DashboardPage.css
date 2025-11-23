@@ -1,30 +1,19 @@
+/* Main Page Container */
 .dashboard-page {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
+  background-color: #FFFFFF;
 }
 
-.dashboard-top-bar {
-  padding-bottom: 20px;
-  border-bottom: 1px solid #E2E8F0; /* The light grey line from the image */
-  margin-bottom: 24px;
+/* =========================================
+   FRAME 1: Header (Welcome + Date)
+   ========================================= */
+.dashboard-frame-1 {
+  width: 100%;
 }
 
-.fund-context-name {
-  color: #718096; /* Grey text */
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* Update .dashboard-header to match the spacing in the image */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px; /* Space between "Welcome..." and Tabs */
-}
-
-/* --- Header & Tabs --- */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -33,40 +22,62 @@
 
 .dashboard-header h1 {
   margin: 0;
-  font-size: 1.8rem;
-  color: #1A202C;
+  /* Typography matches Scenarios title usually */
+  font-family: 'Crimson Pro', serif; 
+  font-size: 30px;
+  font-weight: 500;
+  color: #1C1917;
+  line-height: 100%;
 }
 
 .date-selector {
   padding: 8px 16px;
   border: 1px solid #CBD5E0;
-  background-color: #fff;
+  background-color: #FFFFFF;
   border-radius: 4px;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   color: #4A5568;
   cursor: pointer;
+}
+
+/* =========================================
+   FRAME 2: Tabs (KPI / Limits)
+   ========================================= */
+.dashboard-frame-2 {
+  width: 100%;
+  border-bottom: 1px solid #E2E8F0; /* Line under tabs */
 }
 
 .dashboard-tabs {
   display: flex;
   gap: 24px;
-  border-bottom: 1px solid #E2E8F0;
-  margin-bottom: 8px;
+  margin-bottom: -1px; /* Align active border with bottom line */
 }
 
 .tab {
-  padding-bottom: 8px;
-  color: #718096;
+  padding-bottom: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 500;
+  color: #718096;
   cursor: pointer;
+  border-bottom: 2px solid transparent;
 }
 
 .tab.active {
-  color: #1A202C;
-  border-bottom: 2px solid #1A202C;
+  color: #1C1917;
+  border-bottom: 2px solid #1C1917; /* Dark active line */
 }
 
-/* --- The Main Grid Layout --- */
+/* =========================================
+   FRAME 3: Main Content Grid
+   ========================================= */
+.dashboard-frame-3 {
+  width: 100%;
+}
+
 .dashboard-grid {
   display: grid;
   /* 3 Columns: 1 fixed width for the left, 2 flexible for the right */
@@ -88,53 +99,57 @@
 .card h3 {
   margin-top: 0;
   margin-bottom: 24px;
-  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; /* text-xs/bold usually */
   text-transform: uppercase;
   color: #718096;
   font-weight: 700;
+  letter-spacing: 0.04em;
   border-bottom: 1px solid #EDF2F7;
   padding-bottom: 12px;
 }
 
 /* --- Specific Grid Positions --- */
 
-/* The Tall "FUND" card on the left */
+/* 1. FUND Card (Left Column, Tall) */
 .card-fund {
   grid-column: 1 / 2;
   grid-row: 1 / 3; /* Spans 2 rows vertically */
 }
 
-/* The two chart cards */
+/* 2. FUND VALUE Chart */
 .card-fund-value {
   grid-column: 2 / 3;
   grid-row: 1 / 2;
-  min-height: 300px; /* Placeholder height for chart */
+  min-height: 300px; 
 }
 
+/* 3. PORTFOLIO VALUE Chart */
 .card-portfolio-value {
   grid-column: 3 / 4;
   grid-row: 1 / 2;
-  min-height: 300px; /* Placeholder height for chart */
+  min-height: 300px; 
 }
 
-/* The wide "PORTFOLIO" card at the bottom right */
+/* 4. PORTFOLIO Table (Bottom Span) */
 .card-portfolio-table {
   grid-column: 2 / 4; /* Spans 2 columns horizontally */
   grid-row: 2 / 3;
-  background-color: #EDF2F7; /* Slightly darker bg as per image */
+  background-color: #F8FAFC; /* Slightly darker bg as per image */
 }
 
-/* --- Data Row Styling (Key .... Value) --- */
+/* --- Data Row Styling --- */
 .data-row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
-  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   color: #4A5568;
 }
 
 .data-row.total {
-  font-weight: 700;
+  font-weight: 600;
   color: #1A202C;
   border-top: 1px solid #E2E8F0;
   padding-top: 12px;
@@ -143,5 +158,5 @@
 
 .data-row span:last-child {
   font-weight: 600;
-  color: #2D3748;
+  color: #1A202C;
 }
