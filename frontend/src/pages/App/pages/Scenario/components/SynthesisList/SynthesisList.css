@@ -1,64 +1,185 @@
+/* =========================================
+   FRAME 4: Scenario Synthesis List
+   ========================================= */
 .synthesis-list-section {
-  margin-top: 32px; /* Add space above this section */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 14px;
+  
+  width: 1024px; /* Exact Frame Width */
+  flex: none;
+  order: 3; 
+  flex-grow: 0;
 }
 
-/* Use the same grid as the other list */
+/* --- HEADER (Same style as Scenario List) --- */
+.list-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  height: 24px;
+}
+
+.list-title {
+  height: 24px;
+  /* Text-BASE/semibold */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.list-count {
+  height: 24px;
+  /* Text-BASE/medium */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #375A89;
+}
+
+/* --- GRID --- */
 .synthesis-list-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(3, 336px);
+  gap: 8px;
+  width: 100%;
 }
 
-/* Remove link styling */
+/* =========================================
+   COMPONENT: Synthesis Card
+   ========================================= */
 .synthesis-card-link {
   text-decoration: none;
   color: inherit;
+  display: block;
 }
 
-/* Style for the card */
 .synthesis-card {
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  padding: 16px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s;
-  /* Make cards the same height */
+  /* Frame 1261155345 */
+  box-sizing: border-box;
+  width: 336px;
+  height: 138px; /* Taller than Scenario Card */
+  
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 15px;
+  gap: 8px;
+
+  background: #FAFAF9; /* Different background color */
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  
+  transition: box-shadow 0.2s;
 }
 
 .synthesis-card:hover {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.synthesis-card h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 1.1rem;
-  color: #1A202C;
-}
-
-.synthesis-card p {
-  font-size: 0.9rem;
-  color: #718096;
-  margin: 4px 0;
-  flex-grow: 1; /* Pushes the links to the bottom */
-}
-
-/* Styling for the blue links */
-.synthesis-card-links {
-  margin-top: 16px;
+/* --- LEFT CONTENT (Icon + Text + Links) --- */
+.synth-left-frame {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 8px;
+  width: 286px;
+  height: 106px;
 }
 
-.synthesis-link {
-  color: #3182CE; /* Blue color */
-  font-size: 0.9rem;
+/* Icon */
+.synth-icon-wrapper {
+  width: 32px; height: 32px;
+  background: #FAFAF9;
+  border-radius: 128px; /* Circular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  /* If you want a border or specific bg from figma */
+  /* border: 1px solid rgba(204, 205, 206, 0.5); (Optional if needed) */
+}
+.synth-icon-wrapper svg {
+  color: #375A89;
+  width: 16px; height: 16px;
+}
+
+/* Text Column */
+.synth-text-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  width: 246px;
+}
+
+.synth-title {
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
-  background-color: #EBF8FF; /* Light blue background */
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1C1917;
+  margin: 0;
+  width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.synth-author, .synth-date {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+  margin: 0;
+  width: 100%;
+}
+
+/* Links Row */
+.synth-links-frame {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px; /* Visual separation */
+}
+
+.synth-link-item {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-decoration-line: underline;
+  color: #375A89;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+/* --- RIGHT CONTENT (Dots) --- */
+.synth-right-frame {
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.synth-menu-icon {
+  width: 20px; height: 20px;
+  color: #375A89;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
 }

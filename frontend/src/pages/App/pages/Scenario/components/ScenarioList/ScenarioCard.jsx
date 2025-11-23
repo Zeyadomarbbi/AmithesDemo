@@ -1,27 +1,41 @@
-// in: frontend/src/pages/Scenario/components/ScenarioList/ScenarioCard.jsx
-
 import React from 'react';
 import { Link } from 'react-router-dom';
+// Ensure these icons are imported from your Icons file
+import { MoreVerticalIcon, ArrowRightIcon } from './Icons';
 
 function ScenarioCard({ id, title, author, createdDate }) {
-  
-  // --- THIS IS THE FIX ---
-  // Change the 'to' prop from an absolute path to a relative one.
-  // We convert the 'id' (which is a number) to a string.
-  const relativePath = id.toString();
-
   return (
-    // Before: <Link to={`/scenarios/${id}`} ... >
-    // After:
-    <Link to={relativePath} className="scenario-card-link">
+    <Link to={id.toString()} className="scenario-card-link">
       <div className="scenario-card">
-        <h3>{title}</h3>
-        <p>Created on: {createdDate}</p>
-        <p>By: {author}</p>
         
-        <div className="scenario-card-join">
-          <span>Join</span> &rarr;
+        {/* Left Frame: Checkbox + Texts */}
+        <div className="card-left-frame">
+          <div className="card-checkbox"></div>
+          
+          <div className="card-text-frame">
+            {/* Title sits alone */}
+            <h3 className="card-title" title={title}>{title}</h3>
+            
+            {/* Group Date and Author together for tight 1px spacing */}
+            <div className="card-text-group">
+              <p className="card-date">Created on {createdDate}</p>
+              <p className="card-author">By {author}</p>
+            </div>
+          </div>
         </div>
+
+        {/* Right Frame: Menu + Button */}
+        <div className="card-right-frame">
+          <div className="card-menu-icon" onClick={(e) => e.preventDefault()}>
+             <MoreVerticalIcon />
+          </div>
+          
+          <div className="card-join-btn">
+            <span>Join</span>
+            <ArrowRightIcon />
+          </div>
+        </div>
+
       </div>
     </Link>
   );
