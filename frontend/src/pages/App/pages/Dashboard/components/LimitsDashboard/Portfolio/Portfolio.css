@@ -1,0 +1,104 @@
+/* --- CONTAINER --- */
+.limits-card-portfolio {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* REMOVED: margin-bottom */
+  margin-bottom: 0;
+  padding-bottom: 24px; 
+}
+
+/* Header */
+.limits-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.header-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #1C1917;
+  margin: 0;
+}
+.header-count {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* --- TABLE CONTAINER --- */
+.limits-table-container {
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
+/* --- TABLE STRUCTURE --- */
+.limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; 
+}
+
+/* --- TABLE HEAD --- */
+.limits-table thead tr {
+  height: 56px;
+  background-color: rgba(204, 205, 206, 0.2); 
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5); 
+}
+
+.limits-table th {
+  text-align: left;
+  vertical-align: middle;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.limits-table th .icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: #375A89;
+  width: 14px;
+  height: 14px;
+}
+
+/* --- TABLE BODY --- */
+.limits-table tbody tr {
+  height: 58px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.limits-table td {
+  padding: 8px 12px; 
+  vertical-align: middle;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  word-wrap: break-word; 
+}
+
+/* --- EXACT PIXEL COLUMN WIDTHS --- */
+.td-name, .th-name { width: 180px; }
+.name-primary { font-weight: 500; color: #1C1917; line-height: 20px; margin-bottom: 2px; }
+.name-secondary { font-weight: 400; font-size: 14px; color: #375A89; line-height: 20px; }
+
+.td-desc, .th-desc { width: 500px; }
+.td-desc { font-weight: 400; color: #1C1917; line-height: 20px; }
+
+.td-limit, .th-limit { width: 344px; text-align: right; }
+.td-limit { padding-right: 12px; font-weight: 500; color: #1C1917; }
+.th-limit { text-align: right !important; }
+.th-limit .icon { margin-left: 2px; }
