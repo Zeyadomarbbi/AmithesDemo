@@ -1,0 +1,170 @@
+/* === TABLE STRUCTURE === */
+.admins-table-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  width: 100%;
+}
+
+.admins-table-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center; /* Vertically centers the text/icons */
+  justify-content: flex-start; /* Horizontally aligns columns to the left */
+  width: 100%;
+  height: 56px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  background: #FFFFFF;
+}
+
+.admins-table-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.admins-table-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center; /* Vertical center items in row */
+  width: 100%;
+  height: 58px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+/* Zebra Striping */
+.admins-table-row:nth-child(odd) {
+  background: #FAFAF9;
+}
+.admins-table-row:nth-child(even) {
+  background: #FFFFFF;
+}
+
+/* === COLUMNS & CELLS === */
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+/* --- HEADER CELL UPDATE --- */
+.header-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  
+  /* CHANGED: Brings icon next to text */
+  justify-content: flex-start; 
+  
+  /* CHANGED: Adds the small gap between Text and Icon */
+  gap: 12px; 
+
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  cursor: pointer;
+}
+
+.header-cell svg {
+  color: #375A89; 
+  /* Optional: ensure icon doesn't shrink */
+  flex-shrink: 0; 
+}
+
+/* === COLUMN WIDTHS === */
+.col-checkbox {
+  width: 34px;
+  justify-content: center;
+  padding: 8px;
+}
+
+.col-name {
+  width: 298px;
+  /* Body defaults: Column layout for Name + Handle */
+  display: flex;
+  flex-direction: column; 
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+/* Override for Header Name to keep it row-based */
+.admins-table-header .col-name {
+  display: flex;
+  flex-direction: row;       /* Side by side */
+  align-items: center;       /* Vertically aligned */
+  justify-content: flex-start;
+  gap: 8px;                  /* Space between "Name" and Icon */
+}
+
+.admins-table-header .col-name svg {
+  flex-shrink: 0;
+}
+
+.col-role {
+  width: 191px;
+}
+
+.col-email {
+  width: 194px;
+}
+
+.col-status {
+  width: 120px;
+  /* Status usually looks better centered or left. 
+     If centered, add justify-content: center here */
+  justify-content: flex-start; 
+}
+
+.col-actions {
+  width: 187px; 
+  justify-content: flex-end;
+  padding-right: 24px;
+}
+
+/* === TEXT STYLES === */
+.row-text-primary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.row-text-secondary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* === BADGES === */
+.badge {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  gap: 2px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  text-align: center;
+}
+
+.badge-green { background: #DAF8E3; color: #1A6433; }
+.badge-blue { background: #D3F2FF; color: #4C6977; }
+.badge-grey { background: #FAFAF9; color: #375A89; }
+
+/* Action Dots */
+.action-dots {
+  cursor: pointer;
+  color: #375A89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
