@@ -1,5 +1,5 @@
 import React from 'react';
-import { DoubleArrowLeftIcon, MaximizeIcon } from '../../Icons'; // Adjust path
+import { DoubleArrowLeftIcon, MaximizeIcon } from '../../../Icons'; // Adjust path
 import './DrawerHeader.css';
 
 /* src/.../Details/components/DrawerHeader.jsx */

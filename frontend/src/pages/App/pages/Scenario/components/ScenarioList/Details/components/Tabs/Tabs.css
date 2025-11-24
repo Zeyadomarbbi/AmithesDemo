@@ -1,0 +1,63 @@
+.tabs-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  
+  /* === CHANGE 3: Remove Layout Padding === */
+  padding: 0; /* It now aligns perfectly with the Header's 40px */
+  
+  width: 100%;
+  height: 32px;
+  
+  /* === CHANGE 4: Remove Border === */
+  /* The Header parent now handles the border line. 
+     This prevents double borders. */
+  border-bottom: none; 
+  
+  box-sizing: border-box;
+}
+
+.tab-item {
+  /* ... standard styles ... */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px 12px; 
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  
+  /* The active border will still work and overlap the Parent's border */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; 
+  transition: all 0.2s;
+}
+
+/* Icon Styling */
+.tab-item svg {
+  width: 16px;
+  height: 16px;
+  color: #7B7D7E; /* Grey default */
+  transition: color 0.2s;
+}
+
+/* Active State styling */
+.tab-item.active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B;
+}
+
+.tab-item.active svg {
+  color: #F7A93B; /* Orange Icon */
+}
+
+.tab-item:hover {
+  opacity: 0.8;
+}

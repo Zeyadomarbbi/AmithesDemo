@@ -1,22 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MoreVerticalIcon, ArrowRightIcon } from './Icons'; // Adjust path as needed
-import './ScenarioCard.css';
+import { MoreVerticalIcon, ArrowRightIcon } from '../Icons'; 
+import './Cards.css';
 
 function ScenarioCard({ id, fundId, title, author, createdDate, isSelected, onToggle }) {
   return (
-    // The card is now a standard DIV. We add 'selected-card' for border styling.
     <div className={`scenario-card ${isSelected ? 'selected-card' : ''}`}>
       
       {/* LEFT FRAME: Checkbox + Text */}
       <div className="card-left-frame">
-        
-        {/* CHECKBOX: Click here to toggle selection */}
         <div 
            className={`card-checkbox ${isSelected ? 'checked' : ''}`} 
            onClick={onToggle}
         >
-           {/* Only show checkmark if selected */}
            {isSelected && <span className="checkmark">✔</span>}
         </div>
         
@@ -36,8 +32,17 @@ function ScenarioCard({ id, fundId, title, author, createdDate, isSelected, onTo
              <MoreVerticalIcon />
         </div>
         
-        {/* JOIN BUTTON: This is the ONLY link. Clicking here goes to details. */}
-        <Link to={id.toString()} className="card-join-btn">
+        {/* === UPDATE HERE: Pass data via state === */}
+        <Link 
+          to={id.toString()} 
+          className="card-join-btn"
+          state={{ 
+            title, 
+            author, 
+            date: createdDate, // Remapping 'createdDate' to 'date' to match Detail Page expectation
+            description: "Description passed from card..." // Pass description if available in props
+          }}
+        >
           <span>Join</span>
           <ArrowRightIcon />
         </Link>

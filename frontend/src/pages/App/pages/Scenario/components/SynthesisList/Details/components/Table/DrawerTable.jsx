@@ -1,5 +1,5 @@
 import React from 'react';
-import { SortIcon, PlusIcon } from '../../Icons'; // Adjust path
+import { SortIcon, PlusIcon } from '../../../Icons'; // Adjust path
 import TableImage from './SynthesisTable.svg'; // Import the file
 import './DrawerTable.css';
 

@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from 'react'; // 1. Import useState
 import { useParams, useNavigate } from 'react-router-dom';
-import DrawerHeader from './components/DrawerHeader';
-import DrawerTable from './components/DrawerTable';
+import DrawerHeader from './components/Header/DrawerHeader';
+import DrawerTable from './components/Table/DrawerTable';
 import './SynthesisDetailsDrawer.css';
 
 function SynthesisDetailsDrawer() {

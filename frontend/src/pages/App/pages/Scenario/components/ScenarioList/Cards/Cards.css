@@ -49,12 +49,6 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* --- OPTIONAL: Selected State Style (Orange Border) --- */
-.scenario-card.selected-card {
-    border: 1px solid #F5A623; 
-    background-color: #fffbf5; /* Very subtle orange tint */
-}
-
 /* --- LEFT SIDE --- */
 .card-left-frame {
   display: flex;

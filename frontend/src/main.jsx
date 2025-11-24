@@ -12,7 +12,7 @@ import AppLayout from './pages/App/components/AppLayout';
 // --- PAGES ---
 import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
-import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/ScenarioDetailPage/ScenarioDetailPage';
+import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
 import PortfolioPage from './pages/App/pages/Portfolio/PortfolioPage';
 import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
@@ -49,19 +49,16 @@ const router = createBrowserRouter([
             path: 'scenarios', 
             element: <ScenariosPage />, 
             children: [
-              // FIX: Remove "scenarios/" prefix. Path is relative.
-              // Matches: /funds/1/scenarios/synthesis/1
               { 
                 path: 'synthesis/:synthesisId', 
                 element: <SynthesisDetailsDrawer /> 
               },
+              { 
+                path: ':scenarioId/:tab?', 
+                element: <ScenarioDetailPage /> 
+              }
             ], 
           },
-          { 
-            path: 'scenarios/:scenarioId', 
-            element: <ScenarioDetailPage /> 
-          },
-
           { path: 'portfolio', element: <PortfolioPage /> },
           { path: 'lps-statement', element: <LPsStatementPage /> },
           { path: 'financials', element: <FinancialsPage /> },

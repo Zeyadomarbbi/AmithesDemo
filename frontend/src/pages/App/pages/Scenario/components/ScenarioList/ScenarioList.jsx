@@ -1,5 +1,5 @@
 import React from 'react';
-import ScenarioCard from './ScenarioCard';
+import ScenarioCard from './Cards/Cards'; // Updated import path
 import './ScenarioList.css';
 
 function ScenarioList({ title, scenarios, selectedIds, onToggleSelect }) {
@@ -20,7 +20,6 @@ function ScenarioList({ title, scenarios, selectedIds, onToggleSelect }) {
             title={scenario.title}
             author={scenario.author}
             createdDate={scenario.createdDate}
-            // Pass selection status
             isSelected={selectedIds.includes(scenario.id)}
             onToggle={() => onToggleSelect(scenario.id)}
           />
