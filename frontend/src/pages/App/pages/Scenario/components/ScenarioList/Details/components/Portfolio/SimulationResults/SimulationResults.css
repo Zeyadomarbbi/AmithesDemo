@@ -1,0 +1,64 @@
+/* === MAIN CONTAINER (Frame 1261155358) === */
+.simulation-results-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; 
+  align-items: flex-start;
+  padding: 32px 40px; /* Default Expanded Padding */
+  gap: 40px; 
+
+  width: 587px; /* Default Expanded Width */
+  height: 100%;
+  
+  /* Background */
+  background: linear-gradient(180deg, #0F1A2A 0%, #375A89 100%);
+  background-blend-mode: darken, normal;
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  border-radius: 16px 0px 0px 0px;
+  
+  box-sizing: border-box;
+  position: relative;
+  z-index: 0;
+
+  /* Animation */
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
+}
+
+/* === COLLAPSED STATE (Property 1=Variant2) === */
+.simulation-results-container.collapsed {
+  width: 72px; /* Collapsed Width */
+  padding: 32px 16px; /* Reduced Padding */
+  /* Remove gap, handled by padding now */
+  gap: 0; 
+}
+
+/* Hides all content inside when collapsed */
+.sr-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 24px;
+  margin: 0 auto;
+  width: 507px;
+  height: 669px; /* Allow height to flex */
+  
+  transition: opacity 0.3s;
+}
+
+.sr-content-wrapper.hidden-content {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Collapse Trigger (Floating Icon) */
+.sr-collapse-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start; /* Aligns the icon box */
+    cursor: pointer;
+    /* Needs to be positioned to not interfere with content flow in expanded state */
+}
+
+/* === HEADER STYLES (Moved to SimulationHeader.css) === */
+/* ... */

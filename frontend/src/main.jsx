@@ -3,51 +3,67 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import './index.css'; 
 
-import RootLayout from './components/RootLayout';
-import ScenariosPage from './pages/Scenario/ScenariosPage';
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import PortfolioPage from './pages/Portfolio/PortfolioPage';
-import FinancialsPage from './pages/Financials/FinancialsPage';
-import LPsStatementPage from './pages/LPsStatement/LPsStatementPage';
-import ScenarioDetailPage from './pages/Scenario/components/ScenarioList/ScenarioDetailPage/ScenarioDetailPage';
-// ... (import your other pages)
+// --- AUTH ---
+import LoginPage from './pages/Auth/Login/LoginPage';
+
+// --- APP LAYOUT ---
+import AppLayout from './pages/App/components/AppLayout'; 
+
+// --- PAGES ---
+import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
+import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
+import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
+import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
+import PortfolioPage from './pages/App/pages/Portfolio/PortfolioPage';
+import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
+import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
+import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
+import AdminsPage from './pages/App/pages/Admins/AdminsPage';
+import HelpPage from './pages/App/pages/Help/HelpPage';
+import SettingsPage from './pages/App/pages/Settings/SettingsPage';
 
 const router = createBrowserRouter([
+  { path: '/', element: <Navigate to="/auth/login" replace /> },
+  { path: '/auth/login', element: <LoginPage /> },
+
+  // === APP DOMAIN ===
   {
-    path: '/',
-    // Redirect the base URL to a default fund (e.g., fund 1)
-    element: <Navigate to="/funds/1/dashboard" replace />,
-  },
-  {
-    // This is the new dynamic parent route.
-    // :fundId can be 1, 2, 3, or any ID.
-    path: '/funds/:fundId',
-    element: <RootLayout />, // The layout will now be aware of the fundId
+    path: '/', 
+    element: <AppLayout />, 
     children: [
+      { path: 'allfunds', element: <AllFundsPage /> },
+      { path: 'admins', element: <AdminsPage /> },
+      { path: 'help', element: <HelpPage /> },
+
+      // 2. FUND SPECIFIC PAGES
       {
-        path: 'dashboard', // Matches /funds/1/dashboard
-        element: <DashboardPage />,
-      },
-      {
-        path: 'scenarios', // Matches /funds/1/scenarios
-        element: <ScenariosPage />,
-      },
-      {
-        path: 'scenarios/:scenarioId', // Matches /funds/1/scenarios/123
-        element: <ScenarioDetailPage />,
-      },
-      {
-        path: 'portfolio', // Matches /funds/1/portfolio
-        element: <PortfolioPage />,
-      },
-      {
-        path: 'lps-statement', // Renders at /portfolio
-        element: <LPsStatementPage />,
-      },
-            {
-        path: 'financials', // Renders at /portfolio
-        element: <FinancialsPage />,
-      },
+        path: 'funds/:fundId',
+        children: [
+          { path: 'settings', element: <SettingsPage /> },
+          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'dashboard/:tab?', element: <DashboardPage /> },
+          { path: 'dashboard/:tab/:quarter?', element: <DashboardPage /> },
+
+          // === 1. SCENARIOS LIST + DRAWER OVERLAY ===
+          { 
+            path: 'scenarios', 
+            element: <ScenariosPage />, 
+            children: [
+              { 
+                path: 'synthesis/:synthesisId', 
+                element: <SynthesisDetailsDrawer /> 
+              },
+              { 
+                path: ':scenarioId/:tab?', 
+                element: <ScenarioDetailPage /> 
+              }
+            ], 
+          },
+          { path: 'portfolio', element: <PortfolioPage /> },
+          { path: 'lps-statement', element: <LPsStatementPage /> },
+          { path: 'financials', element: <FinancialsPage /> },
+        ]
+      }
     ],
   },
 ]);

@@ -1,0 +1,53 @@
+/* =========================================
+   FRAME 4: Scenario Synthesis List
+   ========================================= */
+.synthesis-list-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 14px;
+  
+  width: 1024px; /* Exact Frame Width */
+  flex: none;
+  order: 3; 
+  flex-grow: 0;
+}
+
+/* --- HEADER --- */
+.list-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  height: 24px;
+}
+
+.list-title {
+  height: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.list-count {
+  height: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #375A89;
+}
+
+/* --- GRID --- */
+.synthesis-list-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 336px);
+  gap: 8px;
+  width: 100%;
+}

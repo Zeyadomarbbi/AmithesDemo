@@ -1,0 +1,254 @@
+/* =========================================
+   FRAME 3: Scenario List Container
+   ========================================= */
+.scenario-list-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 14px;
+  
+  width: 1024px; /* Exact Frame Width */
+  flex: none;
+  order: 2; 
+  flex-grow: 0;
+}
+
+/* --- FRAME 1: HEADER --- */
+.list-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  height: 24px;
+}
+
+.list-title {
+  height: 24px;
+  /* Text-BASE/semibold */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.list-count {
+  height: 24px;
+  /* Text-BASE/medium */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #375A89;
+}
+
+/* --- FRAME 2: GRID LAYOUT --- */
+.scenario-list-grid {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: wrap; /* Allows items to wrap to next row */
+  padding: 0px;
+  
+  /* Grid Specs */
+  width: 1024px;
+  gap: 8px; /* Gap between cards */
+}
+
+/* =========================================
+   COMPONENT: Scenario Card
+   ========================================= */
+.scenario-list-grid {
+  /* Use Flex wrap to create rows */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 0px;
+  
+  /* Exact Frame Width */
+  width: 1024px;
+  
+  /* Gap between cards */
+  gap: 8px; 
+}
+
+/* --- 3. CARD COMPONENT --- */
+.scenario-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  /* Remove flex-grow so it respects the exact card width */
+  flex-grow: 0; 
+}
+
+.scenario-card {
+  /* --- EXACT SPECS --- */
+  width: 336px;
+  height: 94px;
+  
+  /* Border */
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  
+  /* Padding: Top 16, Right 15, Bottom 16, Left 15 */
+  padding: 16px 15px;
+  box-sizing: border-box; /* Ensures padding doesn't increase width */
+  
+  /* Layout */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  
+  /* Appearance */
+  background: #FFFFFF;
+  opacity: 1;
+  
+  transition: box-shadow 0.2s;
+}
+
+.scenario-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* --- LEFT SIDE (Frame 1261155209) --- */
+.card-left-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  width: 174px;
+  height: 62px;
+}
+
+/* Checkbox */
+.card-checkbox {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Text Container (Frame 1261155206) */
+.card-text-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center vertically */
+  align-items: flex-start;
+  gap: 4px; /* Gap between Title and the Date/Author group */
+  
+  width: 142px;
+  height: 62px; /* Fixed height */
+  
+  /* Ensure nothing pushes it around */
+  flex-shrink: 0; 
+}
+
+/* Internal Text Group (Frame 1261155211) */
+.card-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px; /* Tight gap between Date and Author */
+  width: 100%;
+}
+
+/* Typography */
+.card-title {
+  /* Figma: Text-SM/Medium */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  
+  /* --- THE FIX: Reset Margins --- */
+  margin: 0; 
+  
+  /* Truncation */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  
+  /* Layout safety */
+  flex: none;
+  flex-grow: 0;
+}
+
+.card-date, .card-author {
+  /* Figma: Text-SM/Normal */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  
+  /* --- THE FIX: Reset Margins --- */
+  margin: 0;
+  
+  /* Truncation */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+/* --- RIGHT SIDE (Frame 1261155217) --- */
+.card-right-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 0px;
+  gap: 8px;
+  width: 87px;
+  height: 60px;
+}
+
+/* Dots Menu */
+.card-menu-icon {
+  width: 20px;
+  height: 20px;
+  color: #375A89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Join Button */
+.card-join-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 6px;
+
+  width: 87px;
+  height: 32px;
+
+  background: #FAFAF9;
+  border-radius: 4px;
+  
+  /* Text */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}

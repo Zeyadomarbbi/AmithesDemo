@@ -1,0 +1,561 @@
+/* =========================================
+   GLOBAL & RESETS
+   ========================================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.side-panel,
+.frame-1,
+.frame-3,
+.fund-selector-button,
+.nav-item,
+.footer-item {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* =========================================
+   MAIN FRAME (SidePanel)
+   ========================================= */
+.side-panel {
+  /* Dimensions */
+  width: 280px;
+  height: 982px; /* or 100vh */
+  
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pushes Frame 1 Top, Frame 3 Bottom */
+  
+  /* Appearance */
+  background: linear-gradient(180deg, #0F1A2A 0%, #375A89 100%);
+  border-right: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: 6px 0px 12px rgba(53, 62, 58, 0.1);
+  opacity: 1;
+  
+  /* Padding */
+  padding: 20px 16px 32px 16px;
+  
+  /* Clipping */
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* =========================================
+   FRAME 1: TOP SECTION
+   ========================================= */
+.frame-1 {
+  width: 248px;
+  /* height is dynamic based on content, approx 400px */
+  display: flex;
+  flex-direction: column;
+  gap: 23px; 
+  opacity: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* --- 1.1 Logo --- */
+.logo-container {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img { 
+  height: 100%; 
+  width: auto; 
+  display: block; 
+}
+
+/* --- 1.2 Frame 1_2 (Selector + Tabs + Line) --- */
+.frame-1-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; 
+  width: 100%;
+}
+
+/* .........................................
+   COMPONENT: Fund Selector
+   ......................................... */
+.fund-selector-container { 
+  position: relative; 
+  width: 100%; 
+}
+
+.fund-selector-button {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  width: 100%;
+  height: 60px; 
+  padding: 0 12px; 
+  
+  background: rgba(255, 255, 255, 0.1); 
+  border: 1px solid rgba(255, 255, 255, 0.3); 
+  border-radius: 7px;
+  
+  text-align: left; 
+  color: #FFFFFF; 
+  transition: background 0.2s;
+  cursor: default;
+}
+
+.fund-info-section {
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  gap: 2px;
+  flex-grow: 1; 
+  padding-right: 12px; 
+}
+
+.fund-name {
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: #FFFFFF;
+}
+
+.fund-setup-row {
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.clickable-setup { cursor: pointer; }
+
+.fund-setup { 
+  font-family: 'Inter', sans-serif; 
+  font-weight: 400; 
+  font-style: normal;
+  font-size: 14px; 
+  line-height: 20px; 
+  letter-spacing: 0.01em; 
+  color: inherit; 
+}
+
+.dropdown-arrow-icon { 
+  color: #FFFFFF; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: transform 0.3s ease, opacity 0.2s; 
+  opacity: 0.8;
+  cursor: pointer;
+  height: 100%; 
+  padding: 0 8px; 
+  margin-left: auto; 
+}
+
+.dropdown-arrow-icon.open { 
+  transform: rotate(180deg); 
+  opacity: 1;
+}
+
+/* .........................................
+   COMPONENT: Dropdown Menu (UPDATED)
+   ......................................... */
+.fund-selector-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: auto;
+  left: 0;
+  width: 217px;
+  height: 274px; 
+  
+  background-color: #FFFFFF;
+  color: #2D3748;
+  border: 1px solid #E4E7EC;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* --- THE FIX: Scroll happens here --- */
+  overflow-y: auto; /* The PARENT scrolls now */
+  overflow-x: hidden;
+  padding: 0; /* Remove padding so scrollbar hits the edge */
+  z-index: 100;
+  
+  display: flex;
+  flex-direction: column;
+
+}
+
+/* Webkit Scrollbar (Target the PARENT now) */
+.fund-selector-dropdown::-webkit-scrollbar {
+  width: 16px; /* total space allocated */
+}
+
+.fund-selector-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fund-selector-dropdown::-webkit-scrollbar-thumb {
+  background: #E4E7EC;
+  border-radius: 9999px;
+  border: 4px solid #FFFFFF; /* makes inner visible part 8px (16 - 2*4) */
+}
+
+/* 1. Search Bar */
+.dropdown-search-container {
+  height: 46px;
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  
+  display: flex;
+  align-items: center;
+  /* Add gap between Icon and Text Input */
+  gap: 8px; 
+  
+  padding: 0 16px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF; 
+  z-index: 10;
+}
+
+.dropdown-search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  background: transparent;
+  
+  /* --- TYPOGRAPHY UPDATE --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;        /* Medium */
+  font-style: normal;
+  font-size: 14px;         /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em;  /* 1% */
+  color: #7B7D7E;          /* Specific Grey from Figma */
+}
+
+.dropdown-search-input::placeholder {
+  color: #7B7D7E;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  opacity: 1; /* Ensures full color visibility */
+}
+
+/* 2. See All Funds Link */
+.dropdown-action-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  flex-shrink: 0;
+}
+
+.see-all-funds-link {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  text-decoration-line: underline;
+  color: #375A89;
+  cursor: pointer;
+}
+
+/* 4. List Items */
+.dropdown-item { 
+  /* Match Figma Outer Frame vertical spacing */
+  padding: 1px 6px; 
+  
+  cursor: pointer; 
+  text-decoration: none; 
+  color: #2D3748; 
+  
+  /* Layout: Center the inner content horizontally */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  /* Ensure it takes full width of dropdown */
+  width: 100%;
+  box-sizing: border-box; /* Crucial for padding to work right */
+
+  /* No background here! */
+  background-color: transparent;
+}
+
+.dropdown-item-content {
+  /* Layout: Items inside the box (Name + Code) */
+  display: flex;
+  justify-content: flex-start; /* Align text left */
+  align-items: center;
+  gap: 8px; /* Gap between Name and Code */
+  
+  /* Dimensions matching Figma */
+  height: 44px; 
+  width: 100%; /* Fill the available space inside the padding */
+  
+  /* Internal Padding for the text */
+  padding: 10px 8px; 
+  box-sizing: border-box;
+  
+  /* Rounded Corners */
+  border-radius: 6px; 
+
+  /* Transition for hover effect */
+  transition: background-color 0.1s;
+}
+
+/* Apply Hover Effect to the INNER box */
+.dropdown-item:hover .dropdown-item-content {
+  background-color: #D7DEE7; /* Light grey hover */
+}
+
+/* Typography (Unchanged) */
+.dropdown-item .item-name {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  
+  flex-grow: 0; /* Push code to the right if needed, or remove to keep tight */
+}
+
+.dropdown-item .item-code { 
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: #375A89; 
+  white-space: nowrap;
+  flex-grow: 1;
+}
+/* .........................................
+   COMPONENT: Navigation Tabs
+   ......................................... */
+.side-panel-nav { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+}
+
+.nav-item {
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+  
+  /* Dimensions */
+  padding: 8px 12px; 
+  height: 36px; 
+  
+  /* Default Radius (Applies to Inactive, Hover, AND Active) */
+  border-radius: 8px; 
+  
+  /* Typography */
+  font-family: 'Inter', sans-serif; 
+  font-size: 14px; 
+  line-height: 20px; 
+  font-weight: 400; 
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.7); 
+  
+  text-decoration: none;
+  border: none; 
+}
+
+.nav-item:hover { 
+  background-color: rgba(255, 255, 255, 0.05); 
+  color: #FFFFFF; 
+}
+
+.nav-item.active {
+  /* 1. Yellow Gradient Background */
+  background: linear-gradient(90deg, rgba(250, 168, 55, 0.15) 0%, rgba(250, 168, 55, 0) 100%);
+  padding: 8px 12px; 
+  border-radius: 8px;
+  color: #FFFFFF; 
+  font-weight: 500;
+  box-shadow: inset 0 0 0 0 #FAA837; 
+}
+/* .........................................
+   COMPONENT: Separator Line
+   ......................................... */
+.sidebar-separator {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0.12) 100%);
+  width: 100%; 
+  flex-shrink: 0; 
+/* Top: 0, Right: 0, Bottom: 24px, Left: 0 */
+  margin: 0 0 64px 0;
+}
+
+/* =========================================
+   FRAME 2: WAVY IMAGE
+   ========================================= */
+.frame-2-waves {
+  width: 280px; /* or 565px if you want it wider */
+  height: 360px;
+  background: url('../../assets/side-panel-waves.svg') no-repeat center;
+  background-size: 100% 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+
+  /* Flex placement */
+  align-self: center; /* centers horizontally */
+}
+/* =========================================
+   FRAME 3: FOOTER
+   ========================================= */
+.frame-3 {
+  width: 248px;
+  height: 168px;
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  
+  position: relative;
+  z-index: 2; /* Above waves */
+  opacity: 1;
+}
+
+/* .........................................
+   COMPONENT: Footer Links
+   ......................................... */
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; 
+}
+
+.footer-item { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  
+  /* Dimensions */
+  padding: 8px 12px; 
+  height: 36px; 
+  
+  /* Default Radius */
+  border-radius: 8px; 
+  
+  /* --- TYPOGRAPHY (Figma) --- */
+  font-family: 'Inter', sans-serif; 
+  font-style: normal;       /* Added */
+  font-weight: 400;         /* Regular */
+  font-size: 14px;          /* Text-SM */
+  line-height: 20px;        /* Line Height */
+  letter-spacing: 0.01em;   /* 1% */
+  color: #FFFFFF;
+  
+  text-decoration: none;
+  opacity: 0.9;
+  transition: all 0.2s;
+  
+  border: none;
+}
+
+.footer-item:hover { 
+  background-color: rgba(255, 255, 255, 0.05); 
+  color: #FFFFFF; 
+}
+
+/* --- 2. Active State (Same as Nav) --- */
+.footer-item.active {
+  /* Yellow Gradient Background */
+  background: linear-gradient(90deg, rgba(250, 168, 55, 0.15) 0%, rgba(250, 168, 55, 0) 100%);
+  
+  padding: 8px 12px; 
+  border-radius: 8px;
+  color: #FFFFFF; 
+  font-weight: 500;
+  
+  /* FIX: Changed '0' to '3px' so the orange line is visible */
+  box-shadow: inset 0 0 0 0 #FAA837; 
+}
+/* .........................................
+   COMPONENT: User Profile
+   ......................................... */
+.user-profile { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 8px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  width: 100%; 
+  margin-left: -8px; /* Visual adjustment */
+}
+
+.user-profile:hover { 
+  background-color: rgba(255, 255, 255, 0.1); 
+}
+
+.user-avatar { 
+  width: 32px; 
+  height: 32px; 
+  flex-shrink: 0;
+  
+  background: rgba(250, 250, 249, 0.21); 
+  border: 0.875px solid rgba(204, 205, 206, 0.5); 
+  border-radius: 9999px; 
+  color: #FFFFFF; 
+  
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  
+  font-family: 'Inter', sans-serif;
+  font-weight: 600; 
+  font-size: 12px;
+  line-height: 17.5px;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.user-details { 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
+  overflow: hidden; 
+  flex-grow: 1; 
+}
+
+.user-name { 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500; 
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #FFFFFF;
+}
+
+.user-email { 
+  font-family: 'Inter', sans-serif;
+  font-weight: 400; 
+  font-size: 12px; 
+  line-height: 16px;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.8); 
+  
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}

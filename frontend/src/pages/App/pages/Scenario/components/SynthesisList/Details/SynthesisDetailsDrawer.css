@@ -1,0 +1,64 @@
+/* --- 1. THE ANIMATIONS --- */
+
+/* Slide from Right to Left */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%); /* Start completely off-screen to the right */
+  }
+  to {
+    transform: translateX(0); /* End at natural position */
+  }
+}
+
+/* Fade In for the background */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- 2. UPDATED CLASSES --- */
+
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end; /* Aligns drawer to the right */
+  
+  /* Apply Fade In Animation */
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.drawer-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 7px;
+  
+  width: 1136px;
+  height: 100%;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+
+  /* Apply Slide Animation */
+  /* cubic-bezier gives it a professional "snappy" feel */
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.drawer-container.expanded {
+  width: 100vw; /* Take full viewport width */
+  border-left: none; /* Optional: Remove border when full screen */
+}

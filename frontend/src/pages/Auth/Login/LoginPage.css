@@ -1,0 +1,257 @@
+/* Full Screen Background */
+.login-page {
+  height: 100vh;
+  width: 100vw;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* Fallback if image missing */
+  background-color: #F3F4F6; 
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+/* === THE CARD (Glassmorphism) === */
+.login-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 72px;
+  gap: 32px; /* Adjusted gap to look balanced */
+
+  width: 504px;
+  /* height: 608px; Allow height to fit content */
+  
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 17px;
+  
+  box-shadow: 0px 4px 24px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* === HEADER === */
+.login-header-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0px;
+  gap: 16px;
+  width: 360px;
+}
+
+.login-logo {
+  /* Adjust height/width based on your logo aspect ratio */
+  height: 32px;
+  width: auto;
+  /* If logo is white svg, invert it to dark. If it's already colored, remove filter. */
+  /* filter: invert(16%) sepia(31%) saturate(1046%) hue-rotate(178deg) brightness(96%) contrast(96%); */
+}
+
+.header-text-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.header-title {
+  margin: 0;
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 22px;
+  text-align: center;
+  color: #1C1917;
+}
+
+.header-subtitle {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  color: #375A89;
+}
+
+/* === FORM SECTION === */
+.login-form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 360px;
+}
+
+.form-inputs-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 20px;
+  width: 100%;
+}
+
+.text-field-desktop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.input-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.field-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+}
+
+.input-box {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  width: 100%;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+.text-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.text-input::placeholder {
+  color: #7B7D7E;
+}
+
+/* Remember Row */
+.remember-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 20px;
+}
+
+.checkbox-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #375A89;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  cursor: pointer;
+}
+
+.forgot-password-link {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  cursor: pointer;
+  text-decoration: none;
+}
+.forgot-password-link:hover {
+  text-decoration: underline;
+}
+
+/* Actions */
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.login-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  width: 100%;
+  height: 40px;
+  background: #F7A93B; /* Yellow/Orange */
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #FFFFFF;
+  transition: background 0.2s;
+}
+
+.login-btn:hover {
+  background: #E69526;
+}
+
+/* Signup Row */
+.signup-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  width: 100%;
+}
+
+.signup-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #7B7D7E;
+}
+
+.signup-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  text-decoration: underline;
+} 

@@ -1,0 +1,76 @@
+.card-fund {
+  width: 325.33px;
+  height: 585px;
+  
+  /* Basic Card Styling */
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  padding: 16px 24px;
+  
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+/* --- The Header --- */
+.fund-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  flex: none;
+}
+.fund-title, .fund-unit {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* --- The List Container --- */
+.fund-metrics-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex-grow: 1;
+  gap: 4px;
+}
+
+/* --- The Row Styles (Restores the horizontal layout) --- */
+.fund-data-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* Fixed height ensures vertical alignment */
+  height: 36px; 
+  gap: 12px;
+  width: 100%;
+}
+
+.row-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #375A89;
+  white-space: nowrap;
+}
+
+.row-separator {
+  flex-grow: 1; /* Pushes value to the right */
+  height: 0px;
+  border-bottom: 0.5px dashed rgba(204, 205, 206, 0.5);
+  margin-top: 4px;
+}
+
+.row-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}

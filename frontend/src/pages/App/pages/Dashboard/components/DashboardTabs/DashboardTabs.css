@@ -1,0 +1,47 @@
+.dashboard-tabs-frame {
+  /* --- CONTAINER STYLING --- */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  
+  width: 1024px;
+  
+  /* The Grey Separator Line */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.tab-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  
+  /* --- SPACING --- */
+  padding: 0 4px 12px; 
+  
+  /* --- TYPOGRAPHY --- */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  
+  /* Color: Always Blue */
+  color: #375A89;
+  
+  /* BORDER LOGIC */
+  /* Transparent border prevents jumping on hover/active */
+  border-bottom: 2px solid transparent;
+  
+  /* Pull item down to overlap container border */
+  margin-bottom: -1px; 
+  
+  transition: border-color 0.2s;
+}
+
+/* Active State styling */
+.tab-item.active {
+  color: #375A89;
+  /* The Orange Active Line */
+  border-bottom: 2px solid #F7A93B;
+}
