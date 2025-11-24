@@ -4,7 +4,7 @@ import './DrawerHeader.css';
 
 /* src/.../Details/components/DrawerHeader.jsx */
 
-function DrawerHeader({ onClose, title, subtitle }) { // <--- Receiving props
+function DrawerHeader({ onClose, onExpand, title, subtitle }) {
   return (
     <div className="drawer-header-wrapper">
       <div className="header-content">
@@ -15,13 +15,13 @@ function DrawerHeader({ onClose, title, subtitle }) { // <--- Receiving props
 
         <div className="header-text-frame">
           <div className="header-titles-col">
-            {/* Using the props */}
-            <span className="header-main-title">{title}</span> 
+            <span className="header-main-title">{title}</span>
             <span className="header-sub-title">{subtitle}</span>
           </div>
         </div>
 
-        <div className="header-icon-btn">
+        {/* 2. Attach click handler to Maximize Icon */}
+        <div className="header-icon-btn" onClick={onExpand}>
           <MaximizeIcon />
         </div>
 

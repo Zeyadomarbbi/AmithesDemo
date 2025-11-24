@@ -55,4 +55,10 @@
   /* Apply Slide Animation */
   /* cubic-bezier gives it a professional "snappy" feel */
   animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.drawer-container.expanded {
+  width: 100vw; /* Take full viewport width */
+  border-left: none; /* Optional: Remove border when full screen */
 }
