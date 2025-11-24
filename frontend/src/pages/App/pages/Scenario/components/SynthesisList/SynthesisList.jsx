@@ -1,5 +1,5 @@
 import React from 'react';
-import SynthesisCard from './SynthesisCard';
+import SynthesisCards from './Cards/Cards'; // Updated import path
 import './SynthesisList.css';
 
 function SynthesisList({ title, syntheses }) {
@@ -15,8 +15,10 @@ function SynthesisList({ title, syntheses }) {
       {/* Grid */}
       <div className="synthesis-list-grid">
         {syntheses.map(synth => (
-          <SynthesisCard
+          <SynthesisCards
             key={synth.id}
+            id={synth.id}
+            fundId={synth.fundId}
             title={synth.title}
             author={synth.author}
             createdDate={synth.createdDate}

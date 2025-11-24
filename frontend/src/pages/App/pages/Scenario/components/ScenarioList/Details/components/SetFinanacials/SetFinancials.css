@@ -1,0 +1,137 @@
+/* === TOOLBAR STYLES === */
+.fin-toolbar {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end; /* Pushes everything to the RIGHT */
+  align-items: center;
+  gap: 8px; /* Keeps them close to each other */
+  width: 100%;
+  height: 42px;
+}
+
+/* Left: View Selector tabs */
+.fin-view-selector {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Text Styles */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Active State */
+.view-badge.active {
+  background: #375A89;
+  color: #FFFFFF;
+}
+
+/* Inactive State */
+.view-badge:not(.active) {
+  background: #FAFAF9;
+  color: #7B7D7E;
+}
+
+/* Right: Actions */
+.fin-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* No margin-left needed since we are using gap on the parent */
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 8px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #7B7D7E;
+}
+
+.action-btn.btn-download {
+  background: #FAFAF9;
+}
+
+.action-btn svg {
+  display: block;
+}
+
+/* =========================================
+   5. FULLSCREEN OVERLAY SYSTEM
+   ========================================= */
+
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #FFFFFF; /* Pure white background */
+  z-index: 9999; /* Ensure it is on top of EVERYTHING */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center content vertically */
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+/* Floating Close Button (Top Right) */
+.overlay-floating-close {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  z-index: 10000; /* Above the content */
+}
+
+.overlay-floating-close:hover {
+  background: #F3F4F6;
+}
+
+/* Overlay Content Wrapper */
+.overlay-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start; /* Align top, or center if you prefer */
+  justify-content: center;
+  overflow-y: auto; /* Allow scrolling if image is huge */
+}
+
+.overlay-content img {
+  display: block;
+  max-width: 90%; /* Keep some breathing room */
+  height: auto;
+  margin-top: 40px; /* Space from top */
+}

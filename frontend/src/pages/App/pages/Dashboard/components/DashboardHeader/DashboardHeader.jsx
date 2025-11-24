@@ -1,43 +1,40 @@
 import React, { useState } from 'react';
 import './DashboardHeader.css';
-// Import the Chevron from your Icons file (adjust path if needed)
-import { ChevronDownIcon, PlusIcon } from './Icons'; 
+import { ChevronDownIcon, PlusIcon } from './Icons';
 
-function DashboardHeader({ fundName, showQuarterSelector }) {
+function DashboardHeader({ fundName, showQuarterSelector, selectedQuarter, onQuarterChange }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedQuarter, setSelectedQuarter] = useState({ q: 'Q2', y: '2024' });
 
   const quarters = [
-    { q: 'Q1', y: '2024', d: "08/03/24"},
-    { q: 'Q2', y: '2024', d: "08/07/24"},
-    { q: 'Q3', y: '2024', d: "08/15/24"},
-    { q: 'Q4', y: '2024', d: "08/30/24"}
+    { q: 'Q1', y: '2024', d: "08/03/24" },
+    { q: 'Q2', y: '2024', d: "08/07/24" },
+    { q: 'Q3', y: '2024', d: "08/15/24" },
+    { q: 'Q4', y: '2024', d: "08/30/24" }
   ];
 
-   const handleSelect = (quarter) => {
-        setSelectedQuarter(quarter);
-        setIsOpen(false);
-   };
+  const handleSelect = (quarter) => {
+    onQuarterChange(`${quarter.q}-${quarter.y}`); // update via prop
+    setIsOpen(false);
+  };
+
+  const quarterParts = selectedQuarter ? selectedQuarter.split('-') : ['Q2', '2024'];
 
   return (
     <div className="dashboard-header-frame">
       <h1 className="welcome-text">Welcome on {fundName}</h1>
-      
-      {/* CHANGE: Always render this div, toggle visibility via style */}
+
       <div 
         className="quarter-selector-container" 
         style={{ visibility: showQuarterSelector ? 'visible' : 'hidden' }}
       >
-        
         <div 
           className="quarter-selector-button" 
           onClick={() => showQuarterSelector && setIsOpen(!isOpen)}
         >
           <div className="quarter-text-group">
-              <span className="quarter-part">{selectedQuarter.q}</span>
-              <span className="year-part">{selectedQuarter.y}</span>
+            <span className="quarter-part">{quarterParts[0]}</span>
+            <span className="year-part">{quarterParts[1]}</span>
           </div>
-          
           <div className={`quarter-icon ${isOpen ? 'open' : ''}`}>
             <ChevronDownIcon />
           </div>
@@ -49,7 +46,7 @@ function DashboardHeader({ fundName, showQuarterSelector }) {
               {quarters.map((item, index) => (
                 <div 
                   key={index} 
-                  className={`quarter-item ${selectedQuarter.q === item.q && selectedQuarter.y === item.y ? 'selected' : ''}`}
+                  className={`quarter-item ${selectedQuarter === `${item.q}-${item.y}` ? 'selected' : ''}`}
                   onClick={() => handleSelect(item)}
                 >
                   <span className="item-label">{item.q} {item.y}</span>
@@ -70,9 +67,8 @@ function DashboardHeader({ fundName, showQuarterSelector }) {
           </div>
         )}
       </div>
-
     </div>
   );
 }
 
-export default DashboardHeader;     
+export default DashboardHeader;
