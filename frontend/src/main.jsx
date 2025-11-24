@@ -41,6 +41,8 @@ const router = createBrowserRouter([
         children: [
           { path: 'settings', element: <SettingsPage /> },
           { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'dashboard/:tab?', element: <DashboardPage /> },
+          { path: 'dashboard/:tab/:quarter?', element: <DashboardPage /> },
           { path: 'scenarios', element: <ScenariosPage /> },
           { path: 'scenarios/:scenarioId', element: <ScenarioDetailPage /> },
           { path: 'portfolio', element: <PortfolioPage /> },
