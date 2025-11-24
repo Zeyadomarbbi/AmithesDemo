@@ -2,29 +2,30 @@ import React from 'react';
 import ScenarioCard from './ScenarioCard';
 import './ScenarioList.css';
 
-function ScenarioList({ title, scenarios }) {
+function ScenarioList({ title, scenarios, selectedIds, onToggleSelect }) {
   return (
     <div className="scenario-list-section">
-      
-      {/* --- FRAME 1: Header --- */}
       <div className="list-header">
         <span className="list-title">{title}</span>
         <span className="list-count">{scenarios.length}</span>
       </div>
 
-      {/* --- FRAME 2: Grid --- */}
       <div className="scenario-list-grid">
         {scenarios.map(scenario => (
+          // NO LINK WRAPPER HERE. We pass the logic down.
           <ScenarioCard
             key={scenario.id}
             id={scenario.id}
+            fundId={scenario.fundId} // Pass fundId for the link inside
             title={scenario.title}
             author={scenario.author}
             createdDate={scenario.createdDate}
+            // Pass selection status
+            isSelected={selectedIds.includes(scenario.id)}
+            onToggle={() => onToggleSelect(scenario.id)}
           />
         ))}
       </div>
-      
     </div>
   );
 }

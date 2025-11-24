@@ -1,0 +1,93 @@
+.drawer-header-wrapper {
+  /* Frame 1261155129 & Modal header */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0px 32px;
+  width: 100%;
+  height: 88px;
+  flex: none;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+.header-content {
+  /* Content Frame */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start; /* Figma says flex-start */
+  padding: 24px 24px 0px;
+  gap: 16px;
+  width: 100%;
+  height: 68px;
+  box-sizing: border-box;
+}
+
+/* --- ICONS --- */
+.header-icon-btn {
+  /* Featured icon */
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  border-radius: 8px;
+  
+  /* Flex to center the SVG inside */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+  color: #375A89; /* Icon color */
+}
+
+/* --- TEXT AREA --- */
+.header-text-frame {
+  /* Frame 1261155245 */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 24px;
+  flex-grow: 1; /* Fills space between icons */
+  height: 44px;
+}
+
+.header-titles-col {
+  /* Frame 1261154970 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  width: 100%;
+}
+
+.header-main-title {
+  /* Les équipements */
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 28px;
+  color: #1C1917;
+  white-space: nowrap;
+}
+
+.header-sub-title {
+  /* Description */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+/* --- BOTTOM PADDING --- */
+.header-bottom-pad {
+  width: 100%;
+  height: 20px;
+}

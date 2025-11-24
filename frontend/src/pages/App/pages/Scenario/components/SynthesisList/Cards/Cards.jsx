@@ -1,18 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-// Assuming you have a ChartIcon or similar for "presentation-chart-02"
-// If not, use a placeholder or add it to Icons.jsx
-import { MoreVerticalIcon, DashboardIcon } from './Icons'; 
+import { MoreVerticalIcon, DashboardIcon } from '../Icons'; 
+import './Cards.css';
 
-function SynthesisCard({ title, author, createdDate, links }) {
+// FIX: Add 'id' and 'fundId' to the destructured props here
+function SynthesisCards({ id, fundId, title, author, createdDate, links }) {
   return (
-    <Link to="#" className="synthesis-card-link">
+    <Link to={`/funds/${fundId}/scenarios/synthesis/${id}`} className="synthesis-card-link">
       <div className="synthesis-card">
         
-        {/* Left Side: Icon + Info */}
         <div className="synth-left-frame">
           <div className="synth-icon-wrapper">
-            {/* Replace with PresentationChartIcon if available */}
             <DashboardIcon /> 
           </div>
           
@@ -29,7 +27,6 @@ function SynthesisCard({ title, author, createdDate, links }) {
           </div>
         </div>
 
-        {/* Right Side: Menu */}
         <div className="synth-right-frame">
           <div className="synth-menu-icon" onClick={(e) => e.preventDefault()}>
             <MoreVerticalIcon />
@@ -41,4 +38,4 @@ function SynthesisCard({ title, author, createdDate, links }) {
   );
 }
 
-export default SynthesisCard;
+export default SynthesisCards;

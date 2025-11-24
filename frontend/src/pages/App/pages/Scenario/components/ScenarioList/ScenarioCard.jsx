@@ -1,43 +1,49 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-// Ensure these icons are imported from your Icons file
-import { MoreVerticalIcon, ArrowRightIcon } from './Icons';
+import { MoreVerticalIcon, ArrowRightIcon } from './Icons'; // Adjust path as needed
+import './ScenarioCard.css';
 
-function ScenarioCard({ id, title, author, createdDate }) {
+function ScenarioCard({ id, fundId, title, author, createdDate, isSelected, onToggle }) {
   return (
-    <Link to={id.toString()} className="scenario-card-link">
-      <div className="scenario-card">
+    // The card is now a standard DIV. We add 'selected-card' for border styling.
+    <div className={`scenario-card ${isSelected ? 'selected-card' : ''}`}>
+      
+      {/* LEFT FRAME: Checkbox + Text */}
+      <div className="card-left-frame">
         
-        {/* Left Frame: Checkbox + Texts */}
-        <div className="card-left-frame">
-          <div className="card-checkbox"></div>
+        {/* CHECKBOX: Click here to toggle selection */}
+        <div 
+           className={`card-checkbox ${isSelected ? 'checked' : ''}`} 
+           onClick={onToggle}
+        >
+           {/* Only show checkmark if selected */}
+           {isSelected && <span className="checkmark">✔</span>}
+        </div>
+        
+        <div className="card-text-frame">
+          <h3 className="card-title" title={title}>{title}</h3>
           
-          <div className="card-text-frame">
-            {/* Title sits alone */}
-            <h3 className="card-title" title={title}>{title}</h3>
-            
-            {/* Group Date and Author together for tight 1px spacing */}
-            <div className="card-text-group">
-              <p className="card-date">Created on {createdDate}</p>
-              <p className="card-author">By {author}</p>
-            </div>
+          <div className="card-text-group">
+            <p className="card-date">Created on {createdDate}</p>
+            <p className="card-author">By {author}</p>
           </div>
         </div>
-
-        {/* Right Frame: Menu + Button */}
-        <div className="card-right-frame">
-          <div className="card-menu-icon" onClick={(e) => e.preventDefault()}>
-             <MoreVerticalIcon />
-          </div>
-          
-          <div className="card-join-btn">
-            <span>Join</span>
-            <ArrowRightIcon />
-          </div>
-        </div>
-
       </div>
-    </Link>
+
+      {/* RIGHT FRAME: Menu + Join Button */}
+      <div className="card-right-frame">
+        <div className="card-menu-icon">
+             <MoreVerticalIcon />
+        </div>
+        
+        {/* JOIN BUTTON: This is the ONLY link. Clicking here goes to details. */}
+        <Link to={id.toString()} className="card-join-btn">
+          <span>Join</span>
+          <ArrowRightIcon />
+        </Link>
+      </div>
+
+    </div>
   );
 }
 

@@ -1,0 +1,203 @@
+/* =========================================
+   SCENARIO LIST GRID (Cleaned Up)
+   ========================================= */
+.scenario-list-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap; /* Essential for grid behavior */
+  align-items: flex-start;
+  padding: 0px;
+  width: 1024px; /* Exact Frame Width */
+  gap: 8px;      /* Gap between cards */
+}
+
+/* =========================================
+   SCENARIO CARD (Your Exact Layout)
+   ========================================= */
+
+.scenario-card {
+  /* --- EXACT SPECS --- */
+  width: 336px;
+  height: 94px;
+  
+  /* Border */
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  
+  /* Padding */
+  padding: 16px 15px;
+  box-sizing: border-box; 
+  
+  /* Layout */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  
+  /* Appearance */
+  background: #FFFFFF;
+  opacity: 1;
+  transition: all 0.2s ease;
+  
+  /* Ensure it doesn't grow or shrink in the grid */
+  flex: none; 
+  flex-grow: 0; 
+}
+
+/* Hover Effect */
+.scenario-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* --- OPTIONAL: Selected State Style (Orange Border) --- */
+.scenario-card.selected-card {
+    border: 1px solid #F5A623; 
+    background-color: #fffbf5; /* Very subtle orange tint */
+}
+
+/* --- LEFT SIDE --- */
+.card-left-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  width: 174px;
+  height: 62px;
+}
+
+/* --- CHECKBOX (UPDATED LOGIC) --- */
+.card-checkbox {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  flex-shrink: 0;
+
+  /* NEW: Logic for clickability and centering checkmark */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* NEW: The Checked State (Matches your Orange Image) */
+.card-checkbox.checked {
+    background-color: #F5A623;
+    border-color: #F5A623;
+}
+
+/* NEW: The Checkmark Icon */
+.checkmark {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    user-select: none;
+}
+
+/* --- TEXT FRAMES (Unchanged) --- */
+.card-text-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  width: 142px;
+  height: 62px;
+  flex-shrink: 0;
+}
+
+.card-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+}
+
+.card-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  margin: 0; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.card-date, .card-author {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* --- RIGHT SIDE --- */
+.card-right-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 0px;
+  gap: 8px;
+  width: 87px;
+  height: 60px;
+}
+
+.card-menu-icon {
+  width: 20px;
+  height: 20px;
+  color: #375A89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* --- JOIN BUTTON (UPDATED LOGIC) --- */
+.card-join-btn {
+  /* Inherit Box Model from your CSS */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 6px;
+  width: 87px;
+  height: 32px;
+  background: #FAFAF9;
+  border-radius: 4px;
+  
+  /* Text Styles */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+
+  /* NEW: Necessary because this is now an <A> tag (Link) */
+  text-decoration: none; 
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.card-join-btn:hover {
+    background-color: #f0f0f0; /* Slight hover effect */
+}

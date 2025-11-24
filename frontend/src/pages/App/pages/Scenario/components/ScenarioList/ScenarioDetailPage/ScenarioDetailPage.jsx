@@ -1,61 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-// import axios from 'axios';
-import './ScenarioDetailPage.css'; // We'll create this CSS file
+import './ScenarioDetailPage.css'; 
 
 function ScenarioDetailPage() {
-  // Read both dynamic IDs from the URL
   const { fundId, scenarioId } = useParams();
-
-  // State to hold the specific scenario's data
   const [scenario, setScenario] = useState(null);
   const [activeTab, setActiveTab] = useState('portfolio');
 
-  // This hook fetches the specific scenario data when the component loads
   useEffect(() => {
     console.log(`Fetching data for Fund ID: ${fundId}, Scenario ID: ${scenarioId}`);
-    
-    // --- REAL API CALL (example) ---
-    // axios.get(`/api/funds/${fundId}/scenarios/${scenarioId}/`)
-    //   .then(response => {
-    //     setScenario(response.data);
-    //   })
-    //   .catch(error => console.error("Error fetching scenario:", error));
 
-    // --- SIMULATED API CALL (for now) ---
-    setScenario({
-      name: 'Scenario optimistic',
-      createdDate: '19.03.24',
-      author: 'Mathieu Rigot',
-      comment: 'For Quarter commity',
-    });
+    // 1. Define the same data source available in your ScenariosPage
+    // (In a real app, this would be a single API call to get one specific scenario)
+    const allScenarios = [
+        { id: 1, fundId: 1, title: "Asterium - Optimistic", createdDate: "19.03.24", author: "Mathieu Rigot", comment: "For Quarter commity" },
+        { id: 2, fundId: 1, title: "Asterium - Status Quo", createdDate: "12.04.25", author: "Yann Maurice", comment: "Standard projection" },
+        { id: 3, fundId: 2, title: "Lynx - Early Exit", createdDate: "08.04.25", author: "Mathieu Rigot", comment: "Aggressive strategy" },
+        { id: 4, fundId: 2, title: "Lynx - Secondary Sale", createdDate: "19.03.24", author: "Mathieu Rigot", comment: "Liquidity event" },
+        { id: 5, fundId: 1, title: "Scenario Expansion Round", createdDate: "19.03.24", author: "Mathieu Rigot", comment: "Growth phase" },
+        { id: 6, fundId: 1, title: "Scenario Strategic Acquisition", createdDate: "19.03.24", author: "Mathieu Rigot", comment: "M&A Target" }
+    ];
 
-  }, [fundId, scenarioId]); // Re-run if either ID changes
+    // 2. Find the specific scenario that matches the ID in the URL
+    // Note: scenarioId comes from the URL as a string, so we parseInt it.
+    const selectedScenario = allScenarios.find(s => s.id === parseInt(scenarioId));
 
-  // Show a loading state until the data is fetched
+    if (selectedScenario) {
+        setScenario(selectedScenario);
+    } else {
+        console.error("Scenario not found");
+    }
+
+  }, [fundId, scenarioId]); 
+
   if (!scenario) {
-    return <div>Loading scenario...</div>;
+    return <div>Loading scenario... (or Scenario not found)</div>;
   }
 
   return (
     <div className="scenario-detail-page">
       
-      {/* 1. Header Section */}
+      {/* Header Section */}
       <div className="detail-header">
-        {/* The "Back" link points to the specific fund's scenario list */}
         <Link to={`/funds/${fundId}/scenarios`} className="back-link">
           &larr; Back
         </Link>
         <div className="detail-title">
-          <h1>{scenario.name}</h1>
+          {/* Note: I changed scenario.name to scenario.title to match your data structure */}
+          <h1>{scenario.title}</h1> 
           <p>
             Created on: {scenario.createdDate} by {scenario.author}
-            <span>{scenario.comment}</span>
+            {scenario.comment && <span> • {scenario.comment}</span>}
           </p>
         </div>
       </div>
 
-      {/* 2. Tab Navigation */}
+      {/* Tab Navigation */}
       <nav className="detail-tabs">
         <button 
           className={activeTab === 'portfolio' ? 'active' : ''}
@@ -77,14 +77,10 @@ function ScenarioDetailPage() {
         </button>
       </nav>
 
-      {/* 3. Main Content Area */}
+      {/* Main Content Area */}
       <div className="detail-content">
-        {/* This is where you'll show the correct content based on the active tab.
-          You'll build these table components next.
-        */}
         {activeTab === 'portfolio' && (
           <div>
-            {/* <PortfolioTable /> Component will go here */}
             <h3>Realized portfolio (Table)</h3>
             <h3>Invested portfolio (Table)</h3>
           </div>
@@ -97,10 +93,9 @@ function ScenarioDetailPage() {
         )}
       </div>
 
-      {/* 4. Simulation Results (Side Panel) */}
+      {/* Side Panel */}
       <aside className="simulation-results">
         <h3>Simulation Results</h3>
-        {/* The content from the right-side panel goes here */}
       </aside>
 
     </div>
