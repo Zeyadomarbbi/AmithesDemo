@@ -16,10 +16,10 @@ function EditPanelHeader({ onClose }) {
 
       <div className="header-text-group">
         <div className="ht-title-row">
-          <h2 className="panel-title">Edit Admin</h2>
+          <h2 className="panel-title">Edit User</h2>
         </div>
         <p className="panel-description">
-          Update the administrator's information below.
+          Update the user's information below.
         </p>
       </div>
     </div>
