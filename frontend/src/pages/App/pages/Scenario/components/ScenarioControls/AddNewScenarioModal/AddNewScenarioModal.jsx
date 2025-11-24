@@ -8,9 +8,9 @@ import { CloseIcon } from '../Icons';
 // 'onClose' is a function we will pass from ScenariosPage
 function AddNewScenarioModal({ onClose }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay-add-scenario" onClick={onClose}>
       {/* Modal Content: Fixed 360px Width */}
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content-add-scenario" onClick={e => e.stopPropagation()}>
         
         {/* Header Frame (Close Btn) */}
         <div className="modal-header-frame">
@@ -27,7 +27,7 @@ function AddNewScenarioModal({ onClose }) {
             
             {/* Title */}
             <div className="modal-title-frame">
-              <h2 className="modal-title">Add a new scenario</h2>
+              <h2 className="modal-title-add-scenario">Add a new scenario</h2>
             </div>
 
             {/* Inputs Container */}

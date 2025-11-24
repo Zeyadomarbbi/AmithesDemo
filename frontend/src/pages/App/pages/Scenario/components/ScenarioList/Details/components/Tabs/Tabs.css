@@ -1,63 +1,84 @@
+/* Container */
 .tabs-frame {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  gap: 16px; 
-  
-  /* === CHANGE 3: Remove Layout Padding === */
-  padding: 0; /* It now aligns perfectly with the Header's 40px */
+  align-items: flex-end;
+  gap: 16px; /* Space between tabs */
   
   width: 100%;
   height: 32px;
   
-  /* === CHANGE 4: Remove Border === */
-  /* The Header parent now handles the border line. 
-     This prevents double borders. */
-  border-bottom: none; 
+  /* Align with Header padding */
+  
+  /* The gray line running across the screen */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5); 
   
   box-sizing: border-box;
 }
 
+/* Tab Button Default (Inactive) */
 .tab-item {
-  /* ... standard styles ... */
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 4px 12px; 
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  
+  /* Spacing */
+  padding: 0 4px 8px 4px; /* Padding bottom to lift text off the line */
+  height: 100%; 
+  
+  /* No background, no borders by default */
+  background: transparent;
+  border: none;
+  
+  /* We use border-bottom for the highlight, transparent by default */
+  border-bottom: 2px solid transparent; 
+  
+  cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #375A89;
+  color: #6B7280; /* Gray text */
   
-  /* The active border will still work and overlap the Parent's border */
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px; 
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  
+  /* Ensure it sits exactly on the line */
+  margin-bottom: -1px;
 }
 
-/* Icon Styling */
+/* Icon Default Color */
 .tab-item svg {
-  width: 16px;
-  height: 16px;
-  color: #7B7D7E; /* Grey default */
-  transition: color 0.2s;
+  color: #6B7280;
+  transition: color 0.2s ease;
 }
 
-/* Active State styling */
-.tab-item.active {
-  color: #375A89;
-  border-bottom: 2px solid #F7A93B;
-}
-
-.tab-item.active svg {
-  color: #F7A93B; /* Orange Icon */
-}
-
+/* Hover State */
 .tab-item:hover {
-  opacity: 0.8;
+  color: #375A89;
+}
+.tab-item:hover svg {
+  color: #375A89;
+}
+
+/* === ACTIVE STATE (Flat with Orange Line) === */
+.tab-item.active {
+  background: transparent; /* CRITICAL: Removes the white card background */
+  color: #375A89; /* Blue Text */
+  
+  /* The Orange Highlight */
+  border-bottom: 2px solid #F7A93B;
+  
+  /* Remove any card styling from previous versions */
+  box-shadow: none;
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+/* Active Icon Color */
+.tab-item.active svg {
+  color: #375A89; /* Blue Icon */
 }

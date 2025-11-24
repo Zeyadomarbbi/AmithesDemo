@@ -7,10 +7,6 @@ import Header from './Header/Header';
 // Renamed from RootLayout
 function AppLayout() {
   const location = useLocation();
-
-  // 2. Logic: Only show header if we are inside a specific fund
-  // This returns true for "/funds/1/dashboard"
-  // This returns false for "/admins", "/help", "/allfunds"
   const showHeader = location.pathname.startsWith('/funds/');
 
   return (

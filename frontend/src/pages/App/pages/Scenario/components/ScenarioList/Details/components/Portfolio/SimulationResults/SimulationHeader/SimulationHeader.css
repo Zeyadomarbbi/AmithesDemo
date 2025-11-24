@@ -1,0 +1,48 @@
+/* Frame 1261155364 */
+.sr-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 16px;
+  
+  width: fit-content; 
+  height: 32px;
+  
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+/* RENAMED: .featured-icon-box -> .sr-icon-box */
+.sr-icon-box {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  
+  /* Semi-transparent white (Glass effect) */
+  background: rgba(255, 255, 255, 0.4);
+  
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  border-radius: 8px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Simulation Results Text */
+.sr-title {
+  width: 188px; 
+  height: 27px;
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 27px;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
