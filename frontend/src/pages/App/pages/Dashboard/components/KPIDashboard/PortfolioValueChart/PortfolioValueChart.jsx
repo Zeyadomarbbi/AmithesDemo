@@ -22,9 +22,8 @@ function PortfolioValueChart() {
   const data = [
     /* 1. FIX: Add 'isHatched: true' here so the logic knows to use the pattern */
     { name: 'Portfolio\nInvestment Cost', value: 45, isHatched: true }, 
-    { name: 'Porfolio\nTotal Value', value: 65 },
+    { name: 'Porfolio\nTotal Value', value: 80 },
   ];
-
   return (
     <div className="card-chart-portfolio-value">
       <div className="fund-card-header">

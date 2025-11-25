@@ -1,16 +1,16 @@
 /* Full Screen Background */
 .login-page {
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  width: 100%;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  /* Fallback if image missing */
-  background-color: #F3F4F6; 
+  background-color: #F3F4F6;
   
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   font-family: 'Inter', sans-serif;
 }
 
@@ -20,11 +20,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 72px;
-  gap: 32px; /* Adjusted gap to look balanced */
-
-  width: 504px;
-  /* height: 608px; Allow height to fit content */
+  padding: 3rem 1.5rem;
+  gap: 2rem;
+  width: 100%;
+  max-width: 504px;
   
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(18px);
@@ -40,23 +39,21 @@
   flex-direction: column;
   align-items: center;
   padding: 0px;
-  gap: 16px;
-  width: 360px;
+  gap: 1rem;
+  width: 100%;
+  max-width: 360px;
 }
 
 .login-logo {
-  /* Adjust height/width based on your logo aspect ratio */
   height: 32px;
   width: auto;
-  /* If logo is white svg, invert it to dark. If it's already colored, remove filter. */
-  /* filter: invert(16%) sepia(31%) saturate(1046%) hue-rotate(178deg) brightness(96%) contrast(96%); */
 }
 
 .header-text-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   width: 100%;
 }
 
@@ -65,8 +62,8 @@
   font-family: 'Crimson Pro', serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 20px;
-  line-height: 22px;
+  font-size: clamp(18px, 5vw, 20px);
+  line-height: 1.1;
   text-align: center;
   color: #1C1917;
 }
@@ -76,8 +73,8 @@
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: clamp(13px, 3.5vw, 14px);
+  line-height: 1.4;
   text-align: center;
   color: #375A89;
 }
@@ -87,8 +84,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  width: 360px;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 360px;
 }
 
 .form-inputs-stack {
@@ -96,7 +94,7 @@
   flex-direction: column;
   align-items: flex-start;
   padding: 0px;
-  gap: 20px;
+  gap: 1.25rem;
   width: 100%;
 }
 
@@ -104,7 +102,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 0.375rem;
   width: 100%;
 }
 
@@ -112,15 +110,15 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 0.375rem;
   width: 100%;
 }
 
 .field-label {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: clamp(13px, 3.5vw, 14px);
+  line-height: 1.4;
   color: #375A89;
 }
 
@@ -129,9 +127,9 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   width: 100%;
-  height: 40px;
+  min-height: 40px;
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
@@ -143,7 +141,7 @@
   width: 100%;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 14px;
+  font-size: clamp(13px, 3.5vw, 14px);
   color: #1C1917;
 }
 
@@ -157,15 +155,17 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   width: 100%;
-  height: 20px;
+  min-height: 20px;
 }
 
 .checkbox-content {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .custom-checkbox {
@@ -173,23 +173,26 @@
   height: 16px;
   accent-color: #375A89;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .checkbox-label {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
+  font-size: clamp(12px, 3.5vw, 14px);
   color: #375A89;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .forgot-password-link {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
+  font-size: clamp(12px, 3.5vw, 14px);
   color: #375A89;
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
 }
 .forgot-password-link:hover {
   text-decoration: underline;
@@ -200,7 +203,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: 1rem;
   width: 100%;
 }
 
@@ -208,17 +211,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 10px 16px;
+  padding: 0.625rem 1rem;
   width: 100%;
-  height: 40px;
-  background: #F7A93B; /* Yellow/Orange */
+  min-height: 40px;
+  background: #F7A93B;
   border-radius: 4px;
   border: none;
   cursor: pointer;
   
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
+  font-size: clamp(13px, 3.5vw, 14px);
   color: #FFFFFF;
   transition: background 0.2s;
 }
@@ -233,14 +236,15 @@
   flex-direction: row;
   justify-content: center;
   align-items: baseline;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   width: 100%;
 }
 
 .signup-text {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 14px;
+  font-size: clamp(12px, 3.5vw, 14px);
   color: #7B7D7E;
 }
 
@@ -251,7 +255,34 @@
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
+  font-size: clamp(12px, 3.5vw, 14px);
   color: #375A89;
   text-decoration: underline;
-} 
+}
+
+/* Mobile Adjustments */
+@media (max-width: 576px) {
+  .login-card {
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+  }
+  
+  .remember-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .checkbox-label {
+    font-size: 13px;
+  }
+  
+  .forgot-password-link {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 375px) {
+  .login-card {
+    padding: 1.5rem 0.75rem;
+  }
+}

@@ -5,7 +5,7 @@
   align-items: center;
   gap: 16px; 
   
-  width: 1024px;
+  width: 100%;
   
   /* The Grey Separator Line */
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);

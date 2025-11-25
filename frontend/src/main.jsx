@@ -59,7 +59,9 @@ const router = createBrowserRouter([
               }
             ], 
           },
-          { path: 'portfolio', element: <PortfolioPage /> },
+          { path: 'portfolio', element: <PortfolioPage />, 
+            children: [{}],
+          },
           { path: 'lps-statement', element: <LPsStatementPage /> },
           { path: 'financials', element: <FinancialsPage /> },
         ]

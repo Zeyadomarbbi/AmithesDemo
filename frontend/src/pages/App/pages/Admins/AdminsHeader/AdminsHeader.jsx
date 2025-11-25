@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SearchBar from '../../../../../components/SearchBar'
 import { SearchIcon, PlusIcon } from '../Icons'; 
 import AddAdminPanel from './AddAdminPanel/AddAdminPanel'; // Import Panel here
 import './AdminsHeader.css';
@@ -18,10 +19,10 @@ function AdminsHeader() {
           <div className="search-icon-box">
             <SearchIcon width={16} />
           </div>
-          <input 
-            type="text" 
-            className="search-input" 
-            placeholder="Search" 
+          <SearchBar
+            placeholder="Search"
+            className="search-input"
+            onSearch={(value) => console.log(value)}
           />
         </div>
 

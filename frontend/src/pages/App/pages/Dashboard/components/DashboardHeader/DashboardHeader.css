@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 1024px;
+  width: 100%;
   /* Height can be auto to fit the text line-height */
   height: auto; 
   margin-bottom: 24px; /* Spacing below header */

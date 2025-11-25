@@ -4,7 +4,8 @@ import { Outlet, useLocation } from 'react-router-dom'; // 1. Import useLocation
 import SidePanel from './SidePanel/SidePanel';
 import Header from './Header/Header';
 
-// Renamed from RootLayout
+import './AppLayout.css';
+
 function AppLayout() {
   const location = useLocation();
   const showHeader = location.pathname.startsWith('/funds/');
@@ -14,10 +15,7 @@ function AppLayout() {
       <SidePanel />
       
       <div className="right-column">
-        
-        {/* 3. Conditional Rendering */}
         {showHeader && <Header />}
-
         <main className="main-content">
           <Outlet /> 
         </main>

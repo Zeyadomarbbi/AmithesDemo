@@ -8,39 +8,61 @@
   align-items: center;
   
   /* Dimensions & Spacing */
-  height: 69px;
-  padding: 0px 40px;
+  min-height: 69px;
+  padding: 1rem 2.5rem;
   box-sizing: border-box;
   
   /* Styling */
-  background: #FAFAF9; /* Off-white background from Figma */
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5); /* Semi-transparent grey border */
+  background: #FAFAF9;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
   
   /* Positioning in RootLayout */
   flex-shrink: 0;
   width: 100%;
 }
 
-/* This container mimics "Frame 1261155388" */
 .header-text-container {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .header-fund-name {
-  /* Typography from "Asterium Fund I" layer */
+  /* Typography */
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: clamp(12px, 3.5vw, 14px);
+  line-height: 1.4;
   letter-spacing: 0.01em;
   
   /* Color */
-  color: #375A89; /* The blue color from your design */
+  color: #375A89;
   
   display: flex;
   align-items: center;
+  
+  /* Prevent overflow */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .top-header {
+    padding: 0.75rem 1rem;
+    min-height: 56px;
+  }
+}
+
+@media (max-width: 576px) {
+  .top-header {
+    padding: 0.75rem 0.75rem;
+    min-height: 52px;
+  }
 }

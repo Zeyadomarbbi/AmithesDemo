@@ -15,8 +15,11 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@popperjs/core": "^2.11.8",
     "axios": "^1.13.2",
+    "bootstrap": "^5.3.8",
     "react": "^19.2.0",
+    "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
     "recharts": "^3.5.0"

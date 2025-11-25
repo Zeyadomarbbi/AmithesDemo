@@ -1,16 +1,20 @@
 .admins-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 32px 104px 48px;
-  gap: 22px;
+  gap: 1.375rem; /* 22px spacing between header and table */
+  padding: 2rem; /* consistent with DashboardPage */
   
-  /* Positioning */
-  position: absolute;
-  width: 1232px;
-  left: 280px; 
-  top: 0px;
-  
-  background: #FFFFFF;
+  width: 100%;
+  flex: 1;               /* fill all available space in main-content */
   box-sizing: border-box;
+  background: #FFFFFF;
+  min-height: 0;         /* ensures flex container allows scrolling of content */
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .admins-container {
+    padding: 1rem;
+    gap: 1rem;
+  }
 }
