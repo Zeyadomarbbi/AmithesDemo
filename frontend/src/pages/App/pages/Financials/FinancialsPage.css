@@ -1,0 +1,691 @@
+:root {
+  --bg-page: #ffffff;
+  --card-bg: #ffffff;
+  --border-soft: #e2e4ea;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --accent: #375a89;
+  --band-bg: #e4ebf6;
+  --band-border: #d5dcec;
+  --net-bg: #234f86;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+}
+
+/* ===== الصفحة العامة ===== */
+
+.financials-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+/* ===== الشريط العلوي ===== */
+
+.financials-topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+.fund-name {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+/* ===== المحتوى الرئيسي ===== */
+
+.financials-content {
+  width: 1232px;
+  margin: 69px auto 0 auto;
+  padding: 32px 104px 48px;
+  background: #ffffff;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ===== العنوان ===== */
+
+.financials-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 100%;
+  letter-spacing: 0;
+}
+
+/* ===== Tabs ===== */
+
+.financials-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.tab {
+  position: relative;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.tab.active {
+  color: var(--accent);
+}
+
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* ===== Toolbar (P&L) ===== */
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+
+.left-tools {
+  display: flex;
+  gap: 12px;
+}
+
+.right-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.timeframe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c1917;
+  cursor: pointer;
+}
+
+/* ===== أزرار Upload / Download ===== */
+
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f6f6f6;
+  font-size: 13px;
+  color: #1c1917;
+  cursor: pointer;
+}
+
+/* ===== أيقونات HeroIcons ===== */
+
+.icon-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-svg-muted {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.icon-svg.small {
+  width: 14px;
+  height: 14px;
+}
+
+.caret-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== الكارد الرئيسي (P&L و FX) ===== */
+
+.financials-card {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+/* ===== صفوف الجدول الأساسية (Grid) ===== */
+
+.table-header-row,
+.group-row,
+.detail-row,
+.net-row {
+  display: grid;
+  grid-template-columns: 2fr 1.8fr 1.5fr 1fr;
+  align-items: center;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+/* ===== Header (Q1) ===== */
+
+.table-header-row {
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+  color: var(--text-muted);
+  background: #f9fafb;
+}
+
+.col-label {
+}
+
+.col-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-label {
+  font-weight: 600;
+  color: #111827;
+}
+
+.col-action {
+  text-align: right;
+}
+
+/* ===== Income / Expenses / Tax rows ===== */
+
+.group-row {
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+}
+
+.group-row--band {
+  background: var(--band-bg);
+  border-top: 1px solid var(--band-border);
+  border-bottom: 1px solid var(--band-border);
+}
+
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #111827;
+}
+
+.group-toggle .sign {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #c4c9d9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  background: #ffffff;
+}
+
+.group-value {
+  text-align: left;
+  font-weight: 500;
+}
+
+.group-action-cell {
+  text-align: right;
+}
+
+.pill-btn {
+  border-radius: 6px;
+  border: 1px solid #cfe2ff;
+  background: #eef4ff;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #1d3f7f;
+  cursor: pointer;
+}
+
+/* ===== Detail rows ===== */
+
+.detail-row {
+  border-bottom: 1px solid var(--border-soft);
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.detail-label {
+  color: var(--text-main);
+}
+
+.detail-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* static-like boxes */
+
+.static-value {
+  background: #ffffff;
+  border: 1px solid #e2e4ea;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.edit-icon {
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+  margin-right: 4px;
+}
+
+/* grey input on the right */
+
+.amount-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e4ea;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.amount-input.grey {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.amount-input:focus {
+  outline: none;
+}
+
+/* Net row */
+
+.net-row {
+  background: var(--net-bg);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.net-value {
+  text-align: left;
+}
+
+.net-value.positive {
+  color: #c8f5d0;
+}
+
+.net-value.negative {
+  color: #ffd1cf;
+}
+
+/* ===== Portfolio FX header (placeholder) ===== */
+
+.limits-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.limits-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.limits-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ===== Limits (tab) ===== */
+
+.limits-section {
+  margin-top: 24px;
+}
+
+/* filters row: dropdowns + New limit */
+
+.limits-filters-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.limits-filters-left {
+  display: flex;
+  gap: 12px;
+}
+
+.dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 14px;
+  color: #1c1917;
+  cursor: pointer;
+}
+
+.new-limit-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* table */
+
+.limits-table-wrapper {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.limits-table th,
+.limits-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.limits-table thead th {
+  font-weight: 500;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.limits-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.col-name {
+  width: 22%;
+}
+
+.col-number {
+  width: 12%;
+  text-align: right;
+}
+
+/* sort indicator */
+
+.sort-indicator {
+  font-size: 11px;
+  margin-left: 4px;
+  color: #9ca3af;
+}
+
+/* name cell (سطرين: الاسم + Art 8.x) */
+
+.name-cell {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.name-main {
+  font-weight: 600;
+  color: #111827;
+}
+
+.name-sub {
+  font-size: 12px;
+  color: #2563eb;
+}
+
+/* breach red */
+
+.breach-red {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ===== Side panel: Adding a new limit ===== */
+
+.sidepanel-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.15);
+  z-index: 40;
+}
+
+.sidepanel {
+  width: 480px;
+  max-width: 100%;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -4px 0 16px rgba(15, 23, 42, 0.18);
+  padding: 24px 32px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidepanel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.sidepanel-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.sidepanel-back-btn,
+.sidepanel-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.sidepanel-back-btn .icon-svg,
+.sidepanel-close-btn .icon-svg {
+  width: 18px;
+  height: 18px;
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+.form-select .caret-icon {
+  color: #6b7280 !important;   /* رمادي غامق */
+  stroke: #6b7280 !important;
+  width: 16px;
+  height: 16px;
+  filter: none !important;
+}
+
+.sidepanel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidepanel-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2933;
+  margin: 0 0 4px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: #374151;
+}
+
+.required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.form-input,
+.form-textarea {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  /* إجبار ألوان فاتحة */
+  background: #ffffff;
+  color: #111827;
+}
+
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #375a89;
+  box-shadow: 0 0 0 1px rgba(55, 90, 137, 0.4);
+}
+
+.form-select {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 9px 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.form-divider {
+  margin: 16px 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 1280px) {
+  .financials-content {
+    width: 100%;
+    margin-top: 24px;
+    padding: 24px 16px 32px;
+  }
+}
+/* ===== Force HEROICONS to dark color ===== */
+
+.sidepanel .icon-svg,
+.sidepanel .caret-icon,
+.sidepanel .icon-svg-muted {
+  color: #1f2937 !important; /* أسود/رمادي غامق */
+  stroke: #1f2937 !important;
+}
+
+/* في باقي الصفحة برضو */
+.financials-page .icon-svg,
+.financials-page .caret-icon,
+.financials-page .icon-svg-muted {
+  color: #1f2937 !important;
+  stroke: #1f2937 !important;
+}
+
+/* لو فيه أي invert جاي من ثيم خارجي */
+.sidepanel svg,
+.financials-page svg {
+  filter: invert(0) !important;
+}
+/* Force sidepanel icons to black */
+.sidepanel-back-btn svg,
+.sidepanel-close-btn svg {
+  stroke: #111827 !important;
+  color: #111827 !important;
+  fill: none !important;
+  filter: none !important;
+}
+.sidepanel-back-btn svg *,
+.sidepanel-close-btn svg * {
+  stroke: #111827 !important;
+  color: #111827 !important;
+}
+.sidepanel-back-btn svg,
+.sidepanel-close-btn svg {
+  filter: invert(0) !important;
+}
