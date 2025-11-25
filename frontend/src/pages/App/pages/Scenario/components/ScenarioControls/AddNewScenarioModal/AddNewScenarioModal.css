@@ -1,0 +1,149 @@
+/* --- OVERLAY --- */
+.modal-overlay-add-scenario {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* --- MODAL CONTENT (360x351) --- */
+.modal-content-add-scenario {
+  width: 360px;
+  height: 351px;
+  
+  background: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* --- HEADER FRAME --- */
+.modal-header-frame {
+  width: 360px;
+  height: 41px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 13px 20px 0px 8px;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  /* Optional: shadow from figma code */
+  box-shadow: 0px -5px 10px rgba(0, 0, 0, 0.05); 
+  flex-shrink: 0;
+}
+
+.close-btn-wrapper {
+  width: 28px; height: 28px;
+  background: #FAFAF9; border-radius: 128px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.close-btn-wrapper:hover { background: #F0F0F0; }
+
+/* --- FRAME 1000007577 (Main Container for Body + Footer) --- */
+.frame-main {
+  width: 360px;
+  height: 310px; /* 351 total - 41 header */
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pushes footer to bottom of this frame */
+  align-items: center;
+  
+  /* Figma Padding: Top 8, Right 24, Bottom 16, Left (implied 24 to center 312) */
+  padding: 8px 24px 16px 24px; 
+  box-sizing: border-box;
+}
+
+/* --- FRAME 1261155204 (Body: Title + Inputs) --- */
+.frame-body {
+  width: 312px;
+  height: 216px;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Title */
+.modal-title-frame { width: 312px; height: 24px; }
+.modal-title-add-scenario {
+  font-family: 'Inter', sans-serif; font-weight: 600; font-size: 16px; line-height: 24px;
+  color: #1C1917; margin: 0;
+}
+
+/* Inputs Container */
+.modal-inputs-frame {
+  width: 312px;
+  height: 170px;
+  display: flex; flex-direction: column; gap: 14px;
+  align-items: center;
+}
+
+/* Input Group */
+.input-group {
+  width: 312px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.input-label {
+  /* Typography */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;        /* Medium */
+  font-style: normal;
+  font-size: 14px;         /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em;  /* 1% */
+  
+  /* --- THE FIX --- */
+  /* Use !important to force the Blue color over any global defaults */
+  color: #375A89 !important; 
+  
+  display: block;
+  margin-bottom: 0;
+}
+
+.input-field {
+  width: 312px; height: 40px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background: #FFFFFF; border: 1px solid rgba(204, 205, 206, 0.5); border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; color: #1C1917; outline: none;
+}
+
+.textarea-field {
+  width: 312px; height: 64px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background: #FFFFFF; border: 1px solid rgba(204, 205, 206, 0.5); border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; color: #1C1917; outline: none; resize: none;
+}
+
+/* --- FRAME 1261155202 (Footer Buttons) --- */
+.modal-footer-frame {
+  width: 312px;
+  height: 40px;
+  display: flex;
+  flex-direction: row;
+  gap: 13px;
+}
+
+.btn-cancel {
+  width: 149.5px; height: 40px;
+  background: #FAFAF9; border-radius: 4px; border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-weight: 500; font-size: 14px; color: #7B7D7E;
+  display: flex; justify-content: center; align-items: center;
+}
+
+.btn-save {
+  width: 149.5px; height: 40px;
+  background: #F7A93B; border-radius: 4px; border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-weight: 500; font-size: 14px; color: #FFFFFF;
+  display: flex; justify-content: center; align-items: center;
+}

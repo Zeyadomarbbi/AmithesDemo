@@ -1,0 +1,206 @@
+/* === DUPLICATE MODAL STYLES === */
+
+.dup-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Container */
+.dup-modal-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  position: relative;
+  width: 360px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+/* --- Close Row --- */
+.dup-modal-close-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 13px 20px 0px 8px;
+  gap: 8px;
+  width: 100%;
+  height: 41px;
+  background: #FFFFFF;
+  box-shadow: 0px -5px 10px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.dup-close-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  gap: 8px;
+  width: 28px;
+  height: 28px;
+  background: #FAFAF9;
+  border-radius: 128px;
+  border: none;
+  cursor: pointer;
+}
+
+/* --- Main Content --- */
+.dup-modal-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px 16px;
+  gap: 13px;
+  width: 100%;
+  height: 310px;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+/* --- Header & Inputs Wrapper --- */
+.dup-header-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 22px;
+  width: 312px;
+  height: 216px;
+}
+
+.dup-title {
+  width: 312px;
+  height: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+/* --- Inputs Group --- */
+.dup-inputs-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0px;
+  gap: 14px;
+  width: 312px;
+  height: 170px;
+}
+
+.dup-input-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 6px;
+  width: 312px;
+}
+
+.dup-input-field label {
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+/* Input Wrapper */
+.dup-input-wrapper {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  width: 312px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+.dup-input-wrapper input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #7B7D7E;
+}
+
+/* Textarea Variation */
+.dup-input-wrapper.textarea {
+  height: 64px;
+  align-items: flex-start;
+}
+
+.dup-input-wrapper.textarea textarea {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #7B7D7E;
+}
+
+/* --- Footer Buttons --- */
+.dup-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 13px;
+  width: 312px;
+  height: 40px;
+}
+
+.dup-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 6px;
+  width: 149.5px;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+}
+
+.dup-btn.cancel {
+  background: #FAFAF9;
+  color: #7B7D7E;
+}
+
+.dup-btn.save {
+  background: #F7A93B;
+  color: #FFFFFF;
+}

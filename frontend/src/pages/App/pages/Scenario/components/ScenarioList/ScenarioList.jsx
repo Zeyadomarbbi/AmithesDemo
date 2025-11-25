@@ -1,28 +1,31 @@
 import React from 'react';
-import ScenarioCard from './ScenarioCard'; // Import the card
-import './ScenarioList.css'; // Import the styles
+import ScenarioCard from './Cards/Cards'; // Updated import path
+import './ScenarioList.css';
 
-// The 'title' and 'scenarios' props are passed from ScenariosPage
-function ScenarioList({ title, scenarios }) {
+function ScenarioList({ title, scenarios, selectedIds, onToggleSelect }) {
   return (
-    <section className="scenario-list-section">
-      {/* The Section Header */}
-      <h2>{title} ({scenarios.length})</h2>
+    <div className="scenario-list-section">
+      <div className="list-header">
+        <span className="list-title">{title}</span>
+        <span className="list-count">{scenarios.length}</span>
+      </div>
 
-      {/* The grid/list of cards */}
       <div className="scenario-list-grid">
-        {/* Loop over the scenarios array and render a card for each one */}
         {scenarios.map(scenario => (
+          // NO LINK WRAPPER HERE. We pass the logic down.
           <ScenarioCard
-            key={scenario.id} // React needs a unique key
-            id={scenario.id}   // Pass the ID for the link
+            key={scenario.id}
+            id={scenario.id}
+            fundId={scenario.fundId} // Pass fundId for the link inside
             title={scenario.title}
             author={scenario.author}
             createdDate={scenario.createdDate}
+            isSelected={selectedIds.includes(scenario.id)}
+            onToggle={() => onToggleSelect(scenario.id)}
           />
         ))}
       </div>
-    </section>
+    </div>
   );
 }
 

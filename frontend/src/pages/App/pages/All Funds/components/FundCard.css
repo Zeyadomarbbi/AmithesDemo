@@ -1,0 +1,135 @@
+.fund-card {
+  box-sizing: border-box;
+  width: 330.67px;
+  height: 169px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 15px;
+  gap: 8px;
+
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.fund-card.clickable { cursor: pointer; }
+.fund-card.clickable:hover {
+  box-shadow: 0 6px 14px rgba(28, 25, 23, 0.08);
+  transform: translateY(-1px);
+}
+
+.fund-top {
+  width: 300.67px;
+  height: 73px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fund-left {
+  width: 122px;
+  height: 73px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.fund-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fund-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: #1c1917;
+  margin: 0;
+}
+
+.alert-dot {
+  width: 6px;
+  height: 6px;
+  background: #e11d48;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.fund-created {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.fund-badge {
+  height: 24px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.badge-info { background: #d3f2ff; color: #4c6977; }
+.badge-warn { background: #fef1bf; color: #854c0a; }
+.badge-success { background: #daf8e3; color: #1a6433; }
+
+.fund-arrow { width: 32px; height: 32px; display: flex; justify-content: center; }
+.arrow-circle {
+  width: 32px; height: 32px;
+  background: #fafaf9;
+  border-radius: 128px;
+  display: flex; align-items: center; justify-content: center;
+}
+.arrow-right {
+  width: 16px; height: 16px;
+  background: url("../../assets/arrow-right.svg") no-repeat center;
+  background-size: contain;
+}
+
+.fund-stats {
+  width: 300.67px;
+  height: 56px;
+  display: flex;
+  gap: 8px;
+}
+
+.stat-box {
+  width: 94.89px;
+  height: 56px;
+  background: #fafaf9;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.stat-value {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}

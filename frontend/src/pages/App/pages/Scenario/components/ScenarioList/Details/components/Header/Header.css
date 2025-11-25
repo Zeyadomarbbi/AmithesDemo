@@ -1,0 +1,133 @@
+/* Container */
+.header-container {
+  position: absolute; 
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 113px;
+  z-index: 10; 
+  background: #FAFAF9;
+  padding: 0 40px; 
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+/* === SECTION 1: INFO === */
+.header-info-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 0 0 0; 
+  gap: 8px;
+  width: 100%;
+  height: 81px;
+  box-sizing: border-box;
+}
+
+/* --- Vertical Column --- */
+.header-titles-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 4px;
+  height: 52px;
+}
+
+/* --- 1. BACK BUTTON --- */
+.back-button-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 6px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.back-icon-box {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89;
+}
+
+.back-text {
+  width: 33px;
+  height: 20px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration-line: underline;
+  color: #375A89;
+}
+
+/* --- 2. TITLE ROW --- */
+.title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 24px; 
+  height: 28px;
+}
+
+/* Inner Group: Title + Meta + Edit */
+.title-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0px;
+  gap: 12px;
+}
+
+.scenario-title {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 28px;
+  color: #000000;
+  margin: 0;
+}
+
+.scenario-meta {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.edit-icon-box {
+  width: 16px;
+  height: 16px;
+  color: #375A89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Description */
+.scenario-desc {
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}

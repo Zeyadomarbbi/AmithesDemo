@@ -1,0 +1,341 @@
+/* =========================================================
+   CAPITAL FLOWS — styled to match lp-table layout/colors/fonts
+   Scope: ONLY CapitalFlows.jsx (cf-...)
+   ========================================================= */
+
+.cf-page{
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  font-family:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color:#1b2430;
+  background:transparent;
+}
+
+/* -----------------------------
+   Header row: Search + Breakdown
+   ----------------------------- */
+.cf-header-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin: 6px 0 14px;
+  /* **CRITICAL FIX:** Prevents row from expanding beyond parent width */
+  width: 100%; 
+}
+
+.cf-search-box{
+  position:relative;
+  height:40px;
+  width:280px;
+  padding:10px 16px;
+  border-radius:8px;
+  border:1px solid #dde3f2;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.cf-search-box .search-icon{
+  /* match your global search icon vibe */
+  font-size:14px;
+  color:#b7c0d8;
+  line-height:1;
+}
+
+.cf-search-box input{
+  height:100%;
+  width:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  font-family:"Inter", sans-serif;
+  font-weight:500;
+  font-size:13px;
+  line-height:20px;
+}
+
+.cf-search-box input::placeholder{ color:#9ca3af; }
+
+/* Breakdown group buttons */
+.cf-breakdown-group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.cf-breakdown-label{
+  font-size:13px;
+  color:#375A89;
+  font-weight:500;
+  margin-right:2px;
+}
+
+.cf-breakdown-btn{
+  border:1px solid #dde3f2;
+  background:#fff;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:500;
+  color:#172b57;
+  transition:.15s ease;
+}
+.cf-breakdown-btn:hover{ background:#f5f7fb; }
+.cf-breakdown-btn.active{
+  background:#eef1f6;
+  border-color:#dde3f2;
+  color:#172b57;
+  font-weight:600;
+}
+
+/* -----------------------------
+   Tabs row + New button
+   ----------------------------- */
+.cf-tabs-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.cf-operation-tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.cf-tab{
+  min-width:49px;
+  padding:2px 10px;
+  height:24px;
+  border-radius:999px;
+  border:1px solid #dde3f2;
+  background:#f1f3f8;
+  cursor:pointer;
+  font-family:"Inter", sans-serif;
+  font-weight:500;
+  font-size:12px;
+  line-height:16px;
+  color:#172b57;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  transition:.15s ease;
+}
+.cf-tab:hover{
+  background:#e7ebf5;
+  border-color:#c8d2ea;
+}
+.cf-tab.active{
+  background:#375A89;
+  border-color:#375A89;
+  color:#fff;
+  font-weight:600;
+}
+
+/* New capital call button = same primary style */
+.new-call-btn{
+  border-radius:8px;
+  border:none;
+  padding:8px 14px;
+  font-size:13px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#f6a623;
+  color:#111;
+  font-weight:600;
+  box-shadow:0 6px 10px rgba(246,166,35,.26);
+  transition:.15s ease;
+}
+.new-call-btn:hover{ transform:translateY(-1px); background:#ef9b12; }
+
+/* -----------------------------
+   Table wrapper
+   ----------------------------- */
+.cf-table-wrap{
+  margin-top:8px;
+  background:transparent;
+  border:none;
+  box-shadow:none;
+  overflow-x:auto;
+  width:100%;
+}
+
+/* Table itself — copied from lp-table */
+.cf-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+  width: 1200px;
+}
+
+/* Header cells */
+.cf-table thead th{
+  padding:12px 14px;
+  font-weight:600;
+  color:#212833;
+  border-bottom:1px solid #e6e9f1;
+  white-space:normal; /* Changed from nowrap */
+  background:transparent;
+  text-align:left;
+}
+
+/* Group header center */
+.cf-cost-breakdown-header{
+  text-align:center !important;
+}
+
+/* Body cells */
+.cf-table tbody td{
+  padding:14px 14px;
+  border-bottom:1px solid #edf0f7;
+  color:#2b2f38;
+  white-space:normal; /* Changed from nowrap */
+  vertical-align:middle;
+}
+
+/* Stripes exactly like lp-table */
+.cf-table tbody tr:nth-child(odd){ background:#ffffff; }
+.cf-table tbody tr:nth-child(even){ background:#f9fafc; }
+
+/* Your odd-row class still works (keeps same color) */
+.cf-table tbody tr.odd-row td{ background:#f9fafc; }
+
+/* Hover same as lp-table */
+.cf-table tbody tr:hover{ background:#eef3ff; }
+
+/* First row top border same vibe */
+.cf-table tbody tr:first-child td{
+  border-top:1px solid #edf0f7;
+}
+
+/* Align helpers */
+.cf-table .right{ text-align:right; }
+.cf-table .bold{ font-weight:600; }
+
+/* Sort icon next to header */
+.cf-table .sort-icon{
+  font-size:11px;
+  color:#6e7a92;
+  opacity:.7;
+  margin-left:6px;
+}
+
+/* Total row copied from lp-total-row */
+.cf-total-row td{
+  padding:10px 14px;
+  background:#254a7b !important;
+  color:#fff !important;
+  font-weight:700;
+  border:none !important;
+}
+
+/* -----------------------------
+   Modal (scoped)
+   ----------------------------- */
+.cf-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(13,24,48,.28);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s ease;
+}
+.cf-modal-backdrop.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.cf-modal{
+  width:430px;
+  max-width:95%;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 16px 40px rgba(9,17,44,.3);
+  padding:18px 24px 16px;
+  transform:translateY(10px);
+  opacity:0;
+  transition:.2s ease;
+}
+.cf-modal.open{
+  transform:translateY(0);
+  opacity:1;
+}
+
+.cf-modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+}
+.cf-modal-header h3{
+  font-size:18px;
+  margin:0;
+  font-weight:600;
+}
+
+.cf-icon-btn{
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-size:16px;
+  padding:4px;
+  color:#6e7a92;
+}
+.cf-icon-btn:hover{ color:#172b57; }
+
+.cf-modal-body{ padding-bottom:10px; }
+
+.cf-form-row{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-bottom:12px;
+}
+.cf-form-row label{
+  font-size:12px;
+  color:#5f6b82;
+  font-weight:600;
+}
+
+.cf-form-row input,
+.cf-form-row select{
+  border-radius:7px;
+  border:1px solid #e6e9f1;
+  padding:10px 12px;
+  font-size:13px;
+  outline:none;
+}
+
+.cf-modal-footer{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:12px;
+}
+
+.cf-secondary-btn{
+  border-radius:8px;
+  border:none;
+  padding:8px 14px;
+  font-size:13px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#eef1f6;
+  color:#172b57;
+  border:1px solid #dde3f2;
+}

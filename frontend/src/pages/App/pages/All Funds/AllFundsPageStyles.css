@@ -1,0 +1,208 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&display=swap");
+
+/* =========================
+   PAGE WRAPPER
+   gap: 22px
+   padding: 32px 104px 48px 104px
+   ✅ Shift page up a little -> padding-top lowered to 24px
+========================= */
+.allfunds-page {
+  font-family: "Inter", sans-serif;
+  color: #1c1917;
+  background: #ffffff;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  padding-top: 24px;
+  padding-right: 104px;
+  padding-bottom: 48px;
+  padding-left: 104px;
+}
+
+/* ===== Header ===== */
+.allfunds-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start; /* make sure everything starts from left */
+}
+
+/* Title typography (display-sm, medium, line-height 100%) */
+.allfunds-title {
+  font-family: "Crimson Pro", serif;
+  font-size: 24px;
+  line-height: 1;        /* 100% */
+  font-weight: 500;
+  letter-spacing: 0;
+  margin: 0;
+  color: #1c1917;
+
+  width: 109px;
+  height: 33px;
+
+  white-space: nowrap;   /* ✅ prevents All / funds splitting */
+}
+
+/* Tabs typography (text-sm medium, letter-spacing 1%) */
+.allfunds-tabs {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  margin-top: 2px;       /* ✅ tiny breathing room under title */
+}
+
+.tab-link {
+  color: #375a89;
+  text-decoration: none;
+  font-weight: 500;
+  position: relative;
+  padding-bottom: 6px;
+  cursor: pointer;
+}
+
+.tab-link.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 2px;
+  background: #f7a531;
+  border-radius: 2px;
+}
+
+.tabs-underline {
+  height: 1px;
+  width: 100%;
+  background: rgba(204, 205, 206, 0.5);
+  margin-top: 6px;
+}
+
+/* ===== Toolbar ===== */
+.allfunds-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* ✅ search left, button right */
+  gap: 22px;
+  width: 100%;                    /* ✅ ensures full row spacing */
+}
+
+/* Search bar (exact figma) */
+.search-box {
+  box-sizing: border-box;
+  width: 280px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  background: url("../../assets/search.svg") no-repeat center;
+  background-size: contain;
+  opacity: 0.9;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: #7b7d7e;
+}
+
+/* New fund button */
+.new-fund-btn {
+  box-sizing: border-box;
+  width: 120px;
+  height: 32px;
+
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 16px;
+
+  background: rgba(55, 90, 137, 0.2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  /* ✅ keep on right, BUT you can push it left with margin-right */
+  margin-left: auto;
+  margin-right: 0px;  /* change to 20px / 40px to push left */
+}
+
+.new-fund-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+  border-color: rgba(55, 90, 137, 0.35);
+}
+
+.plus-icon {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ===== Grid ===== */
+.funds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 330.67px);
+  gap: 16px;
+  align-items: start;  /* ✅ stops cards from stretching weirdly */
+}
+
+@media (max-width: 1200px) {
+  .funds-grid { grid-template-columns: repeat(2, 330.67px); }
+}
+@media (max-width: 820px) {
+  .funds-grid { grid-template-columns: 1fr; }
+}
+
+/* KPIs placeholder */
+.kpis-placeholder { margin-top: 0; }
+.kpis-box {
+  height: 220px;
+  border: 1px dashed rgba(204, 205, 206, 0.8);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #6b7280;
+  font-size: 14px;
+}

@@ -1,64 +1,53 @@
+/* =========================================
+   FRAME 4: Scenario Synthesis List
+   ========================================= */
 .synthesis-list-section {
-  margin-top: 32px; /* Add space above this section */
-}
-
-/* Use the same grid as the other list */
-.synthesis-list-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-/* Remove link styling */
-.synthesis-card-link {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Style for the card */
-.synthesis-card {
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  padding: 16px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s;
-  /* Make cards the same height */
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 14px;
+  
+  width: 1024px; /* Exact Frame Width */
+  flex: none;
+  order: 3; 
+  flex-grow: 0;
 }
 
-.synthesis-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.synthesis-card h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 1.1rem;
-  color: #1A202C;
-}
-
-.synthesis-card p {
-  font-size: 0.9rem;
-  color: #718096;
-  margin: 4px 0;
-  flex-grow: 1; /* Pushes the links to the bottom */
-}
-
-/* Styling for the blue links */
-.synthesis-card-links {
-  margin-top: 16px;
+/* --- HEADER --- */
+.list-header {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
   gap: 8px;
+  height: 24px;
 }
 
-.synthesis-link {
-  color: #3182CE; /* Blue color */
-  font-size: 0.9rem;
+.list-title {
+  height: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.list-count {
+  height: 24px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
   font-weight: 500;
-  background-color: #EBF8FF; /* Light blue background */
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-size: 16px;
+  line-height: 24px;
+  color: #375A89;
+}
+
+/* --- GRID --- */
+.synthesis-list-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 336px);
+  gap: 8px;
+  width: 100%;
 }

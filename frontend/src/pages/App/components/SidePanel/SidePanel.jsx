@@ -5,7 +5,8 @@ import { useActiveFund } from '../../hooks/useActiveFund';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
   LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
-  SettingsIcon, ChevronDownIcon, ProfileExpandIcon
+  SettingsIcon, ChevronDownIcon, ProfileExpandIcon,
+  SearchIcon
 } from '../Icons';
 
 import './SidePanel.css';
@@ -22,6 +23,8 @@ function SidePanel() {
     { id: 2, name: 'Lynx Capital II', code: 'LYN' },
     { id: 3, name: 'Orion Partners III', code: 'ORI' },
     { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
+    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
+    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
   ];
   const currentFund = funds.find(f => f.id.toString() === activeFundId.toString()) || funds[0];
   
@@ -30,18 +33,14 @@ function SidePanel() {
       
       {/* === FRAME 1: TOP SECTION === */}
       <div className="frame-1">
-        
         {/* 1. Logo */}
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
         </div>
-
         {/* 2. Frame 1_2 (Fund + Tabs + Line) */}
         <div className="frame-1-2">
-          
           <div className="fund-selector-container">
             <div className="fund-selector-button">
-              
               <div className="fund-info-section">
                 <span className="fund-name">{currentFund.name}</span>
                 
@@ -69,19 +68,38 @@ function SidePanel() {
             </div>
             
             {isFundSelectorOpen && (
-              <div className="fund-selector-dropdown">
-                <input type="text" placeholder="Search" className="dropdown-search" />
+              <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
+                
+                {/* 1. Search Bar */}
+                <div className="dropdown-search-container">
+                  <SearchIcon />
+                  <input type="text" placeholder="Search" className="dropdown-search-input" />
+                </div>
+
+                {/* 2. "See all funds" Link */}
+                <div className="dropdown-action-row">
+                  <Link to="/allfunds" className="see-all-funds-link">
+                    See all funds
+                  </Link>
+                </div>
+
+                {/* 3. Scrollable List */}
                 <div className="dropdown-scroll">
                   {funds.map(fund => (
-                    <Link
+                    <div
                       key={fund.id}
-                      to={`/funds/${fund.id}/${currentSection}`}
-                      className="dropdown-item"
-                      onClick={() => setIsFundSelectorOpen(false)}
+                      className="dropdown-item" // Outer container for layout/spacing only
+                      onClick={() => {
+                        navigate(`/funds/${fund.id}/${currentSection}`);
+                        setIsFundSelectorOpen(false);
+                      }}
                     >
-                      <span>{fund.name}</span> 
-                      <span className="fund-code">{fund.code}</span>
-                    </Link>
+                      {/* Inner container for the Visuals (Hover, Padding, Radius) */}
+                      <div className="dropdown-item-content">
+                        <span className="item-name">{fund.name}</span> 
+                        <span className="item-code">{fund.code}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -119,15 +137,17 @@ function SidePanel() {
       {/* This sits at the bottom, on top of the waves */}
       <div className="frame-3">
         <div className="footer-links">
-          <Link to="/allfunds" className="footer-item">
+          <NavLink to="/allfunds" className="footer-item">
               <AllFundsIcons /> <span>All funds</span>
-          </Link>
-          <Link to="/admins" className="footer-item">
+          </NavLink>
+          
+          <NavLink to="/admins" className="footer-item">
               <AdminsIcon /> <span>Admins</span>
-          </Link>
-          <Link to="/help" className="footer-item">
+          </NavLink>
+          
+          <NavLink to="/help" className="footer-item">
               <HelpIcon /> <span>Help</span>
-          </Link>
+          </NavLink>
         </div>
 
         <div className="user-profile">

@@ -17,7 +17,13 @@
 
 /* The content area scrolls independently */
 .main-content {
-  flex-grow: 1; /* Fills space below Header */
-  overflow-y: auto; /* Scrollbar appears ONLY here */
-  padding: 32px; /* Global padding for all pages */
+  flex-grow: 1; 
+  overflow-y: auto; 
+  
+  /* --- EXACT FIGMA PADDING --- */
+  /* Top: 32px | Right: 104px | Bottom: 48px | Left: 104px */
+  padding: 32px 104px 48px 104px;
+  
+  /* Background color (Light Grey from design) */
+  background-color: #FFFFFF; 
 }

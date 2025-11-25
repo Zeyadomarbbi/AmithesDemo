@@ -1,0 +1,31 @@
+/* ... Previous CSS ... */
+
+/* --- Left Column (Tables) --- */
+.portfolio-main-content {
+  flex-grow: 1;
+  padding: 24px 40px;
+  overflow-y: auto; 
+  
+  /* Removed fixed margin-right: 587px; now controlled via inline style */
+  
+  /* Push content down by Header Height (113px) */
+  margin-top: 113px; 
+
+  /* Ensure smooth transition of layout */
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Right Column (Simulation Results) --- */
+.portfolio-side-panel {
+  flex-shrink: 0;
+  /* Width is now controlled by the component's internal state/classes */
+  
+  position: fixed;
+  top: 113px; 
+  right: 0;
+  bottom: 0; 
+  
+  /* Allow scrolling INSIDE the panel if content is too tall */
+  overflow-y: auto; 
+  z-index: 5; 
+}

@@ -6,13 +6,14 @@ import './index.css';
 // --- AUTH ---
 import LoginPage from './pages/Auth/Login/LoginPage';
 
-// --- APP LAYOUT (Moved) ---
+// --- APP LAYOUT ---
 import AppLayout from './pages/App/components/AppLayout'; 
 
-// --- APP PAGES (Moved) ---
+// --- PAGES ---
 import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
-import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/ScenarioDetailPage/ScenarioDetailPage';
+import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
+import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
 import PortfolioPage from './pages/App/pages/Portfolio/PortfolioPage';
 import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
@@ -28,9 +29,8 @@ const router = createBrowserRouter([
   // === APP DOMAIN ===
   {
     path: '/', 
-    element: <AppLayout />, // Layout wraps both Funds and Global pages
+    element: <AppLayout />, 
     children: [
-      // 1. GLOBAL PAGES (No Fund ID in URL)
       { path: 'allfunds', element: <AllFundsPage /> },
       { path: 'admins', element: <AdminsPage /> },
       { path: 'help', element: <HelpPage /> },
@@ -41,9 +41,27 @@ const router = createBrowserRouter([
         children: [
           { path: 'settings', element: <SettingsPage /> },
           { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'scenarios', element: <ScenariosPage /> },
-          { path: 'scenarios/:scenarioId', element: <ScenarioDetailPage /> },
-          { path: 'portfolio', element: <PortfolioPage /> },
+          { path: 'dashboard/:tab?', element: <DashboardPage /> },
+          { path: 'dashboard/:tab/:quarter?', element: <DashboardPage /> },
+
+          // === 1. SCENARIOS LIST + DRAWER OVERLAY ===
+          { 
+            path: 'scenarios', 
+            element: <ScenariosPage />, 
+            children: [
+              { 
+                path: 'synthesis/:synthesisId', 
+                element: <SynthesisDetailsDrawer /> 
+              },
+              { 
+                path: ':scenarioId/:tab?', 
+                element: <ScenarioDetailPage /> 
+              }
+            ], 
+          },
+          { path: 'portfolio', element: <PortfolioPage />, 
+            children: [{}],
+          },
           { path: 'lps-statement', element: <LPsStatementPage /> },
           { path: 'financials', element: <FinancialsPage /> },
         ]
