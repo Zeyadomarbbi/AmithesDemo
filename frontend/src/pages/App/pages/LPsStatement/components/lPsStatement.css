@@ -1,0 +1,478 @@
+/* ============= PAGE & TITLE ============= */
+
+.lp-page {
+  width: 100%;
+}
+
+.lp-page-title {
+  font-family: "Crimson Pro", serif;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 100%;
+  color: #1c1917;
+  margin: 0 0 16px 0;
+}
+
+/* ============= TABS ============= */
+
+.lp-tabs-wrapper {
+  margin-bottom: 18px;
+}
+
+.lp-tabs {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid #e6e9f1;
+  padding-bottom: 4px;
+}
+
+.lp-tab {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 4px 12px;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.lp-tab:hover {
+  color: #2f4f7a;
+}
+
+.lp-tab-active {
+  color: #172b57;
+  font-weight: 600;
+}
+
+.lp-tab-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  background: #f7a93b;
+}
+
+/* ============= TOOLBAR (SEARCH + CHIPS + BUTTONS) ============= */
+
+.lp-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 14px;
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+/* left block: search with chips under it */
+.lp-toolbar-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* ============= SEARCH INPUT ============= */
+
+.search-input-wrapper {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+
+  width: 280px;       /* from your Figma */
+  height: 40px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+/* 🔴 remove icon – keep span but hide it so it doesn't mess layout */
+.search-icon {
+  display: none;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #1c1917;
+}
+
+.search-input::placeholder {
+  color: #7b7d7e;
+}
+
+/* ============= CLASS FILTER CHIPS (A1 / B / A2) ============= */
+
+.lp-class-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-chip {
+  min-width: 65px;
+  padding: 4px 12px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid #dde3f2;
+  background: #f3f4f6;
+  cursor: pointer;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.lp-chip:hover {
+  background: #e7ebf5;
+  border-color: #c8d2ea;
+}
+
+.lp-chip-active {
+  background: #375a89;
+  border-color: #375a89;
+  color: #ffffff;
+}
+
+/* ============= RIGHT SIDE BUTTONS ============= */
+
+.lp-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Add transfer – Button-sm from your Figma snippet */
+
+.btn-add-transfer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+
+  width: 140px;
+  height: 32px;
+  padding: 8px 16px;
+
+  background: #fafaf9;
+  border-radius: 4px;
+  border: none;
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #375a89;
+  cursor: pointer;
+}
+
+/* wrapper around the inline SVG icon */
+.icon-transfer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* make sure SVG has proper size */
+.icon-transfer svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* New LP button (light blue) */
+
+.btn-newlp {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+
+  width: 106px;
+  height: 32px;
+  padding: 8px 16px;
+
+  background: rgba(55, 90, 137, 0.2);
+  border-radius: 4px;
+  border: none;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #375a89;
+  cursor: pointer;
+}
+
+.btn-newlp:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+.btn-plus {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+/* ============= TAGS IN TABLE (Class A1 / B / A2) ============= */
+
+/* Figma-accurate small badges for class column */
+.tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 24px;
+  width: 65px;
+  padding: 4px 8px;
+  gap: 2px;
+  border-radius: 6px;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Class A1 */
+.tag-purple {
+  background: #f2e5ff;
+  color: #7d1ed7;
+}
+
+/* Class B */
+.tag-yellow {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Class A2 */
+.tag-green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ============= TABLE LAYOUT ============= */
+
+.lp-table-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* main table block */
+.lp-table-container {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e5e7eb;
+  overflow-x: auto;
+}
+
+/* table itself */
+.lp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+}
+
+.lp-table thead th {
+  padding: 12px 14px;
+  font-weight: 600;
+  color: #212833;
+  border-bottom: 1px solid #e6e9f1;
+  white-space: nowrap;
+  background: #f9fafb;
+}
+
+.th-left {
+  text-align: left;
+}
+
+.th-right {
+  text-align: right;
+}
+
+/* sort little chevron */
+.sort-icon {
+  display: inline-block;
+  width: 10px;
+  height: 12px;
+  margin-left: 4px;
+  position: relative;
+}
+
+.sort-icon::before,
+.sort-icon::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-left: 1.5px solid #375a89;
+  border-bottom: 1.5px solid #375a89;
+}
+
+/* up arrow */
+.sort-icon::before {
+  top: 1px;
+  left: 2px;
+  transform: rotate(135deg);
+}
+
+/* down arrow */
+.sort-icon::after {
+  bottom: 1px;
+  left: 2px;
+  transform: rotate(-45deg);
+}
+
+/* body rows */
+.lp-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.lp-table tbody tr:nth-child(even) {
+  background-color: #f9fafc;
+}
+
+.lp-table tbody tr:hover {
+  background-color: #eef3ff;
+}
+
+.lp-table tbody td {
+  padding: 14px 14px;
+  border-bottom: 1px solid #edf0f7;
+  color: #2b2f38;
+  white-space: nowrap;
+}
+
+.td-left {
+  text-align: left;
+}
+
+.td-right {
+  text-align: right;
+}
+
+/* clickable rows */
+.lp-row-clickable {
+  cursor: pointer;
+}
+
+/* LP avatar + name cell */
+.lp-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: #375a89;
+}
+
+.lp-name {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* total row */
+.lp-total-row td {
+  padding: 10px 14px;
+  background: #254a7b;
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+}
+
+/* side plus button on the right of table */
+.side-plus-btn {
+  margin-top: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  font-size: 18px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* ============= RESPONSIVE (keep page behaviour) ============= */
+
+@media (max-width: 960px) {
+  .lp-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lp-toolbar-right {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+
+  .lp-table-row {
+    flex-direction: column;
+  }
+
+  .side-plus-btn {
+    align-self: flex-end;
+  }
+}

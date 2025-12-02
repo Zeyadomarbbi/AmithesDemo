@@ -1,17 +1,27 @@
+// src/pages/App/pages/LPsStatement/components/LPDetailsDrawer.jsx
 import React from "react";
+import "./LPDetailsDrawer.css";
 
-const LPDetailsDrawer = ({ lp, open, onClose }) => {
-  if (!open) return null;       // <-- drawer only renders if open === true
-  if (!lp) return null;         // <-- drawer only renders if we have an LP selected
+const LPDetailsDrawer = ({ lp, open, onClose, onSave }) => {
+  if (!open) return null;
+  if (!lp) return null;
 
   const stopClick = (e) => e.stopPropagation();
+
+  const handleSave = () => {
+    // in the future you can pass edited values up here
+    if (onSave) onSave(lp);
+    onClose();
+  };
 
   return (
     <div className="drawer-backdrop" onClick={onClose}>
       <aside className="drawer lp-details-drawer" onClick={stopClick}>
-        {/* Header */}
-        <header className="drawer-header">
-          <button className="drawer-back-btn" onClick={onClose}>‹</button>
+        {/* HEADER */}
+        <header className="drawer-header lp-details-header">
+          <button className="drawer-back-btn" onClick={onClose}>
+            ‹
+          </button>
 
           <div className="lp-details-title">
             <div className="lp-details-name">{lp.name}</div>
@@ -20,12 +30,13 @@ const LPDetailsDrawer = ({ lp, open, onClose }) => {
             </div>
           </div>
 
-          <button className="icon-button" onClick={onClose}>✕</button>
+          <button className="icon-button" onClick={onClose}>
+            ✕
+          </button>
         </header>
 
-        {/* Content */}
-        <div className="drawer-content">
-
+        {/* CONTENT */}
+        <div className="drawer-content lp-details-content">
           {/* LP informations */}
           <section className="drawer-section">
             <h3 className="drawer-section-title">LP informations</h3>
@@ -117,7 +128,7 @@ const LPDetailsDrawer = ({ lp, open, onClose }) => {
                 <div>Currency</div>
                 <div>Commitment</div>
                 <div>Closing</div>
-                <div></div>
+                <div />
               </div>
 
               {(lp.sharesRows || [
@@ -144,8 +155,25 @@ const LPDetailsDrawer = ({ lp, open, onClose }) => {
               </button>
             </div>
           </section>
-
         </div>
+
+        {/* FOOTER (sticky at bottom) */}
+        <footer className="drawer-footer lp-details-footer">
+          <button
+            type="button"
+            className="btn-secondary-wide"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn-primary-wide"
+            onClick={handleSave}
+          >
+            Save
+          </button>
+        </footer>
       </aside>
     </div>
   );

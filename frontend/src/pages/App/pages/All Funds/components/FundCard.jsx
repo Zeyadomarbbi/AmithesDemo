@@ -9,16 +9,21 @@ export default function FundCard({ fund, clickable = false, onClick }) {
       ? "badge-success"
       : "badge-info";
 
+  const handleKeyDown = (e) => {
+    if (!clickable) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.();
+    }
+  };
+
   return (
     <div
       className={`fund-card ${clickable ? "clickable" : ""}`}
       onClick={clickable ? onClick : undefined}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (!clickable) return;
-        if (e.key === "Enter" || e.key === " ") onClick?.();
-      }}
+      onKeyDown={handleKeyDown}
     >
       <div className="fund-top">
         <div className="fund-left">
@@ -34,7 +39,22 @@ export default function FundCard({ fund, clickable = false, onClick }) {
 
         <div className="fund-arrow">
           <div className="arrow-circle">
-            <div className="arrow-right" />
+            {/* 🔹 Inline SVG so it always works */}
+            <svg
+              className="arrow-icon"
+              width="11"
+              height="11"
+              viewBox="0 0 11 11"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M4.86193 0.195262C5.12228 -0.0650874 5.54439 -0.0650874 5.80474 0.195262L10.4714 4.86193C10.7318 5.12228 10.7318 5.54439 10.4714 5.80474L5.80474 10.4714C5.54439 10.7318 5.12228 10.7318 4.86193 10.4714C4.60158 10.2111 4.60158 9.78895 4.86193 9.5286L8.39052 6H0.666667C0.298477 6 0 5.70152 0 5.33333C0 4.96514 0.298477 4.66667 0.666667 4.66667H8.39052L4.86193 1.13807C4.60158 0.877722 4.60158 0.455612 4.86193 0.195262Z"
+                fill="#375A89"
+              />
+            </svg>
           </div>
         </div>
       </div>

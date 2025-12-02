@@ -1,0 +1,373 @@
+/* =========================
+   OUTER WRAPPER
+   ========================= */
+
+/* This wrapper fills the width of the page and allows X scroll only for this block. */
+.op2-table-outer {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;    /* ✅ swipe left/right on small screens */
+  overflow-y: visible; /* ✅ vertical scroll is handled by the page, not trapped here */
+  padding-bottom: 8px; /* small spacing so scrollbar not glued */
+}
+
+/* =========================
+   INNER TABLE CONTAINER
+   ========================= */
+
+/* This is the actual “table”. It can be wider than viewport. */
+.op2-table-inner {
+  min-width: 1000px;   /* design width – adjust if you need wider */
+  max-width: 1200px;
+  margin: 0 auto;      /* center on large screens */
+
+  border-radius: 8px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #375a89;
+  color: #ffffff;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* header, body, footer */
+}
+
+/* =========================
+   TOP DARK HEADER
+   ========================= */
+
+.op2-head-row {
+  display: grid;
+  grid-template-columns: 2.1fr 5fr 1.7fr;
+  background: #12223d;
+  padding: 10px 20px 6px 20px;
+  column-gap: 12px;
+}
+
+.op2-head-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.op2-head-cell--eq,
+.op2-head-cell--tot {
+  justify-content: flex-start;
+}
+
+.op2-head-plus {
+  margin-left: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* =========================
+   BODY: 3 COLUMNS
+   ========================= */
+
+.op2-body-row {
+  display: grid;
+  grid-template-columns: 2.1fr 5fr 1.7fr;
+  min-height: 320px;
+  background: #375a89;
+}
+
+/* ----- LEFT COLUMN (LPs + Equalization) ----- */
+
+.op2-left-col {
+  background: #fafaf9;
+  color: #1c1917;
+  border-right: 1px solid rgba(204, 205, 206, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.op2-lp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px 4px 16px;
+  font-size: 13px;
+  color: #1c1917;
+}
+
+.op2-lp-header-sort {
+  font-size: 13px;
+  color: #7b7d7e;
+}
+
+/* Equalization filter block */
+
+.op2-eq-filter {
+  padding: 4px 16px 8px 16px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  background: #fafaf9;
+}
+
+.op2-eq-filter-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.op2-eq-filter-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.op2-eq-filter-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.op2-input {
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #ffffff;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+  color: #1c1917;
+}
+
+.op2-input::placeholder {
+  color: #7b7d7e;
+}
+
+.op2-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+  color: #375a89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.op2-icon-btn--pencil {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+/* LP rows */
+
+.op2-lp-rows {
+  flex: 1;
+}
+
+.op2-lp-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 8px;
+  background: #fafaf9;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.op2-lp-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.op2-avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  border: 0.6px solid rgba(204, 205, 206, 0.5);
+  background: #fafaf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #375a89;
+}
+
+.op2-lp-name {
+  font-size: 14px;
+  color: #375a89;
+}
+
+.op2-lp-value {
+  font-size: 14px;
+  color: #1c1917;
+  text-align: right;
+}
+
+/* ----- MIDDLE COLUMN (big blue area + button) ----- */
+
+.op2-middle-col {
+  border-right: 1px solid rgba(204, 205, 206, 0.5);
+  background: rgba(55, 90, 137, 0.85);
+  display: flex;
+}
+
+.op2-middle-inner {
+  margin: auto;
+}
+
+.op2-add-flow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #375a89;
+  background: rgba(245, 250, 255, 0.4);
+  border-radius: 4px;
+  border: 1px dashed #9fb2d4;
+  cursor: pointer;
+}
+
+/* ----- RIGHT COLUMN (Call Amount) ----- */
+
+.op2-right-col {
+  background: #ffffff;
+  color: #1c1917;
+}
+
+.op2-callamount-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  font-size: 13px;
+}
+
+.op2-callamount-sort {
+  font-size: 13px;
+  color: #7b7d7e;
+}
+
+.op2-callamount-rows {
+  padding: 0 14px 0 14px;
+}
+
+.op2-callamount-row {
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  text-align: right;
+}
+
+/* =========================
+   FOOTER TOTALS
+   ========================= */
+
+.op2-footer-row {
+  display: grid;
+  grid-template-columns: 2.1fr 5fr 1.7fr;
+  background: #375a89;
+  padding: 8px 20px 10px 20px;
+  column-gap: 12px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.op2-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.op2-footer-total-label {
+  font-weight: 500;
+}
+
+.op2-footer-total-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1c1917;
+  min-width: 200px;
+  justify-content: space-between;
+}
+
+.op2-footer-euro {
+  font-weight: 500;
+  color: #375a89;
+}
+
+.op2-footer-dash {
+  color: #1c1917;
+}
+
+.op2-footer-percent {
+  font-size: 13px;
+}
+
+.op2-footer-middle,
+.op2-footer-right {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.op2-footer-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1c1917;
+}
+
+.op2-footer-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+.op2-footer-field .op2-footer-euro {
+  flex-shrink: 0;
+}
+
+/* =========================
+   RESPONSIVE TWEAKS
+   ========================= */
+
+@media (max-width: 768px) {
+  .op2-head-row {
+    padding: 8px 12px 6px 12px;
+  }
+
+  .op2-footer-row {
+    padding: 8px 12px 10px 12px;
+  }
+
+  .op2-head-cell,
+  .op2-callamount-header,
+  .op2-callamount-row,
+  .op2-lp-name,
+  .op2-lp-value {
+    font-size: 13px;
+  }
+}

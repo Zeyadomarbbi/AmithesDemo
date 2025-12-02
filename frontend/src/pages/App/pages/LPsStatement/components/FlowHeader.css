@@ -1,0 +1,63 @@
+/* Right-side container for the button */
+.cf-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Button like the design (no dropdown) */
+.cf-new-op-btn {
+  background: #f4a122;
+  color: #ffffff;
+  border: 1px solid #c27f12;
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  white-space: nowrap; /* keeps text on one line */
+}
+
+.cf-new-op-btn:hover {
+  background: #e69212;
+}
+
+/* ========================= */
+/*   RESPONSIVE BEHAVIOR     */
+/* ========================= */
+
+/* 📌 Tablets / small laptops */
+@media (max-width: 1024px) {
+  .cf-header {
+    justify-content: flex-start; /* button moves closer to filters */
+  }
+}
+
+/* 📌 Tablets + large phones (when cf-top-row becomes column) */
+@media (max-width: 768px) {
+  .cf-header {
+    width: 100%;
+    justify-content: flex-start; /* align with left edge */
+    margin-top: 8px;
+  }
+
+  .cf-new-op-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+  }
+}
+
+/* 📌 Small phones */
+@media (max-width: 480px) {
+  .cf-header {
+    justify-content: center; /* center the button on tiny screens */
+  }
+
+  .cf-new-op-btn {
+    width: 100%;          /* big full-width CTA */
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+}

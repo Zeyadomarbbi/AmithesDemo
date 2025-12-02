@@ -1,10 +1,12 @@
 // src/pages/App/pages/LPsStatement/components/LPsStatement.jsx
 import React from "react";
+import "./lPsStatement.css";
+
 import CapitalFlows from "./CapitalFlows.jsx";
-import "../LPsStatementPage.css"; // ✅ correct path (go up 1 folder)
+import CapitalAccountStatement from "./CapitalAccountStatement.jsx";
+import Limits from "./Limits.jsx";
 
-
-const MOCK_LPS = [
+export const INITIAL_LPS = [
   {
     initials: "AR",
     name: "Alice Right",
@@ -15,14 +17,6 @@ const MOCK_LPS = [
     ownership: "3.28%",
     firstClosing: "2 000 000",
     secondClosing: "2 000 000",
-    createdOn: "April 18, 2024",
-    address: "19 rue des Archives",
-    city: "Paris",
-    zip: "75003",
-    country: "France",
-    iban: "FR 3930 1234 5678 910",
-    bank: "BNP Paribas",
-    bic: "SWIFTXXX",
   },
   {
     initials: "AA",
@@ -81,9 +75,35 @@ const MOCK_LPS = [
   },
 ];
 
+/* -------- helpers -------- */
+function parseAmount(value) {
+  if (!value) return 0;
+  const cleaned = String(value).replace(/\s/g, "");
+  return Number(cleaned) || 0;
+}
+
+function parsePercent(value) {
+  if (!value) return 0;
+  const cleaned = String(value).replace("%", "");
+  return Number(cleaned) || 0;
+}
+
+function formatAmount(num) {
+  return (Number(num) || 0).toLocaleString("fr-FR");
+}
+
+function formatPercent(num) {
+  return `${(Number(num) || 0).toFixed(2)}%`;
+}
+
 const Sort = () => <span className="sort-icon" />;
 
+/* ====================================================== */
+/* =============== COMPONENT START ======================= */
+/* ====================================================== */
+
 export default function LPsStatement({
+  lps = INITIAL_LPS,
   onOpenTransfer,
   onOpenNewLp,
   onOpenPeriod,
@@ -91,17 +111,67 @@ export default function LPsStatement({
 }) {
   const [activeTab, setActiveTab] = React.useState("register");
 
+  /* FILTER STATES */
+  const [activeClass, setActiveClass] = React.useState(""); // "" = All
+  const [searchTerm, setSearchTerm] = React.useState("");
+
+  /* FILTERED LP LIST */
+  const filteredLps = React.useMemo(() => {
+    let list = [...lps];
+
+    // CLASS FILTER
+    if (activeClass !== "") {
+      list = list.filter((lp) =>
+        lp.class.toLowerCase().includes(activeClass.toLowerCase())
+      );
+    }
+
+    // SEARCH FILTER
+    if (searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase();
+      list = list.filter((lp) => lp.name.toLowerCase().includes(term));
+    }
+
+    return list;
+  }, [lps, activeClass, searchTerm]);
+
+  /* TOTALS (based on filtered list) */
+  const totals = React.useMemo(() => {
+    let shares = 0,
+      commitment = 0,
+      ownership = 0,
+      first = 0,
+      second = 0;
+
+    filteredLps.forEach((lp) => {
+      shares += parseAmount(lp.shares);
+      commitment += parseAmount(lp.commitment);
+      ownership += parsePercent(lp.ownership);
+      first += parseAmount(lp.firstClosing);
+      second += parseAmount(lp.secondClosing);
+    });
+
+    return {
+      shares: formatAmount(shares),
+      commitment: formatAmount(commitment),
+      ownership: formatPercent(ownership),
+      firstClosing: formatAmount(first),
+      secondClosing: formatAmount(second),
+    };
+  }, [filteredLps]);
+
   return (
     <section className="lp-page">
       {/* TITLE */}
       <h1 className="lp-page-title">LPs Statement</h1>
 
       {/* TABS */}
-      {/* ✅ ONLY ADDITION: wrapper for full-width grey line + moving yellow underline */}
       <div className="lp-tabs-wrapper">
         <div className="lp-tabs">
           <button
-            className={`lp-tab ${activeTab === "register" ? "lp-tab-active" : ""}`}
+            className={`lp-tab ${
+              activeTab === "register" ? "lp-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("register")}
           >
             LPs Register
@@ -122,7 +192,9 @@ export default function LPsStatement({
           </button>
 
           <button
-            className={`lp-tab ${activeTab === "limits" ? "lp-tab-active" : ""}`}
+            className={`lp-tab ${
+              activeTab === "limits" ? "lp-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("limits")}
           >
             Limits
@@ -130,40 +202,95 @@ export default function LPsStatement({
         </div>
       </div>
 
-      {/* ========================== */}
-      {/* LP REGISTER PAGE (DEFAULT) */}
-      {/* ========================== */}
+      {/* REGISTER TAB */}
       {activeTab === "register" && (
         <>
           {/* SEARCH + CHIPS + BUTTONS */}
           <div className="lp-toolbar">
             <div className="lp-toolbar-left">
+              {/* SEARCH */}
               <div className="search-input-wrapper">
                 <span className="search-icon" />
                 <input
                   className="search-input"
                   placeholder="Search by LP..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
 
-              {/* ✅ YOUR CODE kept exactly */}
-              <div className="lp-class-filter chip-under-search">
-                <button className="lp-chip lp-chip-active">Class A1</button>
-                <button className="lp-chip">Class B</button>
-                <button className="lp-chip">Class A2</button>
+              {/* CLASS FILTER */}
+              <div className="lp-class-filter">
+                <button
+                  className={`lp-chip ${
+                    activeClass === "" ? "lp-chip-active" : ""
+                  }`}
+                  onClick={() => setActiveClass("")}
+                >
+                  All
+                </button>
+
+                <button
+                  className={`lp-chip ${
+                    activeClass === "A1" ? "lp-chip-active" : ""
+                  }`}
+                  onClick={() => setActiveClass("A1")}
+                >
+                  Class A1
+                </button>
+
+                <button
+                  className={`lp-chip ${
+                    activeClass === "B" ? "lp-chip-active" : ""
+                  }`}
+                  onClick={() => setActiveClass("B")}
+                >
+                  Class B
+                </button>
+
+                <button
+                  className={`lp-chip ${
+                    activeClass === "A2" ? "lp-chip-active" : ""
+                  }`}
+                  onClick={() => setActiveClass("A2")}
+                >
+                  Class A2
+                </button>
               </div>
             </div>
 
             <div className="lp-toolbar-right">
+              {/* Add transfer button with inline SVG icon */}
               <button
-                className="btn-secondary btn-transfer"
+                className="btn-add-transfer"
+                type="button"
                 onClick={onOpenTransfer}
               >
-                <span className="btn-transfer__icon" aria-hidden="true" />
+                <span className="icon-transfer">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 12 14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M8.19526 0.195262C8.45561 -0.0650874 8.87772 -0.0650874 9.13807 0.195262L11.8047 2.86193C12.0651 3.12228 12.0651 3.54439 11.8047 3.80474L9.13807 6.4714C8.87772 6.73175 8.45561 6.73175 8.19526 6.4714C7.93491 6.21105 7.93491 5.78894 8.19526 5.5286L9.72386 4H0.666667C0.298477 4 0 3.70152 0 3.33333C0 2.96514 0.298477 2.66667 0.666667 2.66667H9.72386L8.19526 1.13807C7.93491 0.877722 7.93491 0.455612 8.19526 0.195262ZM3.80474 6.86193C4.06509 7.12228 4.06509 7.54439 3.80474 7.80474L2.27614 9.33333H11.3333C11.7015 9.33333 12 9.63181 12 10C12 10.3682 11.7015 10.6667 11.3333 10.6667H2.27614L3.80474 12.1953C4.06509 12.4556 4.06509 12.8777 3.80474 13.1381C3.54439 13.3984 3.12228 13.3984 2.86193 13.1381L0.195262 10.4714C-0.0650874 10.2111 -0.0650874 9.78894 0.195262 9.5286L2.86193 6.86193C3.12228 6.60158 3.54439 6.60158 3.80474 6.86193Z"
+                      fill="#7B7D7E"
+                    />
+                  </svg>
+                </span>
                 Add transfer
               </button>
 
-              <button className="btn-newlp-grey" onClick={onOpenNewLp}>
+              {/* New LP button */}
+              <button
+                className="btn-newlp"
+                type="button"
+                onClick={onOpenNewLp}
+              >
                 <span className="btn-plus">+</span>
                 New LP
               </button>
@@ -176,18 +303,32 @@ export default function LPsStatement({
               <table className="lp-table">
                 <thead>
                   <tr>
-                    <th className="th-left">LPs <Sort /></th>
-                    <th className="th-left">Share class <Sort /></th>
-                    <th className="th-right">Nb of sh... <Sort /></th>
-                    <th className="th-right">Commitment (€) <Sort /></th>
-                    <th className="th-right">Ownership <Sort /></th>
-                    <th className="th-right">1st closing (€) <Sort /></th>
-                    <th className="th-right">2nd closing (€) <Sort /></th>
+                    <th className="th-left">
+                      LPs <Sort />
+                    </th>
+                    <th className="th-left">
+                      Share class <Sort />
+                    </th>
+                    <th className="th-right">
+                      Nb of sh... <Sort />
+                    </th>
+                    <th className="th-right">
+                      Commitment (€) <Sort />
+                    </th>
+                    <th className="th-right">
+                      Ownership <Sort />
+                    </th>
+                    <th className="th-right">
+                      1st closing (€) <Sort />
+                    </th>
+                    <th className="th-right">
+                      2nd closing (€) <Sort />
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {MOCK_LPS.map((lp) => (
+                  {filteredLps.map((lp) => (
                     <tr
                       key={lp.name}
                       className="lp-row-clickable"
@@ -199,7 +340,9 @@ export default function LPsStatement({
                       </td>
 
                       <td className="td-left">
-                        <span className={`tag ${lp.classColor}`}>{lp.class}</span>
+                        <span className={`tag ${lp.classColor}`}>
+                          {lp.class}
+                        </span>
                       </td>
 
                       <td className="td-right">{lp.shares}</td>
@@ -215,11 +358,11 @@ export default function LPsStatement({
                   <tr className="lp-total-row">
                     <td className="td-left">Total</td>
                     <td />
-                    <td className="td-right">61 000</td>
-                    <td className="td-right">61 000 000</td>
-                    <td className="td-right">100.00%</td>
-                    <td className="td-right">38 000 000</td>
-                    <td className="td-right">43 000 000</td>
+                    <td className="td-right">{totals.shares}</td>
+                    <td className="td-right">{totals.commitment}</td>
+                    <td className="td-right">{totals.ownership}</td>
+                    <td className="td-right">{totals.firstClosing}</td>
+                    <td className="td-right">{totals.secondClosing}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -236,12 +379,14 @@ export default function LPsStatement({
         </>
       )}
 
-      {/* =================== */}
-      {/* CAPITAL FLOWS PAGE */}
-      {/* =================== */}
+      {/* OTHER TABS */}
       {activeTab === "flows" && (
         <CapitalFlows onNewOperation={() => console.log("new operation")} />
       )}
+
+      {activeTab === "cas" && <CapitalAccountStatement />}
+
+      {activeTab === "limits" && <Limits />}
     </section>
   );
 }

@@ -1,64 +1,135 @@
+// src/pages/App/pages/All Funds/components/NewFundModal.jsx
 import React, { useState } from "react";
 import "./NewFundModal.css";
 
 export default function NewFundModal({ open, onClose, onCreate }) {
+  if (!open) return null;
+
+  // Local state for form fields
   const [legalName, setLegalName] = useState("");
   const [shortName, setShortName] = useState("");
   const [formationDate, setFormationDate] = useState("");
   const [currency, setCurrency] = useState("");
 
-  if (!open) return null;
+  const stopClick = (e) => e.stopPropagation();
+
+  const handleCreate = () => {
+    // ✅ build payload from fields (no silent return)
+    const payload = {
+      legalName: legalName.trim(),
+      shortName: shortName.trim(),
+      formationDate: formationDate.trim(),
+      currency,
+    };
+
+    if (onCreate) {
+      onCreate(payload);       // 🔥 this calls handleCreateFund in AllFundsPage
+    }
+
+    // reset fields
+    setLegalName("");
+    setShortName("");
+    setFormationDate("");
+    setCurrency("");
+
+    // close modal
+    if (onClose) onClose();
+  };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="close">
-          ×
-        </button>
+    <div className="nf-backdrop" onClick={onClose}>
+      <div className="nf-modal" onClick={stopClick}>
+        {/* HEADER */}
+        <div className="nf-header">
+          <h2 className="nf-title">Create new fund</h2>
+          <button
+            type="button"
+            className="nf-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
 
-        <h2 className="modal-title">Create new fund</h2>
+        {/* BODY */}
+        <div className="nf-body">
+          {/* Legal name */}
+          <div className="nf-field">
+            <label className="nf-label">
+              Legal name<span className="nf-required">*</span>
+            </label>
+            <input
+              className="nf-input"
+              placeholder="Asterium Fund I"
+              value={legalName}
+              onChange={(e) => setLegalName(e.target.value)}
+            />
+          </div>
 
-        <label className="modal-label">Legal name*</label>
-        <input
-          className="modal-input"
-          value={legalName}
-          onChange={(e) => setLegalName(e.target.value)}
-          placeholder="Asterium Fund I"
-        />
+          {/* Short name */}
+          <div className="nf-field">
+            <label className="nf-label">
+              Short name<span className="nf-required">*</span>
+            </label>
+            <input
+              className="nf-input"
+              placeholder="Please enter the acronym..."
+              value={shortName}
+              onChange={(e) => setShortName(e.target.value)}
+            />
+          </div>
 
-        <label className="modal-label">Short name*</label>
-        <input
-          className="modal-input"
-          value={shortName}
-          onChange={(e) => setShortName(e.target.value)}
-          placeholder="Please enter the acronym..."
-        />
+          {/* Formation date */}
+          <div className="nf-field">
+            <label className="nf-label">
+              Formation date<span className="nf-required">*</span>
+            </label>
+            <div className="nf-input-icon-wrapper">
+              <input
+                className="nf-input nf-input--with-icon"
+                placeholder="00/00/00"
+                value={formationDate}
+                onChange={(e) => setFormationDate(e.target.value)}
+              />
+              <span className="nf-icon-calendar" />
+            </div>
+          </div>
 
-        <label className="modal-label">Formation date*</label>
-        <input
-          className="modal-input"
-          value={formationDate}
-          onChange={(e) => setFormationDate(e.target.value)}
-          placeholder="00/00/00"
-        />
+          {/* Fund currency */}
+          <div className="nf-field">
+            <label className="nf-label">
+              Fund currency<span className="nf-required">*</span>
+            </label>
+            <div className="nf-select-wrapper">
+              <select
+                className="nf-input nf-select"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                <option value="">Please select a currency</option>
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+              </select>
+              <span className="nf-select-chevron" />
+            </div>
+          </div>
+        </div>
 
-        <label className="modal-label">Fund currency*</label>
-        <input
-          className="modal-input"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          placeholder="Please select a currency"
-        />
-
-        <div className="modal-actions">
-          <button className="modal-btn ghost" onClick={onClose}>
+        {/* FOOTER */}
+        <div className="nf-footer">
+          <button
+            type="button"
+            className="nf-btn nf-btn-secondary"
+            onClick={onClose}
+          >
             Cancel
           </button>
           <button
-            className="modal-btn primary"
-            onClick={() =>
-              onCreate?.({ legalName, shortName, formationDate, currency })
-            }
+            type="button"
+            className="nf-btn nf-btn-primary"
+            onClick={handleCreate}
           >
             Create
           </button>
