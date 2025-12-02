@@ -1,61 +1,61 @@
+/* ================================
+   WRAPPER
+   ================================ */
+
 .table-wrapper {
   width: 100%;
   padding-top: 10px;
+
+  /* ✅ allow horizontal scroll on smaller screens */
+  overflow-x: auto;
 }
 
-/* your typography EXACTLY */
+/* Force minimum width so table does NOT squish */
+.clean-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1050px; /* ⭐ keeps Figma column spacing */
+}
+
+/* ================================
+   TYPOGRAPHY (your exact styling)
+   ================================ */
+
 .clean-table td,
 .clean-table th {
   font-family: var(--font-body, "Inter", sans-serif);
   font-weight: 500;
-  font-size: 14px;        /* text-sm */
+  font-size: 14px; /* text-sm */
   line-height: 20px;
   letter-spacing: 0.01em; /* 1% */
+  white-space: nowrap;
 }
 
-/* no borders anywhere */
-.clean-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+/* ================================
+   HEADER
+   ================================ */
 
 .clean-table thead th {
   padding: 12px 6px;
   border: none;
   cursor: pointer;
   user-select: none;
-  white-space: nowrap;
 }
 
-.clean-table tbody td {
-  padding: 12px 6px;
-  border: none;
-  white-space: nowrap;
-}
+.th-left { text-align: left; }
+.th-right { text-align: right; }
+.th-center { text-align: center; }
 
-/* striped rows */
-.striped { background: #fafafa; }
-.clean-table tbody tr:hover { background: #f2f4f7; }
-
-/* alignment helpers */
-.th-left, .td-left { text-align: left; }
-.th-right, .td-right { text-align: right; }
-.th-center, .td-center { text-align: center; }
-
-/* fund cell */
-.fund-name { font-weight: 500; }
-.fund-year {
-  font-size: 12px;
-  color: #2563eb;
-  margin-top: 2px;
-}
-
-/* sort icon next to header */
+/* label + sort icon */
 .th-inner {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
+
+/* ================================
+   SORT ICON (your exact arrows)
+   ================================ */
 
 .sort-icon {
   display: inline-flex;
@@ -67,7 +67,7 @@
 .arrow {
   width: 0;
   height: 0;
-  opacity: 0.25;
+  opacity: 0.25; /* default opacity */
 }
 
 .arrow.up {
@@ -82,5 +82,84 @@
   border-top: 6px solid #111827;
 }
 
-.sort-icon.active .arrow { opacity: 0.6; }
-.arrow.on { opacity: 1; }
+.sort-icon.active .arrow {
+  opacity: 0.6; /* active column */
+}
+
+.arrow.on {
+  opacity: 1 !important; /* active + active direction */
+}
+
+/* ================================
+   BODY
+   ================================ */
+
+.clean-table tbody td {
+  padding: 12px 6px;
+  border: none;
+}
+
+.striped {
+  background: #fafafa;
+}
+
+.clean-table tbody tr:hover {
+  background: #f2f4f7;
+}
+
+/* alignment */
+.td-left { text-align: left; }
+.td-right { text-align: right; }
+.td-center { text-align: center; }
+
+/* fund = title + year */
+.fund-name {
+  font-weight: 500;
+}
+
+.fund-year {
+  font-size: 12px;
+  color: #2563eb;
+  margin-top: 2px;
+}
+
+/* ================================
+   RESPONSIVE BEHAVIOR
+   ================================ */
+
+/* large tablet & small laptop */
+@media (max-width: 1024px) {
+  .clean-table td,
+  .clean-table th {
+    font-size: 13px;
+    padding: 10px 6px;
+  }
+}
+
+/* tablets */
+@media (max-width: 768px) {
+  .table-wrapper {
+    overflow-x: auto; /* scroll horizontally */
+  }
+
+  .clean-table {
+    min-width: 900px; /* keep spacing readable */
+  }
+}
+
+/* phones */
+@media (max-width: 480px) {
+  .clean-table td,
+  .clean-table th {
+    font-size: 12px;
+    padding: 8px 4px;
+  }
+
+  .fund-name {
+    font-size: 12px;
+  }
+
+  .fund-year {
+    font-size: 11px;
+  }
+}

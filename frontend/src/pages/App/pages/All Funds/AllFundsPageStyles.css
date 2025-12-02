@@ -3,9 +3,6 @@
 
 /* =========================
    PAGE WRAPPER
-   gap: 22px
-   padding: 32px 104px 48px 104px
-   ✅ Shift page up a little -> padding-top lowered to 24px
 ========================= */
 .allfunds-page {
   font-family: "Inter", sans-serif;
@@ -16,10 +13,9 @@
   flex-direction: column;
   gap: 22px;
 
-  padding-top: 24px;
-  padding-right: 104px;
-  padding-bottom: 48px;
-  padding-left: 104px;
+  /* ✅ BIG SHIFT TO THE LEFT */
+  /* before: padding: 24px 104px 48px 104px; */
+  padding: 24px 96px 48px 40px;
 }
 
 /* ===== Header ===== */
@@ -27,44 +23,36 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-items: flex-start; /* make sure everything starts from left */
+  align-items: flex-start;
 }
 
-/* Title typography (display-sm, medium, line-height 100%) */
+/* Title */
 .allfunds-title {
   font-family: "Crimson Pro", serif;
   font-size: 24px;
-  line-height: 1;        /* 100% */
+  line-height: 1;
   font-weight: 500;
-  letter-spacing: 0;
   margin: 0;
   color: #1c1917;
-
   width: 109px;
   height: 33px;
-
-  white-space: nowrap;   /* ✅ prevents All / funds splitting */
+  white-space: nowrap;
 }
 
-/* Tabs typography (text-sm medium, letter-spacing 1%) */
+/* Tabs */
 .allfunds-tabs {
   display: flex;
   gap: 18px;
   align-items: center;
-
-  font-family: "Inter", sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
-
-  margin-top: 2px;       /* ✅ tiny breathing room under title */
+  margin-top: 2px;
 }
 
 .tab-link {
   color: #375a89;
-  text-decoration: none;
-  font-weight: 500;
   position: relative;
   padding-bottom: 6px;
   cursor: pointer;
@@ -92,12 +80,12 @@
 .allfunds-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* ✅ search left, button right */
+  justify-content: space-between;
   gap: 22px;
-  width: 100%;                    /* ✅ ensures full row spacing */
+  width: 100%;
 }
 
-/* Search bar (exact figma) */
+/* Search bar */
 .search-box {
   box-sizing: border-box;
   width: 280px;
@@ -106,7 +94,6 @@
   align-items: center;
   padding: 10px 16px;
   gap: 8px;
-
   background: #ffffff;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
@@ -125,7 +112,6 @@
   border: none;
   outline: none;
   width: 100%;
-
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
@@ -143,31 +129,22 @@
   box-sizing: border-box;
   width: 120px;
   height: 32px;
-
   display: inline-flex;
   justify-content: center;
   align-items: center;
   gap: 6px;
-
   padding: 8px 16px;
-
   background: rgba(55, 90, 137, 0.2);
   border: 1px solid transparent;
   border-radius: 8px;
-
-  font-family: "Inter", sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #375a89;
-
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
-
-  /* ✅ keep on right, BUT you can push it left with margin-right */
   margin-left: auto;
-  margin-right: 0px;  /* change to 20px / 40px to push left */
 }
 
 .new-fund-btn:hover {
@@ -180,29 +157,78 @@
   font-size: 14px;
 }
 
-/* ===== Grid ===== */
+/* ===== Grid (responsive) ===== */
 .funds-grid {
   display: grid;
-  grid-template-columns: repeat(3, 330.67px);
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: 16px;
-  align-items: start;  /* ✅ stops cards from stretching weirdly */
+  align-items: start;
 }
 
-@media (max-width: 1200px) {
-  .funds-grid { grid-template-columns: repeat(2, 330.67px); }
-}
-@media (max-width: 820px) {
-  .funds-grid { grid-template-columns: 1fr; }
+/* ===== Responsive layout ===== */
+
+@media (max-width: 1280px) {
+  .allfunds-page {
+    /* before: padding-left/right: 72px; */
+    padding: 24px 72px 48px 32px; /* left still smaller */
+  }
 }
 
-/* KPIs placeholder */
-.kpis-placeholder { margin-top: 0; }
-.kpis-box {
-  height: 220px;
-  border: 1px dashed rgba(204, 205, 206, 0.8);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  color: #6b7280;
-  font-size: 14px;
+@media (max-width: 1024px) {
+  .allfunds-page {
+    /* before: 40px / 40px */
+    padding: 24px 40px 40px 24px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .allfunds-toolbar {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .allfunds-page {
+    padding: 20px 16px 32px;
+    gap: 18px;
+  }
+
+  .allfunds-title {
+    font-size: 20px;
+  }
+
+  .allfunds-tabs {
+    font-size: 13px;
+    gap: 14px;
+  }
+
+  .allfunds-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .new-fund-btn {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .allfunds-title {
+    font-size: 18px;
+  }
+
+  .allfunds-tabs {
+    font-size: 12px;
+  }
+
+  .funds-grid {
+    gap: 12px;
+  }
 }

@@ -1,0 +1,94 @@
+.op1 {
+  max-width: 640px;
+}
+
+.op1-field {
+  margin-bottom: 18px;
+}
+
+.op1-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.op1-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid #d9dce1;
+  font-size: 14px;
+}
+
+/* operation type row */
+.op1-type-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* chips */
+.op1-type-chips {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.op1-type-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+  background: #f5f7fa;
+}
+
+/* colors when active */
+.op1-type-chip--blue.is-active {
+  background: #e1f1ff;
+  border-color: #78a9ff;
+  color: #224271;
+}
+
+.op1-type-chip--green.is-active {
+  background: #e3f8e5;
+  border-color: #8ad27c;
+  color: #244b1f;
+}
+
+/* fake dropdown on the right */
+.op1-type-select {
+  margin-left: auto;
+  padding: 8px 12px;
+  min-width: 200px;
+  border-radius: 4px;
+  border: 1px solid #d9dce1;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #3f4a5f;
+}
+
+.op1-select-arrow {
+  font-size: 10px;
+}
+
+/* notice/due dates side by side */
+.op1-row {
+  display: flex;
+  gap: 20px;
+}
+
+.op1-date-wrap {
+  position: relative;
+}
+
+.op1-date-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+}
