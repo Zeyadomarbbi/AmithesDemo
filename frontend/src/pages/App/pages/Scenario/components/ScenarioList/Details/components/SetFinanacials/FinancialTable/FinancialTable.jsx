@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './FinancialTable.css';
-// Assuming SortIcon is available in './Icons'
 import { SortIcon } from './Icons'; 
 
-// Function to safely parse a string value into a number (removes spaces, handles dashes)
 const parseValue = (value) => {
     if (!value) return 0;
     const cleanValue = String(value).replace(/ /g, '');
@@ -11,10 +9,10 @@ const parseValue = (value) => {
     return parseFloat(cleanValue) || 0;
 };
 
-// Initial data (Mocking the financial structure)
+// 1. UPDATE: Added hasExpand: true to Unrealized and Realized gain
 const initialRows = [
-    { label: 'Unrealized gain', type: 'data', v2024: '500 000', v2025: '10 500 000' },
-    { label: 'Realized gain', type: 'data', v2024: '-', v2025: '500 000' },
+    { label: 'Unrealized gain', type: 'data', hasExpand: true, v2024: '500 000', v2025: '10 500 000' },
+    { label: 'Realized gain', type: 'data', hasExpand: true, v2024: '-', v2025: '500 000' },
     { label: 'Other income', type: 'data', v2024: '-', v2025: '250 000' },
     { label: 'Total Income', type: 'total-band' },
     
@@ -43,14 +41,12 @@ const years = [
 ];
 
 const FinancialTable = ({ scenarioId }) => {
-    // 1. Initialize State and projected fields
     const [financialRows, setFinancialRows] = useState(() => {
         return initialRows.map(row => {
             const newRow = { ...row };
             if (row.type === 'data' || row.type === 'total-band') {
                 for (let year = 2024; year <= 2031; year++) {
                     const key = `v${year}`;
-                    // Initialize projected fields to an empty string if they don't exist
                     newRow[key] = row[key] || ''; 
                 }
             }
@@ -58,9 +54,8 @@ const FinancialTable = ({ scenarioId }) => {
         });
     });
 
-    // --- Calculation Helpers ---
+    // --- Logic Helpers ---
 
-    // Total Cumulated (Sum across all columns for a single row)
     const calculateRowTotal = (row) => {
         let sum = 0;
         years.forEach(({ year }) => {
@@ -70,7 +65,6 @@ const FinancialTable = ({ scenarioId }) => {
         return sum.toLocaleString('en-US');
     };
 
-    // Total Income/Expense (Sum down a column for grouped rows)
     const calculateColumnTotal = (yearKey, rowsToSum) => {
         let sum = 0;
         rowsToSum.forEach(row => {
@@ -80,140 +74,116 @@ const FinancialTable = ({ scenarioId }) => {
         return sum.toLocaleString('en-US');
     };
 
-    // Helper to get grouped rows (Income, Expense, Tax)
     const getGroupedRows = () => {
-        // Find indices of total rows for precise slicing
-        const incomeEndIndex = financialRows.findIndex(r => r.label === 'Total Income'); // 3
-        const expenseEndIndex = financialRows.findIndex(r => r.label === 'Total Expense'); // 10
-        const nwtIndex = financialRows.findIndex(r => r.label === 'NWT'); // 12
+        const incomeEndIndex = financialRows.findIndex(r => r.label === 'Total Income');
+        const expenseEndIndex = financialRows.findIndex(r => r.label === 'Total Expense');
+        const nwtIndex = financialRows.findIndex(r => r.label === 'NWT');
 
-        const incomeRows = financialRows.slice(0, incomeEndIndex); // Rows 0, 1, 2
-        const expenseRows = financialRows.slice(4, expenseEndIndex); // Rows 4-9
+        const incomeRows = financialRows.slice(0, incomeEndIndex);
+        const expenseRows = financialRows.slice(4, expenseEndIndex);
         const nwtRow = financialRows[nwtIndex]; 
         
         return { incomeRows, expenseRows, nwtRow };
     };
 
-    // --- State Update Handler ---
-
-    const handleProjectedChange = (e, rowIndex, year) => {
-        if (e.key === 'Enter') {
-            const newValue = e.target.value;
-            
-            const newRows = financialRows.map((row, i) => {
-                if (i === rowIndex) {
-                    return { ...row, [`v${year}`]: newValue };
-                }
-                return row;
-            });
-            setFinancialRows(newRows);
-            e.target.blur();
-        }
-    };
-
-    // Helper function to retrieve the year value (used for rendering data AND total calculation logic)
     const getYearValue = (row, year) => {
         const key = `v${year}`;
-        
-        // If it's a Total row, calculate the column sum instead of reading state directly
         if (row.type === 'total-band') {
             const { incomeRows, expenseRows, nwtRow } = getGroupedRows();
-            
             if (row.label === 'Total Income') return calculateColumnTotal(key, incomeRows);
             if (row.label === 'Total Expense') return calculateColumnTotal(key, expenseRows);
             if (row.label === 'Total Taxes') return calculateColumnTotal(key, [nwtRow]);
         }
-        
-        // Return stored state value for data rows
         return row[key] || '';
     };
 
-    // --- Render Logic ---
+    // --- Interaction Handlers ---
+
+    const handleProjectedChange = (e, rowIndex, year) => {
+        if (e.key === 'Enter') {
+            const newValue = e.target.value;
+            setFinancialRows(prev => prev.map((row, i) => 
+                i === rowIndex ? { ...row, [`v${year}`]: newValue } : row
+            ));
+            e.target.blur();
+        }
+    };
+
+    // 2. UPDATE: Function to simulate API call and autofill
+    const handleExpandClick = (rowIndex, label) => {
+        console.log(`Triggering auto-fill for ${label} (Row ${rowIndex}) with scenarioId: ${scenarioId}`);
+
+        // Placeholder: Generate random numbers to simulate fetched data
+        // In real implementation: const data = await api.getFinancialData(scenarioId, label);
+        const mockFetchedData = {
+            v2026: '120 000',
+            v2027: '130 000',
+            v2028: '140 000',
+            v2029: '150 000',
+            v2030: '160 000',
+            v2031: '170 000'
+        };
+
+        setFinancialRows(prevRows => prevRows.map((row, i) => {
+            if (i === rowIndex) {
+                // Merge existing row data with new mock data
+                return { ...row, ...mockFetchedData };
+            }
+            return row;
+        }));
+    };
 
     return (
         <div className="table-container">
             <table className="fin-table">
-              <thead>
-                <tr>
-                  {/* PnL Column */}
-                  <th className="col-pnl">
-                    <div className="th-wrapper pnl-wrapper">
-                      <span>PnL</span>
-                      <SortIcon className="sort-icon" />
-                    </div>
-                  </th>
-
-                  {/* Year Columns */}
-                  {years.map((y) => (
-                    <th key={y.year} className={`col-year ${y.type}`}>
-                      <div className="th-wrapper">
-                        <div className="header-content">
-                          {y.year}
-                          <span className="currency-indicator">(€)</span>
-                        </div>
-                        <SortIcon className="sort-icon" />
-                      </div>
-                    </th>
-                  ))}
-
-                  {/* Total Column */}
-                  <th className="col-total">
-                    <div className="th-wrapper">
-                      <div className="header-content">
-                          Total cumulated
-                          <span className="currency-indicator">(€)</span>
-                      </div>
-                      <SortIcon className="sort-icon" />
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-
+              {/* ... existing thead ... */}
                 <tbody>
                     {financialRows.map((row, index) => {
                         const isTotalRow = row.type === 'total-band';
                         const rowTotal = calculateRowTotal(row); 
                         
+                        // LOGIC: If row has expandable logic, it is read-only
+                        const isReadOnly = row.hasExpand; 
+
                         return (
                             <tr key={index} className={isTotalRow ? 'row-total' : 'row-standard'}>
-                                {/* 1. Label Column */}
                                 <td className="cell-label">
                                     {row.label}
-                                    {row.hasExpand && <span className="expand-icon">+</span>}
+                                    {row.hasExpand && (
+                                        <span 
+                                            className="expand-icon" 
+                                            style={{ cursor: 'pointer', marginLeft: '8px', fontWeight: 'bold' }}
+                                            onClick={() => handleExpandClick(index, row.label)}
+                                        >
+                                            +
+                                        </span>
+                                    )}
                                 </td>
 
-                                {/* 2. Dynamic Year Columns */}
                                 {years.map((y) => {
                                     const value = getYearValue(row, y.year);
                                     
                                     if (y.type === 'realized') {
-                                        return (
-                                            <td key={y.year} className="cell-realized">
-                                                {value}
-                                            </td>
-                                        );
+                                        return <td key={y.year} className="cell-realized">{value}</td>;
                                     } else {
-                                        // Projected Inputs or Projected Totals
-                                        if (isTotalRow) {
-                                            return <td key={y.year} className="cell-total-val">{value}</td>;
-                                        }
+                                        if (isTotalRow) return <td key={y.year} className="cell-total-val">{value}</td>;
                                         return (
                                             <td key={y.year} className="cell-projected">
                                                 <input 
-                                                    className="proj-input" 
-                                                    placeholder="ex : 100" 
+                                                    key={`${index}-${y.year}-${value}`} 
+                                                    // UPDATE: Add class for styling
+                                                    className={`proj-input ${isReadOnly ? 'input-disabled' : ''}`} 
+                                                    placeholder={isReadOnly ? '-' : "ex : 100"} 
                                                     defaultValue={value} 
+                                                    // UPDATE: Disable editing if read-only
+                                                    disabled={isReadOnly}
                                                     onKeyDown={(e) => handleProjectedChange(e, index, y.year)}
                                                 />
                                             </td>
                                         );
                                     }
                                 })}
-
-                                {/* 3. Total Column (Cumulative sum) */}
-                                <td className="cell-total-final">
-                                    {rowTotal}
-                                </td>
+                                <td className="cell-total-final">{rowTotal}</td>
                             </tr>
                         );
                     })}

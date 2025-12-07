@@ -4,3 +4,14 @@ export const SearchIcon = () => (
     </svg>
 );
 
+export const ChevronLeft = () => (
+    <svg width="7" height="12" viewBox="0 0 7 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5.83301 10.834L0.833008 5.83398L5.83301 0.833984" stroke="#344054" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+);
+
+export const ChevronRight = () => (
+    <svg width="7" height="12" viewBox="0 0 7 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0.833008 10.834L5.83301 5.83398L0.833008 0.833984" stroke="#344054" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+);
