@@ -5,7 +5,7 @@ import CapitalCallTable from './CapitalCallTable.svg';
 import { DownloadIcon, PlusIcon } from './Icons';
 import './FundFlows.css';
 
-function FundFlows() {
+function FundFlows({ scenarioId })  {
   const [activeView, setActiveView] = useState('control');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [operationType, setOperationType] = useState('call'); // 'call' or 'dist'

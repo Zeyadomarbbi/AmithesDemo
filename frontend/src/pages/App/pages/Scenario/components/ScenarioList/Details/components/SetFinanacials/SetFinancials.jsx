@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import MFTable from './MFTable.svg';
-import DFees from './DFees.svg'; 
-import RealizedTable from './RealizedTable.svg';
-import { DownloadIcon } from './Icons'; 
+import FinancialTable from './FinancialTable/FinancialTable';
 import './SetFinancials.css';
 
-function SetFinancials() {
+function SetFinancials({ scenarioId }) {
   const [activeTab, setActiveTab] = useState(null);
-
   const handleClose = () => setActiveTab(null);
 
   return (
@@ -31,56 +27,49 @@ function SetFinancials() {
         </div>
         <div className="fin-actions">
           <button className="action-btn btn-download">
-            <DownloadIcon width={20} />
             <span>Download</span>
           </button>
         </div>
       </div>
 
       {/* === DEFAULT CONTENT === */}
-      {/* Rendered when activeTab is NULL OR DILIGENCE (so it stays visible behind diligence) */}
       {activeTab !== 'management' && (
          <>
           <div className="fin-sub-toolbar">
-             <button className="sub-btn realized">Realized</button>
-             <button className="sub-btn projected">Projected</button>
+             {/* Text-only Legend */}
+             <div className="legend-wrapper">
+                <span className="legend-text realized">Realized</span>
+                <span className="legend-text projected">Projected</span>
+             </div>
            </div>
+           
            <div className="fin-content-wrapper">
-              <div className="table-image-wrapper">
-                 <img src={RealizedTable} alt="Realized Data Table" />
-              </div>
+              <FinancialTable scenarioId={scenarioId} />
            </div>
          </>
       )}
 
-      {/* === OVERLAY 1: MANAGEMENT FEES (Full Screen White Override) === */}
+      {/* === OVERLAY 1: MANAGEMENT FEES === */}
       {activeTab === 'management' && (
         <div className="fullscreen-overlay">
           <button className="overlay-floating-close" onClick={handleClose}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            X
           </button>
           <div className="overlay-content">
-            <img src={MFTable} alt="Management Fees Table" />
+            <div>Management Fees Data Placeholder</div>
           </div>
         </div>
       )}
 
-      {/* === OVERLAY 2: DUE DILIGENCE FEES (Dimmed Modal on Top) === */}
+      {/* === OVERLAY 2: DUE DILIGENCE FEES === */}
       {activeTab === 'diligence' && (
         <div className="modal-overlay">
           <button className="overlay-floating-close" onClick={handleClose}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            X
           </button>
           
-          {/* Content Container to center the SVG */}
-          <div style={{ position: 'relative', maxWidth: '80%' }}>
-            <img src={DFees} alt="Due Diligence Fees Table" style={{ display: 'block', maxWidth: '100%', borderRadius: '8px' }} />
+          <div style={{ position: 'relative', width: '80%', background: '#fff', padding: '20px', borderRadius: '8px' }}>
+            <div>Due Diligence Data Placeholder</div>
           </div>
         </div>
       )}
