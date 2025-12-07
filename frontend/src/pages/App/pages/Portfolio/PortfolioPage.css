@@ -48,10 +48,10 @@ body {
 
 .financials-title {
   font-family: "Times New Roman", Times, serif !important;
-  font-weight: 500 !important;     /* علشان يبقى Regular */
-  font-size: 32px;                 /* ده نفس حجم LPs Statement بالصورة، غيره لو محتاج */
+  font-weight: 500 !important;    
+  font-size: 32px;            
   line-height: 1.1;
-  color: #000000;                  /* نفس لون الصورة */
+  color: #000000;                  
   letter-spacing: 0.2px;           
 }
 
@@ -299,7 +299,6 @@ body {
   line-height: 1.2;
 }
 
-/* كان قبلها cursor pointer – دلوقتي مش مستخدمة في التاب */
 .name-main.link-like {
   color: #1d4ed8;
   cursor: default;
@@ -771,13 +770,11 @@ body {
   opacity: 1 !important;
 }
 
-/* حجم أصغر للسهام / الأيقونات الصغيرة */
 .portfolio-page .caret-icon {
   width: 14px;
   height: 14px;
 }
 
-/* أي svg جوه البيدج ما يتقلبش ولا يختفي */
 .portfolio-page svg {
   filter: none !important;
   color: #111827 !important;
@@ -792,15 +789,15 @@ body {
 
 /* Chrome, Edge, Safari */
 .portfolio-table-scroll::-webkit-scrollbar {
-  height: 0;       /* يخفي الاسكرول نهائيًا */
+  height: 0;       
 }
 
 /* Firefox */
 .portfolio-table-scroll {
-  scrollbar-width: none;  /* يخفي الاسكرول */
+  scrollbar-width: none;  
 }
 
-/* لأي عنصر يعمل scroll أفقي في صفحة ال compare */
+
 .compare-table-card::-webkit-scrollbar {
   height: 0;
 }
@@ -814,7 +811,6 @@ body {
   cursor: pointer;
 }
 
-/* الخلفية الرمادية */
 .compare-detail-overlay {
   position: fixed;
   inset: 0;
@@ -824,7 +820,6 @@ body {
   z-index: 40;
 }
 
-/* البانل نفسه */
 .compare-detail-panel {
   width: 720px;
   max-width: 100%;
@@ -1037,7 +1032,6 @@ body {
   border-bottom: none;
 }
 
-/* Inputs جوه الجدول */
 
 .flow-input {
   width: 100%;
@@ -1070,7 +1064,6 @@ body {
   gap: 6px;
 }
 
-/* New flow button */
 
 .new-flow-btn {
   margin-top: 10px;
@@ -1125,7 +1118,6 @@ body {
   cursor: pointer;
 }
 
-/* Responsive للبانل */
 
 @media (max-width: 900px) {
   .compare-detail-panel {
@@ -1316,7 +1308,6 @@ body {
   gap: 12px;
 }
 
-/* كارت التشارت */
 
 .fx-charts-card {
   border-radius: 8px;
@@ -1349,7 +1340,6 @@ body {
   color: #9ca3af;
 }
 
-/* جسم التشارت */
 
 .fx-charts-body {
   display: flex;
@@ -1357,7 +1347,6 @@ body {
   gap: 8px;
 }
 
-/* الـ area chart placeholder */
 
 .fx-charts-plot {
   height: 220px;
@@ -1371,7 +1360,6 @@ body {
   border: 1px solid #e5e7eb;
 }
 
-/* labels تحت التشارت */
 
 .fx-charts-xlabels {
   display: flex;
@@ -1381,7 +1369,6 @@ body {
   padding: 0 4px;
 }
 
-/* ريسبونسيف بسيط */
 
 @media (max-width: 900px) {
   .fx-charts-filters-row {

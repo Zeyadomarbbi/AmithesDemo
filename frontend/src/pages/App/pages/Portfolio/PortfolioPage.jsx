@@ -17,9 +17,8 @@ import {
 
 
 
-// ======== STATIC DATA (تتبدل بالـ DB بعدين) =========
 
-// Unrealized portfolio
+
 const UNREALIZED_ROWS = [
   {
     id: 1,
@@ -482,7 +481,6 @@ const Portfolio = () => {
   const [selectedCompareRow, setSelectedCompareRow] = useState(null); 
   const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);// "deals" | "portfolio" | "charts"
 
-  // ستايل إجباري للأيقونات علشان تبان مهما كان الثيم
   const iconStyle = {
     color: "#111827",
     stroke: "#111827",
