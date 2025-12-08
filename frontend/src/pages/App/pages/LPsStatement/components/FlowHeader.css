@@ -1,63 +1,84 @@
-/* Right-side container for the button */
+/* Container for breakdown + button, right aligned */
 .cf-header {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* row that holds "Breakdown :" and the pills */
+.cf-breakdown-row {
+  display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Button like the design (no dropdown) */
-.cf-new-op-btn {
-  background: #f4a122;
-  color: #ffffff;
-  border: 1px solid #c27f12;
-  padding: 8px 22px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+.cf-breakdown-label {
+  font-size: 12px;
+  color: #6b7280; /* grey label */
+}
+
+/* pill container */
+.cf-breakdown-chips {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f3f4f6; /* light grey pill background */
+}
+
+/* individual pill button */
+.cf-breakdown-chip {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #4b5563;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  white-space: nowrap; /* keeps text on one line */
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.cf-new-op-btn:hover {
-  background: #e69212;
+/* hover state */
+.cf-breakdown-chip:hover {
+  background: rgba(255, 255, 255, 0.7);
 }
 
-/* ========================= */
-/*   RESPONSIVE BEHAVIOR     */
-/* ========================= */
-
-/* 📌 Tablets / small laptops */
-@media (max-width: 1024px) {
-  .cf-header {
-    justify-content: flex-start; /* button moves closer to filters */
-  }
+/* active pill (selected) */
+.cf-breakdown-chip.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
 }
 
-/* 📌 Tablets + large phones (when cf-top-row becomes column) */
-@media (max-width: 768px) {
-  .cf-header {
-    width: 100%;
-    justify-content: flex-start; /* align with left edge */
-    margin-top: 8px;
-  }
-
-  .cf-new-op-btn {
-    padding: 8px 18px;
-    font-size: 13px;
-  }
+/* wrapper just for the button, keeps it on the right under pills */
+.cf-header-button-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
 }
 
-/* 📌 Small phones */
-@media (max-width: 480px) {
-  .cf-header {
-    justify-content: center; /* center the button on tiny screens */
-  }
+.cf-header .cf-new-op-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  .cf-new-op-btn {
-    width: 100%;          /* big full-width CTA */
-    text-align: center;
-    padding: 10px 0;
-    border-radius: 6px;
-    font-size: 13px;
-  }
+  padding: 8px 16px;
+  border-radius: 4px;
+
+  background: #f7a93b !important;   /* 🔶 main color */
+  color: #ffffff !important;
+  border: 1px solid #f7a93b !important;
+
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cf-header .cf-new-op-btn:hover {
+  background: #f59a1a !important;   /* a bit darker on hover */
+  box-shadow: 0 4px 8px rgba(245, 154, 26, 0.35);
 }

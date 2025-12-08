@@ -1,17 +1,32 @@
+// frontend/src/pages/App/pages/LPsStatement/components/NewOperation/AddFlowModal.jsx
 import React, { useState } from "react";
 import "./AddFlowModal.css";
 
-export default function AddFlowModal({ onClose }) {
+export default function AddFlowModal({ onClose, onSave }) {
   const [flowName, setFlowName] = useState("");
   const [flowType, setFlowType] = useState("Due diligence fees");
   const [alignAll, setAlignAll] = useState(false);
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave({
+        flowName: flowName.trim(),
+        flowType,
+        alignAll,
+      });
+    }
+    // close the modal after saving
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <div className="af-backdrop">
       <div className="af-modal">
         <div className="af-header">
           <h3 className="af-title">Add new flow</h3>
-          <button className="af-close" onClick={onClose}>
+          <button className="af-close" onClick={onClose} type="button">
             ×
           </button>
         </div>
@@ -46,12 +61,17 @@ export default function AddFlowModal({ onClose }) {
         </div>
 
         <div className="af-footer">
-          <button className="af-btn af-btn--secondary" onClick={onClose}>
+          <button
+            className="af-btn af-btn--secondary"
+            onClick={onClose}
+            type="button"
+          >
             Cancel
           </button>
           <button
             className="af-btn af-btn--primary"
-            onClick={onClose}
+            onClick={handleSave}
+            type="button"
           >
             Save
           </button>

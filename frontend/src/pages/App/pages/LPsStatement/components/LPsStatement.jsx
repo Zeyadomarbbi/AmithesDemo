@@ -260,7 +260,7 @@ export default function LPsStatement({
             </div>
 
             <div className="lp-toolbar-right">
-              {/* Add transfer button with inline SVG icon */}
+              {/* Add transfer button */}
               <button
                 className="btn-add-transfer"
                 type="button"
@@ -309,9 +309,7 @@ export default function LPsStatement({
                     <th className="th-left">
                       Share class <Sort />
                     </th>
-                    <th className="th-right">
-                      Nb of sh... <Sort />
-                    </th>
+                    {/* removed Nb of shares column */}
                     <th className="th-right">
                       Commitment (€) <Sort />
                     </th>
@@ -345,7 +343,7 @@ export default function LPsStatement({
                         </span>
                       </td>
 
-                      <td className="td-right">{lp.shares}</td>
+                      {/* removed nb of shares cell */}
                       <td className="td-right">{lp.commitment}</td>
                       <td className="td-right">{lp.ownership}</td>
                       <td className="td-right">{lp.firstClosing}</td>
@@ -358,7 +356,7 @@ export default function LPsStatement({
                   <tr className="lp-total-row">
                     <td className="td-left">Total</td>
                     <td />
-                    <td className="td-right">{totals.shares}</td>
+                    {/* removed totals.shares cell */}
                     <td className="td-right">{totals.commitment}</td>
                     <td className="td-right">{totals.ownership}</td>
                     <td className="td-right">{totals.firstClosing}</td>
@@ -380,9 +378,7 @@ export default function LPsStatement({
       )}
 
       {/* OTHER TABS */}
-      {activeTab === "flows" && (
-        <CapitalFlows onNewOperation={() => console.log("new operation")} />
-      )}
+      {activeTab === "flows" && <CapitalFlows />}
 
       {activeTab === "cas" && <CapitalAccountStatement />}
 

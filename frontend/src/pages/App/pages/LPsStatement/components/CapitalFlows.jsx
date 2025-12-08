@@ -15,6 +15,9 @@ export default function CapitalFlows() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
 
+  // 🔹 NEW: breakdown state (Operations / LPs / Share class)
+  const [breakdown, setBreakdown] = useState("operations");
+
   const handleNewOperation = () => {
     setWizardStep(1);
     setWizardOpen(true);
@@ -34,7 +37,7 @@ export default function CapitalFlows() {
 
   return (
     <div className="cf-page">
-      {/* row 1: search + chips (FlowFilters) */}
+      {/* row 1: search + chips */}
       <div className="cf-top-row">
         <FlowFilters
           operationFilter={operationFilter}
@@ -44,22 +47,33 @@ export default function CapitalFlows() {
         />
       </div>
 
-      {/* row 2: button alone, exactly above the table */}
+      {/* row 2: Breakdown + New operation button */}
       <div className="cf-header-row">
-        <FlowHeader onNewOperation={handleNewOperation} />
+        <FlowHeader
+          onNewOperation={handleNewOperation}
+          operationFilter={operationFilter}
+          breakdown={breakdown}
+          setBreakdown={setBreakdown}
+        />
       </div>
 
-      {/* row 3: table */}
-      <FlowTable operationFilter={operationFilter} search={search} />
+      {/* row 3: table – uses the SAME breakdown state */}
+      <FlowTable
+        operationFilter={operationFilter}
+        search={search}
+        breakdown={breakdown}
+      />
 
       {/* wizard modal */}
-      <OperationWizard
-        open={wizardOpen}
-        step={wizardStep}
-        onClose={handleCloseWizard}
-        onNext={handleNextStep}
-        onPrevious={handlePreviousStep}
-      />
+      {wizardOpen && (
+        <OperationWizard
+          open={true}
+          step={wizardStep}
+          onClose={handleCloseWizard}
+          onNext={handleNextStep}
+          onPrevious={handlePreviousStep}
+        />
+      )}
     </div>
   );
 }
