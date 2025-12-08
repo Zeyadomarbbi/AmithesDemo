@@ -1,0 +1,175 @@
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* Handles horizontal scroll if needed */
+  background: #fff;
+  border-radius: 8px;
+}
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px; 
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+.input-disabled {
+    background-color: #f5f5f5; /* Light gray background */
+    color: #888;               /* Gray text */
+    cursor: not-allowed;       /* Show blocked cursor */
+    border: 1px solid #e0e0e0;
+}
+/* --- HEADER --- */
+.fin-table thead th {
+  /* 1. Restore table-cell behavior so the row stays horizontal */
+  display: table-cell;
+  vertical-align: middle;
+  padding: 16px 12px;
+  border-bottom: 1px solid #E5E7EB;
+  color: #111827;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 2. Apply Flexbox to the inner wrapper instead */
+.th-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Right align by default */
+  width: 100%;
+}
+
+/* Specific alignment for the PnL column */
+.fin-table thead th.col-pnl {
+  text-align: left;
+  min-width: 180px;
+}
+
+/* Override wrapper alignment for PnL column */
+.th-wrapper.pnl-wrapper {
+  justify-content: flex-start; /* Align PnL to the left */
+  gap: 8px; /* Space between text and icon */
+}
+
+/* Header Content (Text + Currency) */
+.header-content {
+  display: flex;
+  align-items: center;
+}
+
+/* Sort Icon Styling */
+.sort-icon {
+  margin-left: 6px;
+  width: 14px; /* Ensure icon has a size */
+  height: 14px;
+}
+
+.col-year.projected {
+  color: #375A89;
+}
+
+.currency-indicator {
+  margin-left: 2px;
+  color: #9CA3AF;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* --- REST OF CSS (Body, Rows) REMAINS THE SAME --- */
+.fin-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+/* 2. Alternating Row Colors (Starting with Gray/Off-White) */
+.fin-table tbody tr {
+    /* Reset existing row backgrounds */
+    background: #FFFFFF; 
+}
+
+/* Apply background to the first (odd) rows, starting the sequence with gray */
+.fin-table tbody tr:nth-child(odd):not(.row-total) {
+    background: #FAFAF9; 
+}
+
+/* Apply white background to the second (even) rows */
+.fin-table tbody tr:nth-child(even):not(.row-total) {
+    background: #FFFFFF;
+}
+
+/* Ensure total rows retain the blue background */
+.row-total td {
+    background-color: #375A89 !important;
+}
+
+/* Label Column */
+.cell-label {
+  text-align: left;
+  color: #374151;
+  font-weight: 500;
+}
+
+.expand-icon {
+  color: #375A89;
+  font-weight: bold;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+/* Realized Data (Text) */
+.cell-realized {
+  text-align: right;
+  color: #111827;
+}
+
+/* Projected Data (Inputs) */
+.cell-projected {
+  text-align: center; /* Center input in cell */
+}
+
+.proj-input {
+  width: 100%;
+  max-width: 100px;
+  padding: 8px;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #111827;
+  text-align: right;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.proj-input:focus {
+  border-color: #375A89;
+}
+
+.proj-input::placeholder {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+/* Final Total Column */
+.cell-total-final {
+  text-align: right;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* --- TOTAL ROW BANDS (Blue) --- */
+.row-total td {
+  background-color: #375A89;
+  color: #FFFFFF !important;
+  border-bottom: none;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.row-total .cell-label, 
+.row-total .cell-realized, 
+.row-total .cell-total-val, 
+.row-total .cell-total-final {
+  color: #FFFFFF !important;
+  font-weight: 600;
+}

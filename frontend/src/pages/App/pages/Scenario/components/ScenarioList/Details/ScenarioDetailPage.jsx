@@ -41,9 +41,9 @@ function ScenarioDetailPage() {
           onBack={handleBack}
         />
         <div className="details-content-area">
-          {currentTab === 'portfolio' && <Portfolio />}
-          {currentTab === 'setfinancials' && <SetFinancials />}
-          {currentTab === 'fundflows' && <FundFlows />}
+          {currentTab === 'portfolio' && <Portfolio scenarioId={scenarioId} />}
+          {currentTab === 'setfinancials' && <SetFinancials scenarioId={scenarioId} />}
+          {currentTab === 'fundflows' && <FundFlows scenarioId={scenarioId} />}
         </div>
       </div>
     </div>
