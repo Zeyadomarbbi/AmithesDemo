@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+.all-ops-container {
+    position: relative;
+  width: 100%;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wrapper to handle horizontal scroll on mobile */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Ensure overflow doesn't cut off the popover if the table is wide enough */
+  overflow-y: visible; 
+  min-height: 400px; /* Optional: ensures space for popover if table has few rows */
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; 
+}
+
+/* --- Header Styles --- */
+.ops-table thead {
+  border-bottom: 2px solid #E5E7EB; 
+}
+
+.ops-table th {
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827; 
+  white-space: nowrap; 
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.th-content.right {
+  justify-content: flex-end;
+}
+
+.header-hint {
+  font-size: 12px;       
+  color: #7B7D7E;        
+  font-weight: 500;      
+  margin-left: 4px;      
+  margin-right: 2px;     
+}
+
+.th-left {
+  text-align: left;
+}
+
+.th-right {
+  text-align: right;
+}
+
+.sort-icon {
+  width: 14px;
+  height: 14px;
+  color: #3B82F6; 
+  flex-shrink: 0; 
+}
+
+/* --- Row Styles --- */
+.ops-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151; 
+  border-bottom: 1px solid #F3F4F6; 
+  vertical-align: middle;
+}
+
+.td-right {
+  text-align: right;
+}
+
+/* --- Zebra Striping --- */
+.ops-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.ops-table tbody tr:nth-child(even) {
+  background-color: #FAFAF9; 
+}
+
+/* --- Highlighted Row --- */
+.row-highlight {
+  background-color: #DDE5ED !important; 
+}
+
+.row-highlight td {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+/* --- Date Input Styles --- */
+.td-date {
+  width: 20%; 
+  min-width: 160px; 
+  /* Important: Allow popover to be visible */
+  overflow: visible; 
+}
+
+.date-input-wrapper {
+  position: relative; /* Anchor for the absolute popover */
+  width: 100%;
+}
+
+.date-input {
+  width: 100%;
+  padding: 8px 36px 8px 12px; 
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #64748B;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box; 
+  background-color: #ffffff; 
+}
+
+.date-input:focus {
+  border-color: #3B82F6;
+}
+
+.icon-wrapper {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none; 
+}
+
+.calendar-icon {
+  color: #375A89; 
+  opacity: 0.8;
+}
+
+
+/* --- NEW: Floating DatePicker Popover --- */
+.static-floating-picker {
+  position: absolute;
+  top: 60px;
+  
+  /* Move it closer to the left edge so it aligns nicely with the Date column */
+  left: 20px; 
+  
+  z-index: 1000;
+  
+  /* 1. Constraint the width to a standard calendar size */
+  width: 320px; 
+  
+  /* 2. Ensure height is determined by content only */
+  height: auto;
+}
+
+/* Style the internal container */
+.static-floating-picker .dp-container {
+  background: #FFFFFF;
+  box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid #E4E7EC;
+  border-radius: 8px;
+  
+  /* 3. Make sure the container fills the 320px wrapper, but not more */
+  width: 100%; 
+  height: auto;
+}

@@ -466,9 +466,12 @@ const FX_PORTFOLIO_TOTAL = {
 
 const Portfolio = () => {
   const [activeTab, setActiveTab] = useState("summary");
-  const [fxBreakdown, setFxBreakdown] = useState("deals");
-  const [selectedCompareRow, setSelectedCompareRow] = useState(null);
-  const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
+const [fxBreakdown, setFxBreakdown] = useState("deals");
+const [selectedCompareRow, setSelectedCompareRow] = useState(null);
+const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
+const [openTimeframeMenu, setOpenTimeframeMenu] = useState(null); // "limits" | "compare1" | "compare2" | null
+const [isNewLimitOpen, setIsNewLimitOpen] = useState(false);
+
 
   const iconStyle = {
     color: "#111827",
@@ -519,14 +522,36 @@ const Portfolio = () => {
         {activeTab === "summary" && (
           <div className="portfolio-toolbar">
             <div className="toolbar-left">
-              <button className="timeframe-btn">
-                <span>Q2 2024</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-            </div>
+  <div className="timeframe-dropdown">
+    <button
+      className="timeframe-btn"
+      onClick={() =>
+        setOpenTimeframeMenu(openTimeframeMenu === "summary" ? null : "summary")
+      }
+    >
+      <span>Q2 2024</span>
+      <ChevronDownIcon
+        className="icon-svg caret-icon"
+        style={smallIconStyle}
+      />
+    </button>
+
+    {openTimeframeMenu === "summary" && (
+      <div className="timeframe-menu">
+        <button className="timeframe-menu-item">
+          <span className="timeframe-menu-item-label">Q1 2024</span>
+          <span className="timeframe-menu-item-date">08/03/26</span>
+        </button>
+        <button className="timeframe-menu-item active">
+          <span className="timeframe-menu-item-label">Q2 2024</span>
+          <span className="timeframe-menu-item-date">08/07/26</span>
+        </button>
+        <button className="timeframe-menu-add">+ Add a new timeframe</button>
+      </div>
+    )}
+  </div>
+</div>
+
             <div className="toolbar-right">
               <button className="ghost-btn">
                 <ArrowDownTrayIcon className="icon-svg" style={iconStyle} />
@@ -1244,22 +1269,54 @@ const Portfolio = () => {
           <section className="limits-section">
             <div className="limits-filters-row">
               <div className="limits-filters-left">
-                <button className="dropdown-btn">
-                  <span>Q2 2024</span>
-                  <ChevronDownIcon
-                    className="icon-svg caret-icon"
-                    style={smallIconStyle}
-                  />
-                </button>
-                <button className="dropdown-btn">
-                  <span>Scenario Opti...</span>
-                  <ChevronDownIcon
-                    className="icon-svg caret-icon"
-                    style={smallIconStyle}
-                  />
-                </button>
-              </div>
-              <button className="new-limit-btn">+ New limit</button>
+  <div className="timeframe-dropdown">
+    <button
+      className="dropdown-btn"
+      onClick={() =>
+        setOpenTimeframeMenu(
+          openTimeframeMenu === "limits" ? null : "limits"
+        )
+      }
+    >
+      <span>Q2 2024</span>
+      <ChevronDownIcon
+        className="icon-svg caret-icon"
+        style={smallIconStyle}
+      />
+    </button>
+
+    {openTimeframeMenu === "limits" && (
+      <div className="timeframe-menu">
+        <button className="timeframe-menu-item">
+          <span className="timeframe-menu-item-label">Q1 2024</span>
+          <span className="timeframe-menu-item-date">08/03/26</span>
+        </button>
+        <button className="timeframe-menu-item active">
+          <span className="timeframe-menu-item-label">Q2 2024</span>
+          <span className="timeframe-menu-item-date">08/07/26</span>
+        </button>
+        <button className="timeframe-menu-add">
+          + Add a new timeframe
+        </button>
+      </div>
+    )}
+  </div>
+
+  <button className="dropdown-btn">
+    <span>Scenario Opti...</span>
+    <ChevronDownIcon
+      className="icon-svg caret-icon"
+      style={smallIconStyle}
+    />
+  </button>
+</div>
+
+<button
+  className="new-limit-btn"
+  onClick={() => setIsNewLimitOpen(true)}
+>
+  + New limit
+</button>
             </div>
 
             <div className="limits-table-wrapper">
@@ -1312,21 +1369,73 @@ const Portfolio = () => {
         {activeTab === "compare" && (
           <section className="compare-section">
             <div className="compare-timeframes-row">
-              <button className="dropdown-btn">
-                <span>Q2 2024</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-              <button className="dropdown-btn">
-                <span>Q2 2025</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-            </div>
+  <div className="timeframe-dropdown">
+    <button
+      className="dropdown-btn"
+      onClick={() =>
+        setOpenTimeframeMenu(
+          openTimeframeMenu === "compare1" ? null : "compare1"
+        )
+      }
+    >
+      <span>Q2 2024</span>
+      <ChevronDownIcon
+        className="icon-svg caret-icon"
+        style={smallIconStyle}
+      />
+    </button>
+
+    {openTimeframeMenu === "compare1" && (
+      <div className="timeframe-menu">
+        <button className="timeframe-menu-item">
+          <span className="timeframe-menu-item-label">Q1 2024</span>
+          <span className="timeframe-menu-item-date">08/03/26</span>
+        </button>
+        <button className="timeframe-menu-item active">
+          <span className="timeframe-menu-item-label">Q2 2024</span>
+          <span className="timeframe-menu-item-date">08/07/26</span>
+        </button>
+        <button className="timeframe-menu-add">
+          + Add a new timeframe
+        </button>
+      </div>
+    )}
+  </div>
+
+  <div className="timeframe-dropdown">
+    <button
+      className="dropdown-btn"
+      onClick={() =>
+        setOpenTimeframeMenu(
+          openTimeframeMenu === "compare2" ? null : "compare2"
+        )
+      }
+    >
+      <span>Q2 2025</span>
+      <ChevronDownIcon
+        className="icon-svg caret-icon"
+        style={smallIconStyle}
+      />
+    </button>
+
+    {openTimeframeMenu === "compare2" && (
+      <div className="timeframe-menu">
+        <button className="timeframe-menu-item">
+          <span className="timeframe-menu-item-label">Q1 2025</span>
+          <span className="timeframe-menu-item-date">08/03/27</span>
+        </button>
+        <button className="timeframe-menu-item active">
+          <span className="timeframe-menu-item-label">Q2 2025</span>
+          <span className="timeframe-menu-item-date">08/07/27</span>
+        </button>
+        <button className="timeframe-menu-add">
+          + Add a new timeframe
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
 
             <div className="portfolio-table-card compare-table-card">
               <div className="portfolio-table-scroll">
@@ -1711,6 +1820,132 @@ const Portfolio = () => {
             </aside>
           </div>
         )}
+      {isNewLimitOpen && (
+        <div
+          className="limit-panel-overlay"
+          onClick={() => setIsNewLimitOpen(false)}
+        >
+          <aside
+            className="limit-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="limit-panel-header">
+              <button
+                className="limit-back-btn"
+                onClick={() => setIsNewLimitOpen(false)}
+              >
+                <ArrowLeftIcon className="icon-svg" style={smallIconStyle} />
+              </button>
+
+              <div className="limit-panel-title-block">
+                <h2 className="limit-panel-title">Adding a new limit</h2>
+              </div>
+
+              <button
+                className="limit-close-btn"
+                onClick={() => setIsNewLimitOpen(false)}
+              >
+                <XMarkIcon className="icon-svg" style={smallIconStyle} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="limit-panel-body">
+              <h3 className="limit-section-title">General informations</h3>
+
+              <div className="limit-form">
+                {/* Name */}
+                <div className="limit-form-field">
+                  <label className="limit-form-label">Name*</label>
+                  <input
+                    className="limit-form-input"
+                    type="text"
+                    placeholder="Enter the name of the limit"
+                  />
+                </div>
+
+                {/* PPM reference */}
+                <div className="limit-form-field">
+                  <label className="limit-form-label">PPM reference</label>
+                  <input
+                    className="limit-form-input"
+                    type="text"
+                    placeholder="Enter the page or the article of the PPM"
+                  />
+                </div>
+
+                {/* Type of expense / Group of expense */}
+                <div className="limit-form-row">
+                  <div className="limit-form-field">
+                    <label className="limit-form-label">Type of expense</label>
+                    <button className="limit-form-select">
+                      <span>Select a type of expense</span>
+                      <ChevronDownIcon
+                        className="icon-svg caret-icon"
+                        style={smallIconStyle}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="limit-form-field">
+                    <label className="limit-form-label">Group of expense</label>
+                    <input
+                      className="limit-form-input"
+                      type="text"
+                      placeholder="Name of the group"
+                    />
+                  </div>
+                </div>
+
+                {/* Min/Max / Rate */}
+                <div className="limit-form-row">
+                  <div className="limit-form-field">
+                    <label className="limit-form-label">Min/Max*</label>
+                    <input
+                      className="limit-form-input"
+                      type="text"
+                      placeholder="Minimum or Maximum"
+                    />
+                  </div>
+
+                  <div className="limit-form-field">
+                    <label className="limit-form-label">Rate*</label>
+                    <input
+                      className="limit-form-input"
+                      type="text"
+                      placeholder="Please enter a percentage"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="limit-form-field">
+                  <label className="limit-form-label">
+                    Description as per PPM*
+                  </label>
+                  <textarea
+                    className="limit-form-textarea"
+                    placeholder="Please type the description here..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="limit-panel-footer">
+              <button
+                className="limit-footer-cancel"
+                onClick={() => setIsNewLimitOpen(false)}
+              >
+                Cancel
+              </button>
+              <button className="limit-footer-save">Save</button>
+            </div>
+          </aside>
+        </div>
+      )}
 
         {isNewInvestmentOpen && (
           <div
@@ -1812,5 +2047,4 @@ const Portfolio = () => {
     </div>
   );
 };
-
 export default Portfolio;

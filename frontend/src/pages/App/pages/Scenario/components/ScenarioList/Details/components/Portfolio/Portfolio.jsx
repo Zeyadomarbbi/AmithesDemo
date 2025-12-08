@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SimulationResults from './SimulationResults/SimulationResults';
 import './Portfolio.css';
 
-function Portfolio() {
+function Portfolio({ scenarioId })  {
   // RESTORED: Collapse state management
   const [isCollapsed, setIsCollapsed] = useState(false);
   

@@ -196,7 +196,8 @@
   background: #FFFFFF;
   border-radius: 8px;
   box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
+  height: auto;      /* Allow container to grow with the calendar */
+  overflow: visible;
 }
 
 /* --- Close Header Row --- */
@@ -240,6 +241,8 @@
   gap: 13px;
   width: 100%;
   background: #FFFFFF;
+  height: auto;
+  overflow: visible;
 }
 
 /* --- Header Group (Title) --- */
@@ -261,6 +264,45 @@
   line-height: 24px;
   color: #1C1917;
   margin: 0;
+}
+
+.modal-input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none; /* Let clicks pass through to the input wrapper */
+    display: flex;
+    align-items: center;
+    color: #375A89; /* Match your theme color */
+}
+
+/* Ensure the wrapper handles the absolute icon */
+.input-wrapper.date-picker-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Float the date picker above everything */
+.modal-datepicker-popover {
+    position: absolute; /* Floats out of the document flow */
+    left: 100%;         /* Anchors directly below the input field */
+    top: -80px; 
+    width: 100%;
+    margin-top: 8px;
+    margin-left: 16px;
+    z-index: 999;       /* Ensures it sits on top of the Amount field and Save button */
+}
+
+.modal-datepicker-popover .dp-container {
+    width: 100%;
+    max-width: none;
+    position: relative; /* Internal positioning */
+    background: #FFFFFF;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* Adds depth so it looks distinct from the background */
+    border: 1px solid #E4E7EC;
+    border-radius: 8px;
 }
 
 /* --- Toggles Row --- */
