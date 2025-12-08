@@ -48,11 +48,11 @@ body {
 
 .financials-title {
   font-family: "Times New Roman", Times, serif !important;
-  font-weight: 500 !important;    
-  font-size: 32px;            
+  font-weight: 500 !important;
+  font-size: 32px;
   line-height: 1.1;
-  color: #000000;                  
-  letter-spacing: 0.2px;           
+  color: #000000;
+  letter-spacing: 0.2px;
 }
 
 /* ===== Tabs ===== */
@@ -138,7 +138,7 @@ body {
   cursor: pointer;
 }
 
-/* Primary action (orange) */
+/* Primary action */
 
 .primary-btn {
   padding: 8px 16px;
@@ -286,7 +286,7 @@ body {
   color: #9ca3af;
 }
 
-/* Name cell (2 lines) */
+/* Name cell */
 
 .name-cell {
   padding-top: 8px;
@@ -359,7 +359,7 @@ body {
   background: transparent;
 }
 
-/* Total row (bottom blue bar) */
+/* Total row (bottom bar) */
 
 .portfolio-total-section {
   margin-top: 8px;
@@ -403,7 +403,7 @@ body {
 
 .fx-breakdown-pill.active {
   border-color: #d1d5db;
-  background: #f3f4f6; 
+  background: #f3f4f6;
   color: #111827;
 }
 
@@ -656,7 +656,7 @@ body {
   );
 }
 
-/* ===== Responsive ===== */
+/* ===== Responsive base ===== */
 
 @media (max-width: 1280px) {
   .portfolio-content {
@@ -757,7 +757,7 @@ body {
   }
 }
 
-/* ===== FORCE HEROICONS TO BE DARK & VISIBLE ===== */
+/* ===== Force Heroicons to be dark & visible ===== */
 
 .portfolio-page .icon-svg,
 .portfolio-page .caret-icon {
@@ -789,14 +789,13 @@ body {
 
 /* Chrome, Edge, Safari */
 .portfolio-table-scroll::-webkit-scrollbar {
-  height: 0;       
+  height: 0;
 }
 
 /* Firefox */
 .portfolio-table-scroll {
-  scrollbar-width: none;  
+  scrollbar-width: none;
 }
-
 
 .compare-table-card::-webkit-scrollbar {
   height: 0;
@@ -805,6 +804,7 @@ body {
 .compare-table-card {
   scrollbar-width: none;
 }
+
 /* ===== Compare right detail panel ===== */
 
 .compare-name-cell {
@@ -933,7 +933,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
@@ -979,7 +979,7 @@ body {
   border-radius: 8px;
   border: 1px solid #d1d5db;
   background: #ffffff;
-  padding: 8px 10px;
+  padding: 8px 5px;
   font-size: 13px;
 }
 
@@ -1032,7 +1032,6 @@ body {
   border-bottom: none;
 }
 
-
 .flow-input {
   width: 100%;
   border-radius: 8px;
@@ -1063,7 +1062,6 @@ body {
   display: flex;
   gap: 6px;
 }
-
 
 .new-flow-btn {
   margin-top: 10px;
@@ -1118,6 +1116,7 @@ body {
   cursor: pointer;
 }
 
+/* Compare panel responsive */
 
 @media (max-width: 900px) {
   .compare-detail-panel {
@@ -1132,6 +1131,7 @@ body {
     flex-direction: column;
   }
 }
+
 /* ===== New Investment Modal ===== */
 
 .investment-modal-overlay {
@@ -1281,7 +1281,7 @@ body {
   cursor: pointer;
 }
 
-/* Responsive */
+/* Modal responsive */
 
 @media (max-width: 600px) {
   .investment-modal {
@@ -1294,6 +1294,7 @@ body {
     flex-direction: column;
   }
 }
+
 /* ===== FX Charts view ===== */
 
 .fx-charts-section {
@@ -1307,7 +1308,6 @@ body {
   display: flex;
   gap: 12px;
 }
-
 
 .fx-charts-card {
   border-radius: 8px;
@@ -1340,13 +1340,11 @@ body {
   color: #9ca3af;
 }
 
-
 .fx-charts-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 
 .fx-charts-plot {
   height: 220px;
@@ -1360,7 +1358,6 @@ body {
   border: 1px solid #e5e7eb;
 }
 
-
 .fx-charts-xlabels {
   display: flex;
   justify-content: space-between;
@@ -1368,7 +1365,6 @@ body {
   color: #9ca3af;
   padding: 0 4px;
 }
-
 
 @media (max-width: 900px) {
   .fx-charts-filters-row {
