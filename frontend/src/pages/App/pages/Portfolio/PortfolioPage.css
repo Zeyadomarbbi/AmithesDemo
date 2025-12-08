@@ -79,7 +79,7 @@ body {
 }
 
 .tab.active {
-  color: var(--accent);
+  color: #f59e0b;
 }
 
 .tab.active::after {
@@ -89,7 +89,7 @@ body {
   bottom: -1px;
   width: 100%;
   height: 2px;
-  background: var(--accent);
+  background: #f59e0b;
 }
 
 /* ===== Toolbar (Q2 2024 + buttons) ===== */
@@ -1369,5 +1369,245 @@ body {
 @media (max-width: 900px) {
   .fx-charts-filters-row {
     flex-wrap: wrap;
+  }
+}
+.timeframe-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.timeframe-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
+  padding: 4px 0;
+  z-index: 30;
+}
+
+.timeframe-menu-item,
+.timeframe-menu-add {
+  width: 100%;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.timeframe-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.timeframe-menu-item-label {
+  color: #111827;
+}
+.timeframe-menu-item-label::after {
+  content: " \2192 ";   /* Unicode for → */
+  margin: 0 6px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.timeframe-menu-item-date {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.timeframe-menu-add {
+  justify-content: flex-start;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+.timeframe-menu-item.active {
+  background: #f9fafb;
+  font-weight: 500;
+}
+/* ===== Limits right panel (New limit) ===== */
+
+.limit-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.12);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 45;
+}
+
+.limit-panel {
+  width: 720px;
+  max-width: 100%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -4px 0 24px rgba(15, 23, 42, 0.16);
+  padding: 24px 32px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Header */
+
+.limit-panel-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.limit-back-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.limit-panel-title-block {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.limit-panel-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.limit-close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Body */
+
+.limit-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.limit-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin: 0 0 4px;
+}
+
+.limit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.limit-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.limit-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.limit-form-label {
+  font-size: 13px;
+  color: #374151;
+}
+
+.limit-form-input {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  padding: 9px 12px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.limit-form-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  padding: 9px 12px;
+  font-size: 13px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.limit-form-textarea {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  padding: 9px 12px;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* Footer */
+
+.limit-panel-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.limit-footer-cancel {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.limit-footer-save {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .limit-panel {
+    width: 100%;
+  }
+
+  .limit-form-row {
+    flex-direction: column;
   }
 }
