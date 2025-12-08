@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 /* ===========================================
    CAPITAL ACCOUNT STATEMENT (CAS)
    =========================================== */
@@ -16,45 +18,57 @@
   margin: 16px 0 22px 0;
 }
 
+/* left: single filter box */
+
 .lp-cas-period {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.lp-cas-quarter {
-  height: 32px;
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #111827;
+/* filter button box (Q2 → 08/07/26) */
+.lp-cas-filter-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 8px;
+
+  width: 152px;
+  height: 40px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+
   cursor: pointer;
 }
 
-.lp-cas-date-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  font-size: 13px;
-  color: #111827;
+.lp-cas-filter-text {
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
 }
 
-.lp-cas-date-arrow {
-  font-size: 15px;
-  color: #9ca3af;
+.lp-cas-filter-chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* right part of top bar */
 
 .lp-cas-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* NOTICE stays on same top line as Breakdown */
   gap: 18px;
   flex: 1;
   justify-content: flex-end;
@@ -78,92 +92,127 @@
   background-color: #f3f4f6;
 }
 
-/* ---------- Breakdown pills ---------- */
+/* ---------- Breakdown segmented control ---------- */
 
-.lp-cas-breakdown {
+.lp-cas-breakdown-block {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
 }
 
+.lp-cas-breakdown {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: 5px;
+  height: 36px;
+}
+
 .lp-cas-breakdown-label {
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.lp-cas-breakdown-pill {
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+  font-family: "Inter", sans-serif;
+  font-style: normal;
   font-weight: 500;
-  color: #6b7280;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+/* small segmented tabs container */
+.lp-cas-breakdown-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px;
+  background: #fafaf9;
+  border-radius: 9px;
+  gap: 4px;
+
+  min-width: 154px;
+  height: 36px;
+}
+
+.lp-cas-breakdown-tab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  gap: 4px;
+
+  border: none;
+  background: transparent;
+  border-radius: 8px;
   cursor: pointer;
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
 }
 
-.lp-cas-breakdown-pill--active {
-  background-color: #f97316;
-  color: #ffffff;
-  border-color: #f97316;
+/* active segment: white with slight shadow, dark text */
+.lp-cas-breakdown-tab--active {
+  background: #ffffff;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  border-radius: 6px;
+  color: #1c1917;
 }
 
-/* ---------- LPs search (right side) ---------- */
+/* ---------- LPs search (under breakdown when LPs selected) ---------- */
 
 .lp-cas-lps-search {
   position: relative;
-  width: 230px;
 }
 
+.lp-cas-lps-search--under {
+  width: 250px;
+}
+
+/* search bar */
 .lp-cas-search-input {
   width: 100%;
-  height: 32px;
-  padding: 6px 10px 6px 30px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  font-size: 13px;
-  color: #111827;
+  height: 25px;
+  padding: 10px 12px 10px 40px; /* space for icon */
+  border-radius: 2px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background-color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  color: #1c1917;
 }
 
 .lp-cas-search-input::placeholder {
-  color: #9ca3af;
+  color: #7b7d7e;
 }
 
-.lp-cas-search-icon {
+/* icon for search */
+.lp-cas-search-icon-svg {
   position: absolute;
-  left: 9px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 2px solid #9ca3af;
-  box-sizing: border-box;
-}
-
-.lp-cas-search-icon::after {
-  content: "";
-  position: absolute;
-  width: 2px;
-  height: 5px;
-  background: #9ca3af;
-  right: -3px;
-  bottom: -1px;
-  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===========================================
    TABLE (both modes)
-   - No outer frame
-   - With inside borders (row lines)
-   - Zebra rows, starting with white
    =========================================== */
 
 .lp-cas-table-wrapper {
   border-radius: 6px;
   overflow: hidden;
   background-color: #ffffff;
-  border: none; /* ❌ no outer border/frame */
+  border: none;
 }
 
 .lp-cas-table {
@@ -175,21 +224,21 @@
   letter-spacing: 0.01em;
 }
 
-/* ---------- Header row ---------- */
+/* header row */
 
 .lp-cas-table thead tr {
-  background-color: #f9fafb; /* light header, like Figma */
+  background-color: #f9fafb;
   height: 50px;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5); /* line under header */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
 }
 
 .lp-cas-kpi-header,
 .lp-cas-header-cell {
   padding: 8px 16px;
   font-weight: 500;
-  color: #6b7280;
+  color: #000000;
   white-space: nowrap;
-  border: none; /* no vertical header borders */
+  border: none;
 }
 
 .lp-cas-kpi-header {
@@ -200,26 +249,34 @@
   text-align: right;
 }
 
+/* sort icon next to header labels */
 .lp-cas-sort-icon {
   margin-left: 4px;
-  font-size: 10px;
-  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   vertical-align: middle;
 }
 
-/* ---------- Body rows (zebra + inside borders) ---------- */
+.lp-cas-sort-icon svg {
+  width: 8px;
+  height: 12px;
+  display: block;
+}
+
+/* body rows */
 
 .lp-cas-row {
   height: 50px;
 }
 
-/* zebra: start with white */
+/* zebra rows: start with white */
 .lp-cas-table tbody tr:nth-child(odd) {
-  background-color: #ffffff; /* first row is white */
+  background-color: #ffffff;
 }
 
 .lp-cas-table tbody tr:nth-child(even) {
-  background-color: #fafaf9; /* light grey like Figma */
+  background-color: #fafaf9;
 }
 
 /* inside horizontal borders only */
@@ -228,17 +285,16 @@
 }
 
 .lp-cas-table tbody tr:last-child {
-  /* you can keep or remove this bottom line if you want less "frame" feeling */
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
 }
 
 .lp-cas-table td {
   padding: 8px 16px;
   color: #1c1917;
-  border: none; /* no vertical lines */
+  border: none;
 }
 
-/* KPI (left column) */
+/* KPI left cell */
 
 .lp-cas-kpi-cell {
   display: flex;
@@ -258,20 +314,20 @@
   color: #9ca3af;
 }
 
-/* right-aligned numeric values */
+/* numeric cells */
 .lp-cas-value-cell {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-/* "NAV per share" as link in LPs mode */
+/* "NAV per share" link style */
 .lp-cas-link {
-  color: #4f46e5;
+  color: #050330;
   font-weight: 500;
   text-decoration: none;
 }
 
-/* ensure no side borders anywhere */
+/* no vertical borders */
 .lp-cas-table th,
 .lp-cas-table td {
   border-left: none;
@@ -279,10 +335,134 @@
 }
 
 /* ===========================================
-   RESPONSIVE – CAPITAL ACCOUNT STATEMENT
+   NAV per share dropdown
    =========================================== */
 
-/* Medium screens (≤ 1024px): stack top bar a bit */
+/* main NAV row is clickable */
+.lp-cas-row--expandable {
+  cursor: pointer;
+}
+
+.lp-cas-row--open {
+  background-color: #fafafa;
+}
+
+/* force the outer NAV-details row to show the grey band */
+.lp-cas-table tbody tr.lp-cas-nav-details-row {
+  background-color: #f3f4f6 !important;
+}
+
+/* cell that holds the whole dropdown */
+.lp-cas-nav-details-row > td {
+  padding: 0;
+  border: none;
+}
+
+/* GREY BAND – full-width band under the table */
+.lp-cas-nav-details {
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  box-sizing: border-box;
+
+  /* align with main table content */
+  padding: 0 16px 16px 16px;
+}
+
+/* inner wrapper just for horizontal scroll if needed */
+.lp-cas-nav-details-inner {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* INNER TABLE – no card look, only row dividers */
+.lp-cas-nav-details-table {
+  width: 100%;
+  min-width: 808px;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  background: transparent;
+}
+
+/* header row shares same band background */
+.lp-cas-nav-details-table thead tr {
+  background: transparent;
+}
+
+/* header cells – all grey */
+.lp-cas-nav-th {
+  padding: 8px 16px;
+  text-align: right;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f3f4f6;  /* full grey band */
+}
+
+.lp-cas-nav-th--first {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.lp-cas-nav-th-euro {
+  font-size: 12px;
+  color: #a6a09b;
+  margin-left: 2px;
+}
+
+/* body rows – keep same band color */
+.lp-cas-nav-details-table tbody tr {
+  background: transparent;
+}
+
+/* body cells – all grey */
+.lp-cas-nav-td {
+  padding: 8px 16px;
+  text-align: right;
+  font-weight: 400;
+  color: #1c1917;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f3f4f6;  /* full grey band */
+}
+
+.lp-cas-nav-td--label {
+  text-align: left;
+  padding-left: 8px;
+}
+
+/* plus button in NAV row */
+.lp-cas-expand-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-cas-row--expandable .lp-cas-plus {
+  font-size: 14px;
+  line-height: 1;
+  color: #375a89;
+}
+
+/* responsive padding for grey band */
+@media (max-width: 1024px) {
+  .lp-cas-nav-details {
+    padding: 0 24px 16px 24px;
+  }
+}
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+
 @media (max-width: 1024px) {
   .lp-cas-topbar {
     flex-direction: column;
@@ -297,12 +477,11 @@
     gap: 10px;
   }
 
-  .lp-cas-lps-search {
-    width: 260px;
+  .lp-cas-breakdown-block {
+    align-items: flex-start;
   }
 }
 
-/* Tablets & small laptops (≤ 768px) */
 @media (max-width: 768px) {
   .lp-capital-account {
     margin-top: 8px;
@@ -325,11 +504,11 @@
     gap: 8px;
   }
 
-  .lp-cas-breakdown {
-    flex-wrap: wrap;
+  .lp-cas-breakdown-block {
+    width: 100%;
   }
 
-  .lp-cas-lps-search {
+  .lp-cas-lps-search--under {
     width: 100%;
   }
 
@@ -343,17 +522,10 @@
   }
 }
 
-/* Mobile (≤ 480px) */
 @media (max-width: 480px) {
   .lp-cas-period {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .lp-cas-quarter,
-  .lp-cas-date-btn {
-    width: 100%;
-    justify-content: space-between;
   }
 
   .lp-cas-notice-btn {
@@ -361,12 +533,20 @@
     text-align: center;
   }
 
-  .lp-cas-breakdown {
+  .lp-cas-breakdown-tabs {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .lp-cas-breakdown-pill {
-    padding: 4px 10px;
+  .lp-cas-breakdown-tab {
+    flex: 1;
   }
+}
+/* Adjusted NAV row – same grey as NAV per share dropdown, no zebra */
+.lp-cas-adjusted-row {
+  background-color: #f3f4f6 !important;
+}
+
+.lp-cas-adjusted-row td {
+  background-color: #f3f4f6 !important;
 }

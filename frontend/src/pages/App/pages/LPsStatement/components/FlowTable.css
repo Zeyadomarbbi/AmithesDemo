@@ -23,7 +23,7 @@
 .cf-table th {
   text-align: left;
   padding: 10px 10px;
-  color: #808799;
+  color: #000000;
   font-weight: 500;
   font-size: 12px;
 }
@@ -99,4 +99,61 @@
   .cf-table-wrapper {
     margin-top: 4px;
   }
+}
+
+/* ===================================================== */
+/*        NEW: BREAKDOWN BAR (Operations / LPs / SC)     */
+/* ===================================================== */
+
+.cf-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* row that holds "Breakdown :" and the pills, aligned to the right */
+.cf-breakdown-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cf-breakdown-label {
+  font-size: 12px;
+  color: #6b7280; /* grey like Figma label */
+}
+
+/* pill container */
+.cf-breakdown-chips {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f3f4f6; /* light grey pill background */
+}
+
+/* individual pill button */
+.cf-breakdown-chip {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* hover state */
+.cf-breakdown-chip:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* active pill (selected) */
+.cf-breakdown-chip.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
 }

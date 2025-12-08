@@ -1,198 +1,221 @@
-/* =========================
-   OUTER WRAPPER
-   ========================= */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/* This wrapper fills the width of the page and allows X scroll only for this block. */
+/* =========================================================
+   ROOT WRAPPER – centered, responsive
+   ========================================================= */
+
 .op2-table-outer {
+  margin-top: 24px;
   width: 100%;
-  max-width: 100%;
-  overflow-x: auto;    /* ✅ swipe left/right on small screens */
-  overflow-y: visible; /* ✅ vertical scroll is handled by the page, not trapped here */
-  padding-bottom: 8px; /* small spacing so scrollbar not glued */
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;         /* horizontal scroll on small screens */
 }
 
-/* =========================
-   INNER TABLE CONTAINER
-   ========================= */
-
-/* This is the actual “table”. It can be wider than viewport. */
 .op2-table-inner {
-  min-width: 1000px;   /* design width – adjust if you need wider */
-  max-width: 1200px;
-  margin: 0 auto;      /* center on large screens */
-
+  width: 1155px;            /* same width we used for the filled table */
+  max-width: 100%;
   border-radius: 8px;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  background: #375a89;
-  color: #ffffff;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  display: grid;
-  grid-template-rows: auto 1fr auto; /* header, body, footer */
+  font-size: 14px;
+  color: #1c1917;
 }
 
-/* =========================
-   TOP DARK HEADER
-   ========================= */
+/* =========================================================
+   TOP HEADER STRIP (EQUALIZATION / CAPITAL CALL / TOTAUX)
+   ========================================================= */
 
 .op2-head-row {
   display: grid;
-  grid-template-columns: 2.1fr 5fr 1.7fr;
-  background: #12223d;
-  padding: 10px 20px 6px 20px;
-  column-gap: 12px;
+  grid-template-columns: 2.2fr 3.3fr 1.2fr;
+  height: 44px;
 }
 
-.op2-head-cell {
+.op2-head-block {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
+  padding: 0 16px;
   font-weight: 500;
+  font-size: 14px;
   letter-spacing: 0.01em;
-  text-transform: uppercase;
+  color: #ffffff;
 }
 
-.op2-head-cell--eq,
-.op2-head-cell--tot {
-  justify-content: flex-start;
+.op2-head-block--eq {
+  background: #0f172a;
+}
+
+.op2-head-block--cap {
+  background: #375a89;
+  justify-content: space-between;
 }
 
 .op2-head-plus {
-  margin-left: 6px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   background: transparent;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
 }
 
-/* =========================
-   BODY: 3 COLUMNS
-   ========================= */
+.op2-head-block--tot {
+  background: #0f172a;
+}
+
+/* =========================================================
+   BODY – three main columns
+   ========================================================= */
 
 .op2-body-row {
   display: grid;
-  grid-template-columns: 2.1fr 5fr 1.7fr;
+  grid-template-columns: 2.2fr 3.3fr 1.2fr;
   min-height: 320px;
-  background: #375a89;
 }
 
-/* ----- LEFT COLUMN (LPs + Equalization) ----- */
+/* ========== LEFT COLUMN (LPs + equalization values) ========== */
 
 .op2-left-col {
+  border-right: 1px solid rgba(229, 231, 235, 0.9);
   background: #fafaf9;
-  color: #1c1917;
-  border-right: 1px solid rgba(204, 205, 206, 0.5);
   display: flex;
   flex-direction: column;
 }
 
+/* LP header row */
+
+.op2-lp-header-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+  height: 40px;
+}
+
 .op2-lp-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 16px 4px 16px;
-  font-size: 13px;
+  gap: 4px;
+  padding: 0 16px;
+  font-weight: 500;
+}
+
+.op2-lp-header-label {
   color: #1c1917;
 }
 
 .op2-lp-header-sort {
-  font-size: 13px;
-  color: #7b7d7e;
+  margin-left: auto;
+  font-size: 12px;
+  color: #375a89;
 }
 
-/* Equalization filter block */
+.op2-lp-header-spacer {
+  border-left: 1px solid rgba(229, 231, 235, 0.9);
+}
+
+/* Equalization filter row */
 
 .op2-eq-filter {
-  padding: 4px 16px 8px 16px;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  background: #fafaf9;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 10px 16px 10px 16px;
+  gap: 8px;
+}
+
+.op2-eq-spacer {
+  /* empty – just keeps the grid structure */
+}
+
+.op2-eq-panel {
+  background: #eff6ff;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .op2-eq-filter-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  justify-content: space-between;
 }
 
 .op2-eq-filter-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
+  color: #375a89;
+}
+
+.op2-icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
   color: #375a89;
 }
 
 .op2-eq-filter-input-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .op2-input {
+  flex: 1;
+  height: 32px;
+  padding: 6px 10px;
   border-radius: 4px;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  background: #ffffff;
-  padding: 8px 12px;
+  border: 1px solid rgba(204, 205, 206, 0.7);
   font-size: 14px;
-  width: 100%;
-  color: #1c1917;
 }
 
-.op2-input::placeholder {
-  color: #7b7d7e;
-}
-
-.op2-icon-btn {
+.op2-eq-panel .op2-icon-btn {
   width: 32px;
   height: 32px;
   border-radius: 4px;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  background: #ffffff;
-  font-size: 14px;
-  cursor: pointer;
-  color: #375a89;
+  border: 1px solid rgba(204, 205, 206, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.op2-icon-btn--pencil {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-}
-
 /* LP rows */
 
 .op2-lp-rows {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .op2-lp-row {
   display: grid;
-  grid-template-columns: 1.4fr 0.9fr;
-  align-items: center;
-  padding: 8px 16px;
-  gap: 8px;
-  background: #fafaf9;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  grid-template-columns: 2fr 1fr;
+  min-height: 36px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+  background: #ffffff;
+}
+
+.op2-lp-row:nth-child(odd) {
+  background: #f9fafb;
 }
 
 .op2-lp-info {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 16px;
 }
 
 .op2-avatar {
   width: 25px;
   height: 25px;
   border-radius: 999px;
-  border: 0.6px solid rgba(204, 205, 206, 0.5);
+  border: 0.625px solid rgba(204, 205, 206, 0.5);
   background: #fafaf9;
   display: flex;
   align-items: center;
@@ -203,94 +226,109 @@
 }
 
 .op2-lp-name {
-  font-size: 14px;
   color: #375a89;
 }
 
 .op2-lp-value {
-  font-size: 14px;
-  color: #1c1917;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 16px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ----- MIDDLE COLUMN (big blue area + button) ----- */
+/* ========== MIDDLE COLUMN (blue empty state) ========== */
 
 .op2-middle-col {
-  border-right: 1px solid rgba(204, 205, 206, 0.5);
-  background: rgba(55, 90, 137, 0.85);
+  background: rgba(55, 90, 137, 0.04);
+  border-right: 1px solid rgba(229, 231, 235, 0.9);
   display: flex;
-}
-
-.op2-middle-inner {
-  margin: auto;
+  align-items: center;
+  justify-content: center;
 }
 
 .op2-add-flow-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
+  min-width: 190px;
+  height: 40px;
+  padding: 10px 24px;
+  border-radius: 4px;
+  border: 1px dashed #375a89;
+  background: #ffffff;
+  color: #375a89;
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.01em;
-  color: #375a89;
-  background: rgba(245, 250, 255, 0.4);
-  border-radius: 4px;
-  border: 1px dashed #9fb2d4;
   cursor: pointer;
 }
 
-/* ----- RIGHT COLUMN (Call Amount) ----- */
+/* ========== RIGHT COLUMN (Call Amount) ========== */
 
 .op2-right-col {
-  background: #ffffff;
-  color: #1c1917;
+  display: flex;
+  flex-direction: column;
 }
 
 .op2-callamount-header {
+  height: 40px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  font-size: 13px;
+  padding: 0 16px;
+  font-weight: 500;
+  gap: 4px;
 }
 
 .op2-callamount-sort {
-  font-size: 13px;
-  color: #7b7d7e;
+  margin-left: auto;
+  font-size: 12px;
+  color: #375a89;
 }
 
 .op2-callamount-rows {
-  padding: 0 14px 0 14px;
+  display: flex;
+  flex-direction: column;
 }
 
 .op2-callamount-row {
-  font-size: 14px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  text-align: right;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 16px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+  font-variant-numeric: tabular-nums;
 }
 
-/* =========================
-   FOOTER TOTALS
-   ========================= */
+/* =========================================================
+   FOOTER TOTALS (three blocks)
+   ========================================================= */
 
 .op2-footer-row {
   display: grid;
-  grid-template-columns: 2.1fr 5fr 1.7fr;
+  grid-template-columns: 2.2fr 3.3fr 1.2fr;
+  height: 72px;
   background: #375a89;
-  padding: 8px 20px 10px 20px;
-  column-gap: 12px;
-  font-size: 14px;
   color: #ffffff;
 }
 
-.op2-footer-left {
+.op2-footer-left,
+.op2-footer-mid,
+.op2-footer-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.op2-footer-left {
+  justify-content: flex-start;
+}
+
+.op2-footer-mid {
+  justify-content: center;
+}
+
+.op2-footer-right {
+  justify-content: center;
 }
 
 .op2-footer-total-label {
@@ -298,76 +336,55 @@
 }
 
 .op2-footer-total-input {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  min-width: 140px;
+  height: 40px;
   border-radius: 4px;
   background: #ffffff;
   color: #1c1917;
-  min-width: 200px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
   justify-content: space-between;
+  padding: 0 12px;
+}
+
+.op2-footer-total-input--wide {
+  min-width: 210px;
 }
 
 .op2-footer-euro {
-  font-weight: 500;
-  color: #375a89;
+  margin-right: 4px;
 }
 
 .op2-footer-dash {
-  color: #1c1917;
-}
-
-.op2-footer-percent {
-  font-size: 13px;
-}
-
-.op2-footer-middle,
-.op2-footer-right {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.op2-footer-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #1c1917;
+  margin-left: auto;
 }
 
 .op2-footer-input {
-  flex: 1;
   border: none;
   outline: none;
+  flex: 1;
+  font-size: 14px;
+  background: transparent;
+}
+
+.op2-footer-percent {
   font-size: 14px;
 }
 
-.op2-footer-field .op2-footer-euro {
-  flex-shrink: 0;
+/* =========================================================
+   RESPONSIVE – narrow screens
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .op2-table-inner {
+    width: 1000px; /* still scrollable horizontally */
+  }
 }
 
-/* =========================
-   RESPONSIVE TWEAKS
-   ========================= */
-
 @media (max-width: 768px) {
-  .op2-head-row {
-    padding: 8px 12px 6px 12px;
-  }
-
-  .op2-footer-row {
-    padding: 8px 12px 10px 12px;
-  }
-
-  .op2-head-cell,
-  .op2-callamount-header,
-  .op2-callamount-row,
-  .op2-lp-name,
-  .op2-lp-value {
-    font-size: 13px;
+  .op2-table-outer {
+    margin-top: 16px;
   }
 }

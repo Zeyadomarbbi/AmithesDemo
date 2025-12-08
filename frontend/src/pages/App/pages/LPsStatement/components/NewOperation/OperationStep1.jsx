@@ -62,8 +62,8 @@ export default function OperationStep1() {
           <label className="op1-label">Notice date*</label>
           <div className="op1-date-wrap">
             <input
+              type="date"
               className="op1-input"
-              placeholder="00/00/00"
               value={noticeDate}
               onChange={(e) => setNoticeDate(e.target.value)}
             />
@@ -75,8 +75,8 @@ export default function OperationStep1() {
           <label className="op1-label">Due date*</label>
           <div className="op1-date-wrap">
             <input
+              type="date"
               className="op1-input"
-              placeholder="00/00/00"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
