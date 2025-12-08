@@ -15,10 +15,6 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 
-
-
-
-
 const UNREALIZED_ROWS = [
   {
     id: 1,
@@ -107,7 +103,6 @@ const UNREALIZED_ROWS = [
   },
 ];
 
-// Realized portfolio
 const REALIZED_ROWS = [
   {
     id: 1,
@@ -151,7 +146,6 @@ const REALIZED_ROWS = [
   },
 ];
 
-// Limits
 const LIMITS_ROWS = [
   {
     id: 1,
@@ -175,7 +169,6 @@ const LIMITS_ROWS = [
   },
 ];
 
-// FX – Investment #1
 const FX_INVESTMENT_1_ROWS = [
   {
     id: 1,
@@ -215,7 +208,6 @@ const FX_INVESTMENT_1_ROWS = [
   },
 ];
 
-// FX – Investment #2
 const FX_INVESTMENT_2_ROWS = [
   {
     id: 1,
@@ -267,7 +259,6 @@ const FX_INVESTMENT_2_ROWS = [
   },
 ];
 
-// FX – Investment #3
 const FX_INVESTMENT_3_ROWS = [
   {
     id: 1,
@@ -307,7 +298,6 @@ const FX_INVESTMENT_3_ROWS = [
   },
 ];
 
-// ======== COMPARE TAB DATA =========
 const COMPARE_ROWS = [
   {
     id: 1,
@@ -373,7 +363,7 @@ const COMPARE_TOTAL_ROW = {
   moicQ1: "1.72x",
   moicQ2: "1.72x",
 };
-// ======== FX – Portfolio view (one table) =========
+
 const FX_PORTFOLIO_ROWS = [
   {
     id: 1,
@@ -474,12 +464,11 @@ const FX_PORTFOLIO_TOTAL = {
   impactInception: "376 240",
 };
 
-
 const Portfolio = () => {
-  const [activeTab, setActiveTab] = useState("summary"); // "summary" | "fx" | "limits" | "compare"
+  const [activeTab, setActiveTab] = useState("summary");
   const [fxBreakdown, setFxBreakdown] = useState("deals");
-  const [selectedCompareRow, setSelectedCompareRow] = useState(null); 
-  const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);// "deals" | "portfolio" | "charts"
+  const [selectedCompareRow, setSelectedCompareRow] = useState(null);
+  const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
 
   const iconStyle = {
     color: "#111827",
@@ -497,12 +486,9 @@ const Portfolio = () => {
 
   return (
     <div className="portfolio-page">
-      {/* Main content */}
       <main className="portfolio-content">
-        {/* Title */}
         <h1 className="financials-title">Portfolio</h1>
 
-        {/* Tabs */}
         <div className="financials-tabs portfolio-tabs">
           <button
             className={`tab ${activeTab === "summary" ? "active" : ""}`}
@@ -530,7 +516,6 @@ const Portfolio = () => {
           </button>
         </div>
 
-        {/* Toolbar – only for summary + fx */}
         {activeTab === "summary" && (
           <div className="portfolio-toolbar">
             <div className="toolbar-left">
@@ -542,31 +527,23 @@ const Portfolio = () => {
                 />
               </button>
             </div>
-
             <div className="toolbar-right">
-              <button className="ghost-btn">
-                <ArrowUpTrayIcon className="icon-svg" style={iconStyle} />
-                <span>Upload</span>
-              </button>
               <button className="ghost-btn">
                 <ArrowDownTrayIcon className="icon-svg" style={iconStyle} />
                 <span>Download</span>
               </button>
-                <button
-    className="primary-btn"
-    onClick={() => setIsNewInvestmentOpen(true)}
-  >
-    + New investment
-  </button>
-
+              <button
+                className="primary-btn"
+                onClick={() => setIsNewInvestmentOpen(true)}
+              >
+                + New investment
+              </button>
             </div>
           </div>
         )}
 
-        {/* ================= SUMMARY TAB ================= */}
         {activeTab === "summary" && (
           <>
-            {/* Unrealized portfolio */}
             <section className="portfolio-section">
               <div className="portfolio-table-card">
                 <div className="portfolio-section-header">
@@ -632,7 +609,7 @@ const Portfolio = () => {
                                 className="icon-svg subtotal-icon"
                                 style={iconStyle}
                               />
-                            <span>Sub Total</span>
+                              <span>Sub Total</span>
                             </td>
                             <td />
                             <td className="col-number">-</td>
@@ -649,7 +626,14 @@ const Portfolio = () => {
                           </tr>
                         ) : (
                           <tr key={row.id}>
-                            <td className="name-cell">
+                            <td
+                              className="name-cell compare-name-cell"
+                              onClick={() =>
+                                setSelectedCompareRow({
+                                  ...row,
+                                })
+                              }
+                            >
                               <div className="name-main">{row.name}</div>
                               <div className="name-sub">{row.sector}</div>
                             </td>
@@ -677,7 +661,6 @@ const Portfolio = () => {
               </div>
             </section>
 
-            {/* Realized portfolio */}
             <section className="portfolio-section">
               <div className="portfolio-table-card">
                 <div className="portfolio-section-header">
@@ -760,7 +743,14 @@ const Portfolio = () => {
                           </tr>
                         ) : (
                           <tr key={row.id}>
-                            <td className="name-cell">
+                            <td
+                              className="name-cell compare-name-cell"
+                              onClick={() =>
+                                setSelectedCompareRow({
+                                  ...row,
+                                })
+                              }
+                            >
                               <div className="name-main">{row.name}</div>
                               <div className="name-sub">{row.sector}</div>
                             </td>
@@ -788,7 +778,6 @@ const Portfolio = () => {
               </div>
             </section>
 
-            {/* Total bar */}
             <section className="portfolio-total-section">
               <table className="portfolio-table total-table">
                 <tbody>
@@ -815,10 +804,8 @@ const Portfolio = () => {
           </>
         )}
 
-        {/* ================= FX TAB ================= */}
         {activeTab === "fx" && (
           <>
-            {/* FX breakdown pills */}
             <div className="fx-breakdown-row">
               <span className="fx-breakdown-label">Breakdown :</span>
               <button
@@ -849,10 +836,8 @@ const Portfolio = () => {
 
             {fxBreakdown === "deals" && (
               <>
-                {/* Investment #1 */}
                 <section className="fx-investment-section">
                   <h2 className="fx-investment-title">Investment #1</h2>
-
                   <div className="fx-table-card">
                     <div className="fx-table-scroll">
                       <table className="fx-table">
@@ -938,10 +923,8 @@ const Portfolio = () => {
                   </div>
                 </section>
 
-                {/* Investment #2 */}
                 <section className="fx-investment-section">
                   <h2 className="fx-investment-title">Investment #2</h2>
-
                   <div className="fx-table-card">
                     <div className="fx-table-scroll">
                       <table className="fx-table">
@@ -1027,10 +1010,8 @@ const Portfolio = () => {
                   </div>
                 </section>
 
-                {/* Investment #3 */}
                 <section className="fx-investment-section">
                   <h2 className="fx-investment-title">Investment #3</h2>
-
                   <div className="fx-table-card">
                     <div className="fx-table-scroll">
                       <table className="fx-table">
@@ -1119,139 +1100,148 @@ const Portfolio = () => {
             )}
 
             {fxBreakdown === "portfolio" && (
-  <section className="fx-investment-section">
-    <h2 className="fx-investment-title">Portfolio FX</h2>
+              <section className="fx-investment-section">
+                <h2 className="fx-investment-title">Portfolio FX</h2>
+                <div className="fx-table-card">
+                  <div className="fx-table-scroll">
+                    <table className="fx-table">
+                      <thead>
+                        <tr>
+                          <th>
+                            Name <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            Cost <span className="sort-indicator">↕</span>
+                          </th>
+                          <th>
+                            Currency <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            FX Entry{" "}
+                            <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            Impact Q4 2023 (€){" "}
+                            <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            Impact Q2 2024 (€){" "}
+                            <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            Impact Q4 2024 (€){" "}
+                            <span className="sort-indicator">↕</span>
+                          </th>
+                          <th className="col-number">
+                            Impact Inception (€){" "}
+                            <span className="sort-indicator">↕</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {FX_PORTFOLIO_ROWS.map((row) => (
+                          <tr key={row.id}>
+                            <td>{row.name}</td>
+                            <td className="col-number">{row.cost}</td>
+                            <td>{row.currency}</td>
+                            <td className="col-number">{row.fxEntry}</td>
+                            <td className="col-number">
+                              {row.impactQ42023}
+                            </td>
+                            <td className="col-number">
+                              {row.impactQ22024}
+                            </td>
+                            <td className="col-number">
+                              {row.impactQ42024}
+                            </td>
+                            <td className="col-number">
+                              {row.impactInception}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="fx-total-row">
+                          <td className="fx-total-label">Total</td>
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.cost}
+                          </td>
+                          <td />
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.fxEntry}
+                          </td>
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.impactQ42023}
+                          </td>
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.impactQ22024}
+                          </td>
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.impactQ42024}
+                          </td>
+                          <td className="col-number">
+                            {FX_PORTFOLIO_TOTAL.impactInception}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+            )}
 
-    <div className="fx-table-card">
-      <div className="fx-table-scroll">
-        <table className="fx-table">
-          <thead>
-            <tr>
-              <th>
-                Name <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                Cost <span className="sort-indicator">↕</span>
-              </th>
-              <th>
-                Currency <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                FX Entry <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                Impact Q4 2023 (€) <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                Impact Q2 2024 (€) <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                Impact Q4 2024 (€) <span className="sort-indicator">↕</span>
-              </th>
-              <th className="col-number">
-                Impact Inception (€) <span className="sort-indicator">↕</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {FX_PORTFOLIO_ROWS.map((row) => (
-              <tr key={row.id}>
-                <td>{row.name}</td>
-                <td className="col-number">{row.cost}</td>
-                <td>{row.currency}</td>
-                <td className="col-number">{row.fxEntry}</td>
-                <td className="col-number">{row.impactQ42023}</td>
-                <td className="col-number">{row.impactQ22024}</td>
-                <td className="col-number">{row.impactQ42024}</td>
-                <td className="col-number">{row.impactInception}</td>
-              </tr>
-            ))}
+            {fxBreakdown === "charts" && (
+              <section className="fx-charts-section">
+                <div className="fx-charts-filters-row">
+                  <button className="dropdown-btn">
+                    <span>Investment</span>
+                    <ChevronDownIcon
+                      className="icon-svg caret-icon"
+                      style={smallIconStyle}
+                    />
+                  </button>
+                  <button className="dropdown-btn">
+                    <span>Currency</span>
+                    <ChevronDownIcon
+                      className="icon-svg caret-icon"
+                      style={smallIconStyle}
+                    />
+                  </button>
+                  <button className="dropdown-btn">
+                    <span>Timeframes</span>
+                    <ChevronDownIcon
+                      className="icon-svg caret-icon"
+                      style={smallIconStyle}
+                    />
+                  </button>
+                </div>
 
-            {/* Total row باللون الأزرق */}
-            <tr className="fx-total-row">
-              <td className="fx-total-label">Total</td>
-              <td className="col-number">{FX_PORTFOLIO_TOTAL.cost}</td>
-              <td></td>
-              <td className="col-number">{FX_PORTFOLIO_TOTAL.fxEntry}</td>
-              <td className="col-number">{FX_PORTFOLIO_TOTAL.impactQ42023}</td>
-              <td className="col-number">{FX_PORTFOLIO_TOTAL.impactQ22024}</td>
-              <td className="col-number">{FX_PORTFOLIO_TOTAL.impactQ42024}</td>
-              <td className="col-number">
-                {FX_PORTFOLIO_TOTAL.impactInception}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-)}
-
-{fxBreakdown === "charts" && (
-  <section className="fx-charts-section">
-    {/* الفلاتر فوق التشارت */}
-    <div className="fx-charts-filters-row">
-      <button className="dropdown-btn">
-        <span>Investment</span>
-        <ChevronDownIcon
-          className="icon-svg caret-icon"
-          style={smallIconStyle}
-        />
-      </button>
-
-      <button className="dropdown-btn">
-        <span>Currency</span>
-        <ChevronDownIcon
-          className="icon-svg caret-icon"
-          style={smallIconStyle}
-        />
-      </button>
-
-      <button className="dropdown-btn">
-        <span>Timeframes</span>
-        <ChevronDownIcon
-          className="icon-svg caret-icon"
-          style={smallIconStyle}
-        />
-      </button>
-    </div>
-
-    {/* كارت التشارت */}
-    <div className="fx-charts-card">
-      <div className="fx-charts-header">
-        <div className="fx-charts-title">FX Gains / Losses (m€)</div>
-
-        <button className="fx-charts-menu-btn">…</button>
-      </div>
-
-      <div className="fx-charts-body">
-        {/* هنا placeholder للتشارت – ممكن بعدين نركّب Recharts أو Chart.js */}
-        <div className="fx-charts-plot" />
-
-        <div className="fx-charts-xlabels">
-          <span>Q3 23</span>
-          <span>Q4 23</span>
-          <span>Q1 24</span>
-          <span>Q2 24</span>
-          <span>Q3 24</span>
-          <span>Q4 24</span>
-          <span>Q1 25</span>
-          <span>Q2 25</span>
-          <span>Q3 25</span>
-          <span>Q4 25</span>
-        </div>
-      </div>
-    </div>
-  </section>
-)}
-
+                <div className="fx-charts-card">
+                  <div className="fx-charts-header">
+                    <div className="fx-charts-title">FX Gains / Losses (m€)</div>
+                    <button className="fx-charts-menu-btn">…</button>
+                  </div>
+                  <div className="fx-charts-body">
+                    <div className="fx-charts-plot" />
+                    <div className="fx-charts-xlabels">
+                      <span>Q3 23</span>
+                      <span>Q4 23</span>
+                      <span>Q1 24</span>
+                      <span>Q2 24</span>
+                      <span>Q3 24</span>
+                      <span>Q4 24</span>
+                      <span>Q1 25</span>
+                      <span>Q2 25</span>
+                      <span>Q3 25</span>
+                      <span>Q4 25</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
           </>
         )}
 
-        {/* ================= LIMITS TAB ================= */}
         {activeTab === "limits" && (
           <section className="limits-section">
-            {/* Filters row */}
             <div className="limits-filters-row">
               <div className="limits-filters-left">
                 <button className="dropdown-btn">
@@ -1261,7 +1251,6 @@ const Portfolio = () => {
                     style={smallIconStyle}
                   />
                 </button>
-
                 <button className="dropdown-btn">
                   <span>Scenario Opti...</span>
                   <ChevronDownIcon
@@ -1270,11 +1259,9 @@ const Portfolio = () => {
                   />
                 </button>
               </div>
-
               <button className="new-limit-btn">+ New limit</button>
             </div>
 
-            {/* Limits table */}
             <div className="limits-table-wrapper">
               <table className="limits-table">
                 <thead>
@@ -1295,7 +1282,6 @@ const Portfolio = () => {
                     </th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {LIMITS_ROWS.map((row) => (
                     <tr key={row.id}>
@@ -1323,10 +1309,8 @@ const Portfolio = () => {
           </section>
         )}
 
-        {/* ================= COMPARE TAB ================= */}
         {activeTab === "compare" && (
           <section className="compare-section">
-            {/* Timeframe selectors */}
             <div className="compare-timeframes-row">
               <button className="dropdown-btn">
                 <span>Q2 2024</span>
@@ -1344,7 +1328,6 @@ const Portfolio = () => {
               </button>
             </div>
 
-            {/* Compare table */}
             <div className="portfolio-table-card compare-table-card">
               <div className="portfolio-table-scroll">
                 <table className="portfolio-table">
@@ -1388,15 +1371,19 @@ const Portfolio = () => {
                   </thead>
                   <tbody>
                     {COMPARE_ROWS.map((row) => (
-                                      <tr key={row.id} onClick={() => setSelectedCompareRow(row)}>
-                                        <td className="name-cell compare-name-cell">
-                                          <div className="name-main">{row.name}</div>
-                                          <div className="name-sub">{row.sector}</div>
-                                        </td>
-
-                                            <td className="col-number">{row.costQ1}</td>
+                      <tr
+                        key={row.id}
+                        onClick={() => setSelectedCompareRow({ ...row })}
+                      >
+                        <td className="name-cell compare-name-cell">
+                          <div className="name-main">{row.name}</div>
+                          <div className="name-sub">{row.sector}</div>
+                        </td>
+                        <td className="col-number">{row.costQ1}</td>
                         <td className="col-number">{row.costQ2}</td>
-                        <td className="col-number col-highlight">{row.diff}</td>
+                        <td className="col-number col-highlight">
+                          {row.diff}
+                        </td>
                         <td className="col-number">{row.fvQ1}</td>
                         <td className="col-number">{row.fvQ2}</td>
                         <td className="col-number col-highlight">
@@ -1407,7 +1394,6 @@ const Portfolio = () => {
                       </tr>
                     ))}
 
-                    {/* Total row */}
                     <tr className="portfolio-subtotal-row total-row">
                       <td className="subtotal-name-cell">
                         <ArrowTrendingUpIcon
@@ -1434,7 +1420,6 @@ const Portfolio = () => {
               </div>
             </div>
 
-            {/* Compare chart card */}
             <section className="compare-chart-section">
               <div className="compare-chart-card">
                 <div className="compare-chart-header">
@@ -1463,392 +1448,366 @@ const Portfolio = () => {
                     </button>
                   </div>
                 </div>
-
-                <div className="compare-chart-placeholder">
-                  {/* Placeholder للـ area chart – ممكن يتستبدل بريـتشارتس/تشارت.js بعدين */}
-                </div>
+                <div className="compare-chart-placeholder" />
               </div>
-              {selectedCompareRow && (
-  <div
-    className="compare-detail-overlay"
-    onClick={() => setSelectedCompareRow(null)}
-  >
-    <aside
-      className="compare-detail-panel"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* ===== Header (اسم الاستثمار + الزرار الورا + أيقونات) ===== */}
-      <div className="compare-detail-header">
-        <button
-          className="compare-back-btn"
-          onClick={() => setSelectedCompareRow(null)}
-        >
-          <ArrowLeftIcon className="icon-svg" style={smallIconStyle} />
-        </button>
-
-        <div className="compare-investment-header">
-          <div className="compare-investment-name">
-            {selectedCompareRow.name}
-          </div>
-          <div className="compare-investment-meta">
-            <span className="meta-item">
-              <span className="meta-label">Ownership</span>
-              <span className="meta-value">21.65%</span>
-            </span>
-            <span className="meta-item">
-              <span className="meta-label">Currency</span>
-              <span className="meta-value">EUR €</span>
-            </span>
-            <span className="meta-item">
-              <span className="meta-label">Country</span>
-              <span className="meta-value">
-                <span className="flag">🇩🇪</span> Germany
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <div className="compare-investment-actions">
-          <button className="icon-circle-btn">
-            <PencilSquareIcon className="icon-svg" style={iconStyle} />
-          </button>
-        </div>
-      </div>
-
-      {/* ===== Summary tiles (Investment / Dividends / ... ) ===== */}
-      <section className="compare-flows-summary">
-        <div className="flow-summary-card">
-          <div className="flow-summary-label">Investment</div>
-          <div className="flow-summary-amount">12 000 000 €</div>
-        </div>
-        <div className="flow-summary-card">
-          <div className="flow-summary-label">Dividends</div>
-          <div className="flow-summary-amount">545 000 €</div>
-        </div>
-        <div className="flow-summary-card">
-          <div className="flow-summary-label">Interests</div>
-          <div className="flow-summary-amount">- €</div>
-        </div>
-        <div className="flow-summary-card">
-          <div className="flow-summary-label">Other</div>
-          <div className="flow-summary-amount">265 000 €</div>
-        </div>
-        <div className="flow-summary-card">
-          <div className="flow-summary-label">Divestment</div>
-          <div className="flow-summary-amount">24 000 000 €</div>
-        </div>
-      </section>
-
-      {/* ===== Fair value block ===== */}
-      <section className="compare-fairvalue-section">
-        <div className="fairvalue-date-block">
-          <div className="fairvalue-label">Fair Value</div>
-          <button className="fairvalue-date-btn">31/03/2025</button>
-        </div>
-
-        <div className="fairvalue-inputs">
-          <div className="fairvalue-input-group">
-            <label className="fairvalue-input-label">Amount</label>
-            <input
-              className="fairvalue-input"
-              type="text"
-              defaultValue="13 500 000"
-            />
-          </div>
-          <div className="fairvalue-input-group">
-            <label className="fairvalue-input-label">FX Rate*</label>
-            <input
-              className="fairvalue-input"
-              type="text"
-              defaultValue="1.10"
-            />
-          </div>
-          <div className="fairvalue-input-group">
-            <label className="fairvalue-input-label">Amount LC *</label>
-            <input
-              className="fairvalue-input"
-              type="text"
-              defaultValue="15 000 000"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Flows table ===== */}
-      <section className="compare-flows-table-section">
-        <div className="flows-table-header">
-          <span className="flows-title">Flows</span>
-        </div>
-
-        <div className="flows-table-wrapper">
-          <table className="flows-table">
-            <thead>
-              <tr>
-                <th>Flow</th>
-                <th>Date</th>
-                <th>Amount (€)</th>
-                <th>FX Rate</th>
-                <th>Amount LC</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* صف 1 */}
-              <tr>
-                <td>#1</td>
-                <td>
-                  <input
-                    className="flow-input flow-date-input"
-                    type="text"
-                    defaultValue="02/02/23"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="-10 000 000"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="0.00"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="0,000.00LC"
-                  />
-                </td>
-                <td>
-                  <button className="flow-type-btn">
-                    Investment
-                    <ChevronDownIcon
-                      className="icon-svg caret-icon"
-                      style={smallIconStyle}
-                    />
-                  </button>
-                </td>
-                <td>
-                  <div className="flow-actions">
-                    <button className="icon-circle-btn">
-                      <InformationCircleIcon
-                        className="icon-svg"
-                        style={iconStyle}
-                      />
-                    </button>
-                    <button className="icon-circle-btn">
-                      <EllipsisVerticalIcon
-                        className="icon-svg"
-                        style={iconStyle}
-                      />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-
-              {/* تقدر تكرر الصف ده كام مرة كـ dummy rows */}
-              {/* صف 2 */}
-              <tr>
-                <td>#2</td>
-                <td>
-                  <input
-                    className="flow-input flow-date-input"
-                    type="text"
-                    defaultValue="02/02/24"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="-2 000 000"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="0.00"
-                  />
-                </td>
-                <td>
-                  <input
-                    className="flow-input"
-                    type="text"
-                    defaultValue="0,000.00LC"
-                  />
-                </td>
-                <td>
-                  <button className="flow-type-btn">
-                    Investment
-                    <ChevronDownIcon
-                      className="icon-svg caret-icon"
-                      style={smallIconStyle}
-                    />
-                  </button>
-                </td>
-                <td>
-                  <div className="flow-actions">
-                    <button className="icon-circle-btn">
-                      <InformationCircleIcon
-                        className="icon-svg"
-                        style={iconStyle}
-                      />
-                    </button>
-                    <button className="icon-circle-btn">
-                      <EllipsisVerticalIcon
-                        className="icon-svg"
-                        style={iconStyle}
-                      />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-
-              {/* تقدر تزود باقي الصفوف بنفس الطريقة */}
-            </tbody>
-          </table>
-        </div>
-
-        <button className="new-flow-btn">+ New Flow</button>
-      </section>
-
-      {/* ===== Footer (Performance + Save/Cancel) ===== */}
-      <section className="compare-footer-section">
-        <div className="performance-title">Performance</div>
-
-        <div className="compare-footer-actions">
-          <button
-            className="compare-cancel-btn"
-            onClick={() => setSelectedCompareRow(null)}
-          >
-            Cancel
-          </button>
-          <button className="compare-save-btn">Save</button>
-        </div>
-      </section>
-    </aside>
-  </div>
-)}
-
-
             </section>
           </section>
         )}
-              {/* ===== New investment modal ===== */}
-      {isNewInvestmentOpen && (
-        <div
-          className="investment-modal-overlay"
-          onClick={() => setIsNewInvestmentOpen(false)}
-        >
+
+        {selectedCompareRow && (
           <div
-            className="investment-modal"
-            onClick={(e) => e.stopPropagation()}
+            className="compare-detail-overlay"
+            onClick={() => setSelectedCompareRow(null)}
           >
-            {/* Header */}
-            <div className="investment-modal-header">
-              <div className="investment-modal-icon">
-                <DocumentIcon className="icon-svg" style={iconStyle} />
-              </div>
+            <aside
+              className="compare-detail-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="compare-detail-header">
+                <button
+                  className="compare-back-btn"
+                  onClick={() => setSelectedCompareRow(null)}
+                >
+                  <ArrowLeftIcon className="icon-svg" style={smallIconStyle} />
+                </button>
 
-              <div className="investment-modal-title-block">
-                <h2 className="investment-modal-title">
-                  Create a new investment
-                </h2>
-                <p className="investment-modal-subtitle">Description</p>
-              </div>
-
-              <button
-                className="investment-modal-close"
-                onClick={() => setIsNewInvestmentOpen(false)}
-              >
-                <XMarkIcon className="icon-svg" style={iconStyle} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="investment-modal-body">
-              {/* Investment name */}
-              <div className="investment-field">
-                <label className="investment-label">
-                  Investment name*
-                </label>
-                <input
-                  className="investment-input"
-                  type="text"
-                  placeholder="Please enter the investment name..."
-                />
-              </div>
-
-              {/* Sector / Geography */}
-              <div className="investment-row">
-                <div className="investment-field">
-                  <label className="investment-label">Sector*</label>
-                  <button className="investment-select">
-                    <span>Select a sector</span>
-                    <ChevronDownIcon
-                      className="icon-svg caret-icon"
-                      style={iconStyle}
-                    />
-                  </button>
+                <div className="compare-investment-header">
+                  <div className="compare-investment-name">
+                    {selectedCompareRow.name}
+                  </div>
+                  <div className="compare-investment-meta">
+                    <span className="meta-item">
+                      <span className="meta-label">Ownership</span>
+                      <span className="meta-value">21.65%</span>
+                    </span>
+                    <span className="meta-item">
+                      <span className="meta-label">Currency</span>
+                      <span className="meta-value">EUR €</span>
+                    </span>
+                    <span className="meta-item">
+                      <span className="meta-label">Country</span>
+                      <span className="meta-value">
+                        <span className="flag">🇩🇪</span> Germany
+                      </span>
+                    </span>
+                  </div>
                 </div>
 
-                <div className="investment-field">
-                  <label className="investment-label">Geography*</label>
-                  <button className="investment-select">
-                    <span>Select a country</span>
-                    <ChevronDownIcon
-                      className="icon-svg caret-icon"
-                      style={iconStyle}
-                    />
+                <div className="compare-investment-actions">
+                  <button className="icon-circle-btn">
+                    <PencilSquareIcon className="icon-svg" style={iconStyle} />
                   </button>
                 </div>
               </div>
 
-              {/* Ownership / Local currency */}
-              <div className="investment-row">
+              <section className="compare-flows-summary">
+                <div className="flow-summary-card">
+                  <div className="flow-summary-label">Investment</div>
+                  <div className="flow-summary-amount">12 000 000 €</div>
+                </div>
+                <div className="flow-summary-card">
+                  <div className="flow-summary-label">Dividends</div>
+                  <div className="flow-summary-amount">545 000 €</div>
+                </div>
+                <div className="flow-summary-card">
+                  <div className="flow-summary-label">Interests</div>
+                  <div className="flow-summary-amount">- €</div>
+                </div>
+                <div className="flow-summary-card">
+                  <div className="flow-summary-label">Other</div>
+                  <div className="flow-summary-amount">265 000 €</div>
+                </div>
+                <div className="flow-summary-card">
+                  <div className="flow-summary-label">Divestment</div>
+                  <div className="flow-summary-amount">24 000 000 €</div>
+                </div>
+              </section>
+
+              <section className="compare-fairvalue-section">
+                <div className="fairvalue-date-block">
+                  <div className="fairvalue-label">Fair Value</div>
+                  <button className="fairvalue-date-btn">31/03/2025</button>
+                </div>
+                <div className="fairvalue-inputs">
+                  <div className="fairvalue-input-group">
+                    <label className="fairvalue-input-label">Amount</label>
+                    <input
+                      className="fairvalue-input"
+                      type="text"
+                      defaultValue="13 500 000"
+                    />
+                  </div>
+                  <div className="fairvalue-input-group">
+                    <label className="fairvalue-input-label">FX Rate*</label>
+                    <input
+                      className="fairvalue-input"
+                      type="text"
+                      defaultValue="1.10"
+                    />
+                  </div>
+                  <div className="fairvalue-input-group">
+                    <label className="fairvalue-input-label">
+                      Amount LC *
+                    </label>
+                    <input
+                      className="fairvalue-input"
+                      type="text"
+                      defaultValue="15 000 000"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="compare-flows-table-section">
+                <div className="flows-table-header">
+                  <span className="flows-title">Flows</span>
+                </div>
+                <div className="flows-table-wrapper">
+                  <table className="flows-table">
+                    <thead>
+                      <tr>
+                        <th>Flow</th>
+                        <th>Date</th>
+                        <th>Amount (€)</th>
+                        <th>FX Rate</th>
+                        <th>Amount LC</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>#1</td>
+                        <td>
+                          <input
+                            className="flow-input flow-date-input"
+                            type="text"
+                            defaultValue="02/02/23"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="-10 000 000"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="0.00"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="0,000.00LC"
+                          />
+                        </td>
+                        <td>
+                          <button className="flow-type-btn">
+                            Investment
+                            <ChevronDownIcon
+                              className="icon-svg caret-icon"
+                              style={smallIconStyle}
+                            />
+                          </button>
+                        </td>
+                        <td>
+                          <div className="flow-actions">
+                            <button className="icon-circle-btn">
+                              <InformationCircleIcon
+                                className="icon-svg"
+                                style={iconStyle}
+                              />
+                            </button>
+                            <button className="icon-circle-btn">
+                              <EllipsisVerticalIcon
+                                className="icon-svg"
+                                style={iconStyle}
+                              />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td>#2</td>
+                        <td>
+                          <input
+                            className="flow-input flow-date-input"
+                            type="text"
+                            defaultValue="02/02/24"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="-2 000 000"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="0.00"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="flow-input"
+                            type="text"
+                            defaultValue="0,000.00LC"
+                          />
+                        </td>
+                        <td>
+                          <button className="flow-type-btn">
+                            Investment
+                            <ChevronDownIcon
+                              className="icon-svg caret-icon"
+                              style={smallIconStyle}
+                            />
+                          </button>
+                        </td>
+                        <td>
+                          <div className="flow-actions">
+                            <button className="icon-circle-btn">
+                              <InformationCircleIcon
+                                className="icon-svg"
+                                style={iconStyle}
+                              />
+                            </button>
+                            <button className="icon-circle-btn">
+                              <EllipsisVerticalIcon
+                                className="icon-svg"
+                                style={iconStyle}
+                              />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <button className="new-flow-btn">+ New Flow</button>
+              </section>
+
+              <section className="compare-footer-section">
+                <div className="performance-title">Performance</div>
+                <div className="compare-footer-actions">
+                  <button
+                    className="compare-cancel-btn"
+                    onClick={() => setSelectedCompareRow(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button className="compare-save-btn">Save</button>
+                </div>
+              </section>
+            </aside>
+          </div>
+        )}
+
+        {isNewInvestmentOpen && (
+          <div
+            className="investment-modal-overlay"
+            onClick={() => setIsNewInvestmentOpen(false)}
+          >
+            <div
+              className="investment-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="investment-modal-header">
+                <div className="investment-modal-icon">
+                  <DocumentIcon className="icon-svg" style={iconStyle} />
+                </div>
+                <div className="investment-modal-title-block">
+                  <h2 className="investment-modal-title">
+                    Create a new investment
+                  </h2>
+                  <p className="investment-modal-subtitle">Description</p>
+                </div>
+                <button
+                  className="investment-modal-close"
+                  onClick={() => setIsNewInvestmentOpen(false)}
+                >
+                  <XMarkIcon className="icon-svg" style={iconStyle} />
+                </button>
+              </div>
+
+              <div className="investment-modal-body">
                 <div className="investment-field">
-                  <label className="investment-label">Ownership*</label>
+                  <label className="investment-label">
+                    Investment name*
+                  </label>
                   <input
                     className="investment-input"
                     type="text"
-                    placeholder="Please enter the ownership..."
+                    placeholder="Please enter the investment name..."
                   />
                 </div>
 
-                <div className="investment-field">
-                  <label className="investment-label">Local Currency*</label>
-                  <button className="investment-select">
-                    <span>Select a currency</span>
-                    <ChevronDownIcon
-                      className="icon-svg caret-icon"
-                      style={iconStyle}
+                <div className="investment-row">
+                  <div className="investment-field">
+                    <label className="investment-label">Sector*</label>
+                    <button className="investment-select">
+                      <span>Select a sector</span>
+                      <ChevronDownIcon
+                        className="icon-svg caret-icon"
+                        style={iconStyle}
+                      />
+                    </button>
+                  </div>
+                  <div className="investment-field">
+                    <label className="investment-label">Geography*</label>
+                    <button className="investment-select">
+                      <span>Select a country</span>
+                      <ChevronDownIcon
+                        className="icon-svg caret-icon"
+                        style={iconStyle}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="investment-row">
+                  <div className="investment-field">
+                    <label className="investment-label">Ownership*</label>
+                    <input
+                      className="investment-input"
+                      type="text"
+                      placeholder="Please enter the ownership..."
                     />
-                  </button>
+                  </div>
+                  <div className="investment-field">
+                    <label className="investment-label">Local Currency*</label>
+                    <button className="investment-select">
+                      <span>Select a currency</span>
+                      <ChevronDownIcon
+                        className="icon-svg caret-icon"
+                        style={iconStyle}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="investment-modal-footer">
-              <button
-                className="investment-cancel-btn"
-                onClick={() => setIsNewInvestmentOpen(false)}
-              >
-                Cancel
-              </button>
-              <button className="investment-save-btn">Save</button>
+              <div className="investment-modal-footer">
+                <button
+                  className="investment-cancel-btn"
+                  onClick={() => setIsNewInvestmentOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button className="investment-save-btn">Save</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
+        )}
       </main>
     </div>
   );
