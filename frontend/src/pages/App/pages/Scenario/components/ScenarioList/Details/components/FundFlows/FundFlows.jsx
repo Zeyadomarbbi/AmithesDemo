@@ -6,7 +6,7 @@ import AllOperations from './AllOperations/AllOperations';
 import CapitalCalls from './CapitalCalls/CapitalCalls';
 import Distributions from './Distributions/Distributions';
 import { DownloadIcon, PlusIcon, CalendarIcon } from './Icons';
-import DatePicker from '../../../../../../../../../components/DatePicker'; // Adjust path if needed
+import DatePicker from '../../../../../../../../../components/DatePicker';
 
 function FundFlows({ scenarioId })  {
   const [activeView, setActiveView] = useState('all_operations');
@@ -51,35 +51,40 @@ function FundFlows({ scenarioId })  {
   };
 
   return (
-    <div className="flows-tab-container">
+    <div className="fund-flows-layout-wrapper">
 
-      {/* --- TOOLBAR --- */}
-      <div className="flows-toolbar">
-        <div className="flows-view-selector">
-          <button className={`view-badge ${activeView === 'all_operations' ? 'active' : ''}`} onClick={() => setActiveView('all_operations')}>All Operations</button>
-          <button className={`view-badge ${activeView === 'calls' ? 'active' : ''}`} onClick={() => setActiveView('calls')}>Capital Calls</button>
-          <button className={`view-badge ${activeView === 'dist' ? 'active' : ''}`} onClick={() => setActiveView('dist')}>Distributions</button>
+      {/* === 2. MAIN CONTENT CONTAINER === */}
+      <div className="flows-tab-container">
+
+        {/* --- TOOLBAR --- */}
+        <div className="flows-toolbar">
+          <div className="flows-view-selector">
+            <button className={`view-badge ${activeView === 'all_operations' ? 'active' : ''}`} onClick={() => setActiveView('all_operations')}>All Operations</button>
+            <button className={`view-badge ${activeView === 'calls' ? 'active' : ''}`} onClick={() => setActiveView('calls')}>Capital Calls</button>
+            <button className={`view-badge ${activeView === 'dist' ? 'active' : ''}`} onClick={() => setActiveView('dist')}>Distributions</button>
+          </div>
+
+          <div className="flows-actions">
+            <button className="action-btn btn-download">
+               <DownloadIcon />
+               <span>Download</span>
+            </button>
+
+            <button className="action-btn btn-add" onClick={() => toggleModal(true)}>
+              <PlusIcon />
+              <span>Create Operation</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flows-actions">
-          <button className="action-btn btn-download">
-             <DownloadIcon />
-             <span>Download</span>
-          </button>
-
-          <button className="action-btn btn-add" onClick={() => toggleModal(true)}>
-            <PlusIcon />
-            <span>Create Operation</span>
-          </button>
+        {/* --- MAIN CONTENT --- */}
+        <div className="flows-section-content">
+          {renderActiveView()}
         </div>
+
       </div>
 
-      {/* --- MAIN CONTENT --- */}
-      <div className="flows-section-content">
-        {renderActiveView()}
-      </div>
-
-      {/* --- MODAL --- */}
+      {/* === 3. MODAL (Overlay) === */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-container">
@@ -109,7 +114,7 @@ function FundFlows({ scenarioId })  {
                   <div 
                     className="input-wrapper date-picker-trigger" 
                     onClick={() => setShowDatePicker(true)}
-                    style={{ cursor: 'pointer', paddingRight: '36px' }} // Add padding for icon
+                    style={{ cursor: 'pointer', paddingRight: '36px' }}
                   >
                     <input 
                         type="text" 
@@ -118,7 +123,6 @@ function FundFlows({ scenarioId })  {
                         readOnly
                         style={{ pointerEvents: 'none', width: '100%' }}
                     />
-                    {/* Calendar Icon added here */}
                     <div className="modal-input-icon">
                         <CalendarIcon />
                     </div>
@@ -130,7 +134,6 @@ function FundFlows({ scenarioId })  {
                         <DatePicker 
                             onClose={() => setShowDatePicker(false)}
                             onApply={handleApplyDate}
-                            // Pass current selection if editing (optional)
                             initialDate={selectedDate || new Date()} 
                         />
                     </div>

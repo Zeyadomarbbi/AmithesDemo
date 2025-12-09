@@ -1,0 +1,119 @@
+/* src/components/RealizedPortfolio.css */
+
+/* =========================================
+   1. CONTAINER & TABLE RESET
+   ========================================= */
+.realized-table-container {
+    width: 100%;
+    background: #fff;
+}
+
+.realized-table-container.no-borders {
+    border: none;
+}
+
+.realized-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+/* =========================================
+   2. HEADERS (THEAD)
+   ========================================= */
+.realized-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 12px 16px; /* Consistent padding */
+    text-align: center; /* Default alignment */
+}
+
+/* Specific width for the first column (Deal Name) */
+.realized-table thead th.realized-col-dealname {
+}
+
+/* --- Flex Wrappers for Alignment (Implementation of generic th-wrapper logic) --- */
+.realized-th-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 20px; /* Fix height for consistency */
+}
+
+.realized-th-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Alignment rules derived from generic header styles */
+.realized-th-wrapper.realized-align-left {
+    justify-content: flex-start;
+}
+
+.realized-th-wrapper.realized-align-right {
+    justify-content: center !important; /* Force header text to center */
+}
+
+/* --- Sort Icon and Currency Indicator --- */
+.realized-sort-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.realized-currency-indicator {
+    color: #9CA3AF;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+/* =========================================
+   3. BODY ROWS (TBODY)
+   ========================================= */
+.realized-table td {
+    padding: 12px 16px; 
+    vertical-align: middle;
+    border-bottom: 1px solid #F3F4F6;
+    color: #111827;
+}
+
+/* --- Striping Logic (Re-implemented from previous realization) --- */
+.realized-table tbody tr {
+    background: #FFFFFF;
+}
+
+/* Odd Rows (Gray) - Excluding Total Rows */
+.realized-table tbody tr:nth-child(odd):not(.realized-row-summary) {
+    background: #FAFAF9;
+}
+
+/* Even Rows (White) - Excluding Total Rows */
+.realized-table tbody tr:nth-child(even):not(.realized-row-summary) {
+    background: #FFFFFF;
+}
+
+/* =========================================
+   4. CELL CONTENT & ALIGNMENT
+   ========================================= */
+.realized-cell-right {
+    text-align: center !important; /* Force center alignment */
+}
+
+/* =========================================
+   5. SUMMARY ROW OVERRIDES
+   ========================================= */
+.realized-row-summary td {
+    background-color: #375A89 !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-bottom: none;
+    padding: 12px 16px;          /* match tbody cells */
+    line-height: 20px;           /* match normal rows */
+    vertical-align: middle;
+}

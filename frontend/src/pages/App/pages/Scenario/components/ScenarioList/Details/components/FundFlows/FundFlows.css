@@ -1,12 +1,20 @@
+.fund-flows-layout-wrapper {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    background-color: #FFFFFF;
+    overflow: hidden; 
+    z-index: 1;
+}
+
 /* =========================================
    1. MAIN LAYOUT & CONTAINERS
    ========================================= */
 .flows-tab-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  font-family: 'Inter', sans-serif;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 40px; 
 }
 
 .flows-section {
