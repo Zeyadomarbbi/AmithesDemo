@@ -1,66 +1,48 @@
 /* =========================================
-   SCENARIO LIST GRID (Cleaned Up)
+   SCENARIO CARD (Responsive)
    ========================================= */
-.scenario-list-grid {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap; /* Essential for grid behavior */
-  align-items: flex-start;
-  padding: 0px;
-  width: 1024px; /* Exact Frame Width */
-  gap: 8px;      /* Gap between cards */
-}
-
-/* =========================================
-   SCENARIO CARD (Your Exact Layout)
-   ========================================= */
-
 .scenario-card {
-  /* --- EXACT SPECS --- */
-  width: 336px;
-  height: 94px;
+  /* RESPONSIVE FIX: */
+  /* Remove fixed width (336px) so it fills the grid cell */
+  width: 100%;
+  height: 100%; 
   
-  /* Border */
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 8px;
   
-  /* Padding */
   padding: 16px 15px;
   box-sizing: border-box; 
   
-  /* Layout */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 8px; /* Maintain gap between left and right sections */
   
-  /* Appearance */
   background: #FFFFFF;
-  opacity: 1;
   transition: all 0.2s ease;
-  
-  /* Ensure it doesn't grow or shrink in the grid */
-  flex: none; 
-  flex-grow: 0; 
 }
 
-/* Hover Effect */
 .scenario-card:hover {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* --- LEFT SIDE --- */
+/* --- LEFT SIDE (Flexible) --- */
 .card-left-frame {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  padding: 0px;
   gap: 8px;
-  width: 174px;
-  height: 62px;
+    width: auto; 
+  height: auto;
+  /* RESPONSIVE FIX: */
+  /* Remove fixed width (174px) */
+  /* Allow this side to grow and take available space */
+  flex: 1;
+  min-width: 0; /* CRITICAL for text truncation */
 }
 
-/* --- CHECKBOX (UPDATED LOGIC) --- */
+/* --- CHECKBOX --- */
 .card-checkbox {
   box-sizing: border-box;
   width: 24px;
@@ -68,9 +50,10 @@
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
-  flex-shrink: 0;
+  
+  /* Prevent checkbox from squishing */
+  flex-shrink: 0; 
 
-  /* NEW: Logic for clickability and centering checkmark */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -78,30 +61,32 @@
   transition: all 0.2s ease;
 }
 
-/* NEW: The Checked State (Matches your Orange Image) */
 .card-checkbox.checked {
-    background-color: #F5A623;
-    border-color: #F5A623;
+  background-color: #F5A623;
+  border-color: #F5A623;
 }
 
-/* NEW: The Checkmark Icon */
 .checkmark {
-    color: white;
-    font-size: 14px;
-    font-weight: bold;
-    user-select: none;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  user-select: none;
 }
 
-/* --- TEXT FRAMES (Unchanged) --- */
+/* --- TEXT FRAMES (Flexible) --- */
 .card-text-frame {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
   gap: 4px;
-  width: 142px;
-  height: 62px;
-  flex-shrink: 0;
+  
+  /* RESPONSIVE FIX: */
+  /* Remove fixed width (142px) */
+  flex: 1;        /* Fill remaining space next to checkbox */
+  width: 100%;    /* Ensure internal text knows boundaries */
+  min-width: 0;   /* CRITICAL for text truncation */
+  height: auto;
 }
 
 .card-text-group {
@@ -120,6 +105,8 @@
   letter-spacing: 0.01em;
   color: #1C1917;
   margin: 0; 
+  
+  /* Truncation Logic */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -134,22 +121,29 @@
   letter-spacing: 0.01em;
   color: #375A89;
   margin: 0;
+  
+  /* Truncation Logic */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
 }
 
-/* --- RIGHT SIDE --- */
+/* --- RIGHT SIDE (Fixed Content, Auto Container) --- */
 .card-right-frame {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between; /* Space out icon and button if height grows */
   align-items: flex-end;
-  padding: 0px;
   gap: 8px;
-  width: 87px;
-  height: 60px;
+  
+  /* RESPONSIVE FIX: */
+  /* Remove fixed width (87px) & height */
+  width: auto;
+  height: 100%; /* Match card height */
+  
+  /* Prevent right side from shrinking */
+  flex-shrink: 0; 
 }
 
 .card-menu-icon {
@@ -162,9 +156,8 @@
   cursor: pointer;
 }
 
-/* --- JOIN BUTTON (UPDATED LOGIC) --- */
+/* --- JOIN BUTTON --- */
 .card-join-btn {
-  /* Inherit Box Model from your CSS */
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -172,12 +165,15 @@
   align-items: center;
   padding: 8px 16px;
   gap: 6px;
-  width: 87px;
+  
+  /* RESPONSIVE FIX: */
+  /* Remove fixed width (87px). Let padding dictate size. */
+  width: auto; 
   height: 32px;
+  
   background: #FAFAF9;
   border-radius: 4px;
   
-  /* Text Styles */
   font-family: 'Inter', sans-serif;
   font-style: normal;
   font-weight: 500;
@@ -185,13 +181,12 @@
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #375A89;
-
-  /* NEW: Necessary because this is now an <A> tag (Link) */
   text-decoration: none; 
   cursor: pointer;
+  white-space: nowrap; /* Prevent button text wrap */
   transition: background 0.2s;
 }
 
 .card-join-btn:hover {
-    background-color: #f0f0f0; /* Slight hover effect */
+   background-color: #f0f0f0; 
 }

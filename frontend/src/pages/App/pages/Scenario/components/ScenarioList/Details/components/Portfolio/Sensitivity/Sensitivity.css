@@ -1,0 +1,8 @@
+.sensitivity-table-wrapper {
+    width: 100%;
+    margin: 0 auto;             /* center on page */
+    padding: 0 0;            /* top/bottom spacing */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}

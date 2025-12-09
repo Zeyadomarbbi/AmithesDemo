@@ -1,93 +1,136 @@
+/* =========================================
+   DRAWER HEADER (Responsive)
+   ========================================= */
+
 .drawer-header-wrapper {
-  /* Frame 1261155129 & Modal header */
+  /* RESPONSIVE FIX: */
+  /* Remove fixed height: 88px */
+  /* Remove fixed padding: 0 32px (moved to content for better control) */
+  width: 100%;
+  height: auto; 
+  min-height: 88px; /* Maintain visual weight on desktop */
+  
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0px 32px;
-  width: 100%;
-  height: 88px;
-  flex: none;
+  
   background: #FFFFFF;
   box-sizing: border-box;
+  flex: none;
 }
 
 .header-content {
-  /* Content Frame */
+  /* RESPONSIVE FIX: */
+  /* Remove fixed height: 68px */
+  /* Allow wrapping for very small screens */
+  width: 100%;
+  height: auto;
+  
   display: flex;
   flex-direction: row;
-  align-items: flex-start; /* Figma says flex-start */
-  padding: 24px 24px 0px;
+  align-items: flex-start;
+  
+  /* Use clamp or media queries for padding if needed, 
+     but standardizing it here works best: */
+  padding: 24px 24px 0px; 
   gap: 16px;
-  width: 100%;
-  height: 68px;
+  
   box-sizing: border-box;
 }
 
 /* --- ICONS --- */
 .header-icon-btn {
-  /* Featured icon */
-  box-sizing: border-box;
+  /* Fixed size is fine for icons, but ensure they don't shrink */
   width: 40px;
   height: 40px;
+  flex-shrink: 0; /* CRITICAL: Prevents crushing on small screens */
+  
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
   border-radius: 8px;
   
-  /* Flex to center the SVG inside */
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex: none;
-  order: 0;
-  flex-grow: 0;
-  color: #375A89; /* Icon color */
+  color: #375A89;
 }
 
 /* --- TEXT AREA --- */
 .header-text-frame {
-  /* Frame 1261155245 */
+  /* RESPONSIVE FIX: */
+  /* Remove fixed height: 44px */
+  height: auto;
+  
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 0px;
-  gap: 24px;
-  flex-grow: 1; /* Fills space between icons */
-  height: 44px;
+  flex-direction: column; /* Stack vertically on small screens if needed */
+  justify-content: center;
+  
+  /* Fill available space */
+  flex-grow: 1; 
+  min-width: 0; /* CRITICAL: Allows truncation inside flex children */
 }
 
 .header-titles-col {
-  /* Frame 1261154970 */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 0px;
   width: 100%;
+  padding: 0;
 }
 
 .header-main-title {
-  /* Les équipements */
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 18px;
   line-height: 28px;
   color: #1C1917;
+  
+  /* Responsive Text Behavior */
+  width: 100%;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-sub-title {
-  /* Description */
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #375A89;
+  
+  /* Allow subtitle to wrap if needed */
+  white-space: normal; 
+  width: 100%;
 }
 
 /* --- BOTTOM PADDING --- */
+/* Optional spacer element, but margin-bottom on wrapper is usually cleaner */
 .header-bottom-pad {
   width: 100%;
   height: 20px;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   MEDIA QUERY (Mobile < 480px)
+   ========================================= */
+@media (max-width: 480px) {
+  .header-content {
+    padding: 16px 16px 0px; /* Reduce padding on mobile */
+    gap: 12px;
+  }
+  
+  .header-main-title {
+    font-size: 16px; /* Slightly smaller title */
+    line-height: 24px;
+  }
+  
+  /* If you want the close button to wrap under the text on TINY screens:
+  .header-content {
+     flex-wrap: wrap; 
+  } */
 }
