@@ -1,7 +1,8 @@
 // DrawerTable.jsx
 
 import React, { useState } from 'react'; // Import useState
-import { SortIcon, PlusIcon } from '../../../Icons';
+// Added MinusIcon to imports
+import { SortIcon, PlusIcon, MinusIcon } from '../../../Icons'; 
 import './DrawerTable.css';
 
 
@@ -117,7 +118,11 @@ function DrawerTable({ synthesisLinks }) {
                                         <div className="cell-flex-wrapper"> 
                                             {kpi.isExpandable && 
                                                 <span className="plus-icon-wrapper">
-                                                    <PlusIcon className={`plus-icon ${expandedRowId === kpi.id ? 'rotated' : ''}`} />
+                                                    {expandedRowId === kpi.id ? (
+                                                        <MinusIcon className="plus-icon" />
+                                                    ) : (
+                                                        <PlusIcon className="plus-icon" />
+                                                    )}
                                                 </span>
                                             }
                                             <span className="kpi-name-text">{kpi.name}</span>
