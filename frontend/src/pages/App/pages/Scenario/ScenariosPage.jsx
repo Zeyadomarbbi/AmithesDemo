@@ -27,10 +27,10 @@ function ScenariosPage() {
              { id: 6, fundId: 1, title: "Scenario Strategic Acquisition", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"}
         ];
         const allSyntheses = [
-             { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"] },
-             { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"] },
-             { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"] },
-             { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"] }
+            { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"], description: "Detailed analysis of potential fund exit strategies and Q4 projections." }, // ADDED DESCRIPTION
+            { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"], description: "Presentation slides summarizing portfolio performance for the Q2 committee." }, // ADDED DESCRIPTION
+            { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "A three-way comparison of market scenarios impact on fund valuations." }, // ADDED DESCRIPTION
+            { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "Follow-up analysis addressing committee feedback from the previous quarter." } // ADDED DESCRIPTION
         ];
         const currentFundId = parseInt(fundId) || 1; 
         setScenarios(allScenarios.filter(s => s.fundId === currentFundId));

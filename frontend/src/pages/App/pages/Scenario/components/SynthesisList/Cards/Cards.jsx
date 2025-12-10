@@ -4,7 +4,7 @@ import { MoreVerticalIcon, DashboardIcon, DeleteIcon} from '../Icons';
 import './Cards.css';
 
 // FIX: Added useEffect dependency back based on previous steps, assuming the user removed it accidentally.
-function SynthesisCards({ id, fundId, title, author, createdDate, links , onDelete}) {
+function SynthesisCards({ id, fundId, title, author, createdDate, links, description, onDelete}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     useEffect(() => {
         const handleClickOutside = () => setIsMenuOpen(false);
@@ -30,7 +30,21 @@ function SynthesisCards({ id, fundId, title, author, createdDate, links , onDele
     // useEffect is necessary for closing the menu when clicking outside
 
     return (
-      <Link to={`/funds/${fundId}/scenarios/synthesis/${id}`} className="synthesis-card-link">
+      <Link 
+        // CORRECTED PATH: Use relative path to trigger the child route
+        to={`synthesis/${id}`} 
+        
+        // ADDED STATE: Pass the card's data directly
+        state={{ 
+            synthesisId: id,
+            synthesisTitle: title,
+            synthesisAuthor: author,
+            synthesisCreatedDate: createdDate,
+            synthesisLinks: links,
+            synthesisDescription: description
+        }}
+        className="synthesis-card-link"
+      >
         <div className="synthesis-card">
           
           <div className="synth-left-frame">

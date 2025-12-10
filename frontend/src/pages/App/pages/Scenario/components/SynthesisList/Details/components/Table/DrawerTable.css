@@ -1,7 +1,4 @@
-/* src/features/Scenarios/components/SynthesisList/Details/components/DrawerTable.css */
-
 .drawer-table-wrapper {
-  /* Matches the padding from your Figma design */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -10,20 +7,184 @@
   box-sizing: border-box;
 }
 
-.table-svg-container {
-  /* Ensure the container takes the full width available up to the design max */
-  width: 100%; 
-  max-width: 1024px;
-  height: auto;
-  
-  /* Optional: Add the border radius/stroke if it's not in the SVG itself */
-  border-radius: 3px;
-  /* border: 1px solid rgba(204, 205, 206, 0.5); <--- Uncomment if your SVG doesn't have a border */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: #FFFFFF;
 }
 
-.table-preview-img {
-  /* Makes the SVG responsive */
+.synthesis-table {
   width: 100%;
-  height: auto;
-  display: block; /* Removes tiny bottom gap typical with images */
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 800px;
+}
+
+/* --- HEADERS --- */
+.synthesis-table-header th {
+  height: 40px;
+  background-color: #FFFFFF;
+  text-align: left;
+  padding: 0 12px;
+  border: none;
+  padding-bottom: 16px;
+}
+
+.kpi-header-cell {
+  width: 28%;
+  min-width: 250px;
+}
+
+.scenario-header-cell {
+  width: 24%;
+  min-width: 150px;
+}
+
+.kpi-header-content,
+.scenario-header-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.unit-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #7B7D7E;
+}
+
+.sort-icon {
+  width: 12px;
+  height: 12px;
+  color: #375A89;
+}
+
+/* --- BODY ROWS --- */
+.synthesis-table-body td {
+  padding: 12px;
+  border: none;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1C1917;
+  height: 48px;
+  vertical-align: middle;
+}
+
+.synthesis-table-body tr:nth-child(odd) {
+  background-color: #FAFAF9;
+}
+
+.synthesis-table-body tr:nth-child(even) {
+  background-color: #FFFFFF;
+}
+
+/* Base style for clickable parent row */
+.kpi-row.clickable {
+  cursor: pointer;
+}
+
+/* Parent KPI Name Cell */
+.kpi-name-cell {
+  font-weight: 500;
+  color: #375A89;
+}
+
+.cell-flex-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.kpi-name-cell.expandable {
+  font-weight: 400;
+}
+
+/* Plus Icon Wrapper */
+.plus-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  transition: transform 0.2s ease;
+}
+
+.plus-icon.rotated {
+  transform: rotate(45deg);
+}
+
+.plus-icon {
+  width: 14px;
+  height: 14px;
+  color: #375A89;
+  flex-shrink: 0;
+}
+
+.kpi-row:last-child td {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.kpi-value-cell {
+  font-weight: 400;
+  text-align: left;
+  color: #7B7D7E;
+}
+
+/* --- SUB-ROW STYLING --- */
+.sub-kpi-row td {
+  padding: 8px 12px;
+  border: none;
+  font-size: 14px;
+  color: #000;
+  background-color: inherit;
+}
+
+.sub-kpi-row:last-child td {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.synthesis-table-body tr.sub-kpi-row {
+  background-color: transparent !important;
+}
+
+/* Indent the name cell */
+.sub-kpi-name-cell {
+  /* display: flex; <-- REMOVED */
+  /* flex-direction: column; <-- REMOVED */
+  /* justify-content: center; <-- REMOVED */
+  /* gap: 2px; <-- REMOVED */
+  padding-left: 28px !important;
+  font-weight: 400;
+  color: #1C1917;
+}
+
+/* New Wrapper Class */
+.sub-cell-flex-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.sub-unit-tag {
+  font-weight: 500;
+  font-size: 13px;
+  background-color: transparent;
+  color: #375A89;
+  padding: 0; 
+}
+
+.sub-kpi-value-cell {
+  text-align: left;
+  color: #1C1917;
 }

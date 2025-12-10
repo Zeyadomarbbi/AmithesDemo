@@ -23,6 +23,7 @@ function SynthesisList({ title, syntheses, onDelete }) {
             author={synth.author}
             createdDate={synth.createdDate}
             links={synth.links}
+            description={synth.description}
             onDelete={onDelete}
           />
         ))}
