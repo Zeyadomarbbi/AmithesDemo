@@ -78,6 +78,7 @@
   border: 1px solid var(--border-soft);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
   overflow: hidden;
+   align-items: right;
 }
 
 .table-header-row,
@@ -85,17 +86,20 @@
 .detail-row,
 .net-row {
   display: grid;
-  grid-template-columns: 2fr 1.8fr 1.5fr 1fr;
+  grid-template-columns: .4fr .3fr .3fr 1fr;
   align-items: center;
   padding: 14px 16px;
   box-sizing: border-box;
 }
 
 .table-header-row {
+  
   border-bottom: 1px solid var(--border-soft);
+  padding: 20px 50px;
   font-size: 13px;
   color: var(--text-muted);
   background: #f9fafb;
+  align-items: center;
 }
 
 .col-period {
@@ -116,9 +120,11 @@
 }
 
 .group-row--band {
+ 
   background: var(--band-bg);
   border-top: 1px solid var(--band-border);
   border-bottom: 1px solid var(--band-border);
+  align-items: right;
 }
 
 .group-toggle {
@@ -163,9 +169,10 @@
   border-bottom: 1px solid var(--border-soft);
   background: #ffffff;
   font-size: 14px;
+  
 }
 .detail-label { color: var(--text-main); }
-.detail-input-wrapper { display: flex; align-items: center; gap: 8px; }
+.detail-input-wrapper { display: flex; align-items: right; gap: 5px; padding: 0 12px; }
 
 .static-value {
   background: #ffffff;
@@ -203,3 +210,6 @@
 .net-value { text-align: left; }
 .net-value.positive { color: #c8f5d0; }
 .net-value.negative { color: #ffd1cf; }
+
+
+
