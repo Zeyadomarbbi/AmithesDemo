@@ -1,7 +1,8 @@
 .fund-flows-layout-wrapper {
     display: flex;
     flex-direction: row;
-    width: 100%;
+    width: auto;
+    height: auto;
     background-color: #FFFFFF;
     overflow: hidden; 
     z-index: 1;
@@ -15,6 +16,8 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 40px; 
+    margin-top: 24px;
+    padding: 0 40px; 
 }
 
 .flows-section {

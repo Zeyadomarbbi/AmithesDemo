@@ -2,19 +2,21 @@
    1. PAGE LAYOUT (The Parent)
    ========================================= */
 .portfolio-page-layout {
-    display: flex;
-    flex-direction: row;
-    /* FIXED POSITIONING to prevent whole-page scroll */
-    position: fixed;
-    top: 113px; 
-    left: 0;
-    right: 0;
-    bottom: 0;
-    
-    width: 100%;
-    background-color: #FFFFFF;
-    overflow: hidden; 
-    z-index: 1;
+  display: flex;
+  flex-direction: row;
+  
+  /* --- THE FIX --- */
+  /* 1. Undo the parent's padding (24px top/bottom, 40px left/right) */
+  /* margin: -24px -40px;  */
+  
+  /* 2. Force width/height to fill the space we just reclaimed */
+  width: auto; /* 100% + 40px left + 40px right */
+  height: auto; /* 100% + 24px top + 24px bottom */
+  min-height: 100%;
+  background-color: #FFFFFF;
+  overflow: hidden; 
+  z-index: 1;
+  box-sizing: border-box;
 }
 
 /* =========================================
@@ -23,9 +25,9 @@
 .portfolio-main-content {
     flex: 1; 
     overflow-y: auto; 
-    padding: 32px 48px;
     min-width: 0; 
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    padding: 0 40px; 
+    margin-top: 24px;
 }
 
 .portfolio-tab-container {
@@ -33,37 +35,6 @@
     display: flex;
     flex-direction: column;
     gap: 32px;
-    padding-bottom: 40px; 
-}
-
-/* --- NEW: CONTROLS SECTION (Toggles) --- */
-.portfolio-controls {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 24px;
-    width: 100%;
-    margin-bottom: -10px; /* Pull closer to the table below */
-}
-
-.control-group {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 16px;
-    cursor: pointer;
-    user-select: none;
-}
-
-/* The Label */
-.control-label {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.01em;
-    color: #375A89;
 }
 
 /* --- SECTIONS --- */
@@ -98,7 +69,7 @@
    ========================================= */
 .portfolio-side-panel {
     flex-shrink: 0; 
-    height: 100%;
+    height: auto;
     background-color: #1e293b;
     border-top-left-radius: 16px;
     overflow-y: auto; 

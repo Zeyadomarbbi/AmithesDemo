@@ -71,6 +71,7 @@ const AllOperations = ({ scenarioId }) => {
             <DatePicker 
                 onClose={handleClose}
                 onApply={handleApplyDate}
+                isSingle={true}
                 initialDate={activeRow ? parseDateString(activeRow.date) : new Date()} 
             />
         </div>

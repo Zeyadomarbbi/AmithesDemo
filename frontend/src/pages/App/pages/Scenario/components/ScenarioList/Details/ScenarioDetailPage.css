@@ -41,7 +41,7 @@
 }
 
 /* 3. Ensure internal content width is constrained */
-.scenario-details-page {
+.scenario-header-page {
   position: relative;
   width: 100%;
   height: 100%;
@@ -50,10 +50,10 @@
 }
 
 .details-content-area {
-  /* Add padding for the content itself */
-  padding: 24px 40px; 
-  
   /* Ensure it fills the width */
   width: 100%;
+  height: auto;
+  min-height: 100%;
   box-sizing: border-box;
+  overflow-y: auto;
 }

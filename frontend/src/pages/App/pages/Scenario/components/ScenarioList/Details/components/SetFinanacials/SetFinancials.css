@@ -1,11 +1,29 @@
-/* === TOOLBAR STYLES === */
-
-.financials-tab-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.financials-page-layout {
+  /* Ensure the layout takes full available space */
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  height: 100%;
+  
+  /* Use Column to stack Toolbar -> Content vertically */
+  display: flex;
+  flex-direction: column; 
+  
+  background-color: #FFFFFF;
+  overflow: hidden; 
+  z-index: 1;
+}
+/* === TOOLBAR STYLES === */
+.financials-main-content {
+  /* Fill the remaining height */
+  flex: 1; 
+  
+  /* Handle scrolling here */
+  overflow-y: auto; 
+  overflow-x: hidden;
+  
+  /* Add the page padding here */
+  padding: 24px 40px; 
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .fin-toolbar {
