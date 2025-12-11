@@ -137,4 +137,4 @@ export default function NewFundModal({ open, onClose, onCreate }) {
       </div>
     </div>
   );
-}
+}  

@@ -5,30 +5,40 @@
 .table-wrapper {
   width: 100%;
   padding-top: 10px;
-
-  /* ✅ allow horizontal scroll on smaller screens */
-  overflow-x: auto;
+  overflow-x: auto; /* horizontal scroll if needed */
 }
 
 /* Force minimum width so table does NOT squish */
 .clean-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1050px; /* ⭐ keeps Figma column spacing */
+  min-width: 1050px; /* keeps Figma column spacing */
 }
 
 /* ================================
-   TYPOGRAPHY (your exact styling)
+   TYPOGRAPHY BASE
    ================================ */
 
-.clean-table td,
+/* headers */
 .clean-table th {
   font-family: var(--font-body, "Inter", sans-serif);
-  font-weight: 500;
-  font-size: 14px; /* text-sm */
-  line-height: 20px;
-  letter-spacing: 0.01em; /* 1% */
+  font-weight: 500;               /* Medium */
+  font-size: 14px;                /* text-sm */
+  line-height: 16px;
+  letter-spacing: 0.01em;         /* 1% */
   white-space: nowrap;
+  color: var(--text-main-title, #1c1917);
+}
+
+/* body cells (all columns) */
+.clean-table td {
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-weight: 400;               /* Regular */
+  font-size: 14px;                /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em;         /* 1% */
+  white-space: nowrap;
+  color: var(--text-main-title, #1c1917);
 }
 
 /* ================================
@@ -36,17 +46,30 @@
    ================================ */
 
 .clean-table thead th {
-  padding: 12px 6px;
+  padding: 12px 10px;
   border: none;
   cursor: pointer;
   user-select: none;
+  vertical-align: middle;
 }
 
-.th-left { text-align: left; }
-.th-right { text-align: right; }
+.th-left   { text-align: left; }
+.th-right  { text-align: right; }
 .th-center { text-align: center; }
 
-/* label + sort icon */
+/* optional per-column classes */
+.th-fund      { text-align: left;   vertical-align: middle; }
+.th-strategy  { text-align: right;  vertical-align: middle; }
+.th-commit    { text-align: right;  vertical-align: middle; }
+.th-cost      { text-align: right;  vertical-align: middle; }
+.th-nbdeals   { text-align: right;  vertical-align: middle; }
+.th-grossirr  { text-align: center; vertical-align: middle; }
+.th-netirr    { text-align: center; vertical-align: middle; }
+.th-dpi       { text-align: right;  vertical-align: middle; }
+.th-rvpi      { text-align: right;  vertical-align: middle; }
+.th-tvpi      { text-align: right;  vertical-align: middle; }
+
+/* label + sort icon wrapper */
 .th-inner {
   display: inline-flex;
   align-items: center;
@@ -54,7 +77,7 @@
 }
 
 /* ================================
-   SORT ICON (your exact arrows)
+   SORT ICON (triangle arrows)
    ================================ */
 
 .sort-icon {
@@ -94,33 +117,54 @@
    BODY
    ================================ */
 
+/* 👉 base rows: white (rows 2, 4, ...) */
+.clean-table tbody tr {
+  background: #ffffff;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* 👉 striped rows (we add .striped to 0,2,4...) = darker grey */
+.clean-table tbody tr.striped,
+.striped {
+  background: #f5f5f5;
+}
+
+/* hover state */
+.clean-table tbody tr:hover {
+  background: #eef2f7;
+}
+
+/* cell padding */
 .clean-table tbody td {
-  padding: 12px 6px;
+  padding: 12px 10px;
   border: none;
 }
 
-.striped {
-  background: #fafafa;
-}
-
-.clean-table tbody tr:hover {
-  background: #f2f4f7;
-}
-
-/* alignment */
-.td-left { text-align: left; }
-.td-right { text-align: right; }
+/* alignment helpers used by JSX */
+.td-left   { text-align: left; }
+.td-right  { text-align: right; }
 .td-center { text-align: center; }
 
-/* fund = title + year */
+/* ================================
+   FIRST COLUMN (Fund + year)
+   ================================ */
+
 .fund-name {
   font-weight: 500;
+  color: var(--text-main-title, #1c1917);
 }
 
 .fund-year {
-  font-size: 12px;
-  color: #2563eb;
+  display: block;
   margin-top: 2px;
+
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-weight: 400;                         /* Regular */
+  font-size: 14px;                          /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em;                   /* 1% */
+
+  color: var(--text-subtitle, #375A89);     /* subtitle blue */
 }
 
 /* ================================
@@ -132,18 +176,18 @@
   .clean-table td,
   .clean-table th {
     font-size: 13px;
-    padding: 10px 6px;
+    padding: 10px 8px;
   }
 }
 
 /* tablets */
 @media (max-width: 768px) {
   .table-wrapper {
-    overflow-x: auto; /* scroll horizontally */
+    overflow-x: auto;
   }
 
   .clean-table {
-    min-width: 900px; /* keep spacing readable */
+    min-width: 900px;
   }
 }
 
@@ -152,7 +196,7 @@
   .clean-table td,
   .clean-table th {
     font-size: 12px;
-    padding: 8px 4px;
+    padding: 8px 6px;
   }
 
   .fund-name {
@@ -160,6 +204,6 @@
   }
 
   .fund-year {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
