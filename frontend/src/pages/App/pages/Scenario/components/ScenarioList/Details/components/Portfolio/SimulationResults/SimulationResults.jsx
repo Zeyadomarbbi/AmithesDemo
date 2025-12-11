@@ -1,57 +1,76 @@
-import React from 'react';
-import { ChevronDoubleRightIcon, ChevronDoubleLeftIcon } from '../Icons'; 
-import SimulationHeader from './SimulationHeader/SimulationHeader';
+import React, { useState } from 'react';
+import { ChevronDoubleRightIcon } from '../Icons'; 
+import Shares from './Shares/Shares';
+import Operations from './Operations/Operations';
 import './SimulationResults.css';
 
-function SimulationResults({ isCollapsed, onToggleCollapse }) {
-  // Dynamic Icon based on state
-  const ChevronIcon = isCollapsed ? ChevronDoubleLeftIcon : ChevronDoubleRightIcon;
+
+const SimulationResults = ({ isCollapsed, onToggleCollapse }) => {
+  const [breakdownMode, setBreakdownMode] = useState('shares');
 
   return (
-    // RESTORED: Collapse class applied to container
-    <div className={`simulation-results-container ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className="sim-results-container">
       
-      {/* Icon Trigger (Always visible) */}
-      <div className="sr-collapse-trigger" onClick={onToggleCollapse}>
-         <div className="sr-icon-box">
-             <ChevronIcon width={16} color="#FFFFFF" />
-         </div>
-      </div>
-      
-      {/* Full Content Wrapper (Hidden when collapsed) */}
-      <div className={`sr-content-wrapper ${isCollapsed ? 'hidden-content' : ''}`}>
+      {/* === HEADER SECTION (Icon + Title) === */}
+      <div className={`sim-header ${isCollapsed ? 'collapsed' : ''}`}>
         
-        <SimulationHeader />
+        {/* Toggle Button */}
+        <button 
+          className="sim-toggle-btn" 
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? "Expand" : "Collapse"}
+        >
+          <ChevronDoubleRightIcon className={`chevron-icon ${!isCollapsed ? '' : 'rotate-180'}`} />
+        </button>
 
-        {/* === TABS ROW === */}
-        <div className="sr-tabs-row">
-          <span className="breakdown-label">Breakdown :</span>
-          <div className="sr-segmented-tabs">
-            <div className="sr-tab-item active"><span>Label</span></div>
-            <div className="sr-tab-item"><span>Label</span></div>
-          </div>
-        </div>
-
-        {/* === METRICS ROW === */}
-        <div className="sr-metrics-row">
-          <div className="metric-card">
-            <span className="metric-heading">Heading</span>
-            <span className="metric-value">50</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-heading">Heading</span>
-            <span className="metric-value">52</span>
-          </div>
-        </div>
-
-        {/* === DATA LIST === */}
-        <div className="sr-data-list">
-          {/* ... table structure ... */}
-        </div>
-        
+        {/* Title: Hidden when collapsed */}
+        {!isCollapsed && (
+          <h2 className="sim-header-title">
+            Simulation Results
+          </h2>
+        )}
       </div>
+
+      {/* === BREAKDOWN ROW (Below Header, Right Aligned) === */}
+      {!isCollapsed && (
+        <div className="sim-breakdown-row fade-in">
+           <span className="breakdown-label">Breakdown :</span>
+           
+           <div className="breakdown-toggle-track">
+              {/* Shares Option */}
+              <button 
+                className={`breakdown-option ${breakdownMode === 'shares' ? 'active' : ''}`}
+                onClick={() => setBreakdownMode('shares')}
+              >
+                Shares
+              </button>
+
+              {/* Operations Option */}
+              <button 
+                className={`breakdown-option ${breakdownMode === 'operations' ? 'active' : ''}`}
+                onClick={() => setBreakdownMode('operations')}
+              >
+                Operations
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* === CONTENT SECTION === */}
+      {!isCollapsed && (
+        <div className="sim-content fade-in">
+           {breakdownMode === 'shares' ? (
+             /* SHARES VIEW */
+             <Shares />
+           ) : (
+             /* OPERATIONS VIEW */
+             <Operations />
+           )}
+        </div>
+      )}
+
     </div>
   );
-}
+};
 
 export default SimulationResults;

@@ -1,31 +1,374 @@
-/* ... Previous CSS ... */
-
-/* --- Left Column (Tables) --- */
-.portfolio-main-content {
-  flex-grow: 1;
-  padding: 24px 40px;
-  overflow-y: auto; 
-  
-  /* Removed fixed margin-right: 587px; now controlled via inline style */
-  
-  /* Push content down by Header Height (113px) */
-  margin-top: 113px; 
-
-  /* Ensure smooth transition of layout */
-  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* =========================================
+   1. PAGE LAYOUT (The Parent)
+   ========================================= */
+.portfolio-page-layout {
+    display: flex;
+    flex-direction: row;
+    /* FIXED POSITIONING to prevent whole-page scroll */
+    position: fixed;
+    top: 113px; 
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    width: 100%;
+    background-color: #FFFFFF;
+    overflow: hidden; 
+    z-index: 1;
 }
 
-/* --- Right Column (Simulation Results) --- */
+/* =========================================
+   2. LEFT COLUMN (Main Content)
+   ========================================= */
+.portfolio-main-content {
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 32px 48px;
+    min-width: 0; 
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.portfolio-tab-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding-bottom: 40px; 
+}
+
+/* --- NEW: CONTROLS SECTION (Toggles) --- */
+.portfolio-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    margin-bottom: -10px; /* Pull closer to the table below */
+}
+
+.control-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* The Label */
+.control-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+}
+
+/* --- SECTIONS --- */
+.portfolio-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.empty-state {
+    padding: 40px;
+    background: #fff;
+    border-radius: 8px;
+    text-align: center;
+    color: #64748b;
+    border: 1px dashed #cbd5e1;
+}
+
+/* =========================================
+   3. RIGHT COLUMN (Sidebar)
+   ========================================= */
 .portfolio-side-panel {
-  flex-shrink: 0;
-  /* Width is now controlled by the component's internal state/classes */
-  
-  position: fixed;
-  top: 113px; 
-  right: 0;
-  bottom: 0; 
-  
-  /* Allow scrolling INSIDE the panel if content is too tall */
-  overflow-y: auto; 
-  z-index: 5; 
+    flex-shrink: 0; 
+    height: 100%;
+    background-color: #1e293b;
+    border-top-left-radius: 16px;
+    overflow-y: auto; 
+    overflow-x: hidden;
+    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+    z-index: 10;
+}
+
+.portfolio-side-panel.expanded {
+    width: 39%; 
+}
+
+.portfolio-side-panel.collapsed {
+    width: 5%; 
+}
+
+/* =========================================
+   4. SCROLLBARS
+   ========================================= */
+.portfolio-main-content::-webkit-scrollbar,
+.portfolio-side-panel::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.portfolio-main-content::-webkit-scrollbar-track,
+.portfolio-side-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.portfolio-main-content::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.portfolio-side-panel::-webkit-scrollbar-thumb {
+    background-color: #475569; 
+    border-radius: 4px;
+}
+
+/* =========================================
+   5. TOGGLE CONTROLS SECTION
+   ========================================= */
+.portfolio-controls-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.toggle-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px; 
+    cursor: pointer;
+    user-select: none;
+}
+
+/* New: Grouping the two toggles together on the left */
+.control-toggles-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+}
+
+/* --- NEW: Destructive Button Styling --- */
+.destructive-btn-md {
+    /* Auto layout */
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 6px;
+
+    background: #FFF1F2;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+
+    /* Text */
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #E11D48;
+}
+
+/* --- The Toggle Switch Track --- */
+.toggle-track {
+    width: 32px;
+    height: 18px;
+    background: rgba(204, 205, 206, 0.4);
+    border-radius: 7272px;
+    position: relative;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+}
+
+/* Active State (Orange) */
+.toggle-track.active {
+    background-color: #F59E0B;
+}
+
+/* --- The Toggle Knob --- */
+.toggle-knob {
+    width: 14.55px;
+    height: 14.55px;
+    background: #FFFFFF;
+    box-shadow: 0px 0.72px 1.45px rgba(0, 0, 0, 0.05);
+    border-radius: 50%;
+    position: absolute;
+    left: 2px;
+    transition: transform 0.2s ease;
+}
+
+/* Move Knob when Active */
+.toggle-track.active .toggle-knob {
+    transform: translateX(14px);
+}
+
+/* --- The Label Text --- */
+.toggle-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+}
+
+/* =========================================
+   6. STATIC TABLE STYLING (For Realized)
+   ========================================= */
+.static-table-container {
+    background: #fff;
+    overflow: hidden;
+}
+
+.static-table-container.no-borders {
+    border: none;
+}
+
+.std-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+}
+
+.std-table th,
+.std-table td {
+    border-bottom: none !important;
+    border-top: none !important;
+}
+
+.std-table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: #fff;
+    color: #111827;
+    font-weight: 600;
+}
+
+.std-table .sorted-col {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.std-table .sort-icon-placeholder {
+    color: #111827;
+    font-size: 10px;
+    line-height: 1;
+}
+
+/* New: Gray row banding */
+.std-table .row-banded-gray td {
+    background-color: #F9FAFB;
+}
+
+/* Ensure white rows remain white */
+.std-table tr:not(.row-summary):not(.row-banded-gray) td {
+    background-color: #FFFFFF;
+}
+
+.std-table td {
+    padding: 12px 16px;
+    color: #111827;
+    vertical-align: middle;
+}
+
+.std-table .text-right {
+    text-align: right;
+}
+
+/* Summary Row Styling */
+.row-summary td {
+    background-color: #375A89 !important;
+    color: #FFFFFF;
+    font-weight: 600;
+    border-bottom: none;
+}
+
+.placeholder-box {
+    background: #f8fafc;
+    height: 200px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* 1. Header Column Width */
+.inv-col-action, 
+.proj-col-action {
+    width: 48px;
+    text-align: center;
+}
+
+/* 2. Cell Content Alignment */
+.inv-center, 
+.proj-center {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* 3. Base Action Button Style */
+.action-icon-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF; /* Gray default */
+    transition: all 0.2s ease;
+}
+
+.action-icon-btn:hover {
+    background: #F3F4F6; /* Light Gray Hover */
+}
+
+/* 4. Lock Specific State (Target Mode) */
+.action-icon-btn.locked {
+    background: #F3E8FF; /* Light Purple Bg */
+    border: 1px solid #A855F7; /* Purple Border */
+    color: #A855F7; /* Purple Icon */
+}
+
+/* 5. Sensitivity Specific State (Sensitivity Mode) */
+.action-icon-btn.sensitivity:hover {
+    background: #E0E7FF; /* Light Blue Hover */
+    color: #375A89; /* Dark Blue Icon */
 }

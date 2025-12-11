@@ -9,7 +9,6 @@ const parseValue = (value) => {
     return parseFloat(cleanValue) || 0;
 };
 
-// 1. UPDATE: Added hasExpand: true to Unrealized and Realized gain
 const initialRows = [
     { label: 'Unrealized gain', type: 'data', hasExpand: true, v2024: '500 000', v2025: '10 500 000' },
     { label: 'Realized gain', type: 'data', hasExpand: true, v2024: '-', v2025: '500 000' },
@@ -109,26 +108,14 @@ const FinancialTable = ({ scenarioId }) => {
         }
     };
 
-    // 2. UPDATE: Function to simulate API call and autofill
     const handleExpandClick = (rowIndex, label) => {
-        console.log(`Triggering auto-fill for ${label} (Row ${rowIndex}) with scenarioId: ${scenarioId}`);
-
-        // Placeholder: Generate random numbers to simulate fetched data
-        // In real implementation: const data = await api.getFinancialData(scenarioId, label);
+        console.log(`Triggering auto-fill for ${label} (Row ${rowIndex})`);
         const mockFetchedData = {
-            v2026: '120 000',
-            v2027: '130 000',
-            v2028: '140 000',
-            v2029: '150 000',
-            v2030: '160 000',
-            v2031: '170 000'
+            v2026: '120 000', v2027: '130 000', v2028: '140 000',
+            v2029: '150 000', v2030: '160 000', v2031: '170 000'
         };
-
         setFinancialRows(prevRows => prevRows.map((row, i) => {
-            if (i === rowIndex) {
-                // Merge existing row data with new mock data
-                return { ...row, ...mockFetchedData };
-            }
+            if (i === rowIndex) return { ...row, ...mockFetchedData };
             return row;
         }));
     };
@@ -136,13 +123,44 @@ const FinancialTable = ({ scenarioId }) => {
     return (
         <div className="table-container">
             <table className="fin-table">
-              {/* ... existing thead ... */}
+                <thead>
+                    <tr>
+                        {/* PnL Column: Wrapper gets 'pnl-wrapper' */}
+                        <th className="th-label col-pnl">
+                            <div className="th-wrapper pnl-wrapper">
+                                <span>PnL</span>
+                                <SortIcon className="sort-icon" />
+                            </div>
+                        </th>
+                        
+                        {/* Years Columns: Wrapper gets 'year-wrapper' */}
+                            {years.map((y) => (
+                            <th key={y.year} className={`col-year ${y.type}`}>
+                                <div className="th-wrapper year-wrapper">
+                                <div className="th-group">
+                                    <span className="year">{y.year}</span>
+                                    <span className="currency-indicator">(€)</span>
+                                    <SortIcon className="sort-icon" />
+                                </div>
+                                </div>
+                            </th>
+                            ))}
+                        {/* Total Column: Wrapper gets 'total-wrapper' */}
+                        <th className="col-total">
+                            <div className="th-wrapper total-wrapper">
+                                <div className="th-group">
+                                <span>Total cumulated</span>
+                                <span className="currency-indicator">(€)</span>
+                                <SortIcon className="sort-icon" />
+                                </div>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
                 <tbody>
                     {financialRows.map((row, index) => {
                         const isTotalRow = row.type === 'total-band';
                         const rowTotal = calculateRowTotal(row); 
-                        
-                        // LOGIC: If row has expandable logic, it is read-only
                         const isReadOnly = row.hasExpand; 
 
                         return (
@@ -152,7 +170,6 @@ const FinancialTable = ({ scenarioId }) => {
                                     {row.hasExpand && (
                                         <span 
                                             className="expand-icon" 
-                                            style={{ cursor: 'pointer', marginLeft: '8px', fontWeight: 'bold' }}
                                             onClick={() => handleExpandClick(index, row.label)}
                                         >
                                             +
@@ -171,11 +188,9 @@ const FinancialTable = ({ scenarioId }) => {
                                             <td key={y.year} className="cell-projected">
                                                 <input 
                                                     key={`${index}-${y.year}-${value}`} 
-                                                    // UPDATE: Add class for styling
                                                     className={`proj-input ${isReadOnly ? 'input-disabled' : ''}`} 
                                                     placeholder={isReadOnly ? '-' : "ex : 100"} 
                                                     defaultValue={value} 
-                                                    // UPDATE: Disable editing if read-only
                                                     disabled={isReadOnly}
                                                     onKeyDown={(e) => handleProjectedChange(e, index, y.year)}
                                                 />

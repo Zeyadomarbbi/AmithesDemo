@@ -104,7 +104,7 @@ const PnLTab = () => {
               <div className="detail-label">{line.label}</div>
               <div className="detail-input-wrapper">
                 <PencilSquareIcon className="edit-icon" />
-                <div className="static-value">{line.value}</div>
+                <div >{line.value}</div>
               </div>
               <div className="detail-input-wrapper">
                 <input
@@ -138,11 +138,10 @@ const PnLTab = () => {
             <div className="detail-row" key={line.id}>
               <div className="detail-label">{line.label}</div>
               <div className="detail-input-wrapper">
-                {line.id === "unrealized_losses" ||
-                line.id === "fx_losses" ? null : (
+                { (
                   <PencilSquareIcon className="edit-icon" />
                 )}
-                <div className="static-value">{line.value}</div>
+                <div>{line.value}</div>
               </div>
               <div className="detail-input-wrapper">
                 <input
@@ -171,18 +170,7 @@ const PnLTab = () => {
           </div>
         </div>
 
-        {showTax && (
-          <div className="detail-row tax-note">
-            <div className="detail-label">Tax details</div>
-            <div className="detail-input-wrapper">
-              <input className="amount-input grey" readOnly value="0,000,000" />
-            </div>
-            <div className="detail-input-wrapper">
-              <input className="amount-input grey" readOnly value="0,000,000" />
-            </div>
-            <div />
-          </div>
-        )}
+        
 
         {/* ================= Net Profit ================= */}
         <div className="net-row">
