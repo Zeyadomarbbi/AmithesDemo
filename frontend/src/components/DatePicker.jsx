@@ -1,28 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import './DatePicker.css';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { ChevronLeft, ChevronRight } from './Icons'; 
 
-/**
- * @param {boolean} isSingle - If true, selects a single date. If false, selects a range.
- * @param {function} onClose - Callback to close the picker.
- * @param {function} onApply - Callback with result: { start, end } (end is null if isSingle).
- * @param {Date} initialStartDate - Initial starting date.
- * @param {Date} initialEndDate - Initial ending date.
- */
+import './DatePicker.css';
+
 const DatePicker = ({ 
   onClose, 
   onApply, 
   isSingle = true, 
   initialStartDate = new Date(),
   initialEndDate = null,
+  dateFormat = 'DD/MM/YYYY',
   style 
 }) => {
-  // --- View State ---
-  // viewMode: 'days' | 'months' | 'years'
   const [viewMode, setViewMode] = useState('days');
   const [viewDate, setViewDate] = useState(new Date(initialStartDate || new Date()));
-
-  // --- Selection State ---
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
 
@@ -30,7 +22,6 @@ const DatePicker = ({
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  // --- Helpers ---
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year, month) => {
     const day = new Date(year, month, 1).getDay();
@@ -46,10 +37,14 @@ const DatePicker = ({
 
   const formatDate = (date) => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    if (dateFormat === 'MM/DD/YYYY') return `${month}/${day}/${year}`;
+    return `${day}/${month}/${year}`;
   };
 
-  // --- Navigation Handlers ---
   const handlePrev = () => {
     const newDate = new Date(viewDate);
     if (viewMode === 'days') newDate.setMonth(newDate.getMonth() - 1);
@@ -71,9 +66,6 @@ const DatePicker = ({
     else if (viewMode === 'months') setViewMode('years');
   };
 
-  // --- Selection Handlers ---
-
-  // 1. Day Selection
   const handleDayClick = (day) => {
     const clickedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
 
@@ -83,13 +75,10 @@ const DatePicker = ({
       return;
     }
 
-    // Range Logic
     if (!startDate || (startDate && endDate)) {
-      // Start new selection
       setStartDate(clickedDate);
       setEndDate(null);
     } else {
-      // Complete selection
       if (clickedDate < startDate) {
         setEndDate(startDate);
         setStartDate(clickedDate);
@@ -99,27 +88,26 @@ const DatePicker = ({
     }
   };
 
-  // 2. Month Selection
   const handleMonthClick = (monthIndex) => {
     const newDate = new Date(viewDate);
     newDate.setMonth(monthIndex);
     setViewDate(newDate);
-    setViewMode('days'); // Drill down
+    setViewMode('days');
   };
 
-  // 3. Year Selection
   const handleYearClick = (year) => {
     const newDate = new Date(viewDate);
     newDate.setFullYear(year);
     setViewDate(newDate);
-    setViewMode('months'); // Drill down
+    setViewMode('months');
   };
 
-  // --- Preset Logic (Range Only) ---
   const handlePreset = (rangeType) => {
+    if (startDate && !endDate) {
+      setStartDate(null);
+    }
     const today = new Date();
     const start = new Date(today);
-
     switch (rangeType) {
         case 'week': start.setDate(today.getDate() - 7); break;
         case 'month': start.setMonth(today.getMonth() - 1); break;
@@ -129,12 +117,9 @@ const DatePicker = ({
     setStartDate(start);
     setEndDate(today);
     setViewDate(new Date(start)); 
-    setViewMode('days'); // Always go back to day view on preset
+    setViewMode('days');
   };
 
-  // --- Grid Generators ---
-
-  // A. Calendar Days
   const generateDaysGrid = () => {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
@@ -144,27 +129,25 @@ const DatePicker = ({
     
     const grid = [];
 
-    // Previous Month padding
     for (let i = 0; i < firstDay; i++) {
       grid.push({ day: daysInPrevMonth - firstDay + 1 + i, type: 'prev' });
     }
 
-    // Current Month
     for (let i = 1; i <= daysInMonth; i++) {
       const currentIterDate = new Date(year, month, i);
       let type = 'current';
 
-      if (isSameDay(currentIterDate, startDate)) type = 'selected-start';
-      else if (isSameDay(currentIterDate, endDate)) type = 'selected-end';
-      else if (startDate && endDate && currentIterDate > startDate && currentIterDate < endDate) type = 'range';
-
-      // Fix visual overlap for single day range
-      if (isSameDay(currentIterDate, startDate) && isSameDay(startDate, endDate)) type = 'selected-single';
+      if (isSingle && isSameDay(currentIterDate, startDate)) {
+        type = 'selected-single';
+      } else if (!isSingle) {
+        if (isSameDay(currentIterDate, startDate)) type = 'selected-start';
+        else if (isSameDay(currentIterDate, endDate)) type = 'selected-end';
+        else if (startDate && endDate && currentIterDate > startDate && currentIterDate < endDate) type = 'range';
+      }
 
       grid.push({ day: i, type, date: currentIterDate });
     }
 
-    // Next Month padding
     const remainingSlots = 42 - grid.length;
     for (let i = 1; i <= remainingSlots; i++) {
       grid.push({ day: i, type: 'next' });
@@ -172,10 +155,9 @@ const DatePicker = ({
     return grid;
   };
 
-  // B. Years Generator (12 year window)
   const generateYearsGrid = () => {
     const currentYear = viewDate.getFullYear();
-    const startYear = currentYear - 6; // Center roughly
+    const startYear = currentYear - 6; 
     const years = [];
     for(let i = 0; i < 12; i++) {
       years.push(startYear + i);
@@ -183,7 +165,6 @@ const DatePicker = ({
     return years;
   };
 
-  // --- Render Helpers ---
   const getTitle = () => {
     if (viewMode === 'days') return `${fullMonths[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
     if (viewMode === 'months') return `${viewDate.getFullYear()}`;
@@ -197,7 +178,6 @@ const DatePicker = ({
     <div className="dp-container" style={style}>
       <div className="dp-content">
         
-        {/* --- Header --- */}
         <div className="dp-header">
           <button className="dp-nav-btn" onClick={handlePrev}><ChevronLeft /></button>
           <button className="dp-month-title-btn" onClick={handleTitleClick}>
@@ -206,7 +186,6 @@ const DatePicker = ({
           <button className="dp-nav-btn" onClick={handleNext}><ChevronRight /></button>
         </div>
 
-        {/* --- Inputs (Show only if Range, or adapt for Single) --- */}
         <div className="dp-inputs-row">
           <div className={`dp-input-wrapper ${(!endDate && !isSingle) ? 'active' : ''}`}>
             <input 
@@ -231,7 +210,6 @@ const DatePicker = ({
           )}
         </div>
 
-        {/* --- Presets (Only in Range Mode + Day View) --- */}
         {!isSingle && viewMode === 'days' && (
           <div className="dp-presets">
             <button className="dp-preset-btn" onClick={() => handlePreset('week')}>Last week</button>
@@ -240,7 +218,6 @@ const DatePicker = ({
           </div>
         )}
 
-        {/* --- VIEW: DAYS --- */}
         {viewMode === 'days' && (
           <div className="dp-calendar-view">
             <div className="dp-week-header">
@@ -253,9 +230,8 @@ const DatePicker = ({
                 if (item.type === 'range') className += " in-range";
                 if (item.type === 'next' || item.type === 'prev') className += " other-month";
                 
-                // Rounded corners for range edges
-                if (item.type === 'selected-start' && endDate) className += " range-start";
-                if (item.type === 'selected-end' && startDate) className += " range-end";
+                if (!isSingle && item.type === 'selected-start' && endDate) className += " range-start";
+                if (!isSingle && item.type === 'selected-end' && startDate) className += " range-end";
 
                 return (
                   <div 
@@ -264,7 +240,6 @@ const DatePicker = ({
                     onClick={() => item.type !== 'next' && item.type !== 'prev' && handleDayClick(item.day)}
                   >
                     <span className="day-number">{item.day}</span>
-                    {/* Dot for today */}
                     {item.type === 'current' && isSameDay(item.date, new Date()) && <div className="dp-dot"></div>}
                   </div>
                 );
@@ -273,7 +248,6 @@ const DatePicker = ({
           </div>
         )}
 
-        {/* --- VIEW: MONTHS --- */}
         {viewMode === 'months' && (
           <div className="dp-months-grid">
             {months.map((m, i) => (
@@ -288,7 +262,6 @@ const DatePicker = ({
           </div>
         )}
 
-        {/* --- VIEW: YEARS --- */}
         {viewMode === 'years' && (
           <div className="dp-years-grid">
             {generateYearsGrid().map((y) => (

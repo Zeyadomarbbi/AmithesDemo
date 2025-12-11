@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 320px; /* Standard nice width */
+  max-width: 320px;
   background: #FFFFFF;
   border: 1px solid #E4E7EC;
   box-shadow: 0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
@@ -16,17 +16,14 @@
   overflow: hidden;
 }
 
-/* --- Content Area --- */
 .dp-content {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Min height ensures view switches don't jump the height too much */
-  min-height: 340px; 
+  min-height: 280px;
 }
 
-/* --- Header --- */
 .dp-header {
   display: flex;
   justify-content: space-between;
@@ -65,7 +62,6 @@
   background-color: #F2F4F7;
 }
 
-/* --- Inputs --- */
 .dp-inputs-row {
   display: flex;
   flex-direction: row;
@@ -92,7 +88,6 @@
 }
 .dp-dash { color: #667085; }
 
-/* --- Presets --- */
 .dp-presets {
   display: flex;
   gap: 12px;
@@ -109,7 +104,6 @@
 }
 .dp-preset-btn:hover { text-decoration: underline; }
 
-/* --- CALENDAR VIEW (Days) --- */
 .dp-calendar-view {
   display: flex;
   flex-direction: column;
@@ -139,30 +133,25 @@
   color: #344054;
   cursor: pointer;
   position: relative;
-  border-radius: 50%; /* Default round for single/hover */
+  border-radius: 50%;
 }
 
-/* Hover effects */
 .dp-day-cell:hover:not(.selected):not(.in-range):not(.other-month) {
   background-color: #F2F4F7;
 }
 
-/* Selected State */
 .dp-day-cell.selected {
   background-color: #F7A93B;
   color: #FFFFFF;
   font-weight: 600;
-  z-index: 2; /* Sit on top */
 }
 
-/* Range Middle */
 .dp-day-cell.in-range {
   background-color: #FEF0C7;
   color: #101828;
-  border-radius: 0; /* Square for connection */
+  border-radius: 0;
 }
 
-/* Range Edges (The "Connected" Look) */
 .dp-day-cell.range-start {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -190,7 +179,6 @@
 }
 .dp-day-cell.selected .dp-dot { background-color: #FFF; }
 
-/* --- MONTHS VIEW --- */
 .dp-months-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -217,7 +205,6 @@
   border-color: #F7A93B;
 }
 
-/* --- YEARS VIEW --- */
 .dp-years-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -244,7 +231,6 @@
   border-color: #F7A93B;
 }
 
-/* --- Footer --- */
 .dp-footer {
   display: flex;
   justify-content: flex-end;
@@ -303,14 +289,4 @@
   font-size: 14px;
   color: #344054;
   font-weight: 500;
-}
-
-/* --- Popover Positioning --- */
-.picker-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 8px;
-  z-index: 1000;
-  /* Ensure it sits above other content */
 }

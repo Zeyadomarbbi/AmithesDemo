@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './AllOperations.css';
-import { SortIcon, CalendarIcon } from '../Icons'; 
-import DatePicker from '../../../../../../../../../../components/DatePicker';
+import { SortIcon } from '../Icons'; // Removed CalendarIcon
+import DateInputWithPicker from '../../../../../../../../../../components/DateInput';
 
 const AllOperations = ({ scenarioId }) => {
   const [rows, setRows] = useState([
@@ -17,9 +17,7 @@ const AllOperations = ({ scenarioId }) => {
     { id: 10, date: '01/09/2029', flow: '-15 000 000', capCalled: '85.00%', dist: '130.00%', dpi: '1.58xx' },
   ]);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [activeRowId, setActiveRowId] = useState(null);
-
+  // Helper: Convert Date object back to "DD/MM/YYYY" string
   const formatDateForTable = (dateObj) => {
     if (!dateObj) return '';
     const day = String(dateObj.getDate()).padStart(2, '0');
@@ -28,54 +26,31 @@ const AllOperations = ({ scenarioId }) => {
     return `${day}/${month}/${year}`;
   };
 
+  // Helper: Convert "DD/MM/YYYY" string to Date object
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
     const [day, month, year] = dateStr.split('/');
     return new Date(year, month - 1, day);
   };
 
-  const handleDateClick = (rowId) => {
-    setActiveRowId(rowId);
-    setShowDatePicker(true);
+  // Handler: Update specific row when DateInput changes
+  const handleDateChange = (rowId, newDate) => {
+    const newDateStr = formatDateForTable(newDate);
+    
+    setRows((prevRows) => 
+      prevRows.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, date: newDateStr };
+        }
+        return row;
+      })
+    );
   };
-
-  const handleClose = () => {
-    setShowDatePicker(false);
-    setActiveRowId(null);
-  };
-
-  const handleApplyDate = (selection) => {
-    if (selection && selection.start) {
-      const newDateStr = formatDateForTable(selection.start);
-      setRows((prevRows) => 
-        prevRows.map((row) => {
-          if (row.id === activeRowId) {
-            return { ...row, date: newDateStr };
-          }
-          return row;
-        })
-      );
-    }
-    handleClose();
-  };
-
-  // Helper: Get the date of the currently clicked row to initialize the picker
-  const activeRow = rows.find(r => r.id === activeRowId);
 
   return (
     <div className="all-ops-container"> 
       
-      {/* --- FLOATING DATEPICKER (Lifted out of the table) --- */}
-      {showDatePicker && (
-        <div className="static-floating-picker">
-            <DatePicker 
-                onClose={handleClose}
-                onApply={handleApplyDate}
-                isSingle={true}
-                initialDate={activeRow ? parseDateString(activeRow.date) : new Date()} 
-            />
-        </div>
-      )}
+      {/* Floating DatePicker logic removed — The DateInput component handles it internally now */}
 
       <div className="table-responsive-wrapper">   
         <table className="ops-table">
@@ -88,7 +63,7 @@ const AllOperations = ({ scenarioId }) => {
               </th>
               <th className="th-right"> 
                 <div className="th-content right">
-                    Flows <span className="header-hint">(€)</span> <SortIcon className="sort-icon" />
+                   Flows <span className="header-hint">(€)</span> <SortIcon className="sort-icon" />
                 </div>
               </th>
               <th className="th-right"><div className="th-content right">% Capital Called <SortIcon className="sort-icon" /></div></th>
@@ -100,22 +75,12 @@ const AllOperations = ({ scenarioId }) => {
             {rows.map((row) => (
               <tr key={row.id} className={row.isHighlight ? 'row-highlight' : ''}>
                 <td className="td-date">
-                  <div 
-                    className="date-input-wrapper" 
-                    onClick={() => handleDateClick(row.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <input 
-                        type="text" 
-                        value={row.date} 
-                        className="date-input" 
-                        readOnly 
-                        style={{ pointerEvents: 'none' }} 
-                    />
-                    <div className="icon-wrapper">
-                      <CalendarIcon />
-                    </div>
-                  </div>
+                  {/* Replaced manual input/icon with the 2-in-1 component */}
+                  <DateInputWithPicker 
+                    initialDate={parseDateString(row.date)}
+                    onDateChange={(newDate) => handleDateChange(row.id, newDate)}
+                    isSingle={true}
+                  />
                 </td>
                 
                 <td className="td-right">{row.flow}</td>
