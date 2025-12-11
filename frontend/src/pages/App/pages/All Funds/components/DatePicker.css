@@ -1,0 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+.dp-container {
+  display: flex;
+  flex-direction: column;
+  
+  /* 1. FLEXIBILITY: Use specific width that fits calendar comfortable */
+  width: 100%;
+  max-width: 90vw; /* Prevent overflow on very small mobile screens */
+  
+  /* 2. HEIGHT: Allow height to grow/shrink based on content */
+  height: auto; 
+  min-height: 400px;
+  
+  background: #FFFFFF;
+  border: 1px solid #E4E7EC;
+  box-shadow: 0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  user-select: none;
+  
+  /* 3. POSITIONING: Ensure it handles z-index well */
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* --- Content Area --- */
+.dp-content {
+  padding: 16px; /* Slightly reduced padding for compactness */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+}
+
+/* --- Header --- */
+.dp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dp-month-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #344054;
+}
+
+.dp-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #344054;
+  transition: all 0.2s;
+}
+.dp-nav-btn:hover {
+  background-color: #F2F4F7;
+  border-color: #D0D5DD;
+}
+
+/* --- Inputs --- */
+.dp-inputs-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dp-input-wrapper {
+  flex: 1;
+}
+
+.dp-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #101828;
+  text-align: center;
+}
+
+.dp-input-wrapper.active .dp-input {
+  border-color: #F7A93B;
+  box-shadow: 0 0 0 2px rgba(247, 169, 59, 0.1);
+}
+
+.dp-dash {
+  color: #667085;
+}
+
+/* --- Presets --- */
+.dp-presets {
+  display: flex;
+  gap: 12px;
+  /* Responsive: Wrap presets if screen is very narrow */
+  flex-wrap: wrap; 
+  padding: 4px 0 0;
+}
+
+.dp-preset-btn {
+  background: none;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: #F7A93B;
+  cursor: pointer;
+  padding: 0;
+}
+.dp-preset-btn:hover {
+  text-decoration: underline;
+}
+
+/* --- Calendar Grid --- */
+.dp-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dp-week-header, .dp-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 Equal columns */
+  text-align: center;
+  width: 100%;
+}
+
+.dp-day-label {
+  font-size: 14px;
+  color: #344054;
+  font-weight: 500;
+  padding-bottom: 8px;
+}
+
+.dp-days-grid {
+  row-gap: 4px;
+}
+
+.dp-day-cell {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* Keeps cells square regardless of width */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 400;
+  color: #344054;
+  cursor: pointer;
+  position: relative;
+}
+
+.dp-day-cell:hover:not(.selected):not(.other-month) {
+  background-color: #F2F4F7;
+}
+
+/* Selection Logic */
+.dp-day-cell.selected {
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.dp-day-cell.in-range {
+  background-color: #FEF0C7;
+  border-radius: 0; 
+  color: #344054;
+}
+
+.dp-day-cell.selected:first-of-type { /* Note: This might need JS adjustment for pure range edges if grid wraps */
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.dp-day-cell.other-month {
+  color: #D0D5DD;
+  pointer-events: none; /* Disable clicking previous/next padding days */
+}
+
+.dp-dot {
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  background-color: #F7A93B;
+  border-radius: 50%;
+}
+
+/* --- Footer --- */
+.dp-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+  border-top: 1px solid #E4E7EC;
+}
+
+.dp-btn {
+  height: 40px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid #D0D5DD;
+}
+
+.dp-btn.cancel {
+  background: #FFFFFF;
+  color: #344054;
+}
+
+.dp-btn.apply {
+  background: #F7A93B;
+  border: 1px solid #F7A93B;
+  color: #FFFFFF;
+}

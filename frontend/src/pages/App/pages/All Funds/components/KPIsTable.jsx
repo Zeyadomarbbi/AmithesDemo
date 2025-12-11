@@ -61,19 +61,39 @@ const FUNDS = [
 ];
 
 const COLS = [
-  { key: "name", label: "Fund", align: "left", type: "string" },
-  { key: "strategy", label: "Strategy", align: "left", type: "string" },
-  { key: "commitment", label: "Commitment (€)", align: "right", type: "number" },
-  { key: "cost", label: "Cost (€)", align: "right", type: "number" },
-  { key: "deals", label: "Nb of deals", align: "center", type: "number" },
-  { key: "grossIrr", label: "Gross IRR", align: "right", type: "number" },
-  { key: "netIrr", label: "Net IRR", align: "right", type: "number" },
-  { key: "dpi", label: "DPI", align: "right", type: "number" },
-  { key: "rvpi", label: "RVPI", align: "right", type: "number" },
-  { key: "tvpi", label: "TVPI", align: "right", type: "number" },
+  { key: "name",       label: "Fund",           align: "left",   type: "string" },
+  { key: "strategy",   label: "Strategy",       align: "right",  type: "string" },
+  { key: "commitment", label: "Commitment (€)", align: "right",  type: "number" },
+  { key: "cost",       label: "Cost (€)",       align: "right",  type: "number" },
+  { key: "deals",      label: "Nb of deals",    align: "right",  type: "number" },
+  { key: "grossIrr",   label: "Gross IRR",      align: "center", type: "number" },
+  { key: "netIrr",     label: "Net IRR",        align: "center", type: "number" },
+  { key: "dpi",        label: "DPI",            align: "right",  type: "number" },
+  { key: "rvpi",       label: "RVPI",           align: "right",  type: "number" },
+  { key: "tvpi",       label: "TVPI",           align: "right",  type: "number" },
 ];
 
 const fmtNum = (x) => new Intl.NumberFormat("fr-FR").format(x);
+
+/* ---------- SVG sort icon used in table headers ---------- */
+const SortIcon = ({ active, dir }) => (
+  <span className={`sort-icon ${active ? "active" : ""}`}>
+    <svg
+      width="8"
+      height="12"
+      viewBox="0 0 8 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M3.5286 0.195262C3.78894 -0.0650874 4.21106 -0.0650874 4.4714 0.195262L7.80474 3.5286C8.06509 3.78894 8.06509 4.21106 7.80474 4.4714C7.54439 4.73175 7.12228 4.73175 6.86193 4.4714L4 1.60948L1.13807 4.4714C0.877722 4.73175 0.455612 4.73175 0.195262 4.4714C-0.0650874 4.21106 -0.0650874 3.78894 0.195262 3.5286L3.5286 0.195262ZM0.195262 7.5286C0.455612 7.26825 0.877722 7.26825 1.13807 7.5286L4 10.3905L6.86193 7.5286C7.12228 7.26825 7.54439 7.26825 7.80474 7.5286C8.06509 7.78895 8.06509 8.21106 7.80474 8.47141L4.4714 11.8047C4.21106 12.0651 3.78894 12.0651 3.5286 11.8047L0.195262 8.47141C-0.0650874 8.21106 -0.0650874 7.78895 0.195262 7.5286Z"
+        fill="#375A89"
+      />
+    </svg>
+  </span>
+);
 
 export default function KPIsTable() {
   const [sortKey, setSortKey] = useState("name");
@@ -107,13 +127,6 @@ export default function KPIsTable() {
     }
   };
 
-  const SortIcon = ({ active, dir }) => (
-    <span className={`sort-icon ${active ? "active" : ""}`}>
-      <span className={`arrow up ${active && dir === "asc" ? "on" : ""}`} />
-      <span className={`arrow down ${active && dir === "desc" ? "on" : ""}`} />
-    </span>
-  );
-
   return (
     <div className="table-wrapper">
       <table className="clean-table">
@@ -142,12 +155,12 @@ export default function KPIsTable() {
                 <div className="fund-year">{f.year}</div>
               </td>
 
-              <td className="td-left">{f.strategy}</td>
+              <td className="td-right">{f.strategy}</td>
               <td className="td-right">{fmtNum(f.commitment)}</td>
               <td className="td-right">{fmtNum(f.cost)}</td>
-              <td className="td-center">{f.deals}</td>
-              <td className="td-right">{f.grossIrr.toFixed(2)}%</td>
-              <td className="td-right">{f.netIrr.toFixed(2)}%</td>
+              <td className="td-right">{f.deals}</td>
+              <td className="td-center">{f.grossIrr.toFixed(2)}%</td>
+              <td className="td-center">{f.netIrr.toFixed(2)}%</td>
               <td className="td-right">{f.dpi.toFixed(2)}x</td>
               <td className="td-right">{f.rvpi.toFixed(2)}x</td>
               <td className="td-right">{f.tvpi.toFixed(2)}x</td>
