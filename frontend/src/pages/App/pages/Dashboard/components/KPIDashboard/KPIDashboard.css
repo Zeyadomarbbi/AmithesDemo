@@ -1,79 +1,35 @@
-/* --- GRID LAYOUT --- */
+/* Desktop: 3 columns, 4 rows */
 .kpi-dashboard-grid {
   display: grid;
-  grid-template-columns: 325.33px 325.33px 325.33px;
-  grid-template-rows: 341px 220px; 
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  grid-template-rows: 1fr 1fr auto;
+  align-self: stretch;
   gap: 24px;
   width: 100%;
+  padding: 0;
+  min-height: 600px;
 }
 
-/* --- GRID POSITIONS --- */
-/* These control WHERE things sit. The inner CSS controls HOW they look. */
-.card-fund {
+/* col 1 — all rows */
+.fc-card-fund {
   grid-column: 1 / 2;
-  grid-row: 1 / 3; 
+  grid-row: 1 / 4;
 }
 
-.card-chart-fund-value {
+/* col 2 — rows 1–2 */
+.fvc-card-chart-fund-value {
   grid-column: 2 / 3;
-  grid-row: 1 / 2;
+  grid-row: 1 / 3;
 }
 
-.card-chart-portfolio-value {
+/* col 3 — rows 1–2 */
+.pvc-card-chart-portfolio-value {
   grid-column: 3 / 4;
-  grid-row: 1 / 2;
+  grid-row: 1 / 3;
 }
 
-.card-portfolio-wide {
+/* col 2–3 — row 3 */
+.pc-card-portfolio-wide {
   grid-column: 2 / 4;
-  grid-row: 2 / 3;
-}
-
-/* --- SHARED UTILITIES (Fonts/Generic Styles) --- */
-
-/* Base Card Style */
-.kpi-card {
-  box-sizing: border-box;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 8px;
-}
-
-/* Shared Header */
-.fund-card-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 36px;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  flex: none;
-}
-.fund-title, .fund-unit {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  color: #375A89;
-}
-
-/* Shared Data Row Elements (Used in FundCard & PortfolioCard) */
-.row-label {
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  color: #375A89;
-  white-space: nowrap;
-}
-.row-separator {
-  flex-grow: 1;
-  height: 0px;
-  border-bottom: 0.5px dashed rgba(204, 205, 206, 0.5);
-  margin-top: 4px;
-}
-.row-value {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  color: #1C1917;
+  grid-row: 3 / 4;
 }

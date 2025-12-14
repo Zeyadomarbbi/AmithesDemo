@@ -1,58 +1,98 @@
-.card-chart-fund-value {
-  width: 325.33px;
-  height: 341px;
-  box-sizing: border-box;
-  
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 8px;
-  padding: 16px 24px;
-  
-  display: flex;
-  flex-direction: column;
-  gap: 24px; 
+/* --- CONTAINER --- */
+.fvc-card-chart-fund-value {
+ width: 100%;
+ height: 100%;
+ box-sizing: border-box;
+ 
+ background: #FFFFFF;
+ border: 1px solid rgba(204, 205, 206, 0.5);
+ border-radius: 8px;
+ padding: 16px 24px;
+ 
+ display: flex;
+ flex-direction: column;
+ gap: 24px; 
 }
 
 /* HEADER STYLES */
-.fund-card-header {
+.fvc-fund-card-header {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
   width: 100%;
-  height: 36px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  flex: none;
+  flex-shrink: 0;
 }
-.fund-title, .fund-unit {
+
+.fvc-fund-title, .fvc-fund-unit {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: #375A89;
+  gap: 4px;
 }
 
-/* CHART BODY - This was likely the missing piece */
-.chart-body {
-  flex: 1;          /* Grow to fill the card */
-  width: 100%;      /* Full width */
-  min-height: 0;    /* Critical for Recharts responsive calculation */
-  position: relative;
+/* CHART BODY */
+.fvc-chart-body {
+ flex: 1;     
+ width: 100%;   
+ position: relative;
+ overflow: visible;
+}
+
+/* EMPTY STATE STYLING */
+.fvc-chart-body.fvc-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
 }
 
 /* AXIS STYLES */
-.chart-yaxis-tick {
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 12px;
-  fill: #375A89;
-  opacity: 0.6;
+.fvc-chart-yaxis-tick {
+ font-family: 'Inter', sans-serif;
+ font-weight: 500;
+ font-size: 12px;
+ fill: #375A89;
+ opacity: 0.6;
 }
 
-.chart-xaxis-tick {
+.fvc-chart-xaxis-tick {
+ font-family: 'Inter', sans-serif;
+ font-weight: 500;
+ font-size: 14px;
+ text-anchor: middle;
+ fill: #1C1917;
+ opacity: 0.6;
+}
+
+/* TOOLTIP STYLES */
+.fvc-custom-tooltip {
+  background: rgba(55, 90, 137, 0.95);
+  border: 1px solid #375A89;
+  border-radius: 4px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fvc-tooltip-value {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  text-anchor: middle;
-  fill: #1C1917;
-  opacity: 0.6;
+  font-size: 13px;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+/* BAR STYLES - Target Recharts generated elements */
+.fvc-chart-body .recharts-bar-rectangle {
+  fill: #375A89;
+}
+
+.fvc-chart-body .recharts-cartesian-grid-horizontal line {
+  stroke: rgba(204, 205, 206, 0.5);
+  stroke-dasharray: 3 3;
 }
