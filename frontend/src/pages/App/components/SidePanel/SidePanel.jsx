@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink, useParams, useLocation, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Link, NavLink, useParams, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
 import { useActiveFund } from '../../hooks/useActiveFund';
 import { 
@@ -11,43 +11,39 @@ import {
 
 import './SidePanel.css';
 
-function SidePanel() {
+// CHANGED: Accept funds as a prop with a default empty array
+function SidePanel({ funds = [] }) {
   const [isFundSelectorOpen, setIsFundSelectorOpen] = useState(false);
   const activeFundId = useActiveFund();
   const location = useLocation();
   const navigate = useNavigate();
   const pathSegments = location.pathname.split('/');
   const currentSection = pathSegments[1] === 'funds' && pathSegments[3] ? pathSegments[3] : 'dashboard';
-  const funds = [
-    { id: 1, name: 'Asterium Fund I', code: 'AST' },
-    { id: 2, name: 'Lynx Capital II', code: 'LYN' },
-    { id: 3, name: 'Orion Partners III', code: 'ORI' },
-    { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
-    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
-    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
-  ];
-  const currentFund = funds.find(f => f.id.toString() === activeFundId.toString()) || funds[0];
+
+  // REMOVED: Hardcoded funds array
+
+  // CHANGED: Use the passed funds prop. Added safety check for empty array.
+  const currentFund = funds.length > 0 
+    ? (funds.find(f => f.id.toString() === activeFundId.toString()) || funds[0]) 
+    : { name: 'Loading...', id: '' }; // Fallback object if data hasn't loaded
   
   return (
     <div className="side-panel">
       
       {/* === FRAME 1: TOP SECTION === */}
       <div className="frame-1">
-        {/* 1. Logo */}
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
         </div>
-        {/* 2. Frame 1_2 (Fund + Tabs + Line) */}
+
         <div className="frame-1-2">
           <div className="fund-selector-container">
             <div className="fund-selector-button">
               <div className="fund-info-section">
                 <span className="fund-name">{currentFund.name}</span>
                 
-                {/* --- THE FIX: Use Link directly --- */}
-                {/* We use currentFund.id to ensure we go to settings for the fund being displayed */}
                 <Link 
-                  to={`/funds/${currentFund.id}/settings`} 
+                  to={currentFund.id ? `/funds/${currentFund.id}/settings` : '#'} 
                   className="fund-setup-row"
                 >
                   <SettingsIcon />
@@ -70,31 +66,28 @@ function SidePanel() {
             {isFundSelectorOpen && (
               <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
                 
-                {/* 1. Search Bar */}
                 <div className="dropdown-search-container">
                   <SearchIcon />
                   <input type="text" placeholder="Search" className="dropdown-search-input" />
                 </div>
 
-                {/* 2. "See all funds" Link */}
                 <div className="dropdown-action-row">
                   <Link to="/allfunds" className="see-all-funds-link">
                     See all funds
                   </Link>
                 </div>
 
-                {/* 3. Scrollable List */}
                 <div className="dropdown-scroll">
+                  {/* CHANGED: Mapping over the passed funds prop */}
                   {funds.map(fund => (
                     <div
                       key={fund.id}
-                      className="dropdown-item" // Outer container for layout/spacing only
+                      className="dropdown-item" 
                       onClick={() => {
                         navigate(`/funds/${fund.id}/${currentSection}`);
                         setIsFundSelectorOpen(false);
                       }}
                     >
-                      {/* Inner container for the Visuals (Hover, Padding, Radius) */}
                       <div className="dropdown-item-content">
                         <span className="item-name">{fund.name}</span> 
                         <span className="item-code">{fund.code}</span>
@@ -106,7 +99,6 @@ function SidePanel() {
             )}
           </div>
 
-          {/* Tabs */}
           <nav className="side-panel-nav">
             <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
               <DashboardIcon /> <span>Dashboard</span>
@@ -125,26 +117,21 @@ function SidePanel() {
             </NavLink>
           </nav>
           
-          {/* The Line */}
           <div className="sidebar-separator"></div>
 
         </div>
       </div>
-      {/* === FRAME 2: WAVY IMAGE (Background Layer) === */}
+
       <div className="frame-2-waves"></div>
 
-      {/* === FRAME 3: FOOTER (Content Layer) === */}
-      {/* This sits at the bottom, on top of the waves */}
       <div className="frame-3">
         <div className="footer-links">
           <NavLink to="/allfunds" className="footer-item">
               <AllFundsIcons /> <span>All funds</span>
           </NavLink>
-          
           <NavLink to="/admins" className="footer-item">
               <AdminsIcon /> <span>Admins</span>
           </NavLink>
-          
           <NavLink to="/help" className="footer-item">
               <HelpIcon /> <span>Help</span>
           </NavLink>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useActiveFund } from '../../hooks/useActiveFund';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import './DashboardPage.css';
 
 import DashboardHeader from './components/DashboardHeader/DashboardHeader';
@@ -9,46 +8,54 @@ import KPIDashboard from './components/KPIDashboard/KPIDashboard';
 import LimitsDashboard from './components/LimitsDashboard/LimitsDashboard';
 
 function DashboardPage() {
-  const { fundId, tab, quarter } = useParams();  // tab will be 'kpi' or 'limits'
+  const { fundId, tab, quarter } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const activeFundId = useActiveFund();
+  
+  // 1. Retrieve funds from AppLayout context
+  // Default to empty array to prevent crashes if context is missing
+  const { funds = [] } = useOutletContext() || {};
+
+  // 2. Identify Current Fund
+  const currentFund = funds.find(f => f.id.toString() === fundId?.toString());
+
+  // 3. State for Quarter Selector
   const [selectedQuarter, setSelectedQuarter] = useState(tab === 'kpi' ? (quarter || 'Q2-2024') : null);
-  const funds = [
-    { id: 1, name: 'Asterium Fund I', code: 'AST' },
-    { id: 2, name: 'Lynx Capital II', code: 'LYN' },
-    { id: 3, name: 'Orion Partners III', code: 'ORI' },
-    { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
-    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
-    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
-  ];
 
-  const currentFund = funds.find(f => f.id.toString() === fundId?.toString()) || funds[0];
-
-  // Default tab if URL has no tab
+  // 4. Default Tab Logic
   const activeTab = tab ? (tab.toLowerCase() === 'kpi' ? 'KPI' : 'Limits') : 'KPI';
 
-  // Handle tab change
+  // --- Handlers ---
+
   const handleTabChange = (newTab) => {
+    if (!currentFund) return;
+
     if (newTab.toLowerCase() === 'kpi') {
-      navigate(`/funds/${fundId}/dashboard/kpi/${selectedQuarter || 'Q2-2024'}`);
+      navigate(`/funds/${currentFund.id}/dashboard/kpi/${selectedQuarter || 'Q2-2024'}`);
     } else {
-      navigate(`/funds/${fundId}/dashboard/limits`);
+      navigate(`/funds/${currentFund.id}/dashboard/limits`);
     }
   };
 
-  // Handle quarter change (KPI only)
   const handleQuarterChange = (newQuarter) => {
+    if (!currentFund) return;
     setSelectedQuarter(newQuarter);
-    navigate(`/funds/${fundId}/dashboard/kpi/${newQuarter}`);
+    navigate(`/funds/${currentFund.id}/dashboard/kpi/${newQuarter}`);
   };
 
-  // If user visits /funds/:fundId/dashboard without tab, redirect to KPI
+  // --- Effects ---
+
+  // Redirect if no tab is specified
   useEffect(() => {
-    if (!tab) {
+    if (currentFund && !tab) {
       navigate(`/funds/${currentFund.id}/dashboard/kpi`, { replace: true });
     }
-  }, [tab, currentFund.id, navigate]);
+  }, [tab, currentFund, navigate]);
+
+  // --- Render ---
+
+  if (!currentFund) {
+    return <div className="dashboard-loading">Loading Fund...</div>;
+  }
 
   return (
     <div className="dashboard-page">
