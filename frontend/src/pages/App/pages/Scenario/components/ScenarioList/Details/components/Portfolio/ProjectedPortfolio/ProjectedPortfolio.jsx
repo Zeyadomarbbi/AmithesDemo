@@ -1,35 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './ProjectedPortfolio.css'; 
-import { SortIcon, CalendarIcon, PlusIcon, LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
-import DatePicker from '../../../../../../../../../../components/DatePicker';
-import Sensitivity from '../Sensitivity/Sensitivity'; // IMPORT Sensitivity component
+import { SortIcon, PlusIcon, LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
+// CHANGED: Use the smart component
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import Sensitivity from '../Sensitivity/Sensitivity'; 
 
-const projectedData = [
-    { 
-        id: 1,
-        name: "Solenix...",
-        date: "", 
-        duration: "-", 
-        cost: "8 000 000",
-        exit_value: "16 000 000",
-        dividends: "150 000",
-        irr: "12.45%",
-        moic: "2.00x",
-        exitDate: "07.08.25"
-        // implicitly isNew: undefined (falsy)
-    }
-];
+function ProjectedPortfolio({ projectedData, activeMode }) { 
+    // 1. Strict Input: Use passed data or empty array.
+    const [rows, setRows] = useState(projectedData || []);
 
-function ProjectedPortfolio({ data, activeMode }) { 
-    const [rows, setRows] = useState(data || projectedData);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [activeRowId, setActiveRowId] = useState(null);
+    // Sync state if prop changes
+    useEffect(() => {
+        setRows(projectedData || []);
+    }, [projectedData]);
+
     const [lockedRows, setLockedRows] = useState([]);
-    
-    // --- NEW STATE: Active Sensitivity Row ---
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
 
-    // Total number of columns (8 data + 1 action)
     const COL_SPAN = 9; 
 
     // --- Logic ---
@@ -38,7 +25,6 @@ function ProjectedPortfolio({ data, activeMode }) {
     };
 
     const handleSensitivityClick = (rowId) => {
-        // Toggles the visibility of the Sensitivity Table for the clicked row
         setActiveSensitivityRowId(prev => prev === rowId ? null : rowId);
     };
 
@@ -46,16 +32,16 @@ function ProjectedPortfolio({ data, activeMode }) {
     const handleAddRow = () => {
         const newRow = {
             id: Date.now(),
-            isNew: true, 	// <--- Flag to identify new rows
-            name: "", 	 	
-            date: "", 	 	
-            duration: "", 	
+            isNew: true,    
+            name: "",       
+            date: "",       
+            duration: "",   
             cost: "",
             exit_value: "", 
             dividends: "",
             irr: "",
             moic: "",
-            exitDate: "" 	
+            exitDate: ""    
         };
         setRows([...rows, newRow]);
     };
@@ -69,7 +55,7 @@ function ProjectedPortfolio({ data, activeMode }) {
         );
     };
 
-    // --- Date Picker Helper Logic ---
+    // --- Date Helper Logic ---
     const formatDateForTable = (dateObj) => {
         if (!dateObj) return '';
         const day = String(dateObj.getDate()).padStart(2, '0');
@@ -82,37 +68,67 @@ function ProjectedPortfolio({ data, activeMode }) {
         if (!dateStr) return new Date();
         const parts = dateStr.split('.'); 
         if (parts.length !== 3) return new Date();
-        
         let [day, month, year] = parts;
         if (year.length === 2) year = "20" + year;
-        
         return new Date(year, month - 1, day);
     };
 
-    const handleDateClick = (rowId) => {
-        setActiveRowId(rowId);
-        setShowDatePicker(true);
+    // --- Date Picker Handler ---
+    const handleRowDateChange = (rowId, newDate) => {
+        const newDateStr = formatDateForTable(newDate);
+        handleInputChange(rowId, 'exitDate', newDateStr);
     };
 
-    const handleClose = () => {
-        setShowDatePicker(false);
-        setActiveRowId(null);
-    };
+    // --- 2. Dynamic Summary Calculation ---
+    const summary = useMemo(() => {
+        const defaults = {
+            avgDuration: "0 yrs",
+            totalCost: "0",
+            totalExitVal: "0",
+            totalDividends: "0",
+            avgIrr: "0.00%",
+            avgMoic: "0.00x"
+        };
 
-    const handleApplyDate = (selection) => {
-        if (selection && selection.start) {
-            const newDateStr = formatDateForTable(selection.start);
-            setRows((prevRows) => 
-                prevRows.map((row) => {
-                    if (row.id === activeRowId) {
-                        return { ...row, exitDate: newDateStr };
-                    }
-                    return row;
-                })
-            );
-        }
-        handleClose();
-    };
+        if (!rows || rows.length === 0) return defaults;
+
+        const parseVal = (str) => {
+            if (!str) return 0;
+            return parseFloat(String(str).replace(/[^0-9.-]/g, "")) || 0;
+        };
+
+        const formatNum = (num) => {
+            return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        };
+
+        let sumDuration = 0;
+        let sumCost = 0;
+        let sumExitVal = 0;
+        let sumDividends = 0;
+        let sumIrr = 0;
+        let sumMoic = 0;
+
+        rows.forEach(row => {
+            const durationVal = parseFloat(String(row.duration).replace(/[^0-9.]/g, "")) || 0;
+            sumDuration += durationVal;
+            sumCost += parseVal(row.cost);
+            sumExitVal += parseVal(row.exit_value); 
+            sumDividends += parseVal(row.dividends);
+            sumIrr += parseVal(row.irr);
+            sumMoic += parseVal(row.moic);
+        });
+
+        const count = rows.length;
+
+        return {
+            avgDuration: (sumDuration / count).toFixed(1) + " yrs",
+            totalCost: formatNum(sumCost),
+            totalExitVal: formatNum(sumExitVal),
+            totalDividends: formatNum(sumDividends),
+            avgIrr: (sumIrr / count).toFixed(2) + "%",
+            avgMoic: (sumMoic / count).toFixed(2) + "x"
+        };
+    }, [rows]);
 
     const renderSortableHeader = (text, sorted = false, right = false, showCurrency = false) => {
         const cls = `proj-th-wrap ${right ? "proj-right" : "proj-left"}`;
@@ -127,20 +143,11 @@ function ProjectedPortfolio({ data, activeMode }) {
         );
     };
 
-    const summary = {
-        avgDuration: "-",
-        totalCost: "8 000 000",
-        totalExitVal: "16 000 000",
-        totalDividends: "150 000",
-        avgIrr: "12.45%", 
-        avgMoic: "2.05x"
-    };
-
     return (
         <div className="portfolio-section">
             <h3 className="section-title">
                 Projected portfolio
-                <span className="count">{rows.length}</span>
+                <span className="section-count">{rows.length}</span>
             </h3>
             
             <div className="proj-table-container no-borders">
@@ -156,7 +163,6 @@ function ProjectedPortfolio({ data, activeMode }) {
                             <th className="proj-col-numeric">{renderSortableHeader("MOIC (incl. dividends)", false, true)}</th>
                             <th>{renderSortableHeader("Exit Date")}</th>
 
-                            {/* === CONDITIONAL HEADERS === */}
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <th className="proj-col-action"></th>}
                         </tr>
                     </thead>
@@ -171,10 +177,9 @@ function ProjectedPortfolio({ data, activeMode }) {
                                             <input 
                                                 className="proj-input proj-input-name" 
                                                 value={r.name} 
-                                                placeholder={r.isNew ? "New Deal Name" : ""}
+                                                placeholder={r.isNew ? "New Deal" : ""}
                                                 onChange={(e) => handleInputChange(r.id, 'name', e.target.value)}
                                             />
-                                            <span style={{ fontSize: "12px", color: "#375A89", marginTop: "2px" }}>{r.date}</span>
                                         </div>
                                     </td>
 
@@ -182,8 +187,8 @@ function ProjectedPortfolio({ data, activeMode }) {
                                     <td>
                                         <input 
                                             className="proj-input" 
-                                            style={{ width: '40px' }}
                                             value={r.duration} 
+                                            placeholder={r.isNew ? "yrs" : ""}
                                             onChange={(e) => handleInputChange(r.id, 'duration', e.target.value)}
                                         />
                                     </td>
@@ -193,47 +198,39 @@ function ProjectedPortfolio({ data, activeMode }) {
                                         <input 
                                             className="proj-input" 
                                             value={r.cost} 
+                                            placeholder={r.isNew ? "-" : ""}
                                             onChange={(e) => handleInputChange(r.id, 'cost', e.target.value)}
                                         />
                                     </td>
 
-                                    {/* EXIT VALUE (Editable ONLY if New) */}
+                                    {/* EXIT VALUE */}
                                     <td className="proj-right">
-                                        {r.isNew ? (
-                                            <input 
-                                                className="proj-input" 
-                                                value={r.exit_value} 
-                                                onChange={(e) => handleInputChange(r.id, 'exit_value', e.target.value)}
-                                            />
-                                        ) : (
-                                            <span>{r.exit_value}</span>
-                                        )}
+                                        <input 
+                                            className="proj-input" 
+                                            value={r.exit_value} 
+                                            placeholder={r.isNew ? "-" : ""}
+                                            onChange={(e) => handleInputChange(r.id, 'exit_value', e.target.value)}
+                                        />
                                     </td>
 
-                                    {/* DIVIDENDS (Editable ONLY if New) */}
+                                    {/* DIVIDENDS */}
                                     <td className="proj-right">
-                                        {r.isNew ? (
-                                            <input 
-                                                className="proj-input" 
-                                                value={r.dividends} 
-                                                onChange={(e) => handleInputChange(r.id, 'dividends', e.target.value)}
-                                            />
-                                        ) : (
-                                            <span>{r.dividends}</span>
-                                        )}
+                                        <input 
+                                            className="proj-input" 
+                                            value={r.dividends} 
+                                            placeholder={r.isNew ? "-" : ""}
+                                            onChange={(e) => handleInputChange(r.id, 'dividends', e.target.value)}
+                                        />
                                     </td>
 
-                                    {/* IRR (Editable ONLY if New) */}
+                                    {/* IRR */}
                                     <td className="proj-right">
-                                        {r.isNew ? (
-                                            <input 
-                                                className="proj-input" 
-                                                value={r.irr} 
-                                                onChange={(e) => handleInputChange(r.id, 'irr', e.target.value)}
-                                            />
-                                        ) : (
-                                            <span>{r.irr}</span>
-                                        )}
+                                        <input 
+                                            className="proj-input" 
+                                            value={r.irr} 
+                                            placeholder={r.isNew ? "-" : ""}
+                                            onChange={(e) => handleInputChange(r.id, 'irr', e.target.value)}
+                                        />
                                     </td>
                                     
                                     {/* MOIC */}
@@ -241,52 +238,32 @@ function ProjectedPortfolio({ data, activeMode }) {
                                         <input 
                                             className="proj-input" 
                                             value={r.moic} 
+                                            placeholder={r.isNew ? "-" : ""}
                                             onChange={(e) => handleInputChange(r.id, 'moic', e.target.value)} 
                                         />
                                     </td>
 
                                     {/* DATE PICKER */}
-                                    <td>
-                                        <div className="proj-date-wrapper">
-                                            <input
-                                                className="proj-input proj-date-input" 
-                                                value={r.exitDate}
-                                                readOnly
-                                                onClick={() => handleDateClick(r.id)}
-                                            />
-                                            <div className="proj-icon-overlay">
-                                                <CalendarIcon />
-                                            </div>
-
-                                            {showDatePicker && activeRowId === r.id && (
-                                                <div className="proj-picker-anchor">
-                                                    <DatePicker 
-                                                        onClose={handleClose}
-                                                        onApply={handleApplyDate}
-                                                        initialDate={r.exitDate ? parseDateString(r.exitDate) : new Date()} 
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                    <td className="proj-date-cell">
+                                        <DateInputWithPicker 
+                                            initialDate={parseDateString(r.exitDate)}
+                                            onDateChange={(date) => handleRowDateChange(r.id, date)}
+                                            isSingle={true}
+                                        />
                                     </td>
 
-                                    {/* === CONDITIONAL ACTION CELL (Target) === */}
+                                    {/* ACTION CELL */}
                                     {activeMode === 'target' && (
                                         <td className="proj-center">
                                             <button 
                                                 className={`action-icon-btn ${lockedRows.includes(r.id) ? 'locked' : ''}`}
                                                 onClick={() => toggleLock(r.id)}
                                             >
-                                                {lockedRows.includes(r.id) ? (
-                                                    <LockClosedIcon className="lock-icon" />
-                                                ) : (
-                                                    <LockOpenIcon className="lock-icon" />
-                                                )}
+                                                {lockedRows.includes(r.id) ? <LockClosedIcon className="lock-icon" /> : <LockOpenIcon className="lock-icon" />}
                                             </button>
                                         </td>
                                     )}
 
-                                    {/* === CONDITIONAL ACTION CELL (Sensitivity) === */}
                                     {activeMode === 'sensitivity' && (
                                         <td className="proj-center">
                                             <button 
@@ -299,7 +276,6 @@ function ProjectedPortfolio({ data, activeMode }) {
                                     )}
                                 </tr>
 
-                                {/* === CONDITIONAL SENSITIVITY TABLE ROW === */}
                                 {activeMode === 'sensitivity' && activeSensitivityRowId === r.id && (
                                     <tr className="sensitivity-expanded-row">
                                         <td colSpan={COL_SPAN} className="sensitivity-table-cell"> 
@@ -312,7 +288,7 @@ function ProjectedPortfolio({ data, activeMode }) {
 
                         <tr className="proj-summary-row">
                             <td>Total</td>
-                            <td>-</td>
+                            <td className="proj-right">{summary.avgDuration}</td>
                             <td className="proj-right">{summary.totalCost}</td>
                             <td className="proj-right">{summary.totalExitVal}</td>
                             <td className="proj-right">{summary.totalDividends}</td>
@@ -320,7 +296,6 @@ function ProjectedPortfolio({ data, activeMode }) {
                             <td className="proj-right">{summary.avgMoic}</td>
                             <td className="proj-right">-</td>
                             
-                            {/* Empty cell for Action column in summary */}
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <td></td>}
                         </tr>
                     </tbody>

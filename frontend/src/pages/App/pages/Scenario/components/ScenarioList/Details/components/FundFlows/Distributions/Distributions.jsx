@@ -1,7 +1,7 @@
 import React from 'react';
 import './Distributions.css';
 import { SortIcon } from '../Icons'; 
-import DateInputWithPicker from '../../../../../../../../../../components/DateInput';
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 
 const Distributions = ({ data }) => { // Accepts data prop
 

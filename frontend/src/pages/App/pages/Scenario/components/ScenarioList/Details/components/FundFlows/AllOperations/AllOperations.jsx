@@ -1,7 +1,7 @@
 import React from 'react';
 import './AllOperations.css';
 import { SortIcon } from '../Icons'; 
-import DateInputWithPicker from '../../../../../../../../../../components/DateInput';
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 
 const AllOperations = ({ data }) => { // Accepts data prop
 

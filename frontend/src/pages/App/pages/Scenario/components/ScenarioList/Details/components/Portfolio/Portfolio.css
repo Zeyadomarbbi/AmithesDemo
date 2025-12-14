@@ -4,30 +4,25 @@
 .portfolio-page-layout {
   display: flex;
   flex-direction: row;
+  width: 100%;
   
-  /* --- THE FIX --- */
-  /* 1. Undo the parent's padding (24px top/bottom, 40px left/right) */
-  /* margin: -24px -40px;  */
+  /* NEW: Forces container to grow to match the scrollable width */
+  min-width: fit-content; 
   
-  /* 2. Force width/height to fill the space we just reclaimed */
-  width: auto; /* 100% + 40px left + 40px right */
-  height: auto; /* 100% + 24px top + 24px bottom */
-  min-height: 100%;
+  min-height: 100vh;
+  height: auto;
   background-color: #FFFFFF;
-  overflow: hidden; 
   z-index: 1;
   box-sizing: border-box;
 }
-
 /* =========================================
    2. LEFT COLUMN (Main Content)
    ========================================= */
 .portfolio-main-content {
     flex: 1; 
-    overflow-y: auto; 
-    min-width: 0; 
-    padding: 0 40px; 
-    margin-top: 24px;
+    height: auto;       /* CHANGED: Grows with content */
+    padding: 24px 40px 40px 40px; /* Added bottom padding for breathing room */
+    /* overflow: scroll; <-- REMOVED */
 }
 
 .portfolio-tab-container {
@@ -55,6 +50,29 @@
     align-items: center;
 }
 
+.section-count {
+    border-radius: 12px;
+    padding: 2px 8px;
+
+    width: 11px;
+    height: 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 24px;
+
+    color: #375A89;
+    flex: none;
+    order: 1;
+    flex-grow: 0;
+}
+
 .empty-state {
     padding: 40px;
     background: #fff;
@@ -68,12 +86,15 @@
    3. RIGHT COLUMN (Sidebar)
    ========================================= */
 .portfolio-side-panel {
+    position: relative; 
     flex-shrink: 0; 
+    
     height: auto;
+    min-height: 100%;
+    
     background-color: #1e293b;
     border-top-left-radius: 16px;
-    overflow-y: auto; 
-    overflow-x: hidden;
+    
     transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     box-shadow: -4px 0 15px rgba(0,0,0,0.05);
     z-index: 10;
@@ -85,6 +106,7 @@
 
 .portfolio-side-panel.collapsed {
     width: 5%; 
+    min-width: 80px;
 }
 
 /* =========================================

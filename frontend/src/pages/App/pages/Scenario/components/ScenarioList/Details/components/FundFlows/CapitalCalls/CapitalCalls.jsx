@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import './CapitalCalls.css'; 
 import { SortIcon, PlusIcon, MinusIcon } from '../Icons'; 
-import DateInputWithPicker from '../../../../../../../../../../components/DateInput';
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 
 // Receives data AND handlers from parent
 const CapitalCalls = ({ data, onAddRow, onRemoveRow, onUpdateRow }) => {

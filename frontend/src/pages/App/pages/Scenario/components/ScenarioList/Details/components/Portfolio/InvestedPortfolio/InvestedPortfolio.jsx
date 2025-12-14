@@ -1,67 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './InvestedPortfolio.css';
-import { SortIcon, CalendarIcon, LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
-import DatePicker from '../../../../../../../../../../components/DatePicker';
-import Sensitivity from '../Sensitivity/Sensitivity'; // Adjust path as needed
+import { SortIcon, LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import Sensitivity from '../Sensitivity/Sensitivity'; 
 
-const investedData = [
-    { 
-        id: 1,
-        name: "Vantech AI",
-        date: "30.06.21",
-        duration: "3 yrs",
-        cost: "8 000 000",
-        exit_value: "20 000 000",
-        dividends: "-",
-        irr: "18.40%",
-        moic: "2.50x",
-        exitDate: "07.08.26"
-    },
-    { 
-        id: 2,
-        name: "Alyra BioTech",
-        date: "30.06.22",
-        duration: "2 yrs",
-        cost: "7 000 000",
-        exit_value: "10 500 000",
-        dividends: "100000",
-        irr: "10.10%",
-        moic: "1.51x",
-        exitDate: "07.08.27"
-    },
-    { 
-        id: 3,
-        name: "NeoGrid",
-        date: "30.06.23",
-        duration: "1 yr",
-        cost: "9 000 000",
-        exit_value: "18 000 000",
-        dividends: "-",
-        irr: "22.00%",
-        moic: "2.02x",
-        exitDate: "07.08.28"
-    },
-    { 
-        id: 4,
-        name: "Medisis",
-        date: "30.06.24",
-        duration: "0 yrs",
-        cost: "10 000 000",
-        exit_value: "30 000 000",
-        dividends: "-",
-        irr: "30.00%",
-        moic: "3.00x",
-        exitDate: "07.08.29"
-    }
-];
+function InvestedPortfolio({ activeMode, investedData }) { 
+    // 1. Strict Input: Use passed data or empty array. No internal mock data.
+    const [rows, setRows] = useState(investedData || []);
+    
+    // Sync state if prop changes
+    useEffect(() => {
+        setRows(investedData || []);
+    }, [investedData]);
 
-function InvestedPortfolio({ activeMode }) { 
-    const [rows, setRows] = useState(investedData);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [activeRowId, setActiveRowId] = useState(null);
     const [lockedRows, setLockedRows] = useState([]);
-
-    // --- NEW STATE: Active Sensitivity Row ---
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
 
     // --- Logic ---
@@ -74,7 +26,6 @@ function InvestedPortfolio({ activeMode }) {
     };
 
     const handleSensitivityClick = (rowId) => {
-        // Toggles the visibility of the Sensitivity Table for the clicked row
         setActiveSensitivityRowId(prev => prev === rowId ? null : rowId);
     };
 
@@ -96,31 +47,73 @@ function InvestedPortfolio({ activeMode }) {
         return new Date(year, month - 1, day);
     };
 
-    // --- Date Picker Handlers ---
-    const handleDateClick = (rowId) => {
-        setActiveRowId(rowId);
-        setShowDatePicker(true);
+    const handleInputChange = (id, field, value) => {
+        setRows((prevRows) => 
+            prevRows.map((row) => 
+                row.id === id ? { ...row, [field]: value } : row
+            )
+        );
     };
 
-    const handleClose = () => {
-        setShowDatePicker(false);
-        setActiveRowId(null);
+    const handleRowDateChange = (rowId, newDate) => {
+        const newDateStr = formatDateForTable(newDate);
+        handleInputChange(rowId, 'exitDate', newDateStr);
     };
 
-    const handleApplyDate = (selection) => {
-        if (selection && selection.start) {
-            const newDateStr = formatDateForTable(selection.start);
-            setRows((prevRows) => 
-                prevRows.map((row) => {
-                    if (row.id === activeRowId) {
-                        return { ...row, exitDate: newDateStr };
-                    }
-                    return row;
-                })
-            );
-        }
-        handleClose();
-    };
+    // --- 2. Dynamic Summary Calculation (Matches RealizedPortfolio Pattern) ---
+    const summary = useMemo(() => {
+        const defaults = {
+            avgDuration: "0 yrs",
+            totalCost: "0",
+            totalExitVal: "0",
+            totalDividends: "0",
+            avgIrr: "0.00%",
+            avgMoic: "0.00x"
+        };
+
+        if (!rows || rows.length === 0) return defaults;
+
+        // Helper: Clean string and parse to float
+        const parseVal = (str) => {
+            if (!str) return 0;
+            return parseFloat(String(str).replace(/[^0-9.-]/g, "")) || 0;
+        };
+
+        // Helper: Format number with spaces
+        const formatNum = (num) => {
+            return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        };
+
+        let sumDuration = 0;
+        let sumCost = 0;
+        let sumExitVal = 0;
+        let sumDividends = 0;
+        let sumIrr = 0;
+        let sumMoic = 0;
+
+        rows.forEach(row => {
+            // Extract numeric duration (e.g., "3 yrs" -> 3)
+            const durationVal = parseFloat(String(row.duration).replace(/[^0-9.]/g, "")) || 0;
+            
+            sumDuration += durationVal;
+            sumCost += parseVal(row.cost);
+            sumExitVal += parseVal(row.exit_value); // Note: check key name (exit_value vs exitVal)
+            sumDividends += parseVal(row.dividends);
+            sumIrr += parseVal(row.irr);
+            sumMoic += parseVal(row.moic);
+        });
+
+        const count = rows.length;
+
+        return {
+            avgDuration: (sumDuration / count).toFixed(1) + " yrs",
+            totalCost: formatNum(sumCost),
+            totalExitVal: formatNum(sumExitVal),
+            totalDividends: formatNum(sumDividends),
+            avgIrr: (sumIrr / count).toFixed(2) + "%",
+            avgMoic: (sumMoic / count).toFixed(2) + "x"
+        };
+    }, [rows]);
 
     const renderSortableHeader = (text, sorted = false, right = false, showCurrency = false) => {
         const cls = `inv-th-wrap ${right ? "inv-right" : "inv-left"}`;
@@ -135,23 +128,13 @@ function InvestedPortfolio({ activeMode }) {
         );
     };
 
-    const summary = {
-        avgDuration: "5 yrs",
-        totalCost: "16 000 000",
-        totalExitVal: "37 000 000",
-        totalDividends: "1 500 000",
-        avgIrr: "18.77%", 
-        avgMoic: "2.33x"
-    };
-
-    // Total number of columns (8 data + 1 action)
     const COL_SPAN = 9; 
 
     return (
         <div className="portfolio-section">
             <h3 className="section-title">
                 Invested portfolio
-                <span className="count">{rows.length}</span>
+                <span className="section-count">{rows.length}</span>
             </h3>
             
             <div className="inv-table-container no-borders">
@@ -167,7 +150,6 @@ function InvestedPortfolio({ activeMode }) {
                             <th className="inv-col-numeric">{renderSortableHeader("MOIC (incl. dividends)", false, true)}</th>
                             <th>{renderSortableHeader("Exit Date")}</th>
                             
-                            {/* === CONDITIONAL HEADERS === */}
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <th className="inv-col-action"></th>}
                         </tr>
                     </thead>
@@ -182,40 +164,28 @@ function InvestedPortfolio({ activeMode }) {
                                             <span style={{ fontSize: "12px", color: "#375A89" }}>{r.date}</span>
                                         </div>
                                     </td>
-                                    <td>{r.duration}</td>
+                                    <td className="inv-right">{r.duration}</td>
                                     <td className="inv-right">{r.cost}</td>
                                     <td className="inv-right">{r.exit_value}</td>
                                     <td className="inv-right">{r.dividends}</td>
                                     <td className="inv-right">{r.irr}</td>
                                     <td className="inv-right">
-                                        <input className="inv-input" value={r.moic} onChange={() => {}} />
+                                        <input 
+                                            className="inv-input" 
+                                            value={r.moic} 
+                                            onChange={(e) => handleInputChange(r.id, 'moic', e.target.value)} 
+                                        />
                                     </td>
 
-                                    {/* Date Cell */}
-                                    <td>
-                                        <div className="inv-date-wrapper">
-                                            <input
-                                                className="inv-input inv-date-input" 
-                                                value={r.exitDate}
-                                                readOnly
-                                                onClick={() => handleDateClick(r.id)}
-                                            />
-                                            <div className="inv-icon-overlay">
-                                                <CalendarIcon />
-                                            </div>
-                                            {showDatePicker && activeRowId === r.id && (
-                                                <div className="inv-picker-anchor">
-                                                    <DatePicker 
-                                                        onClose={handleClose}
-                                                        onApply={handleApplyDate}
-                                                        initialDate={r.exitDate ? parseDateString(r.exitDate) : new Date()} 
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                    <td className="inv-date-cell">
+                                        <DateInputWithPicker 
+                                            initialDate={parseDateString(r.exitDate)}
+                                            onDateChange={(date) => handleRowDateChange(r.id, date)}
+                                            isSingle={true}
+                                        />
                                     </td>
 
-                                    {/* === CONDITIONAL ACTION CELL (Target/Sensitivity) === */}
+                                    {/* Action Cells */}
                                     {activeMode === 'target' && (
                                         <td className="inv-center">
                                             <button 
@@ -239,7 +209,6 @@ function InvestedPortfolio({ activeMode }) {
                                     )}
                                 </tr>
 
-                                {/* === CONDITIONAL SENSITIVITY TABLE ROW === */}
                                 {activeMode === 'sensitivity' && activeSensitivityRowId === r.id && (
                                     <tr className="sensitivity-expanded-row">
                                         <td colSpan={COL_SPAN} className="sensitivity-table-cell"> 
@@ -252,15 +221,13 @@ function InvestedPortfolio({ activeMode }) {
 
                         <tr className="inv-summary-row">
                             <td>Total</td>
-                            <td>-</td>
+                            <td className="inv-right">{summary.avgDuration}</td>
                             <td className="inv-right">{summary.totalCost}</td>
                             <td className="inv-right">{summary.totalExitVal}</td>
                             <td className="inv-right">{summary.totalDividends}</td>
                             <td className="inv-right">{summary.avgIrr}</td>
                             <td className="inv-right">{summary.avgMoic}</td>
                             <td className="inv-right">-</td>
-                            
-                            {/* Empty cell for Action column in summary */}
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <td></td>}
                         </tr>
                     </tbody>

@@ -4,6 +4,7 @@
 .inv-table-container {
     width: 100%;
     background: #fff;
+    box-sizing: border-box;
 }
 
 .inv-table-container.no-borders {
@@ -13,7 +14,7 @@
 .inv-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: auto; /* STRICT WIDTH CONTROL */
     font-family: 'Inter', sans-serif;
     font-size: 13px;
 }
@@ -25,28 +26,36 @@
     border-bottom: 1px solid #E5E7EB;
     color: #111827;
     font-weight: 600;
-    white-space: nowrap;
     vertical-align: middle;
-    padding: 12px 16px;
-    text-align: center; 
+    padding: 12px 12px;
+    text-align: left;
+    white-space: normal; /* Allow wrapping */
 }
 
-/* --- Flex Wrappers For Alignment --- */
+/* =========================================
+   3. FLEX WRAPPERS (Alignment)
+   ========================================= */
 .inv-th-wrap {
     display: flex;
     align-items: center;
     width: 100%;
-    height: 20px;
+    min-height: 20px;
 }
 
 .inv-th-group {
     display: flex;
     align-items: center;
     gap: 4px;
+    text-align: inherit;
+    width: 100%;
 }
 
 .inv-th-wrap.inv-left { justify-content: flex-start; }
 .inv-th-wrap.inv-right { justify-content: flex-end; }
+.inv-th-wrap.inv-right .inv-th-group {
+    justify-content: flex-end;
+}
+
 
 /* --- Sort Icon + Currency Indicator --- */
 .inv-sort {
@@ -62,35 +71,39 @@
 }
 
 /* =========================================
-   3. BODY ROWS (TBODY)
+   4. BODY ROWS (TBODY)
    ========================================= */
 .inv-table td {
-    padding: 12px 16px;
+    padding: 12px 12px; 
     vertical-align: middle;
     border-bottom: 1px solid #F3F4F6;
     color: #111827;
     white-space: nowrap; 
-    /* REMOVED overflow: hidden to allow DatePicker to pop out */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    table-layout: fixed;
+}
+
+/* Striping */
+.inv-table td:last-child {
+    overflow: visible;
+    text-overflow: unset;
 }
 
 /* Striping */
 .inv-table tbody tr {
-    background: #FFFFFF;
+  background: #FAFAF9;
 }
 
-.inv-table tbody tr:nth-child(odd):not(.inv-summary-row) {
-    background: #FAFAF9;
-}
-
-.inv-table tbody tr:nth-child(even):not(.inv-summary-row) {
-    background: #FFFFFF;
+.inv-table tbody tr:nth-child(even):not(.realized-row-summary) {
+  background: #FFFFFF;
 }
 
 /* =========================================
-   4. CELL CONTENT & ALIGNMENT
+   5. CELL CONTENT & ALIGNMENT
    ========================================= */
 .inv-right {
-    text-align: center;
+    text-align: center !important; 
 }
 
 .inv-name-block {
@@ -109,15 +122,15 @@
 
 /* Editable input fields */
 .inv-input {
-    padding: 4px 6px;
-    border: 1px solid #D1D5DB;
-    background: #fff;
-    font-size: 13px;
-    color: #111827;
-    text-align: center;
-    border-radius: 4px;
-    width: 100%;
-    box-sizing: border-box;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #101828;
+  text-align: center;
 }
 
 /* =========================================
@@ -128,21 +141,7 @@
     color: #FFFFFF !important;
     font-weight: 600;
     border-bottom: none;
-    text-align: center;
-    padding: 12px 16px; 
-    line-height: 20px;
-}
-
-.inv-summary-row td:first-child,
-.inv-summary-row td:nth-child(2) {
-    text-align: left; 
-}
-
-/* Count badge */
-.count {
-    color: #64748b;
-    font-size: 14px;
-    margin-left: 4px;
+    padding: 12px 12px;
 }
 
 /* =========================================
@@ -150,45 +149,10 @@
    ========================================= */
 
 /* The Container for Input + Icon + Picker */
-.inv-date-wrapper {
-    position: relative; 
-    width: 100px;      
-    display: block;
-}
-
-/* The Input Field */
-.inv-date-input {
-    width: 100%;
-    padding-right: 30px; 
-    padding-left: 8px;
-    box-sizing: border-box;
-    cursor: pointer;
-    text-align: center;
-}
-
-/* The Icon - Positioned Inside */
-.inv-icon-overlay {
-    position: absolute;
-    top: 50%;
-    right: 8px; 
-    transform: translateY(-50%); 
-    pointer-events: none; 
-    color: #375A89;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* The Picker - Positioned Next to the Input */
-.inv-picker-anchor {
-    position: absolute;
-    right: 100%;     
-    left: auto;
-    top: 50%;       
-    transform: translateY(-50%);
-    margin-left: 12px;
-    z-index: 99999;
-    width: 320px;
+.inv-date-cell {
+    position: relative;
+    /* Ensure z-index works for the popup if needed */
+    z-index: 10;
 }
 
 /* =========================================
