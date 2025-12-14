@@ -12,7 +12,6 @@ function DashboardPage() {
   const navigate = useNavigate();
   
   // 1. Retrieve funds from AppLayout context
-  // Default to empty array to prevent crashes if context is missing
   const { funds = [] } = useOutletContext() || {};
 
   // 2. Identify Current Fund
@@ -72,7 +71,10 @@ function DashboardPage() {
       />
       
       <div className="dashboard-content-frame">
-        {activeTab === 'KPI' ? <KPIDashboard /> : <LimitsDashboard />}
+        {activeTab === 'KPI' ? 
+          <KPIDashboard fundId={fundId} /> : 
+          <LimitsDashboard fundId={fundId} /> // PASS fundId HERE
+        }
       </div>
     </div>
   );
