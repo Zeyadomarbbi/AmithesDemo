@@ -40,7 +40,7 @@ function SidePanel({ funds = [] }) {
           <div className="fund-selector-container">
             <div className="fund-selector-button">
               <div className="fund-info-section">
-                <span className="fund-name">{currentFund.name}</span>
+                <span className="side-panel-fund-name">{currentFund.name}</span>
                 
                 <Link 
                   to={currentFund.id ? `/funds/${currentFund.id}/settings` : '#'} 
