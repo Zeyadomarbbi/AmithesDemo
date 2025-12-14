@@ -10,7 +10,7 @@
 .fin-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px; /* Ensures table doesn't crush on small screens */
+  width: 100%; /* Ensures table doesn't crush on small screens */
   font-family: 'Inter', sans-serif;
   font-size: 13px;
 }

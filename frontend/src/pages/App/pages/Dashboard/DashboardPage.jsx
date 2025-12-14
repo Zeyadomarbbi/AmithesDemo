@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useActiveFund } from '../../hooks/useActiveFund';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import './DashboardPage.css';
 
 import DashboardHeader from './components/DashboardHeader/DashboardHeader';
@@ -8,67 +7,104 @@ import DashboardTabs from './components/DashboardTabs/DashboardTabs';
 import KPIDashboard from './components/KPIDashboard/KPIDashboard';
 import LimitsDashboard from './components/LimitsDashboard/LimitsDashboard';
 
+// Helper function to safely split the "Qx-YYYY" string
+const splitQuarterYear = (quarterYearString) => {
+    if (!quarterYearString || typeof quarterYearString !== 'string') {
+        return { quarter: null, year: null };
+    }
+    const parts = quarterYearString.split('-');
+    // Expects ['Qx', 'YYYY']
+    return {
+        quarter: parts[0] || null,
+        year: parts[1] || null
+    };
+};
+
 function DashboardPage() {
-  const { fundId, tab, quarter } = useParams();  // tab will be 'kpi' or 'limits'
-  const navigate = useNavigate();
-  const location = useLocation();
-  const activeFundId = useActiveFund();
-  const [selectedQuarter, setSelectedQuarter] = useState(tab === 'kpi' ? (quarter || 'Q2-2024') : null);
-  const funds = [
-    { id: 1, name: 'Asterium Fund I', code: 'AST' },
-    { id: 2, name: 'Lynx Capital II', code: 'LYN' },
-    { id: 3, name: 'Orion Partners III', code: 'ORI' },
-    { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
-    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
-    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
-  ];
+    const { fundId, tab, quarter: urlQuarter } = useParams();
+    const navigate = useNavigate();
+    
+    // 1. Retrieve funds from AppLayout context
+    const { funds = [] } = useOutletContext() || {};
 
-  const currentFund = funds.find(f => f.id.toString() === fundId?.toString()) || funds[0];
+    // 2. Identify Current Fund
+    const currentFund = funds.find(f => f.id.toString() === fundId?.toString());
 
-  // Default tab if URL has no tab
-  const activeTab = tab ? (tab.toLowerCase() === 'kpi' ? 'KPI' : 'Limits') : 'KPI';
+    // 3. State for Quarter Selector: Stores the combined string (e.g., 'Q2-2024')
+    const defaultQuarterYear = 'Q2-2024';
+    const initialQuarterYear = tab === 'kpi' ? (urlQuarter || defaultQuarterYear) : null;
+    const [selectedQuarterYear, setSelectedQuarterYear] = useState(initialQuarterYear);
 
-  // Handle tab change
-  const handleTabChange = (newTab) => {
-    if (newTab.toLowerCase() === 'kpi') {
-      navigate(`/funds/${fundId}/dashboard/kpi/${selectedQuarter || 'Q2-2024'}`);
-    } else {
-      navigate(`/funds/${fundId}/dashboard/limits`);
+    // 4. Extract separate quarter and year from the combined state
+    const { quarter, year } = splitQuarterYear(selectedQuarterYear);
+
+    // 5. Default Tab Logic
+    const activeTab = tab ? (tab.toLowerCase() === 'kpi' ? 'KPI' : 'Limits') : 'KPI';
+
+    // --- Handlers ---
+
+    const handleTabChange = (newTab) => {
+        if (!currentFund) return;
+
+        if (newTab.toLowerCase() === 'kpi') {
+            // Use the combined state for navigation
+            navigate(`/funds/${currentFund.id}/dashboard/kpi/${selectedQuarterYear || defaultQuarterYear}`);
+        } else {
+            navigate(`/funds/${currentFund.id}/dashboard/limits`);
+        }
+    };
+
+    const handleQuarterChange = (newQuarterYear) => {
+        if (!currentFund) return;
+        // Update the combined state
+        setSelectedQuarterYear(newQuarterYear); 
+        // Navigate using the new combined string
+        navigate(`/funds/${currentFund.id}/dashboard/kpi/${newQuarterYear}`);
+    };
+
+    // --- Effects ---
+
+    // Redirect if no tab is specified
+    useEffect(() => {
+        if (currentFund && !tab) {
+            navigate(`/funds/${currentFund.id}/dashboard/kpi`, { replace: true });
+        }
+    }, [tab, currentFund, navigate]);
+
+    // --- Render ---
+
+    if (!currentFund) {
+        return <div className="dashboard-loading">Loading Fund...</div>;
     }
-  };
 
-  // Handle quarter change (KPI only)
-  const handleQuarterChange = (newQuarter) => {
-    setSelectedQuarter(newQuarter);
-    navigate(`/funds/${fundId}/dashboard/kpi/${newQuarter}`);
-  };
+    return (
+        <div className="dashboard-page">
+            <DashboardHeader 
+                fundName={currentFund.name} 
+                showQuarterSelector={tab === 'kpi'} 
+                // Pass the combined string to the DashboardHeader/QuarterSelector
+                selectedQuarter={selectedQuarterYear} 
+                onQuarterChange={handleQuarterChange}
+            />
 
-  // If user visits /funds/:fundId/dashboard without tab, redirect to KPI
-  useEffect(() => {
-    if (!tab) {
-      navigate(`/funds/${currentFund.id}/dashboard/kpi`, { replace: true });
-    }
-  }, [tab, currentFund.id, navigate]);
-
-  return (
-    <div className="dashboard-page">
-      <DashboardHeader 
-        fundName={currentFund.name} 
-        showQuarterSelector={tab === 'kpi'} 
-        selectedQuarter={selectedQuarter} 
-        onQuarterChange={handleQuarterChange}
-      />
-
-      <DashboardTabs 
-        activeTab={activeTab}      
-        onTabChange={handleTabChange}      
-      />
-      
-      <div className="dashboard-content-frame">
-        {activeTab === 'KPI' ? <KPIDashboard /> : <LimitsDashboard />}
-      </div>
-    </div>
-  );
+            <DashboardTabs 
+                activeTab={activeTab}      
+                onTabChange={handleTabChange}      
+            />
+            
+            <div className="dashboard-content-frame">
+                {activeTab === 'KPI' ? 
+                    <KPIDashboard 
+                        fundId={fundId} 
+                        // Pass the separated quarter and year strings to KPIDashboard
+                        quarter={quarter}
+                        year={year}
+                    /> : 
+                    <LimitsDashboard fundId={fundId} /> 
+                }
+            </div>
+        </div>
+    );
 }
 
 export default DashboardPage;

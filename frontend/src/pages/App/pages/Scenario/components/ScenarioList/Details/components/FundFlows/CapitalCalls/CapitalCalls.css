@@ -141,32 +141,13 @@
 .sort-icon { width: 14px; height: 14px; color: #3B82F6; }
 
 /* Date Input Styling */
-.td-date { width: 140px; }
 .date-input-wrapper { position: relative; width: 100%; }
 .date-input { width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #E2E8F0; border-radius: 4px; font-size: 14px; color: #64748B; outline: none; background-color: #ffffff; box-sizing: border-box; }
 .icon-wrapper { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; align-items: center; }
 .calendar-icon { color: #375A89; opacity: 0.8; }
 
-/* --- Popover --- */
-.static-floating-picker {
-  position: absolute;
-  /* Top and Left are now handled by inline styles in React */
-  
-  z-index: 1000;
-  
-  /* Constraints */
-  width: 320px; 
-  height: auto;
-  
-  /* Optional: Makes the jump between rows feel smoother */
-  transition: top 0.2s ease-out;
-}
-
-.static-floating-picker .dp-container {
-  background: #FFFFFF;
-  box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.2);
-  border: 1px solid #E4E7EC;
-  border-radius: 8px;
-  width: 100%;
-  height: auto;
+.ops-table .td-date {
+    position: relative;
+    white-space: normal; 
+    overflow: visible; /* Ensure component popover isn't clipped if relative */
 }

@@ -8,8 +8,98 @@ import TargetSelectionModal from './TargetSelectionModal/TargetSelectionModal';
 import './Portfolio.css';
 
 // Static Data for Realized Portfolio
-const realizedData = [
-    { id: 1, name: "Terapia Group", date: "30.06.20", duration: "5 yrs", cost: "6 000 000", exitVal: "12 000 000", irr: "12.54%", moic: "2.00x" }
+const DEFAULT_REALIZED_DATA = [
+    { 
+        id: 1, 
+        name: "Terapia Group", 
+        date: "30.06.20", 
+        duration: "5 yrs", 
+        cost: "6 000 000", 
+        exitVal: "12 000 000", 
+        dividends: "1 000 000", 
+        exitDate: "30.06.2025",    
+        irr: "12.54%", 
+        moic: "2.00x" 
+    },
+    { 
+        id: 2, 
+        name: "Alpha Corp", 
+        date: "01.01.19", 
+        duration: "4 yrs", 
+        cost: "10 000 000", 
+        exitVal: "25 000 000", 
+        dividends: "500 000",
+        exitDate: "01.01.2023",
+        irr: "25.00%", 
+        moic: "2.55x" 
+    }
+];
+
+const MOCK_INVESTED_DATA = [
+    { 
+        id: 1,
+        name: "Vantech AI",
+        date: "30.06.21",
+        duration: "3 yrs",
+        cost: "8 000 000",
+        exit_value: "20 000 000",
+        dividends: "-",
+        irr: "18.40%",
+        moic: "2.50x",
+        exitDate: "07.08.26"
+    },
+    { 
+        id: 2,
+        name: "Alyra BioTech",
+        date: "30.06.22",
+        duration: "2 yrs",
+        cost: "7 000 000",
+        exit_value: "10 500 000",
+        dividends: "100000",
+        irr: "10.10%",
+        moic: "1.51x",
+        exitDate: "07.08.27"
+    },
+    { 
+        id: 3,
+        name: "NeoGrid",
+        date: "30.06.23",
+        duration: "1 yr",
+        cost: "9 000 000",
+        exit_value: "18 000 000",
+        dividends: "-",
+        irr: "22.00%",
+        moic: "2.02x",
+        exitDate: "07.08.28"
+    },
+    { 
+        id: 4,
+        name: "Medisis",
+        date: "30.06.24",
+        duration: "0 yrs",
+        cost: "10 000 000",
+        exit_value: "30 000 000",
+        dividends: "-",
+        irr: "30.00%",
+        moic: "3.00x",
+        exitDate: "07.08.29"
+    }
+];
+
+const MOCK_PROJECTED_DATA = [
+    { 
+        id: 1,
+        name: "Solenix...",
+        date: "", 
+        duration: "-", 
+        cost: "8 000 000",
+        exit_value: "16 000 000",
+        dividends: "150 000",
+        irr: "12.45%",
+        moic: "2.00x",
+        exitDate: "07.08.25"
+        // implicitly isNew: undefined (falsy)
+    }
 ];
 
 function Portfolio({ scenarioId }) {
@@ -92,13 +182,19 @@ function Portfolio({ scenarioId }) {
                     </div>
 
                     {/* SECTION 1: REALIZED PORTFOLIO */}
-                    <RealizedPortfolio realizedData={realizedData} />
+                    <RealizedPortfolio realizedData={DEFAULT_REALIZED_DATA} />
 
                     {/* SECTION 2: INVESTED PORTFOLIO */}
-                    <InvestedPortfolio activeMode={activeMode} />
+                    <InvestedPortfolio 
+                        activeMode={activeMode}
+                        investedData={MOCK_INVESTED_DATA} 
+                    />
 
                     {/* SECTION 3: PROJECTED PORTFOLIO */}
-                    <ProjectedPortfolio activeMode={activeMode} />
+                    <ProjectedPortfolio
+                        activeMode={activeMode}
+                        projectedData={MOCK_PROJECTED_DATA} 
+                    />
 
                 </div>
             </div>

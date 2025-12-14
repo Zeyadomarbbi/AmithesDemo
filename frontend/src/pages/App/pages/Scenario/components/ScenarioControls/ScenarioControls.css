@@ -103,6 +103,17 @@
   color: #7B7D7E;
 }
 
+
+/* --- Right Group: Buttons Container --- */
+.scenarios-controls-right {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 6px;
+}
+
 /* 3. ADD BUTTON (Right Side) */
 .add-scenario-button {
   display: flex;
@@ -140,30 +151,35 @@
   flex-shrink: 0;
 }
 
-/* =========================================
-   MOBILE BREAKPOINT
-   ========================================= */
-@media (max-width: 600px) {
-  .scenarios-frame-2 {
-    flex-direction: column; /* Stack vertically */
-    align-items: stretch;   /* Stretch items to full width */
-  }
+/* 4. CREATE SCENARIO SYNTHESIS BUTTON */
+.create-synthesis-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
 
-  .scenarios-controls-left {
-    flex-direction: column; /* Stack Search and Badge */
-    align-items: stretch;
-    width: 100%;
-  }
+    padding: 8px 16px;
+    gap: 6px;
 
-  .scenarios-search-bar {
-    max-width: 100%; /* Allow search to go full width on mobile */
-  }
+    height: 40px;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
 
-  .created-by-badge {
-    align-self: flex-start; /* Align badge to left */
-  }
+    background: rgba(55, 90, 137, 0.2);
+    border-radius: 4px;
+    border: none;
 
-  .add-scenario-button {
-    width: 100%; /* Big tap target for mobile */
-  }
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+
+    transition: background-color 0.2s;
+}
+
+.create-synthesis-button:hover {
+    background: rgba(55, 90, 137, 0.3);
 }

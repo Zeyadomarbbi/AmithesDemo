@@ -14,34 +14,6 @@
   width: 100%;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dashboard-header h1 {
-  margin: 0;
-  /* Typography matches Scenarios title usually */
-  font-family: 'Crimson Pro', serif; 
-  font-size: 30px;
-  font-weight: 500;
-  color: #1C1917;
-  line-height: 100%;
-}
-
-.date-selector {
-  padding: 8px 16px;
-  border: 1px solid #CBD5E0;
-  background-color: #FFFFFF;
-  border-radius: 4px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4A5568;
-  cursor: pointer;
-}
-
 /* =========================================
    FRAME 2: Tabs (KPI / Limits)
    ========================================= */
