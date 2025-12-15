@@ -12,7 +12,11 @@
   align-items: center;
   padding: 8px 12px;
   gap: 8px;
-  width: 140px; 
+  
+  /* CHANGED: Replace fixed width with min-width and auto width */
+  width: auto;      
+  max-width: 100%;  /* Prevents it from breaking parent containers */
+
   height: 40px;
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
@@ -25,9 +29,8 @@
 
 .quarter-selector-button:hover,
 .quarter-selector-button.active {
-  /* MODIFIED: Changed border-color to background-color */
-  background-color: #F8FAFC; /* Light gray background */
-  border-color: rgba(204, 205, 206, 0.5); /* Retain original border color */
+  background-color: #F8FAFC; 
+  border-color: rgba(204, 205, 206, 0.5);
 }
 
 .quarter-text-group {
@@ -65,15 +68,14 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  /* min-width: 240px; <-- Removed */
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
   box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
-  padding: 8px; /* Slightly more padding */
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  white-space: nowrap; /* Ensures content dictates width */
+  white-space: nowrap;
 }
 
 /* --- LIST ITEMS --- */
@@ -85,14 +87,17 @@
   gap: 2px;
 }
 
+/* UNIFIED ITEM LAYOUT */
 .quarter-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start; /* Aligns checkbox/label to left */
+  gap: 12px; 
   padding: 8px 12px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: #1C1917;
-  border-radius: 4px; /* Softer corners */
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.1s;
 }
@@ -101,17 +106,30 @@
   background-color: #F3F4F6;
 }
 
-/* Selected state looks like the image (light gray bg) */
 .quarter-item.selected {
   background-color: #F8FAFC; 
 }
 
-/* --- SINGLE MODE LAYOUT --- */
-.quarter-item.single-mode-item {
-  justify-content: flex-start;
-  gap: 12px; 
+/* --- CHECKBOX STYLING --- */
+.qs-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 
+.qs-checkbox.checked {
+  background-color: #F7A93B; /* Updated Color */
+  border-color: #F7A93B;     /* Updated Color */
+}
+
+/* --- TEXT & DETAILS --- */
 .item-label-bold {
   font-weight: 600;
   color: #1C1917;
@@ -122,29 +140,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #375A89; /* Blue color for details */
+  color: #375A89;
 }
 
 .item-arrow-icon {
-  /* Updated for RightArrowIcon component */
   width: 10px; 
   height: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748B; /* Greyish arrow (controls icon color) */
+  color: #64748B;
 }
 
 .quarter-item.selected .item-arrow-icon,
 .quarter-item:hover .item-arrow-icon,
 .quarter-item.selected .item-date,
 .quarter-item:hover .item-date {
-  color: #375A89; /* Turns blue on hover/select */
+  color: #375A89; 
 }
 
 .item-date {
   font-size: 14px;
-  color: #375A89; /* Default grey date */
+  color: #375A89; 
 }
 
 /* --- FOOTER (Add Button) --- */
@@ -155,27 +172,23 @@
   width: 100%;
   background: transparent;
   border: none;
-  /* Updated padding to match list items visually */
   padding: 8px 12px; 
   cursor: pointer;
   color: #375A89; 
   font-family: 'Inter', sans-serif;
-  font-weight: 500; /* Updated font-weight */
-  font-size: 14px; /* Updated font-size */
-  line-height: 20px; /* New line-height */
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
   text-align: left;
-  text-decoration: underline; /* Permanent underline */
+  text-decoration: underline;
 }
 
-/* Remove :hover underline effect, since it's now permanent */
 .add-timeframe-btn:hover {
-  /* text-decoration: underline; <--- REMOVED */
-  background-color: #F3F4F6; /* Use item hover background for consistency */
+  background-color: #F3F4F6;
   border-radius: 4px;
 }
 
 .add-icon {
-  /* No font properties needed now that it holds PlusIcon component */
   display: flex;
   align-items: center;
   justify-content: center;

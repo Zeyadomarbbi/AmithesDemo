@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDownIcon, PlusIcon, RightArrowIcon } from '../Icons'; 
+import { ChevronDownIcon, PlusIcon, RightArrowIcon, CheckMarkIcon } from '../Icons'; 
 import AddNewTimeframeModal from './AddNewTimeframeModal/AddNewTimeframeModal';
 import './QuarterSelector.css';
 
@@ -65,7 +65,6 @@ function QuarterSelector({ selected, onChange, isSingle = true }) {
   };
   
   const handleModalSave = (newTimeframe) => {
-    // Format the Date to String (MM/DD/YY)
     const dateObj = newTimeframe.endDate;
     const dateStr = dateObj.toLocaleDateString('en-US', {
         year: '2-digit',
@@ -104,13 +103,11 @@ function QuarterSelector({ selected, onChange, isSingle = true }) {
         const [q, y] = selected[0].split('-');
         return { q, y };
       }
-      return { q: `${selected.length} Quarters`, y: '' };
+      return { q: `Timeframe (${selected.length})`, y: '' };
     }
   };
 
   const label = getButtonLabel();
-
-  // Extract existing dates to pass to modal for validation
   const existingDates = quarters.map(q => q.d);
 
   return (
@@ -144,30 +141,25 @@ function QuarterSelector({ selected, onChange, isSingle = true }) {
               return (
                 <div 
                   key={item.id || itemValue} 
-                  className={`quarter-item ${isActive ? 'selected' : ''} ${isSingle ? 'single-mode-item' : ''}`}
+                  className={`quarter-item ${isActive ? 'selected' : ''}`}
                   onClick={(e) => handleItemClick(e, item)}
                 >
+                  {/* CHECKBOX (Multi-select only) */}
                   {!isSingle && (
-                    <>
-                      <div className={`qs-checkbox ${isActive ? 'checked' : ''}`}>
-                        {isActive && <span>✓</span>}
-                      </div>
-                      <span className="item-label">{item.q} {item.y}</span>
-                    </>
+                    <div className={`qs-checkbox ${isActive ? 'checked' : ''}`}>
+                      {isActive && <CheckMarkIcon />}
+                    </div>
                   )}
 
-                    {isSingle && (
-                    <>
-                        <span className="item-label-bold">{item.q} {item.y}</span>
-                        <div className="item-details-group">
-                        <span className="item-arrow-icon">
-                            <RightArrowIcon />
-                        </span>
-                        <span className="item-date">{item.d}</span>
-                        </div>
-                    </>
-                    )}
-
+                  {/* UNIFIED CONTENT (Label + Arrow + Date) */}
+                  <span className="item-label-bold">{item.q} {item.y}</span>
+                  
+                  <div className="item-details-group">
+                    <span className="item-arrow-icon">
+                        <RightArrowIcon />
+                    </span>
+                    <span className="item-date">{item.d}</span>
+                  </div>
                 </div>
               );
             })}
