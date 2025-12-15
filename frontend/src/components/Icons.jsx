@@ -45,3 +45,9 @@ export const CloseIcon = () => (
   <path d="M9.33333 1L1 9.33333M1 1L9.33333 9.33333" stroke="#375A89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 );
+
+export const CheckMarkIcon = () => (
+    <svg width="13" height="9" viewBox="0 0 13 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.4674 0.800781L4.13411 8.13412L0.800781 4.80078" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+);
