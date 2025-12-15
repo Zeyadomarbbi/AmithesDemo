@@ -1,22 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './InvestedPortfolio.css';
-import { SortIcon, LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
+import { LockOpenIcon, LockClosedIcon, SensitivityIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import { useTableSort, SortIcon } from '../../../../../../../../../../components/Sort/TableSort';
 import Sensitivity from '../Sensitivity/Sensitivity'; 
 
 function InvestedPortfolio({ activeMode, investedData }) { 
-    // 1. Strict Input: Use passed data or empty array. No internal mock data.
-    const [rows, setRows] = useState(investedData || []);
+    // 1. Local Data State (Source of Truth for edits)
+    const [localData, setLocalData] = useState(investedData || []);
     
     // Sync state if prop changes
     useEffect(() => {
-        setRows(investedData || []);
+        setLocalData(investedData || []);
     }, [investedData]);
+
+    // 2. Sorting Logic (Sorts localData)
+    // "sorted" is what we render. "localData" is what we edit.
+    const { sorted: sortedRows, sortKey, sortDir, toggleSort } = useTableSort(localData, "name");
 
     const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
 
-    // --- Logic ---
+    // --- Action Logic ---
     const toggleLock = (rowId) => {
         setLockedRows(prev => 
             prev.includes(rowId) 
@@ -47,8 +52,9 @@ function InvestedPortfolio({ activeMode, investedData }) {
         return new Date(year, month - 1, day);
     };
 
+    // --- Edit Logic (Updates localData) ---
     const handleInputChange = (id, field, value) => {
-        setRows((prevRows) => 
+        setLocalData((prevRows) => 
             prevRows.map((row) => 
                 row.id === id ? { ...row, [field]: value } : row
             )
@@ -60,7 +66,8 @@ function InvestedPortfolio({ activeMode, investedData }) {
         handleInputChange(rowId, 'exitDate', newDateStr);
     };
 
-    // --- 2. Dynamic Summary Calculation (Matches RealizedPortfolio Pattern) ---
+    // --- 3. Dynamic Summary Calculation ---
+    // Calculates totals based on the current data (order doesn't matter for sums)
     const summary = useMemo(() => {
         const defaults = {
             avgDuration: "0 yrs",
@@ -71,7 +78,7 @@ function InvestedPortfolio({ activeMode, investedData }) {
             avgMoic: "0.00x"
         };
 
-        if (!rows || rows.length === 0) return defaults;
+        if (!localData || localData.length === 0) return defaults;
 
         // Helper: Clean string and parse to float
         const parseVal = (str) => {
@@ -91,19 +98,19 @@ function InvestedPortfolio({ activeMode, investedData }) {
         let sumIrr = 0;
         let sumMoic = 0;
 
-        rows.forEach(row => {
+        localData.forEach(row => {
             // Extract numeric duration (e.g., "3 yrs" -> 3)
             const durationVal = parseFloat(String(row.duration).replace(/[^0-9.]/g, "")) || 0;
             
             sumDuration += durationVal;
             sumCost += parseVal(row.cost);
-            sumExitVal += parseVal(row.exit_value); // Note: check key name (exit_value vs exitVal)
+            sumExitVal += parseVal(row.exit_value);
             sumDividends += parseVal(row.dividends);
             sumIrr += parseVal(row.irr);
             sumMoic += parseVal(row.moic);
         });
 
-        const count = rows.length;
+        const count = localData.length;
 
         return {
             avgDuration: (sumDuration / count).toFixed(1) + " yrs",
@@ -113,16 +120,23 @@ function InvestedPortfolio({ activeMode, investedData }) {
             avgIrr: (sumIrr / count).toFixed(2) + "%",
             avgMoic: (sumMoic / count).toFixed(2) + "x"
         };
-    }, [rows]);
+    }, [localData]);
 
-    const renderSortableHeader = (text, sorted = false, right = false, showCurrency = false) => {
+    // --- 4. Render Sortable Header Helper ---
+    const renderSortableHeader = (label, key, right = false, showCurrency = false) => {
+        const isActive = sortKey === key;
         const cls = `inv-th-wrap ${right ? "inv-right" : "inv-left"}`;
+        
         return (
-            <div className={cls}>
+            <div 
+                className={cls} 
+                onClick={() => toggleSort(key)} 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
                 <div className="inv-th-group">
-                    {text}
+                    {label}
                     {showCurrency && <span className="inv-currency-indicator">(€)</span>}
-                    <SortIcon className={`inv-sort ${sorted ? "active" : ""}`} />
+                    <SortIcon active={isActive} dir={sortDir} />
                 </div>
             </div>
         );
@@ -134,28 +148,44 @@ function InvestedPortfolio({ activeMode, investedData }) {
         <div className="portfolio-section">
             <h3 className="section-title">
                 Invested portfolio
-                <span className="section-count">{rows.length}</span>
+                <span className="section-count">{localData.length}</span>
             </h3>
             
             <div className="inv-table-container no-borders">
                 <table className="inv-table content-fit">
                     <thead>
                         <tr>
-                            <th className="inv-col-dealname">{renderSortableHeader("Deal Name", true)}</th>
-                            <th>{renderSortableHeader("Duration")}</th>
-                            <th className="inv-col-numeric">{renderSortableHeader("Cost", false, true, true)}</th>
-                            <th className="inv-col-numeric">{renderSortableHeader("Exit Value", false, true, true)}</th>
-                            <th className="inv-col-numeric">{renderSortableHeader("Dividends/Interests", false, true, true)}</th>
-                            <th className="inv-col-numeric">{renderSortableHeader("IRR", false, true)}</th>
-                            <th className="inv-col-numeric">{renderSortableHeader("MOIC (incl. dividends)", false, true)}</th>
-                            <th>{renderSortableHeader("Exit Date")}</th>
+                            <th className="inv-col-dealname">
+                                {renderSortableHeader("Deal Name", "name", false)}
+                            </th>
+                            <th>
+                                {renderSortableHeader("Duration", "duration")}
+                            </th>
+                            <th className="inv-col-numeric">
+                                {renderSortableHeader("Cost", "cost", true, true)}
+                            </th>
+                            <th className="inv-col-numeric">
+                                {renderSortableHeader("Exit Value", "exit_value", true, true)}
+                            </th>
+                            <th className="inv-col-numeric">
+                                {renderSortableHeader("Dividends/Interests", "dividends", true, true)}
+                            </th>
+                            <th className="inv-col-numeric">
+                                {renderSortableHeader("IRR", "irr", true)}
+                            </th>
+                            <th className="inv-col-numeric">
+                                {renderSortableHeader("MOIC (incl. dividends)", "moic", true)}
+                            </th>
+                            <th>
+                                {renderSortableHeader("Exit Date", "exitDate")}
+                            </th>
                             
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <th className="inv-col-action"></th>}
                         </tr>
                     </thead>
 
                     <tbody>
-                        {rows.map((r, index) => (
+                        {sortedRows.map((r, index) => (
                             <React.Fragment key={r.id}>
                                 <tr className={index % 2 === 0 ? "inv-gray" : ""}>
                                     <td>
