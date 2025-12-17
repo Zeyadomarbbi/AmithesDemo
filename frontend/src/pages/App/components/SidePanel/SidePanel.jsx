@@ -72,7 +72,7 @@ function SidePanel({ funds = [] }) {
                 </div>
 
                 <div className="dropdown-action-row">
-                  <Link to="/allfunds" className="see-all-funds-link">
+                  <Link to="/all-funds" className="see-all-funds-link">
                     See all funds
                   </Link>
                 </div>
@@ -126,7 +126,7 @@ function SidePanel({ funds = [] }) {
 
       <div className="frame-3">
         <div className="footer-links">
-          <NavLink to="/allfunds" className="footer-item">
+          <NavLink to="/all-funds" className="footer-item">
               <AllFundsIcons /> <span>All funds</span>
           </NavLink>
           <NavLink to="/admins" className="footer-item">
