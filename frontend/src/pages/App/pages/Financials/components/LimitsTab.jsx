@@ -62,9 +62,10 @@ const LimitsTab = () => {
           <table className="limits-table">
             <thead>
               <tr>
-                <th className="col-name">
-                  Name <span className="sort-indicator">↕</span>
-                </th>
+                <th >
+  <span className="header-label">Name ↕</span>
+</th>
+
                 <th>Description</th>
                 <th className="col-number">
                   Limits <span className="sort-indicator">↕</span>
@@ -83,9 +84,11 @@ const LimitsTab = () => {
               {limitsRows.map((row) => (
                 <tr key={row.id}>
                   <td className="name-cell">
-                    <div className="name-main">{row.name}</div>
-                    <div className="name-sub">{row.article}</div>
-                  </td>
+  <div className="name-main">
+    {row.name} <span className="name-sub-inline">({row.article})</span>
+  </div>
+</td>
+
 
                   <td>{row.description}</td>
 

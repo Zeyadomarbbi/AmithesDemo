@@ -63,7 +63,14 @@
 
 .limits-table tbody tr:last-child td { border-bottom: none; }
 
-.col-name { width: 22%; }
+.col-name {
+  min-width: 180px;
+  white-space: nowrap;
+}
+th.col-name, td.col-name {
+  white-space: nowrap;
+}
+
 .col-number { width: 12%; text-align: right; }
 .sort-indicator { font-size: 11px; margin-left: 4px; color: #9ca3af; }
 
@@ -71,4 +78,14 @@
 .name-main { font-weight: 600; color: #111827; }
 .name-sub { font-size: 12px; color: #2563eb; }
 
-.breach-red { color: #dc2626; font-weight: 600; }
+.breach-red { color: #dc2626 !important; font-weight: 600; }
+.name-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.name-header .header-label {
+  font-weight: 500;
+}

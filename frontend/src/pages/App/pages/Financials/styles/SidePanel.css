@@ -6,10 +6,9 @@
   background: rgba(15, 23, 42, 0.15);
   z-index: 40;
 }
-
 .sidepanel {
-  width: 480px;
-  max-width: 100%;
+  width: 50vw;
+  max-width: none;
   height: 100vh;
   background: #ffffff;
   box-shadow: -4px 0 16px rgba(15, 23, 42, 0.18);
@@ -19,6 +18,7 @@
   flex-direction: column;
   overflow-y: auto;
 }
+
 
 .sidepanel-header {
   display: flex;
@@ -101,3 +101,8 @@
 .form-select .caret-icon { color: #6b7280 !important; width: 16px; height: 16px; }
 
 .form-divider { margin: 16px 0; border: none; border-top: 1px solid #e5e7eb; }
+@media (min-width: 1440px) {
+  .sidepanel {
+    width: 60vw;
+  }
+}
