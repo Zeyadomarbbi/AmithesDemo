@@ -3,9 +3,7 @@
   flex-direction: column;
   
   /* EXACT WIDTH ENFORCEMENT */
-  width: 1024px; 
-  min-width: 1024px;
-  
+  width: 100%;   
   padding-top: 8px;
   gap: 32px;
 }

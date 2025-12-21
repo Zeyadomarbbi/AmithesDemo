@@ -1,0 +1,76 @@
+// TableSort.jsx
+import React from "react";
+
+/* ---------- SVG sort icon used in table headers ---------- */
+// Note: Fixed xmlns value
+export const SortIcon = ({ active, dir }) => (
+  <span className={`column-sort-icon ${active ? "active" : ""}`}>
+    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.5286 0.195262C3.78894 -0.0650874 4.21106 -0.0650874 4.4714 0.195262L7.80474 3.5286C8.06509 3.78894 8.06509 4.21106 7.80474 4.4714C7.54439 4.73175 7.12228 4.73175 6.86193 4.4714L4 1.60948L1.13807 4.4714C0.877722 4.73175 0.455612 4.73175 0.195262 4.4714C-0.0650874 4.21106 -0.0650874 3.78894 0.195262 3.5286L3.5286 0.195262ZM0.195262 7.5286C0.455612 7.26825 0.877722 7.26825 1.13807 7.5286L4 10.3905L6.86193 7.5286C7.12228 7.26825 7.54439 7.26825 7.80474 7.5286C8.06509 7.78895 8.06509 8.21106 7.80474 8.47141L4.4714 11.8047C4.21106 12.0651 3.78894 12.0651 3.5286 11.8047L0.195262 8.47141C-0.0650874 8.21106 -0.0650874 7.78895 0.195262 7.5286Z" fill="#375A89"/>
+    </svg>
+  </span>
+);
+
+/**
+ * Custom hook to handle sorting logic for a table.
+ * @param {Array<Object>} data - The raw data array.
+ * @returns {{sorted: Array<Object>, sortKey: string, sortDir: string, toggleSort: function}}
+ */
+export function useTableSort(data, initialSortKey = "name") {
+  const [sortKey, setSortKey] = React.useState(initialSortKey);
+  const [sortDir, setSortDir] = React.useState("asc");
+
+  const sorted = React.useMemo(() => {
+    const arr = [...data];
+    arr.sort((a, b) => {
+      const va = a[sortKey];
+      const vb = b[sortKey];
+
+      if (va == null) return 1;
+      if (vb == null) return -1;
+
+      if (typeof va === "string") {
+        const res = va.localeCompare(vb);
+        return sortDir === "asc" ? res : -res;
+      }
+      const res = va - vb;
+      return sortDir === "asc" ? res : -res;
+    });
+    return arr;
+  }, [data, sortKey, sortDir]);
+
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  return { sorted, sortKey, sortDir, toggleSort };
+}
+
+/**
+ * Component to display the sort icon and handle the click event for sorting a column.
+ * @param {Object} column - The column definition object.
+ * @param {string} currentSortKey - The currently active sorting key.
+ * @param {string} currentSortDir - The current sorting direction ('asc' or 'desc').
+ * @param {function} toggleSort - Function to call when the header is clicked.
+ */
+export function TableSort({ column, currentSortKey, currentSortDir, toggleSort }) {
+  const isActive = currentSortKey === column.key;
+
+  return (
+    <th
+      key={column.key}
+      className={`th-${column.align}`}
+      onClick={() => toggleSort(column.key)}
+    >
+      <div className="th-inner">
+        <span>{column.label}</span>
+        <SortIcon active={isActive} dir={currentSortDir} />
+      </div>
+    </th>
+  );
+}

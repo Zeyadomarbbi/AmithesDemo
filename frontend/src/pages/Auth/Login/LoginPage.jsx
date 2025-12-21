@@ -10,7 +10,7 @@ function LoginPage() {
 
   const handleLogin = () => {
     // Simulate login -> Redirect
-    navigate('/funds/dashboard');
+    navigate('/all-funds');
   };
 
   return (

@@ -2,58 +2,48 @@
    SCENARIO CARD (Responsive)
    ========================================= */
 .scenario-card {
-  /* RESPONSIVE FIX: */
-  /* Remove fixed width (336px) so it fills the grid cell */
   width: 100%;
-  height: 100%; 
-  
+  min-height: 100%;
+  height: auto;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 8px;
-  
   padding: 16px 15px;
-  box-sizing: border-box; 
-  
+  box-sizing: border-box;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px; /* Maintain gap between left and right sections */
-  
+  gap: 8px;
   background: #FFFFFF;
   transition: all 0.2s ease;
 }
 
 .scenario-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* --- LEFT SIDE (Flexible) --- */
-.card-left-frame {
+/* LEFT SIDE */
+.scenario-card-left-frame {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: 8px;
-    width: auto; 
+  width: auto;
   height: auto;
-  /* RESPONSIVE FIX: */
-  /* Remove fixed width (174px) */
-  /* Allow this side to grow and take available space */
   flex: 1;
-  min-width: 0; /* CRITICAL for text truncation */
+  min-width: 0;
 }
 
-/* --- CHECKBOX --- */
-.card-checkbox {
+/* CHECKBOX */
+.scenario-card-checkbox {
   box-sizing: border-box;
   width: 24px;
   height: 24px;
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
-  
-  /* Prevent checkbox from squishing */
-  flex-shrink: 0; 
-
+  flex-shrink: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -61,7 +51,7 @@
   transition: all 0.2s ease;
 }
 
-.card-checkbox.checked {
+.scenario-card-checkbox.checked {
   background-color: #F5A623;
   border-color: #F5A623;
 }
@@ -73,23 +63,20 @@
   user-select: none;
 }
 
-/* --- TEXT FRAMES (Flexible) --- */
-.card-text-frame {
+/* TEXT FRAMES */
+.scenario-card-text-frame {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
   gap: 4px;
-  
-  /* RESPONSIVE FIX: */
-  /* Remove fixed width (142px) */
-  flex: 1;        /* Fill remaining space next to checkbox */
-  width: 100%;    /* Ensure internal text knows boundaries */
-  min-width: 0;   /* CRITICAL for text truncation */
+  flex: 1;
+  width: 100%;
+  min-width: 0;
   height: auto;
 }
 
-.card-text-group {
+.scenario-card-text-group {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -97,23 +84,22 @@
   width: 100%;
 }
 
-.card-title {
+.scenario-card-title {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #1C1917;
-  margin: 0; 
-  
-  /* Truncation Logic */
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
 }
 
-.card-date, .card-author {
+.scenario-card-date,
+.scenario-card-author {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
@@ -121,32 +107,25 @@
   letter-spacing: 0.01em;
   color: #375A89;
   margin: 0;
-  
-  /* Truncation Logic */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
 }
 
-/* --- RIGHT SIDE (Fixed Content, Auto Container) --- */
-.card-right-frame {
+/* RIGHT SIDE */
+.scenario-card-right-frame {
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Space out icon and button if height grows */
+  justify-content: space-between;
   align-items: flex-end;
   gap: 8px;
-  
-  /* RESPONSIVE FIX: */
-  /* Remove fixed width (87px) & height */
   width: auto;
-  height: 100%; /* Match card height */
-  
-  /* Prevent right side from shrinking */
-  flex-shrink: 0; 
+  height: 100%;
+  flex-shrink: 0;
 }
 
-.card-menu-icon {
+.scenario-card-menu-icon {
   width: 20px;
   height: 20px;
   color: #375A89;
@@ -156,8 +135,8 @@
   cursor: pointer;
 }
 
-/* --- JOIN BUTTON --- */
-.card-join-btn {
+/* JOIN BUTTON */
+.scenario-card-join-btn {
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -165,28 +144,69 @@
   align-items: center;
   padding: 8px 16px;
   gap: 6px;
-  
-  /* RESPONSIVE FIX: */
-  /* Remove fixed width (87px). Let padding dictate size. */
-  width: auto; 
+  width: auto;
   height: 32px;
-  
   background: #FAFAF9;
   border-radius: 4px;
-  
   font-family: 'Inter', sans-serif;
-  font-style: normal;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #375A89;
-  text-decoration: none; 
+  text-decoration: none;
   cursor: pointer;
-  white-space: nowrap; /* Prevent button text wrap */
+  white-space: nowrap;
   transition: background 0.2s;
 }
 
-.card-join-btn:hover {
-   background-color: #f0f0f0; 
+.scenario-card-join-btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* CONTEXT MENU CONTAINER */
+.scenario-card-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* CONTEXT MENU DROPDOWN */
+.scenario-card-context-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #FFFFFF;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  min-width: 120px;
+  padding: 4px 0;
+  z-index: 50;
+}
+
+.scenario-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1C1917;
+  transition: background-color 0.1s;
+}
+
+.scenario-menu-item:hover {
+  background-color: #F0F0F0;
+}
+
+.scenario-menu-item.delete-item {
+  color: #D93737;
+}
+
+.scenario-menu-item.delete-item svg {
+  width: 16px;
+  height: 16px;
+  color: #D93737;
 }

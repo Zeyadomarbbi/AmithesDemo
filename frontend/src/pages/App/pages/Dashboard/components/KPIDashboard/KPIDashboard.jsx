@@ -7,24 +7,134 @@ import FundValueChart from './FundValueChart/FundValueChart';
 import PortfolioValueChart from './PortfolioValueChart/PortfolioValueChart';
 import PortfolioCard from './PortfolioCard/PortfolioCard';
 
-function KPIDashboard() {
-  return (
-    <div className="kpi-dashboard-grid">
-      
-      {/* 1. FUND (Left Column, Spans 2 Rows) */}
-      <FundCard />
+// --- CENTRAL MOCK DATA SOURCE ---
+// Data structure keyed by fundId, then by 'Quarter-Year' string.
+const ALL_MOCK_KPI_DATA = {
+  '1': {
+    'Q1-2024': { // Data for Fund 1, Q1 2024
+      FundMetrics: [
+        { label: 'Total Commitments', value: '150 000 000' },
+        { label: 'Amount Called', value: '75 987 250' },
+        { label: '% Called', value: '50.66%' },
+        { label: 'Distributions (A)', value: '27 654 259' },
+        { label: 'NAV (B)', value: '98 528 957' },
+        { label: 'Total Value (A+B)', value: '126 183 216' },
+        { label: 'DPI', value: '0.36x' },
+        { label: 'RVPI', value: '1.30x' },
+        { label: 'TVPI', value: '1.66x' },
+        { label: 'Net IRR', value: '11.93%' },
+      ],
+      FundValueChartData: [
+        { name: 'Total\nAmount Called', value: 3000000 },
+        { name: 'Total\nFund Value', value: 600 },
+      ],
+      PortfolioValueChartData: [
+        { name: 'Portfolio\nInvestment Cost', value: 45, isHatched: true },
+        { name: 'Porfolio\nTotal Value', value: 80 },
+      ],
+      PortfolioCardData: [
+        /* Portfolio card data for fund 1, Q1-2024, structured as an array of { label, value } */
+        { label: 'Investment Cost', value: '69 878 009' },
+        { label: 'Proceed (A)', value: '28 900 365' },
+        { label: 'Porfolio Fair Market Value (B)', value: '71 685 123' },
+        { label: 'Total Value (A+B)', value: '97 008 658' },
+        { label: 'Gross Multiple', value: '2.17x' },
+        { label: 'Gross IRR', value: '27.68%' },
+      ],
+    },
+    'Q2-2024': { // Data for Fund 1, Q2 2024
+      FundMetrics: [
+        { label: 'Total Commitments', value: '150 000 000' },
+        { label: 'Amount Called', value: '60 323 000' },
+        { label: '% Called', value: '40.00%' },
+        { label: 'Distributions (A)', value: '10 000 000' },
+        { label: 'NAV (B)', value: '80 000 000' },
+        { label: 'Total Value (A+B)', value: '90 000 000' },
+        { label: 'DPI', value: '0.17x' },
+        { label: 'RVPI', value: '1.33x' },
+        { label: 'TVPI', value: '1.50x' },
+        { label: 'Net IRR', value: '10.50%' },
+      ],
+      FundValueChartData: { /* Q2-2024 chart data for fund 1 */ },
+      PortfolioValueChartData: { /* Q2-2024 portfolio chart data for fund 1 */ },
+      PortfolioCardData: { /* Q2-2024 portfolio card data for fund 1 */ },
+    },
+  },
+  '2': {
+    'Q2-2024': { // Data for Fund 2, Q2 2024
+      FundMetrics: [
+        { label: 'Total Commitments', value: '250 000 000' },
+        { label: 'Amount Called', value: '100 000 000' },
+        { label: ' % Called', value: '40.00%' },
+        { label: 'Distributions (A)', value: '15 000 000' },
+        { label: 'NAV (B)', value: '110 000 000' },
+        { label: 'Total Value (A+B)', value: '125 000 000' },
+        { label: 'DPI', value: '0.15x' },
+        { label: 'RVPI', value: '1.10x' },
+        { label: 'TVPI', value: '1.25x' },
+        { label: 'Net IRR', value: '8.50%' },
+      ],
+      FundValueChartData: { /* Q2-2024 chart data for fund 2 */ },
+      PortfolioValueChartData: { /* Q2-2024 portfolio chart data for fund 2 */ },
+      PortfolioCardData: { /* Q2-2024 portfolio card data for fund 2 */ },
+    },
+    // No other quarters defined for Fund 2
+  },
+  // Fund '3' might exist but have no data in the MOCK_KPI_DATA object
+};
 
-      {/* 2. FUND VALUE CREATION (Middle Top) */}
-      <FundValueChart />
 
-      {/* 3. PORTFOLIO VALUE CREATION (Right Top) */}
-      <PortfolioValueChart />
-      
-      {/* 4. PORTFOLIO (Bottom Wide) */}
-      <PortfolioCard />
+function KPIDashboard({ fundId, quarter, year }) { 
+  // Default values used only for constructing the lookup key if props are missing
+  const defaultQuarter = 'Q2';
+  const defaultYear = '2024';
 
-    </div>
-  );
+  // 1. Construct the quarter key string
+  const lookupQuarter = quarter || defaultQuarter;
+  const lookupYear = year || defaultYear;
+  const quarterKey = `${lookupQuarter}-${lookupYear}`;
+
+  // 2. Determine the current fund ID
+  const currentFundId = fundId?.toString();
+
+  // 3. Retrieve fund-specific data set
+  const fundDataSet = ALL_MOCK_KPI_DATA[currentFundId];
+
+  let activeData = {};
+
+  if (fundDataSet) {
+    // 4. Retrieve data for the specific quarter, if it exists for the fund
+    const fundQuarterData = fundDataSet[quarterKey];
+    
+    // If fundQuarterData is undefined, activeData remains {}
+    activeData = fundQuarterData || {}; 
+  }
+  
+  // 5. Destructure data, using empty array/object fallback for safety
+  const { 
+    FundMetrics: fundMetricsData = [],
+    FundValueChartData: fundValueChartData = [],
+    PortfolioValueChartData: portfolioValueChartData = {},
+    PortfolioCardData: portfolioCardData = {},
+  } = activeData;
+
+  return (
+    <div className="kpi-dashboard-grid">
+      
+      {/* 1. FUND (Left Column, Spans 2 Rows) */}
+      <FundCard data={fundMetricsData} />
+
+      {/* 2. FUND VALUE CREATION (Middle Top) */}
+      <FundValueChart data={fundValueChartData} />
+
+      {/* 3. PORTFOLIO VALUE CREATION (Right Top) */}
+      <PortfolioValueChart data={portfolioValueChartData} />
+      
+      {/* 4. PORTFOLIO (Bottom Wide) */}
+      <PortfolioCard data={portfolioCardData} />
+
+    </div>
+  );
 }
 
 export default KPIDashboard;

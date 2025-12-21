@@ -29,7 +29,7 @@ function ScenarioDetailPage() {
 
   return (
     <div className={`detail-page-overlay ${isClosing ? 'closing' : ''}`}>
-      <div className="scenario-details-page">
+      <div className="scenario-header-page">
         <Header 
           fundId={fundId}
           scenarioId={scenarioId}

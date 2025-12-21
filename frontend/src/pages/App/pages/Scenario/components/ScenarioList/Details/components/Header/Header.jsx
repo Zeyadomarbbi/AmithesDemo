@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BackIcon } from '../../../Icons'; 
 
 // Sub-components
-import Tabs from '../Tabs/Tabs';
+import Tabs from './Tabs/Tabs';
 import HeaderActionsMenu from './HeaderActionsMenu/HeaderActionsMenu';
 import DuplicateModal from './DuplicateModal/DuplicateModal';
 import Toast from './Toast/Toast';

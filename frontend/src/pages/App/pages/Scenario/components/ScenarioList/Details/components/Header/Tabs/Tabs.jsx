@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   PlayIcon, 
   GearIcon, 
-} from '../../../Icons'; 
+} from '../../../../Icons'; 
 import './Tabs.css';
 
 function Tabs({ activeTab, onTabChange }) {

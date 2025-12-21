@@ -2,14 +2,14 @@ import React from 'react';
 import SynthesisCards from './Cards/Cards'; // Updated import path
 import './SynthesisList.css';
 
-function SynthesisList({ title, syntheses }) {
+function SynthesisList({ title, syntheses, onDelete }) {
   return (
     <div className="synthesis-list-section">
       
       {/* Header */}
-      <div className="list-header">
-        <span className="list-title">{title}</span>
-        <span className="list-count">{syntheses.length}</span>
+      <div className="synthesis-list-header">
+        <span className="synthesis-list-title">{title}</span>
+        <span className="synthesis-list-count">{syntheses.length}</span>
       </div>
 
       {/* Grid */}
@@ -23,6 +23,8 @@ function SynthesisList({ title, syntheses }) {
             author={synth.author}
             createdDate={synth.createdDate}
             links={synth.links}
+            description={synth.description}
+            onDelete={onDelete}
           />
         ))}
       </div>

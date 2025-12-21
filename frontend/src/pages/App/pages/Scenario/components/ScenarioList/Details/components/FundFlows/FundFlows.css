@@ -1,55 +1,50 @@
 .fund-flows-layout-wrapper {
     display: flex;
     flex-direction: row;
-    width: 100%;
+    width: auto;
+    height: auto;
     background-color: #FFFFFF;
-    overflow: hidden; 
+    overflow: hidden;
     z-index: 1;
 }
 
-/* =========================================
-   1. MAIN LAYOUT & CONTAINERS
-   ========================================= */
 .flows-tab-container {
     width: 100%;
     display: flex;
     flex-direction: column;
-    padding-bottom: 40px; 
+    /* Top: 0, Right: 40px, Bottom: 40px, Left: 40px */
+    padding: 24px 40px 0 40px;
+    box-sizing: border-box;
 }
 
-.flows-section {
+.flows-section-content {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-/* =========================================
-   2. TOP TOOLBAR
-   ========================================= */
 .flows-toolbar {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 0px;
+  padding: 0;
   gap: 8px;
   width: 100%;
   height: 42px;
 }
 
-/* --- Left: View Selectors --- */
 .flows-view-selector {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0px;
+  padding: 0;
   gap: 4px;
   height: 24px;
 }
 
 .view-badge {
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: center;
   padding: 4px 12px;
@@ -59,7 +54,6 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 12px;
@@ -77,19 +71,17 @@
   color: #7B7D7E;
 }
 
-/* --- Right: Actions --- */
 .flows-actions {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0px;
+  padding: 0;
   gap: 8px;
   height: 40px;
 }
 
 .action-btn {
   display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
   padding: 10px 16px;
@@ -98,7 +90,6 @@
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
@@ -119,357 +110,3 @@
 .action-btn svg {
   display: block;
 }
-
-/* =========================================
-   3. SUB-TOOLBAR (Realized / Projected)
-   ========================================= */
-.fin-sub-toolbar {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 16px 24px;
-  gap: 16px;
-  width: fit-content;
-  height: 24px; /* Note: Height based on content text line-height + padding */
-  background: #FAFAF9;
-  border-radius: 8px;
-  align-self: flex-start;
-}
-
-.sub-btn {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.sub-btn.realized {
-  font-weight: 700;
-  color: #000000;
-}
-
-.sub-btn.projected {
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: 0.01em;
-  color: #375A89;
-}
-
-/* =========================================
-   4. TABLE / IMAGE SECTION
-   ========================================= */
-.table-image-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.table-image-wrapper img {
-  display: block;
-  width: 75%; /* Scaled per user preference */
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  margin: 0 auto;
-}
-
-/* =========================================
-   5. MODAL SYSTEM
-   ========================================= */
-
-/* --- Overlay --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-/* --- Container --- */
-.modal-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0px;
-  position: relative;
-  width: 360px;
-  background: #FFFFFF;
-  border-radius: 8px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-  height: auto;      /* Allow container to grow with the calendar */
-  overflow: visible;
-}
-
-/* --- Close Header Row --- */
-.modal-close-row {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: flex-start;
-  padding: 13px 20px 0px 8px;
-  gap: 8px;
-  width: 100%;
-  height: 41px;
-  background: #FFFFFF;
-  box-shadow: 0px -5px 10px rgba(0, 0, 0, 0.05);
-}
-
-.close-btn {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  gap: 8px;
-  width: 28px;
-  height: 28px;
-  background: #FAFAF9;
-  border-radius: 128px;
-  border: none;
-  cursor: pointer;
-}
-
-/* --- Main Content Area --- */
-.modal-content {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 24px 16px;
-  gap: 13px;
-  width: 100%;
-  background: #FFFFFF;
-  height: auto;
-  overflow: visible;
-}
-
-/* --- Header Group (Title) --- */
-.modal-header-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0px;
-  gap: 22px;
-  width: 100%;
-}
-
-.modal-title {
-  width: 100%;
-  height: 24px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 24px;
-  color: #1C1917;
-  margin: 0;
-}
-
-.modal-input-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none; /* Let clicks pass through to the input wrapper */
-    display: flex;
-    align-items: center;
-    color: #375A89; /* Match your theme color */
-}
-
-/* Ensure the wrapper handles the absolute icon */
-.input-wrapper.date-picker-trigger {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-/* Float the date picker above everything */
-.modal-datepicker-popover {
-    position: absolute; /* Floats out of the document flow */
-    left: 100%;         /* Anchors directly below the input field */
-    top: -80px; 
-    width: 100%;
-    margin-top: 8px;
-    margin-left: 16px;
-    z-index: 999;       /* Ensures it sits on top of the Amount field and Save button */
-}
-
-.modal-datepicker-popover .dp-container {
-    width: 100%;
-    max-width: none;
-    position: relative; /* Internal positioning */
-    background: #FFFFFF;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* Adds depth so it looks distinct from the background */
-    border: 1px solid #E4E7EC;
-    border-radius: 8px;
-}
-
-/* --- Toggles Row --- */
-.modal-toggles {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 0px;
-  gap: 8px;
-  width: 100%;
-  height: 40px;
-}
-
-.toggle-card {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 8px 10px;
-  gap: 8px;
-  flex: 1;
-  height: 40px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.toggle-card.selected {
-  border: 1px solid #375A89;
-  background: #FAFAF9;
-}
-
-.radio-circle {
-  box-sizing: border-box;
-  width: 18px;
-  height: 18px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.toggle-card.selected .radio-circle {
-  border: 5px solid #375A89;
-}
-
-.toggle-badge {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  height: 24px;
-  border-radius: 6px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.toggle-badge.yellow { background: #FEF1BF; color: #854C0A; }
-.toggle-badge.blue { background: #D3F2FF; color: #4C6977; }
-
-/* --- Inputs Group --- */
-.modal-inputs-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0px;
-  gap: 14px;
-  width: 100%;
-}
-
-.input-field-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0px;
-  gap: 6px;
-  width: 100%;
-}
-
-.input-field-col label {
-  width: 100%;
-  height: 20px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #375A89;
-}
-
-.input-wrapper {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 8px 12px;
-  gap: 8px;
-  width: 100%;
-  height: 40px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
-  position: relative;
-}
-
-.input-wrapper input {
-  border: none;
-  outline: none;
-  width: 100%;
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  color: #7B7D7E;
-}
-
-.input-icon-euro {
-  position: absolute;
-  right: 12px;
-  color: #375A89;
-  display: flex;
-  align-items: center;
-}
-
-/* --- Footer Buttons --- */
-.modal-footer {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 0px;
-  gap: 13px;
-  width: 100%;
-  height: 40px;
-}
-
-.modal-btn {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 16px;
-  gap: 6px;
-  flex: 1;
-  height: 40px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-}
-
-.btn-cancel { background: #FAFAF9; color: #7B7D7E; }
-.btn-save { background: #F7A93B; color: #FFFFFF; }
-
-

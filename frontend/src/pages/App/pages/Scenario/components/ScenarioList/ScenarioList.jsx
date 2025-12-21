@@ -2,31 +2,31 @@ import React from 'react';
 import ScenarioCard from './Cards/Cards'; // Updated import path
 import './ScenarioList.css';
 
-function ScenarioList({ title, scenarios, selectedIds, onToggleSelect }) {
-  return (
-    <div className="scenario-list-section">
-      <div className="list-header">
-        <span className="list-title">{title}</span>
-        <span className="list-count">{scenarios.length}</span>
-      </div>
-
-      <div className="scenario-list-grid">
-        {scenarios.map(scenario => (
-          // NO LINK WRAPPER HERE. We pass the logic down.
-          <ScenarioCard
-            key={scenario.id}
-            id={scenario.id}
-            fundId={scenario.fundId} // Pass fundId for the link inside
-            title={scenario.title}
-            author={scenario.author}
-            createdDate={scenario.createdDate}
-            isSelected={selectedIds.includes(scenario.id)}
-            onToggle={() => onToggleSelect(scenario.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
+function ScenarioList({ title, scenarios, selectedIds, onToggleSelect, onDelete }) { 
+    return (
+        <div className="scenario-list-container">
+            <div className="scenario-list-header">
+              <span className="scenario-list-title">{title}</span>
+              <span className="scenario-list-count">{scenarios.length}</span>
+            </div>
+            <div className="scenario-list-grid">
+                {scenarios.map(scenario => (
+                    <ScenarioCard
+                        key={scenario.id}
+                        id={scenario.id}
+                        fundId={scenario.fundId}
+                        title={scenario.title}
+                        author={scenario.author}
+                        createdDate={scenario.createdDate}
+                        description={scenario.description} // Ensure description is passed
+                        isSelected={selectedIds.includes(scenario.id)}
+                        onToggle={() => onToggleSelect(scenario.id)}
+                        onDelete={onDelete} // <--- Pass the delete handler
+                    />
+                ))}
+            </div>
+        </div>
+    );
 }
 
 export default ScenarioList;

@@ -23,15 +23,15 @@ import HelpPage from './pages/App/pages/Help/HelpPage';
 import SettingsPage from './pages/App/pages/Settings/SettingsPage';
 
 const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/auth/login" replace /> },
-  { path: '/auth/login', element: <LoginPage /> },
+  { path: '/', element: <Navigate to="/login" replace /> },
+  { path: '/login', element: <LoginPage /> },
 
   // === APP DOMAIN ===
   {
     path: '/', 
     element: <AppLayout />, 
     children: [
-      { path: 'allfunds', element: <AllFundsPage /> },
+      { path: 'all-funds', element: <AllFundsPage /> },
       { path: 'admins', element: <AdminsPage /> },
       { path: 'help', element: <HelpPage /> },
 

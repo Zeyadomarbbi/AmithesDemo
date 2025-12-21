@@ -4,7 +4,7 @@ import './DrawerHeader.css';
 
 /* src/.../Details/components/DrawerHeader.jsx */
 
-function DrawerHeader({ onClose, onExpand, title, subtitle }) {
+function DrawerHeader({ onClose, onExpand, title, description }) {
   return (
     <div className="drawer-header-wrapper">
       <div className="header-content">
@@ -16,7 +16,7 @@ function DrawerHeader({ onClose, onExpand, title, subtitle }) {
         <div className="header-text-frame">
           <div className="header-titles-col">
             <span className="header-main-title">{title}</span>
-            <span className="header-sub-title">{subtitle}</span>
+            <span className="header-sub-title">{description}</span>
           </div>
         </div>
 

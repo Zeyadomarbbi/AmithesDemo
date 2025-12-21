@@ -1,6 +1,6 @@
 /* ================================
-   WRAPPER
-   ================================ */
+  WRAPPER
+  ================================ */
 
 .table-wrapper {
   width: 100%;
@@ -16,16 +16,16 @@
 }
 
 /* ================================
-   TYPOGRAPHY BASE
-   ================================ */
+  TYPOGRAPHY BASE
+  ================================ */
 
 /* headers */
 .clean-table th {
   font-family: var(--font-body, "Inter", sans-serif);
-  font-weight: 500;               /* Medium */
-  font-size: 14px;                /* text-sm */
+  font-weight: 500;        /* Medium */
+  font-size: 14px;        /* text-sm */
   line-height: 16px;
-  letter-spacing: 0.01em;         /* 1% */
+  letter-spacing: 0.01em;     /* 1% */
   white-space: nowrap;
   color: var(--text-main-title, #1c1917);
 }
@@ -33,17 +33,17 @@
 /* body cells (all columns) */
 .clean-table td {
   font-family: var(--font-body, "Inter", sans-serif);
-  font-weight: 400;               /* Regular */
-  font-size: 14px;                /* text-sm */
+  font-weight: 400;        /* Regular */
+  font-size: 14px;        /* text-sm */
   line-height: 20px;
-  letter-spacing: 0.01em;         /* 1% */
+  letter-spacing: 0.01em;     /* 1% */
   white-space: nowrap;
   color: var(--text-main-title, #1c1917);
 }
 
 /* ================================
-   HEADER
-   ================================ */
+  HEADER
+  ================================ */
 
 .clean-table thead th {
   padding: 12px 10px;
@@ -53,21 +53,21 @@
   vertical-align: middle;
 }
 
-.th-left   { text-align: left; }
-.th-right  { text-align: right; }
+.th-left  { text-align: left; }
+.th-right { text-align: right; }
 .th-center { text-align: center; }
 
-/* optional per-column classes */
-.th-fund      { text-align: left;   vertical-align: middle; }
-.th-strategy  { text-align: right;  vertical-align: middle; }
-.th-commit    { text-align: right;  vertical-align: middle; }
-.th-cost      { text-align: right;  vertical-align: middle; }
-.th-nbdeals   { text-align: right;  vertical-align: middle; }
-.th-grossirr  { text-align: center; vertical-align: middle; }
-.th-netirr    { text-align: center; vertical-align: middle; }
-.th-dpi       { text-align: right;  vertical-align: middle; }
-.th-rvpi      { text-align: right;  vertical-align: middle; }
-.th-tvpi      { text-align: right;  vertical-align: middle; }
+/* optional per-column classes (kept for robustness, though sorting logic is now external) */
+.th-fund   { text-align: left;  vertical-align: middle; }
+.th-strategy { text-align: right; vertical-align: middle; }
+.th-commit  { text-align: right; vertical-align: middle; }
+.th-cost   { text-align: right; vertical-align: middle; }
+.th-nbdeals  { text-align: right; vertical-align: middle; }
+.th-grossirr { text-align: center; vertical-align: middle; }
+.th-netirr  { text-align: center; vertical-align: middle; }
+.th-dpi    { text-align: right; vertical-align: middle; }
+.th-rvpi   { text-align: right; vertical-align: middle; }
+.th-tvpi   { text-align: right; vertical-align: middle; }
 
 /* label + sort icon wrapper */
 .th-inner {
@@ -77,45 +77,19 @@
 }
 
 /* ================================
-   SORT ICON (triangle arrows)
-   ================================ */
+  SORT ICON (SVG handling needed in external TableSort CSS, removed triangle styles)
+  ================================ */
 
-.sort-icon {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 1px;
-}
-
-.arrow {
-  width: 0;
-  height: 0;
-  opacity: 0.25; /* default opacity */
-}
-
-.arrow.up {
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 6px solid #111827;
-}
-
-.arrow.down {
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 6px solid #111827;
-}
-
-.sort-icon.active .arrow {
-  opacity: 0.6; /* active column */
-}
-
-.arrow.on {
-  opacity: 1 !important; /* active + active direction */
-}
+/* REMOVED: .sort-icon
+   REMOVED: .arrow
+   REMOVED: .arrow.up
+   REMOVED: .arrow.down
+   REMOVED: .sort-icon.active .arrow
+   REMOVED: .arrow.on */
 
 /* ================================
-   BODY
-   ================================ */
+  BODY
+  ================================ */
 
 /* 👉 base rows: white (rows 2, 4, ...) */
 .clean-table tbody tr {
@@ -141,13 +115,13 @@
 }
 
 /* alignment helpers used by JSX */
-.td-left   { text-align: left; }
-.td-right  { text-align: right; }
+.td-left  { text-align: left; }
+.td-right { text-align: right; }
 .td-center { text-align: center; }
 
 /* ================================
-   FIRST COLUMN (Fund + year)
-   ================================ */
+  FIRST COLUMN (Fund + year)
+  ================================ */
 
 .fund-name {
   font-weight: 500;
@@ -159,17 +133,17 @@
   margin-top: 2px;
 
   font-family: var(--font-body, "Inter", sans-serif);
-  font-weight: 400;                         /* Regular */
-  font-size: 14px;                          /* text-sm */
+  font-weight: 400;             /* Regular */
+  font-size: 14px;             /* text-sm */
   line-height: 20px;
-  letter-spacing: 0.01em;                   /* 1% */
+  letter-spacing: 0.01em;          /* 1% */
 
-  color: var(--text-subtitle, #375A89);     /* subtitle blue */
+  color: var(--text-subtitle, #375A89);   /* subtitle blue */
 }
 
 /* ================================
-   RESPONSIVE BEHAVIOR
-   ================================ */
+  RESPONSIVE BEHAVIOR
+  ================================ */
 
 /* large tablet & small laptop */
 @media (max-width: 1024px) {

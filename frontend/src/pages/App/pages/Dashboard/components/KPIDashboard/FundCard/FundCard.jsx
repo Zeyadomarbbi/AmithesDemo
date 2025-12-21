@@ -1,36 +1,45 @@
 import React from 'react';
-import './FundCard.css'; // <--- Import the new CSS
+import './FundCard.css'; 
+
 // Internal helper for the dashed rows
 const DataRow = ({ label, value }) => (
-  <div className="fund-data-row">
-    <span className="row-label">{label}</span>
-    <div className="row-separator"></div>
-    <span className="row-value">{value}</span>
+  <div className="fc-fund-data-row">
+    <span className="fc-row-label">{label}</span>
+    <div className="fc-row-separator"></div>
+    <span className="fc-row-value">{value}</span>
   </div>
 );
 
-function FundCard() {
+function FundCard({ data }) { // Accept data as prop
+  // If data is null or empty, display a loading/empty state message
+  if (!data || data.length === 0) {
+    return (
+      <div className="fc-card-fund">
+        <div className="fc-fund-card-header">
+          <span className="fc-fund-title">FUND</span>
+          <span className="fc-fund-unit">(m€)</span>
+        </div>
+        <div className="fc-fund-metrics-container fc-empty-state">
+          No Fund Metrics Available.
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="kpi-card card-fund">
+    <div className="fc-card-fund">
       
       {/* Header */}
-      <div className="fund-card-header">
-        <span className="fund-title">FUND</span>
-        <span className="fund-unit">(m€)</span>
+      <div className="fc-fund-card-header">
+        <span className="fc-fund-title">FUND</span>
+        <span className="fc-fund-unit">(m€)</span>
       </div>
 
       {/* Metrics List */}
-      <div className="fund-metrics-container">
-        <DataRow label="Total Commitments" value="150 000 000" />
-        <DataRow label="Amount Called" value="75 987 250" />
-        <DataRow label="% Called" value="50.00%" />
-        <DataRow label="Distributions (A)" value="27 654 259" />
-        <DataRow label="NAV (B)" value="98 528 957" />
-        <DataRow label="Total Value (A+B)" value="125 698 306" />
-        <DataRow label="DPI" value="0.16x" />
-        <DataRow label="RVPI" value="1.43x" />
-        <DataRow label="TVPI" value="1.59x" />
-        <DataRow label="Net IRR" value="11.93%" />
+      <div className="fc-fund-metrics-container">
+        {data.map((row, index) => (
+          <DataRow key={index} label={row.label} value={row.value} />
+        ))}
       </div>
       
     </div>
