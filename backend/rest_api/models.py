@@ -61,7 +61,7 @@ class DimScenario(models.Model):
     created_by = models.CharField(max_length=150, default="system")
 
     class Meta:
-        db_table = "dim_scenario"
+        db_table = "dim_scenario_list"
         managed = False
         constraints = [
             models.UniqueConstraint(
