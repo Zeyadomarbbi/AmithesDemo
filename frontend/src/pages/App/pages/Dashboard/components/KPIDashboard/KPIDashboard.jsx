@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './KPIDashboard.css';
 
 // Import the 4 modular sections
@@ -11,7 +11,7 @@ import PortfolioCard from './PortfolioCard/PortfolioCard';
 // Data structure keyed by fundId, then by 'Quarter-Year' string.
 const ALL_MOCK_KPI_DATA = {
   '1': {
-    'Q1-2024': { // Data for Fund 1, Q1 2024
+    '1': { // Data for Fund 1, Q1 2024
       FundMetrics: [
         { label: 'Total Commitments', value: '150 000 000' },
         { label: 'Amount Called', value: '75 987 250' },
@@ -42,7 +42,7 @@ const ALL_MOCK_KPI_DATA = {
         { label: 'Gross IRR', value: '27.68%' },
       ],
     },
-    'Q2-2024': { // Data for Fund 1, Q2 2024
+    '3': { // Data for Fund 1, Q2 2024
       FundMetrics: [
         { label: 'Total Commitments', value: '150 000 000' },
         { label: 'Amount Called', value: '60 323 000' },
@@ -61,7 +61,7 @@ const ALL_MOCK_KPI_DATA = {
     },
   },
   '2': {
-    'Q2-2024': { // Data for Fund 2, Q2 2024
+    '1': { // Data for Fund 2, Q2 2024
       FundMetrics: [
         { label: 'Total Commitments', value: '250 000 000' },
         { label: 'Amount Called', value: '100 000 000' },
@@ -84,57 +84,45 @@ const ALL_MOCK_KPI_DATA = {
 };
 
 
-function KPIDashboard({ fundId, quarter, year }) { 
-  // Default values used only for constructing the lookup key if props are missing
-  const defaultQuarter = 'Q2';
-  const defaultYear = '2024';
+function KPIDashboard({ fundId, timeframeId }) {
+  const [activeData, setActiveData] = useState({});
 
-  // 1. Construct the quarter key string
-  const lookupQuarter = quarter || defaultQuarter;
-  const lookupYear = year || defaultYear;
-  const quarterKey = `${lookupQuarter}-${lookupYear}`;
+  useEffect(() => {
+    // 1. Ensure keys are strings for dictionary lookup
+    const fId = String(fundId);
+    const tId = String(timeframeId);
 
-  // 2. Determine the current fund ID
-  const currentFundId = fundId?.toString();
+    if (fId && tId) {
+      const fundData = ALL_MOCK_KPI_DATA[fId];
+      const specificData = fundData ? fundData[tId] : null;
+      
+      setActiveData(specificData || {});
+    } else {
+      setActiveData({});
+    }
+  }, [fundId, timeframeId]);
 
-  // 3. Retrieve fund-specific data set
-  const fundDataSet = ALL_MOCK_KPI_DATA[currentFundId];
-
-  let activeData = {};
-
-  if (fundDataSet) {
-    // 4. Retrieve data for the specific quarter, if it exists for the fund
-    const fundQuarterData = fundDataSet[quarterKey];
-    
-    // If fundQuarterData is undefined, activeData remains {}
-    activeData = fundQuarterData || {}; 
-  }
-  
-  // 5. Destructure data, using empty array/object fallback for safety
+  // Destructure with defaults to prevent crashes in child components
   const { 
-    FundMetrics: fundMetricsData = [],
-    FundValueChartData: fundValueChartData = [],
-    PortfolioValueChartData: portfolioValueChartData = {},
-    PortfolioCardData: portfolioCardData = {},
-  } = activeData;
+    FundMetrics = [],
+    FundValueChartData = [],
+    PortfolioValueChartData = [],
+    PortfolioCardData = [],
+  } = activeData;
 
-  return (
-    <div className="kpi-dashboard-grid">
-      
-      {/* 1. FUND (Left Column, Spans 2 Rows) */}
-      <FundCard data={fundMetricsData} />
+  // Optional: Handle empty state
+  if (!timeframeId) {
+    return <div className="no-selection-message">Please select a timeframe to view data.</div>;
+  }
 
-      {/* 2. FUND VALUE CREATION (Middle Top) */}
-      <FundValueChart data={fundValueChartData} />
-
-      {/* 3. PORTFOLIO VALUE CREATION (Right Top) */}
-      <PortfolioValueChart data={portfolioValueChartData} />
-      
-      {/* 4. PORTFOLIO (Bottom Wide) */}
-      <PortfolioCard data={portfolioCardData} />
-
-    </div>
-  );
+  return (
+    <div className="kpi-dashboard-grid">
+      <FundCard data={FundMetrics} />
+      <FundValueChart data={FundValueChartData} />
+      <PortfolioValueChart data={PortfolioValueChartData} />
+      <PortfolioCard data={PortfolioCardData} />
+    </div>
+  );
 }
 
 export default KPIDashboard;

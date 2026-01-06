@@ -9,6 +9,22 @@ import ScenarioControls from './components/ScenarioControls/ScenarioControls';
 
 import './ScenariosPage.css'; 
 
+function apiRowToScenario(row) {
+    return {
+        id: row.scenario_id,             // database primary key
+        fundId: row.fund_id,             // database foreign key
+        title: row.scenario_name,        // Maps 'scenario_name' to 'title'
+        author: row.created_by,          // Maps 'created_by' to 'author'
+        description: row.description,    // database field
+        // Formats ISO date to your current DD.MM.YY format
+        createdDate: new Date(row.created_at).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+        }).replace(/\//g, '.')
+    };
+}
+
 function ScenariosPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false); // <--- NEW STATE
@@ -18,54 +34,75 @@ function ScenariosPage() {
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
     const author = "Abdelrahman Rabah"
     useEffect(() => {
-        const allScenarios = [
-             { id: 1, fundId: 1, title: "Asterium - Optimistic", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 2, fundId: 1, title: "Asterium - Status Quo", createdDate: "12.04.25", author: "Yann Maurice", description: "test desc"},
-             { id: 3, fundId: 2, title: "Lynx - Early Exit", createdDate: "08.04.25", author: "Mathieu Rigot", description: "test desc"},
-             { id: 4, fundId: 2, title: "Lynx - Secondary Sale", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 5, fundId: 1, title: "Scenario Expansion Round", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 6, fundId: 1, title: "Scenario Strategic Acquisition", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"}
-        ];
+        if (!fundId) return;
+
+        const fetchScenarios = async () => {
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`);
+                
+                if (!response.ok) {
+                    throw new Error("Failed to fetch scenarios");
+                }
+
+                const data = await response.json();
+                
+                // Transform backend rows to frontend format
+                const transformedScenarios = data.map(apiRowToScenario);
+                
+                setScenarios(transformedScenarios);
+            } catch (error) {
+                console.error("Error loading scenarios:", error);
+            }
+        };
+
+        fetchScenarios();
+
+        // Synthesis mock data remains as is for now
         const allSyntheses = [
-            { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"], description: "Detailed analysis of potential fund exit strategies and Q4 projections." }, // ADDED DESCRIPTION
-            { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"], description: "Presentation slides summarizing portfolio performance for the Q2 committee." }, // ADDED DESCRIPTION
-            { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "A three-way comparison of market scenarios impact on fund valuations." }, // ADDED DESCRIPTION
-            { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "Follow-up analysis addressing committee feedback from the previous quarter." } // ADDED DESCRIPTION
+            { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"], description: "Detailed analysis of potential fund exit strategies and Q4 projections." },
+            { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"], description: "Presentation slides summarizing portfolio performance for the Q2 committee." },
+            { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "A three-way comparison of market scenarios impact on fund valuations." },
+            { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "Follow-up analysis addressing committee feedback from the previous quarter." }
         ];
-        const currentFundId = parseInt(fundId) || 1; 
-        setScenarios(allScenarios.filter(s => s.fundId === currentFundId));
+        
+        const currentFundId = parseInt(fundId);
         setSyntheses(allSyntheses.filter(s => s.fundId === currentFundId));
-        
+
     }, [fundId]);
-
-    const handleAddScenario = (newScenarioData) => {
-        // 1. Determine a new unique ID
-        const newId = scenarios.length > 0 ? Math.max(...scenarios.map(s => s.id)) + 1 : 7; // Start at 7 to avoid conflicts with mock data
-        
-        // Function to format the date as DD.MM.YY
-        const getFormattedDate = () => {
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}.${month}.${year}`;
-        };
-
-        // 2. Format the new scenario object
-        const newScenario = {
-            id: newId,
-            fundId: parseInt(fundId) || 1, // Use current fund ID
-            title: newScenarioData.name,
-            author: author,
+    const handleAddScenario = async (newScenarioData) => {
+    // 1. Prepare data for Django Serializer
+        const payload = {
+            scenario_name: newScenarioData.name,
             description: newScenarioData.description,
-            createdDate: getFormattedDate(),
+            // Optional: If you update your Serializer/View to accept 'created_by' from the body
+            created_by: author 
         };
 
-        // 3. Update the state
-        setScenarios(prevScenarios => [...prevScenarios, newScenario]);
-        
-        // 4. Close the modal
-        setIsModalOpen(false);
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(errorData.scenario_name || "Failed to save scenario");
+                return;
+            }
+
+            const savedRow = await response.json();
+
+            // 2. Transform the row, ensuring the frontend 'author' matches the saved record
+            const formattedScenario = apiRowToScenario(savedRow);
+
+            // 3. Update local state
+            setScenarios(prev => [...prev, formattedScenario]);
+            setIsModalOpen(false);
+
+        } catch (error) {
+            console.error("Persistence error:", error);
+        }
     };
 
     const handleAddSynthesis = (newSynthesisData) => {
