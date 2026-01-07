@@ -36,7 +36,7 @@ class DimTimeframe(models.Model):
     )
 
     display_label = models.CharField(max_length=20, null=False)
-    created_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=100, null=True, blank=True)
     class Meta:
         managed = False
@@ -44,9 +44,8 @@ class DimTimeframe(models.Model):
         unique_together = (("fund", "date"),)
 
 
-class DimScenario(models.Model):
+class DimScenarioList(models.Model):
     scenario_id = models.BigAutoField(primary_key=True)
-
     fund = models.ForeignKey(
         "DimFund",
         db_column="fund_id",
@@ -56,10 +55,8 @@ class DimScenario(models.Model):
 
     scenario_name = models.TextField()
     description = models.TextField(null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=150, default="system")
-
     class Meta:
         db_table = "dim_scenario_list"
         managed = False
@@ -72,3 +69,42 @@ class DimScenario(models.Model):
 
     def __str__(self):
         return f"{self.fund_id} | {self.scenario_name}"
+
+class DimScenarioSynthesis(models.Model):
+    synthesis_id = models.AutoField(primary_key=True)
+    fund = models.ForeignKey(
+        'DimFund', 
+        on_delete=models.CASCADE, 
+        db_column='fund_id'
+    )
+    synthesis_name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100)
+    class Meta:
+        db_table = 'dim_scenario_synthesis'
+        # Constraint: synthesis names must be unique per fund
+        constraints = [
+            models.UniqueConstraint(
+                fields=['fund', 'synthesis_name'], 
+                name='unique_synthesis_per_fund'
+            )
+        ]
+
+class MapScenarioSynthesis(models.Model):
+    record_id = models.AutoField(primary_key=True)
+    synthesis = models.ForeignKey(
+        'DimScenarioSynthesis', 
+        on_delete=models.CASCADE, 
+        db_column='synthesis_id',
+        related_name='scenario_mappings'
+    )
+    # Assuming DimScenarioList is your existing scenario table
+    scenario = models.ForeignKey(
+        'DimScenarioList', 
+        on_delete=models.CASCADE, 
+        db_column='scenario_id'
+    )
+
+    class Meta:
+        db_table = 'map_scenario_synthesis'

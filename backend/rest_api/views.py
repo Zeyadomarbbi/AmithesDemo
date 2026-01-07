@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.db import IntegrityError
-from .models import DimTimeframe, DimDate, DimFund, DimScenario
-from .serializers import TimeframeSerializer, ScenarioSerializer
+from .models import DimTimeframe, DimDate, DimFund, DimScenarioList, DimScenarioSynthesis
+from .serializers import TimeframeSerializer, ScenarioSerializer, DimScenarioSynthesisSerializer
 
 class FundTimeframeView(APIView):
     def get(self, request, fund_id):
@@ -53,7 +53,7 @@ class FundTimeframeView(APIView):
 class FundScenarioView(APIView):
     def get(self, request, fund_id):
         # Retrieve all scenarios for the specific fund
-        qs = DimScenario.objects.filter(fund_id=fund_id).order_by("-created_at")
+        qs = DimScenarioList.objects.filter(fund_id=fund_id).order_by("-created_at")
         serializer = ScenarioSerializer(qs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -67,6 +67,28 @@ class FundScenarioView(APIView):
             serializer.save(
                 fund_id=fund_id,
                 # Use body_author if provided, else fallback to auth user or "system"
+                created_by=body_author or (request.user.username if request.user.is_authenticated else "system")
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ScenarioSynthesisView(APIView):
+    def get(self, request, fund_id):
+        syntheses = DimScenarioSynthesis.objects.filter(fund_id=fund_id)
+        serializer = DimScenarioSynthesisSerializer(syntheses, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        data = request.data.copy()
+        data['fund'] = fund_id
+        
+        # Check if author was sent in the request body
+        body_author = data.get("created_by")
+        
+        serializer = DimScenarioSynthesisSerializer(data=data)
+        if serializer.is_valid():
+            # Prioritize the author sent from frontend, fallback to user or system
+            serializer.save(
                 created_by=body_author or (request.user.username if request.user.is_authenticated else "system")
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)

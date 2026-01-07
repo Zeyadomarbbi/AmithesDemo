@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import FundTimeframeView, FundScenarioView
+from .views import FundTimeframeView, FundScenarioView, ScenarioSynthesisView
 
 urlpatterns = [
     path(
@@ -9,5 +9,9 @@ urlpatterns = [
     path(
         "funds/<int:fund_id>/scenarios/", 
         FundScenarioView.as_view()
+    ),
+    path(
+        "funds/<int:fund_id>/synthesis/",
+        ScenarioSynthesisView.as_view()
     )
 ]

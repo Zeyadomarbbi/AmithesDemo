@@ -7,34 +7,43 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 
-    // Fetching Logic
+    // Fetching Logic for Scenarios and Syntheses
     useEffect(() => {
         if (!fundId) return;
         
-        const fetchScenarios = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`);
-                if (!response.ok) throw new Error("Failed to fetch scenarios");
-                const data = await response.json();
-                setScenarios(data.map(apiRowToScenario));
+                // Fetch Scenarios
+                const scResp = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`);
+                if (!scResp.ok) throw new Error("Failed to fetch scenarios");
+                const scData = await scResp.json();
+                setScenarios(scData.map(apiRowToScenario));
+
+                // Fetch Syntheses from Backend
+                const synResp = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/synthesis/`);
+                if (!synResp.ok) throw new Error("Failed to fetch syntheses");
+                const synData = await synResp.json();
+                
+                // Map backend synthesis data to frontend structure
+                const formattedSyntheses = synData.map(syn => ({
+                    id: syn.synthesis_id,
+                    fundId: syn.fund,
+                    title: syn.synthesis_name,
+                    author: syn.created_by,
+                    description: syn.description,
+                    createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
+                    // 'scenarios' field comes from the nested serializer
+                    links: syn.scenarios?.map(s => s.scenario_name) || []
+                }));
+                
+                setSyntheses(formattedSyntheses);
             } catch (error) {
-                console.error("Error loading scenarios:", error);
+                console.error("Error loading data:", error);
             }
         };
         
-        fetchScenarios();
-        
-        // Mock syntheses
-        const allSyntheses = [
-            { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"], description: "Detailed analysis of potential fund exit strategies and Q4 projections." },
-            { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"], description: "Presentation slides summarizing portfolio performance for the Q2 committee." },
-            { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "A three-way comparison of market scenarios impact on fund valuations." },
-            { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "Follow-up analysis addressing committee feedback from the previous quarter." }
-        ];
-        
-        const currentFundId = parseInt(fundId);
-        setSyntheses(allSyntheses.filter(s => s.fundId === currentFundId));
-    }, [fundId]); // Removed apiRowToScenario from dependencies
+        fetchData();
+    }, [fundId]);
 
     // Scenario Handlers
     const handleAddScenario = async (newScenarioData) => {
@@ -76,34 +85,52 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         );
     };
 
-    // Synthesis Handlers
-    const handleAddSynthesis = (newSynthesisData) => {
-        const newId = syntheses.length > 0 ? Math.max(...syntheses.map(s => s.id)) + 1 : 1;
-        
-        const getFormattedDate = () => {
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}.${month}.${year}`;
+    // Synthesis Handlers with Backend Persistence
+    const handleAddSynthesis = async (newSynthesisData) => {
+        const payload = {
+            synthesis_name: newSynthesisData.name,
+            description: newSynthesisData.description,
+            scenario_ids: selectedScenarioIds,
+            created_by: author
         };
-        
-        const newSynthesis = { 
-            id: newId, 
-            fundId: parseInt(fundId), 
-            title: newSynthesisData.name, 
-            author, 
-            links: newSynthesisData.scenarioTitles, 
-            description: newSynthesisData.description, 
-            createdDate: getFormattedDate()
-        };
-        
-        setSyntheses(prev => [...prev, newSynthesis]);
-        setSelectedScenarioIds([]);
-        setIsSynthesisModalOpen(false);
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/synthesis/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(errorData.synthesis_name || "Failed to save synthesis");
+                return;
+            }
+
+            const savedRow = await response.json();
+
+            const formattedSynthesis = {
+                id: savedRow.synthesis_id,
+                fundId: savedRow.fund,
+                title: savedRow.synthesis_name,
+                author: savedRow.created_by,
+                description: savedRow.description,
+                createdDate: new Date(savedRow.created_at).toLocaleDateString("de-CH"),
+                links: savedRow.scenarios?.map(s => s.scenario_name) || newSynthesisData.scenarioTitles
+            };
+
+            setSyntheses(prev => [...prev, formattedSynthesis]);
+            setSelectedScenarioIds([]);
+            setIsSynthesisModalOpen(false);
+        } catch (error) {
+            console.error("Synthesis persistence error:", error);
+        }
     };
 
-    const handleDeleteSynthesis = (id) => setSyntheses(prev => prev.filter(s => s.id !== id));
+    const handleDeleteSynthesis = async (id) => {
+        // Implementation for DELETE request to backend should be added here
+        setSyntheses(prev => prev.filter(s => s.id !== id));
+    };
 
     return {
         state: { scenarios, syntheses, selectedScenarioIds, isModalOpen, isSynthesisModalOpen },
