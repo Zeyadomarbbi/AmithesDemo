@@ -95,6 +95,7 @@ const weekdayShort = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("Fund Identity");
+  const [activeMgmtDate, setActiveMgmtDate] = useState(false);
 
   const [formData, setFormData] = useState({
     legalName: "Asterium Fund I",
@@ -213,46 +214,31 @@ const SettingsPage = () => {
               <label className="field-label">
                 Legal name<span className="required">*</span>
               </label>
-              <input
-                type="text"
-                className="field-input"
-                value={formData.legalName}
-                onChange={handleChange("legalName")}
-              />
+              <div className="field-input static-field">
+  {formData.legalName}
+</div>
+
+
             </div>
 
             <div className="form-field">
               <label className="field-label">
                 Short name<span className="required">*</span>
               </label>
-              <input
-                type="text"
-                className="field-input"
-                placeholder="Please enter the acronym…"
-                value={formData.shortName}
-                onChange={handleChange("shortName")}
-              />
+              <div className="field-input static-field">
+  {formData.shortName || "—"}
+</div>
+
             </div>
 
             <div className="form-field form-field--date">
               <label className="field-label">
                 Formation date<span className="required">*</span>
               </label>
-              <div
-                className="field-input field-input--with-icon"
-                onClick={() => setIsDatePickerOpen(true)}
-              >
-                <input
-                  type="text"
-                  className="field-input-inner"
-                  placeholder="00/00/00"
-                  value={formData.formationDate}
-                  readOnly
-                />
-                <span className="field-icon" aria-hidden="true">
-                  📅
-                </span>
-              </div>
+              <div className="field-input static-field">
+  {formData.formationDate || "—"}
+</div>
+
 
               {isDatePickerOpen && (
                 <div className="date-picker-popover">
@@ -370,23 +356,10 @@ const SettingsPage = () => {
               <label className="field-label">
                 Fund currency<span className="required">*</span>
               </label>
-              <div className="field-input field-input--with-icon">
-                <select
-                  className="field-input-inner field-select"
-                  value={formData.fundCurrency}
-                  onChange={handleChange("fundCurrency")}
-                >
-                  <option value="">Please select a currency</option>
-                  {CURRENCIES.map((cur) => (
-                    <option key={cur} value={cur}>
-                      {cur}
-                    </option>
-                  ))}
-                </select>
-                <span className="field-icon" aria-hidden="true">
-                  ▾
-                </span>
-              </div>
+              <div className="field-input static-field">
+  {formData.fundCurrency || "—"}
+</div>
+
             </div>
 
             <div className="form-field">
@@ -453,7 +426,13 @@ const SettingsPage = () => {
         {activeTab === "Share Classes" && (
           <div className="share-classes-wrap">
             <div className="share-search">
-              <span className="share-search-icon">🔍</span>
+              <span className="share-search-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M7.33331 2.66732C4.75598 2.66732 2.66665 4.75666 2.66665 7.33398C2.66665 9.91131 4.75598 12.0007 7.33331 12.0007C8.59061 12.0007 9.73178 11.5034 10.5709 10.6949C10.5885 10.6721 10.6077 10.6501 10.6286 10.6292C10.6495 10.6083 10.6714 10.5891 10.6942 10.5716C11.5028 9.73245 12 8.59128 12 7.33398C12 4.75666 9.91064 2.66732 7.33331 2.66732ZM12.0212 11.0791C12.8423 10.0527 13.3333 8.75066 13.3333 7.33398C13.3333 4.02028 10.647 1.33398 7.33331 1.33398C4.0196 1.33398 1.33331 4.02028 1.33331 7.33398C1.33331 10.6477 4.0196 13.334 7.33331 13.334C8.74999 13.334 10.052 12.843 11.0784 12.0219L13.5286 14.4721C13.7889 14.7324 14.211 14.7324 14.4714 14.4721C14.7317 14.2117 14.7317 13.7896 14.4714 13.5292L12.0212 11.0791Z" fill="#375A89"/>
+</svg>
+
+
+
+              </span>
               <input
                 type="text"
                 className="share-search-input"
@@ -464,7 +443,8 @@ const SettingsPage = () => {
             </div>
 
             <div className="share-list">
-              {filteredShareClasses.map((cls) => (
+              {filteredShareClasses.slice(0, 1).map((cls) => (
+
                 <div key={cls.id} className="share-card">
                   <div className="share-card-header">
                     <div className="share-card-title">{cls.name}</div>
@@ -525,7 +505,11 @@ const SettingsPage = () => {
                   </div>
 
                   <button type="button" className="share-file-btn">
-                    <span className="share-file-icon">📄</span>
+                    <span className="share-file-icon"><svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 1.4C0 0.626801 0.626801 0 1.4 0H7L11.2 4.2V12.6C11.2 13.3732 10.5732 14 9.8 14H1.4C0.626799 14 0 13.3732 0 12.6V1.4Z" fill="#375A89"/>
+<path opacity="0.3" d="M7 0L11.2 4.2H8.4C7.6268 4.2 7 3.5732 7 2.8V0Z" fill="white"/>
+</svg>
+</span>
                     <span>{cls.ppmFileName}</span>
                   </button>
                 </div>
@@ -567,7 +551,7 @@ const SettingsPage = () => {
                     <div className="share-drawer-row share-drawer-row--two">
                       <div className="share-drawer-field">
                         <div className="field-label">
-                          Nominal value<span className="required">*</span>
+                          Share Class Name<span className="required">*</span>
                         </div>
                         <input
                           type="text"
@@ -725,11 +709,14 @@ const SettingsPage = () => {
                     <div className="field-label">
                       Name<span className="required">*</span>
                     </div>
-                    <input
-                      type="text"
-                      className="field-input"
-                      defaultValue="Nominal repayment"
-                    />
+                     <div className="wf-input-with-suffix">
+                        <input
+                          type="text"
+                          className="wf-input"
+                          placeholder="Nominal Repayment"
+                        />
+                        
+                      </div>
                   </div>
 
                   <div className="waterfall-column-shares">
@@ -755,15 +742,18 @@ const SettingsPage = () => {
               </div>
               <div className="waterfall-step-body">
                 <div className="waterfall-row waterfall-row--dense">
-                  <div className="waterfall-column-name">
+                 <div className="waterfall-column-name">
                     <div className="field-label">
                       Name<span className="required">*</span>
                     </div>
-                    <input
-                      type="text"
-                      className="field-input"
-                      placeholder="Hurdle"
-                    />
+                     <div className="wf-input-with-suffix">
+                        <input
+                          type="text"
+                          className="wf-input"
+                          placeholder="Hurdle"
+                        />
+                        
+                      </div>
                   </div>
 
                   <div className="waterfall-column-rate">
@@ -807,16 +797,19 @@ const SettingsPage = () => {
                     <div className="field-label">
                       Name<span className="required">*</span>
                     </div>
-                    <input
-                      type="text"
-                      className="field-input"
-                      placeholder="Catch-up"
-                    />
+                     <div className="wf-input-with-suffix">
+                        <input
+                          type="text"
+                          className="wf-input"
+                          placeholder="Catch-up"
+                        />
+                        
+                      </div>
                   </div>
 
                   <div className="waterfall-column-rate">
                     <div className="field-label">
-                      % Hurdle<span className="required">*</span>
+                      Rate <span className="required">*</span>
                     </div>
                     <div className="wf-input-with-suffix">
                       <input
@@ -842,130 +835,77 @@ const SettingsPage = () => {
                   </div>
                 </div>
 
-                {/* Enveloppe 1 */}
-                <div className="waterfall-envelope-block">
-                  <div className="waterfall-envelope-row">
-                    <div className="waterfall-envelope-label">
-                      Enveloppe 1<span className="required">*</span>
-                    </div>
+            
+               <div className="waterfall-row waterfall-row--dense">
+                  <div className="waterfall-column-name">
+                    
+                  </div>
 
-                    <div className="waterfall-envelope-rate">
-                      <div className="field-label">Rate</div>
-                      <div className="wf-input-with-suffix">
-                        <input
-                          type="text"
-                          className="wf-input"
-                          placeholder="Ex: 8"
-                        />
-                        <span className="wf-suffix">%</span>
-                      </div>
+                  <div className="waterfall-column-rate">
+                    <div className="field-label">
+                      Envelope 1 <span className="required">*</span>
                     </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A1</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A2</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares B</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
+                    <div className="wf-input-with-suffix">
+                      <input
+                        type="text"
+                        className="wf-input"
+                        placeholder="Ex: 8"
+                      />
+                      <span className="wf-suffix">%</span>
                     </div>
                   </div>
 
-                  <div className="waterfall-pro-rata-row">
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" defaultChecked />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A1</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
                   </div>
-                </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A2</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares B</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                </div><div className="waterfall-row waterfall-row--dense">
+                  <div className="waterfall-column-name">
+                    
+                    
+                  </div>
 
-                {/* Enveloppe 2 */}
-                <div className="waterfall-envelope-block">
-                  <div className="waterfall-envelope-row">
-                    <div className="waterfall-envelope-label">
-                      Enveloppe 2<span className="required">*</span>
+                  <div className="waterfall-column-rate">
+                    <div className="field-label">
+                      Envelope 2 <span className="required">*</span>
                     </div>
-
-                    <div className="waterfall-envelope-rate">
-                      <div className="field-label">Rate</div>
-                      <div className="wf-input-with-suffix">
-                        <input
-                          type="text"
-                          className="wf-input"
-                          placeholder="Ex: 8"
-                        />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A1</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A2</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares B</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
+                    <div className="wf-input-with-suffix">
+                      <input
+                        type="text"
+                        className="wf-input"
+                        placeholder="Ex: 8"
+                      />
+                      <span className="wf-suffix">%</span>
                     </div>
                   </div>
 
-                  <div className="waterfall-pro-rata-row">
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" defaultChecked />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A1</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A2</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares B</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
                   </div>
                 </div>
+                
+                
               </div>
             </div>
-
-            {/* Step 4 */}
-            <div className="waterfall-step-card">
+{/* Step 4 */}
+        <div className="waterfall-step-card">
               <div className="waterfall-step-header">
                 <div className="waterfall-step-title">Step 4</div>
               </div>
@@ -975,141 +915,95 @@ const SettingsPage = () => {
                     <div className="field-label">
                       Name<span className="required">*</span>
                     </div>
-                    <input
-                      type="text"
-                      className="field-input"
-                      placeholder="Special return"
-                    />
-                  </div>
-                </div>
-
-                {/* Enveloppe 1 */}
-                <div className="waterfall-envelope-block">
-                  <div className="waterfall-envelope-row">
-                    <div className="waterfall-envelope-label">
-                      Enveloppe 1<span className="required">*</span>
-                    </div>
-
-                    <div className="waterfall-envelope-rate">
-                      <div className="field-label">Rate</div>
-                      <div className="wf-input-with-suffix">
+                     <div className="wf-input-with-suffix">
                         <input
                           type="text"
                           className="wf-input"
-                          placeholder="Ex: 8"
+                          placeholder="Special Return"
                         />
-                        <span className="wf-suffix">%</span>
+                        
                       </div>
-                    </div>
+                  </div>
 
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A1</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
+                  <div className="waterfall-column-rate">
+                    <div className="field-label">
+                      Envelope 1 <span className="required">*</span>
+                     </div>
+                    <div className="wf-input-with-suffix">
+                      <input
+                        type="text"
+                        className="wf-input"
+                        placeholder="Ex: 8"
+                      />
+                      <span className="wf-suffix">%</span>
                     </div>
+                   </div>
 
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A2</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
+                   <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A1</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
                     </div>
+                    <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A2</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                     </div>
+                     <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares B</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                     </div>
+                  </div>
 
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares B</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
+            
+               <div className="waterfall-row waterfall-row--dense">
+                  <div className="waterfall-column-name">
+                    
+                  </div>
+
+                  <div className="waterfall-column-rate">
+                    <div className="field-label">
+                      Envelope 2<span className="required">*</span>
+                    </div>
+                    <div className="wf-input-with-suffix">
+                      <input
+                        type="text"
+                        className="wf-input"
+                        placeholder="Ex: 8"
+                      />
+                      <span className="wf-suffix">%</span>
                     </div>
                   </div>
 
-                  <div className="waterfall-pro-rata-row">
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" defaultChecked />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A1</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares A2</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
+                  </div>
+                  <div className="waterfall-column-check">
+                    <div className="waterfall-shares-header">Shares B</div>
+                    <input type="checkbox" className="waterfall-checkbox" />
                   </div>
                 </div>
-
-                {/* Enveloppe 2 */}
-                <div className="waterfall-envelope-block">
-                  <div className="waterfall-envelope-row">
-                    <div className="waterfall-envelope-label">
-                      Enveloppe 2<span className="required">*</span>
-                    </div>
-
-                    <div className="waterfall-envelope-rate">
-                      <div className="field-label">Rate</div>
-                      <div className="wf-input-with-suffix">
-                        <input
-                          type="text"
-                          className="wf-input"
-                          placeholder="Ex: 8"
-                        />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A1</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares A2</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-
-                    <div className="waterfall-envelope-share">
-                      <div className="waterfall-shares-header">Shares B</div>
-                      <div className="wf-input-with-suffix wf-input-with-suffix--compact">
-                        <input type="text" className="wf-input" defaultValue="0" />
-                        <span className="wf-suffix">%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="waterfall-pro-rata-row">
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" defaultChecked />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
-                    <label className="waterfall-pro-rata">
-                      <input type="checkbox" className="waterfall-checkbox" />
-                      <span>Pro rata</span>
-                    </label>
-                  </div>
-                </div>
+                
+                                 
               </div>
             </div>
+    
+            
           </div>
         )}
 
         {/* Management fees tab */}
         {activeTab === "Management fees" && (
           <div className="mgmt-wrap">
+            {activeMgmtDate && (
+              <div className="date-picker-overlay">
+  
+  </div>
+)}
+
             {MANAGEMENT_PHASES.map((phase) => (
               <div key={phase.id} className="mgmt-card">
                 <div className="mgmt-phase-title">{phase.phaseTitle}</div>
@@ -1119,18 +1013,34 @@ const SettingsPage = () => {
                     <div className="field-label">
                       Name<span className="required">*</span>
                     </div>
-                    <input
-                      type="text"
-                      className="field-input"
-                      defaultValue={phase.name}
-                    />
+                    <div className="field-input static-field">
+  {phase.name}
+</div>
+
                   </div>
 
                   <div className="mgmt-meta-row">
                     {phase.fields.map((item) => (
                       <div key={item.label} className="mgmt-meta-item">
                         <div className="mgmt-meta-label">{item.label}</div>
-                        <div className="mgmt-meta-value">{item.value}</div>
+                        <div
+  className={
+    "field-input mgmt-date-input" +
+    ((item.label === "From" || item.label === "Until")
+      ? " mgmt-date-input--with-icon"
+      : "")
+  }
+>
+  
+  <input
+    type="text"
+    className="mgmt-date-input-inner"
+    defaultValue={item.value}
+  />
+  
+</div>
+
+
                       </div>
                     ))}
                   </div>
