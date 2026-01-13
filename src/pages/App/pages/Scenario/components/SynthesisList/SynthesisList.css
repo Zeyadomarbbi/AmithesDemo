@@ -1,0 +1,68 @@
+/* =========================================
+   FRAME 4: Scenario Synthesis List (Responsive)
+   ========================================= */
+.synthesis-list-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 14px;
+  
+  /* RESPONSIVE: Fill width, but stop at the original design size */
+  width: 100%; 
+  
+  flex: none;
+  order: 3; 
+  flex-grow: 0;
+}
+
+/* --- HEADER --- */
+.list-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 8px;
+  
+  /* Allow height to adapt if text wraps */
+  height: auto; 
+  flex-wrap: wrap; 
+}
+
+.list-title {
+  /* Remove fixed height */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.list-count {
+  /* Remove fixed height */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #375A89;
+}
+
+/* --- GRID --- */
+.synthesis-list-grid {
+display: grid;
+  
+  /* CHANGE THIS LINE */
+  /* Old: repeat(auto-fill, minmax(300px, 1fr)) --> Causes infinite stretching */
+  /* New: repeat(auto-fill, minmax(300px, 400px)) --> Caps width at 400px */
+  
+  /* OR, if you want them to center-align when not filling the row: */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  
+  /* Add a max-width to the grid container itself if you don't want the list spanning the whole monitor */
+  max-width: 1200px; 
+  
+  gap: 16px;
+  width: 100%;
+}

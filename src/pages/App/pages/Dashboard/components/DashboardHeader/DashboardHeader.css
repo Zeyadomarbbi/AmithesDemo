@@ -1,0 +1,221 @@
+.dashboard-header-frame {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  /* Height can be auto to fit the text line-height */
+  height: auto; 
+  margin-bottom: 24px; /* Spacing below header */
+}
+
+/* Title Styling */
+.welcome-text {
+  /* --- FIGMA TYPOGRAPHY --- */
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500; /* Semibold in Figma usually maps to 600, but code says 500. Keeping 500. */
+  font-size: 30px;
+  line-height: 33px;
+  color: #1C1917;
+  
+  /* Reset Browser Defaults */
+  margin: 0;
+  
+  /* Layout safety */
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+/* --- QUARTER SELECTOR --- */
+/* Container for positioning the dropdown */
+.quarter-selector-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 50; /* Higher z-index so dropdown covers the button below */
+}
+
+.quarter-selector-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* The Button (Matches Figma) */
+.quarter-selector-button {
+  /* Auto layout */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; /* Space between text group and icon */
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+
+  /* Dimensions */
+  width: 108px;
+  height: 40px;
+
+  /* Styling */
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  
+  cursor: pointer;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.quarter-selector-button:hover {
+  border-color: #375A89;
+}
+
+/* Text Group Wrapper */
+.quarter-text-group {
+    display: flex;
+    gap: 4px; /* Small gap between Q2 and 2024 */
+    align-items: center;
+    flex-grow: 1;
+}
+
+/* The Text Styling (Shared for both parts) */
+.quarter-part, .year-part {
+  /* Text-SM/Medium */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+}
+
+/* The Icon */
+.quarter-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89; /* Blue Color from Figma */
+  transition: transform 0.2s ease;
+}
+
+/* Rotate icon when open */
+.quarter-icon.open {
+  transform: rotate(180deg);
+}
+
+/* --- DROPDOWN MENU --- */
+.quarter-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; 
+  
+  width: max-content;
+  min-width: 100%;
+  
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  box-shadow: 0px 4px 6px -2px rgba(0, 0, 0, 0.05), 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  display: flex;
+  flex-direction: column;
+  /* Remove general padding to allow divider to reach edges if desired, 
+     or keep padding and just space elements out. Here we keep padding. */
+  padding: 6px; 
+  z-index: 50;
+}
+
+/* Wrapper for the list items */
+.quarter-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.quarter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quarter-item:hover {
+  background-color: #F9FAFB;
+  color: #375A89;
+}
+
+.quarter-item.selected {
+  font-weight: 600;
+  color: #375A89;
+  background-color: #F0F6FF;
+}
+
+.item-arrow { color: #9CA3AF; font-size: 16px; }
+.item-date { color: #6B7280; font-size: 13px; }
+.quarter-item:hover .item-arrow,
+.quarter-item:hover .item-date { color: #375A89; }
+
+/* --- NEW DROPDOWN FOOTER STYLES --- */
+
+/* Divider line */
+.dropdown-divider {
+  height: 1px;
+  background-color: #E5E7EB;
+  margin: 8px 0;
+  width: 100%;
+}
+
+/* Container for the button to handle layout/margins */
+.dropdown-footer {
+  display: flex;
+  justify-content: center; /* Centers the button if dropdown is wider */
+}
+
+/* The Button itself */
+.add-timeframe-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center; /* Ensure text/icon are centered */
+  gap: 6px;
+  width: 100%; /* Make button fill the footer area */
+  
+  background: #E6EBF3;
+  border-radius: 4px;
+  padding: 8px 12px;
+  border: none;
+  cursor: pointer;
+  
+  color: #375A89;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  
+  transition: background 0.2s ease;
+}
+
+.add-timeframe-btn:hover {
+  background: #DCE4F0;
+}
+
+.add-timeframe-btn .add-text {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.add-timeframe-btn .add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}

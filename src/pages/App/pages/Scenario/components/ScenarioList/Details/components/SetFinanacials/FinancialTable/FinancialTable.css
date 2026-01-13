@@ -1,0 +1,200 @@
+/* =========================================
+   1. CONTAINER & TABLE RESET
+   ========================================= */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+}
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px; /* Ensures table doesn't crush on small screens */
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+/* =========================================
+   2. HEADERS (THEAD)
+   ========================================= */
+.fin-table thead th {
+  border-bottom: 1px solid #E5E7EB;
+  color: #111827;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* --- Flex Wrappers for Alignment --- */
+/* This controls the relationship between Text and Icon */
+.th-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.th-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* PnL Column: Left Aligned */
+.th-wrapper.pnl-wrapper {
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+/* Numeric Columns (Years & Total): Right Aligned */
+.th-wrapper.year-wrapper {
+  justify-content: flex-end; /* keep this */
+}
+
+.th-wrapper.year-wrapper {
+  justify-content: flex-end; /* keep this */
+}
+
+.th-wrapper.total-wrapper {
+  justify-content: flex-end; /* keep this */
+}
+/* --- Header Content Details --- */
+.currency-indicator {
+  color: #9CA3AF;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.col-year.projected {
+  color: #375A89;
+}
+
+.col-total {
+  color: #375A89 !important;
+}
+
+/* Specific width for the first column */
+.fin-table thead th.col-pnl {
+  min-width: 180px;
+}
+
+/* =========================================
+   3. BODY ROWS (TBODY)
+   ========================================= */
+.fin-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+/* --- Striping Logic --- */
+/* Default background */
+.fin-table tbody tr {
+  background: #FFFFFF;
+}
+
+/* Odd Rows (Gray) - Excluding Total Rows */
+.fin-table tbody tr:nth-child(odd):not(.row-total) {
+  background: #FAFAF9;
+}
+
+/* Even Rows (White) - Excluding Total Rows */
+.fin-table tbody tr:nth-child(even):not(.row-total) {
+  background: #FFFFFF;
+}
+
+/* =========================================
+   4. CELL CONTENT & ALIGNMENT
+   ========================================= */
+/* First Column (Labels) */
+.cell-label {
+  text-align: left;
+  color: #374151;
+  font-weight: 500;
+}
+
+.expand-icon {
+  color: #375A89;
+  font-weight: bold;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+/* Numeric Columns (Realized & Projected) */
+/* Unified Alignment: Right aligned to match headers */
+.cell-realized,
+.cell-projected,
+.cell-total-val,
+.cell-total-final {
+  text-align: right;
+}
+
+.cell-realized {
+  color: #111827;
+}
+
+.cell-total-final {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* =========================================
+   5. INPUT FIELDS (PROJECTED)
+   ========================================= */
+.proj-input {
+  width: 100%;
+  max-width: 100px;
+  padding: 8px; /* Inner padding matches comfort of read-only text */
+  border-radius: 4px;
+  font-size: 13px;
+  color: #111827;
+  text-align: right; /* Aligns input text with the column header */
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fff;
+  border: 1px solid #E5E7EB;
+}
+
+.proj-input:focus {
+  box-shadow: 0 0 0 1px rgba(55, 90, 137, 0.1);
+}
+
+.proj-input::placeholder {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.input-disabled {
+  background-color: transparent; /* Blends with row stripe */
+  color: #9CA3AF;
+  cursor: default;
+  border: 1px solid transparent; /* Hides border when disabled for clean look */
+  text-align: right;
+}
+
+/* =========================================
+   6. TOTAL BAND OVERRIDES (The Blue Rows)
+   ========================================= */
+.row-total td {
+  background-color: #375A89 !important;
+  color: #FFFFFF !important;
+  border-bottom: none;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* Force all text inside total row to be white and bold */
+.row-total .cell-label,
+.row-total .cell-realized,
+.row-total .cell-total-val,
+.row-total .cell-total-final,
+.row-total .currency-indicator {
+  color: #FFFFFF !important;
+  font-weight: 600;
+}

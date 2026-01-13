@@ -1,0 +1,85 @@
+/* Wrapper for the whole header */
+.panel-header-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24px 32px 16px 48px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  gap: 16px; /* Spacing between Top Bar and Text */
+}
+
+/* === 1. TOP BAR (Icon + Close) === */
+.header-top-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; /* Pushes Icon Left, Close Right */
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* Featured Icon Box */
+.featured-icon-box {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89;
+}
+
+/* Close Button */
+.panel-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #FAFAF9;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  /* Remove negative margins now that it shares the row */
+}
+
+/* === 2. TEXT GROUP === */
+.header-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 4px; /* Gap between Title and Desc */
+}
+
+.ht-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+}
+
+.panel-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+  margin: 0;
+}
+
+.panel-description {
+  width: 100%; /* Let it fill width */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+  margin: 0;
+}

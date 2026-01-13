@@ -1,0 +1,281 @@
+/* =========================================
+   1. CONTAINER & TABLE RESET
+   ========================================= */
+.proj-table-container {
+    width: 100%;
+    background: #fff;
+}
+
+.proj-table-container.no-borders {
+    border: none;
+}
+
+.proj-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+/* =========================================
+   2. HEADERS (THEAD)
+   ========================================= */
+.proj-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 12px 16px;
+    text-align: center; 
+}
+
+/* --- Flex Wrappers For Alignment --- */
+.proj-th-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 20px;
+}
+
+.proj-th-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.proj-th-wrap.proj-left { justify-content: flex-start; }
+.proj-th-wrap.proj-right { justify-content: flex-end; }
+
+/* --- Sort Icon + Currency Indicator --- */
+.proj-sort {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.proj-currency-indicator {
+    color: #9CA3AF;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+/* =========================================
+   3. BODY ROWS (TBODY)
+   ========================================= */
+.proj-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #F3F4F6;
+    color: #111827;
+    white-space: nowrap; 
+    /* REMOVED overflow: hidden to allow DatePicker to pop out */
+}
+
+/* Striping */
+.proj-table tbody tr {
+    background: #FFFFFF;
+}
+
+.proj-table tbody tr:nth-child(odd):not(.proj-summary-row) {
+    background: #FAFAF9;
+}
+
+.proj-table tbody tr:nth-child(even):not(.proj-summary-row) {
+    background: #FFFFFF;
+}
+
+/* =========================================
+   4. CELL CONTENT & ALIGNMENT
+   ========================================= */
+.proj-right {
+    text-align: center;
+}
+
+/* Editable input fields */
+.proj-input {
+    padding: 4px 6px;
+    border: 1px solid #D1D5DB;
+    background: #fff;
+    font-size: 13px;
+    color: #111827;
+    text-align: center;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Specific style for Deal Name Input to align left */
+.proj-input-name {
+    padding: 4px 6px;
+    border: 1px solid #D1D5DB;
+    background: #fff;
+    font-size: 13px;
+    color: #111827;
+    text-align: center;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* =========================================
+   5. SUMMARY ROW
+   ========================================= */
+.proj-summary-row td {
+    background-color: #375A89 !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-bottom: none;
+    text-align: center;
+    padding: 12px 16px; 
+    line-height: 20px;
+}
+
+.proj-summary-row td:first-child,
+.proj-summary-row td:nth-child(2) {
+    text-align: left; 
+}
+/* Count badge */
+.count {
+    color: #64748b;
+    font-size: 14px;
+    margin-left: 4px;
+}
+
+/* =========================================
+   6. DATE PICKER & INPUT STYLING
+   ========================================= */
+
+.proj-date-wrapper {
+    position: relative; 
+    width: 100px;      
+    display: block;
+}
+
+
+.proj-date-input {
+    width: 100%;
+    padding-right: 30px; 
+    padding-left: 8px;
+    box-sizing: border-box;
+    cursor: pointer;
+    text-align: center;
+}
+
+.proj-icon-overlay {
+    position: absolute;
+    top: 50%;
+    right: 8px; 
+    transform: translateY(-50%); 
+    pointer-events: none; 
+    color: #375A89;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.proj-picker-anchor {
+    position: absolute;
+    right: 100%;     
+    left: auto;
+    top: 50%;       
+    transform: translateY(-50%);
+    margin-left: 12px;
+    z-index: 99999;
+    width: 320px;
+}
+
+/* =========================================
+   7. NEW DEAL BUTTON
+   ========================================= */
+.proj-add-btn {
+    /* Auto layout properties */
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 6px;
+
+    /* Size */
+    width: 118px;
+    height: 32px;
+    margin-top: 16px; /* Spacing below table */
+
+    /* Style */
+    background: rgba(55, 90, 137, 0.2);
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    /* Text */
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+}
+
+.proj-add-btn:hover {
+    background: rgba(55, 90, 137, 0.3);
+}
+
+.proj-plus-icon {
+    width: 16px;
+    height: 16px;
+    color: #375A89;
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+}
+
+/* =========================================
+   8. LOCK COLUMN
+   ========================================= */
+.proj-col-lock {
+    width: 48px;
+    text-align: center;
+}
+
+/* Cell Alignment */
+.proj-center {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Lock Button Style */
+.lock-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF; /* Gray default */
+    transition: all 0.2s ease;
+}
+
+.lock-btn:hover {
+    background: #F3F4F6;
+}
+
+/* Active/Locked State */
+.lock-btn.locked {
+    background: #F3E8FF; /* Light Purple Bg */
+    border: 1px solid #A855F7; /* Purple Border */
+    color: #A855F7; /* Purple Icon */
+}
+
+/* Icon Size */
+.lock-icon {
+    width: 16px;
+    height: 16px;
+}

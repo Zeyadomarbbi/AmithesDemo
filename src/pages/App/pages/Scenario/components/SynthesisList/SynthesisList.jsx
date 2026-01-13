@@ -1,0 +1,34 @@
+import React from 'react';
+import SynthesisCards from './Cards/Cards'; // Updated import path
+import './SynthesisList.css';
+
+function SynthesisList({ title, syntheses }) {
+  return (
+    <div className="synthesis-list-section">
+      
+      {/* Header */}
+      <div className="list-header">
+        <span className="list-title">{title}</span>
+        <span className="list-count">{syntheses.length}</span>
+      </div>
+
+      {/* Grid */}
+      <div className="synthesis-list-grid">
+        {syntheses.map(synth => (
+          <SynthesisCards
+            key={synth.id}
+            id={synth.id}
+            fundId={synth.fundId}
+            title={synth.title}
+            author={synth.author}
+            createdDate={synth.createdDate}
+            links={synth.links}
+          />
+        ))}
+      </div>
+      
+    </div>
+  );
+}
+
+export default SynthesisList;

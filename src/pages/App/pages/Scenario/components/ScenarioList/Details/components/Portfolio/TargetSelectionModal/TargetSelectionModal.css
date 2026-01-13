@@ -1,0 +1,219 @@
+/* --- MODAL OVERLAY & CONTAINER --- */
+.trgt-selection-mode-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 16px; /* Ensure space on small screens */
+}
+
+.trgt-selection-mode-container {
+    background: #FFFFFF;
+    box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
+    
+    /* Responsive Width & Height Logic */
+    width: 90%;          /* Mobile friendly width */
+    max-width: 600px;    /* Desktop max constraint */
+    max-height: 90vh;    /* Prevents overflow on zoom or small heights */
+    overflow-y: auto;    /* Adds scrollbar if content is too tall */
+    
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    box-sizing: border-box;
+}
+
+/* --- HEADER --- */
+.trgt-selection-mode-header {
+    display: flex;
+    justify-content: space-between; /* Pushes items to edges */
+    align-items: center;
+    width: 100%; /* Ensures header spans full container width */
+}
+
+.trgt-selection-mode-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 28px;
+    color: #111827;
+    margin: 0;
+}
+
+/* Close Icon Container */
+.trgt-selection-mode-close-icon {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    color: #64748B;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* Prevents icon from getting squashed */
+}
+
+.trgt-selection-mode-close-icon:hover {
+    background-color: #F1F5F9;
+    color: #111827;
+}
+
+/* --- BODY & TABLE --- */
+.trgt-selection-mode-body {
+    width: 100%;
+    overflow-x: auto; /* Handle horizontal scroll if needed on very small screens */
+}
+
+.trgt-selection-mode-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Header Cells */
+.trgt-selection-mode-col-header {
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #374151;
+    padding-bottom: 12px;
+}
+
+/* Row Label Cells */
+.trgt-selection-mode-row-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #111827;
+    padding: 16px 0;
+    white-space: nowrap;
+}
+
+.trgt-selection-mode-currency {
+    color: #6B7280;
+    font-weight: 400;
+}
+
+/* Input Cells */
+.trgt-selection-mode-table td {
+    padding: 12px 0;
+    vertical-align: middle;
+}
+
+.trgt-selection-mode-input {
+    width: 100%;
+    padding: 10px 16px;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748B;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.trgt-selection-mode-input:focus {
+    border-color: #3B82F6;
+    background: #FFFFFF;
+    color: #111827;
+}
+
+/* Column Spacing */
+.trgt-selection-mode-table th:nth-child(2),
+.trgt-selection-mode-table td:nth-child(2) {
+    padding-left: 24px;
+    padding-right: 12px;
+}
+
+.trgt-selection-mode-table th:nth-child(3),
+.trgt-selection-mode-table td:nth-child(3) {
+    padding-left: 12px;
+}
+
+/* --- FOOTER & BUTTONS --- */
+.trgt-selection-mode-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto; /* Pushes footer down if height expands */
+}
+
+.trgt-selection-mode-btn-cancel {
+    flex: 1;
+    padding: 10px 16px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #475569;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.trgt-selection-mode-btn-cancel:hover {
+    background: #F1F5F9;
+}
+
+.trgt-selection-mode-btn-save {
+    flex: 1;
+    padding: 10px 16px;
+    background: #F59E0B;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.trgt-selection-mode-btn-save:hover {
+    background: #D97706;
+}
+
+/* --- RESPONSIVE MEDIA QUERIES --- */
+@media (max-width: 640px) {
+    .trgt-selection-mode-container {
+        padding: 16px;
+        gap: 16px;
+        width: 95%; /* Use almost full width on phones */
+    }
+
+    /* Tighten table spacing on small screens */
+    .trgt-selection-mode-table th:nth-child(2),
+    .trgt-selection-mode-table td:nth-child(2) {
+        padding-left: 12px;
+        padding-right: 8px;
+    }
+
+    .trgt-selection-mode-table th:nth-child(3),
+    .trgt-selection-mode-table td:nth-child(3) {
+        padding-left: 8px;
+    }
+
+    .trgt-selection-mode-row-label {
+        font-size: 13px;
+        padding-right: 8px;
+    }
+
+    .trgt-selection-mode-input {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}

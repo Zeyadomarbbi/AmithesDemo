@@ -1,0 +1,98 @@
+/* HEADER CONTAINER — closer to table */
+.cf-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;                    /* 🔥 reduced from 8px → closes space to table */
+  margin-bottom: 4px;          /* 🔥 keeps it tight above the table */
+}
+
+/* Breakdown row (unchanged layout) */
+.cf-breakdown-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.cf-breakdown-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Chips container */
+.cf-breakdown-chips {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+
+/* Chip default */
+.cf-breakdown-chip {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Chip hover */
+.cf-breakdown-chip:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================================= */
+/*                🔥 Figma Badge Styling for ACTIVE CHIP         */
+/* ============================================================= */
+.cf-breakdown-chip.active {
+  background: rgba(55, 90, 137, 0.2);   /* 🔷 light soft blue highlight */
+  color: #7B7D7E;                       /* 🔷 same text tone */
+  border-radius: 6px;                   /* 🔷 matches badge */
+  padding: 4px 12px;                    /* 🔷 exact spacing */
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+
+  /* Removes previous shadow that was used */
+  box-shadow: none;
+}
+
+/* ============================================================= */
+/*                         BUTTON ROW                           */
+/* ============================================================= */
+
+.cf-header-button-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.cf-header .cf-new-op-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 8px 16px;
+  border-radius: 4px;
+
+  background: #f7a93b !important;
+  color: #ffffff !important;
+  border: 1px solid #f7a93b !important;
+
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cf-header .cf-new-op-btn:hover {
+  background: #f59a1a !important;
+  box-shadow: 0 4px 8px rgba(245, 154, 26, 0.35);
+}

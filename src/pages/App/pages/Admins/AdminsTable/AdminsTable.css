@@ -1,0 +1,158 @@
+/* ======================= TABLE CONTAINER ======================= */
+.admins-table-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;            /* fill parent (.admins-container) */
+  width: 100%;
+  overflow-x: auto;   /* allow horizontal scroll on small screens */
+  box-sizing: border-box;
+}
+
+/* ======================= HEADER & ROW ======================= */
+.admins-table-header,
+.admins-table-row {
+  display: grid;
+  grid-template-columns: 3rem 2fr 1.5fr 1.5fr 1fr 1.5fr; /* checkbox, name, role, email, status, actions */
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header */
+.admins-table-header {
+  height: 3.5rem; /* ~56px */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  background: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem; /* 14px */
+  color: #1C1917;
+  gap: 0.75rem;
+}
+
+.admins-table-header .header-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.admins-table-header .header-cell svg {
+  flex-shrink: 0;
+  color: #375A89;
+}
+
+/* ======================= TABLE BODY ======================= */
+.admins-table-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.admins-table-row {
+  height: 3.625rem; /* ~58px */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+/* Zebra striping */
+.admins-table-row:nth-child(odd) { background: #FAFAF9; }
+.admins-table-row:nth-child(even) { background: #FFFFFF; }
+
+/* ======================= CELLS ======================= */
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem; /* 8px 12px */
+  box-sizing: border-box;
+}
+
+.col-checkbox { justify-content: center; }
+
+.col-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.125rem; /* 2px */
+}
+
+.admins-table-header .col-name {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem; /* 8px between label & icon */
+}
+
+.col-role,
+.col-email,
+.col-status,
+.col-actions {
+  display: flex;
+  align-items: center;
+}
+
+.col-actions { justify-content: flex-end; padding-right: 1.5rem; }
+
+/* ======================= TEXT STYLES ======================= */
+.row-text-primary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #1C1917;
+}
+
+.row-text-secondary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem;
+  color: #375A89;
+}
+
+/* ======================= BADGES ======================= */
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem; /* 4px 8px */
+  border-radius: 0.375rem;   /* 6px */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.75rem;        /* 12px */
+  text-align: center;
+}
+
+.badge-green { background: #DAF8E3; color: #1A6433; }
+.badge-blue { background: #D3F2FF; color: #4C6977; }
+.badge-grey { background: #FAFAF9; color: #375A89; }
+
+/* ======================= ACTION ICONS ======================= */
+.action-dots {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89;
+}
+
+/* ======================= RESPONSIVE BREAKPOINTS ======================= */
+@media (max-width: 1024px) {
+  .admins-table-header,
+  .admins-table-row {
+    grid-template-columns: 3rem 2fr 1.2fr 1.2fr 0.9fr 1.2fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admins-table-header,
+  .admins-table-row {
+    grid-template-columns: 3rem 2fr 1fr 1fr 1fr 1fr;
+    font-size: 0.75rem; /* 12px */
+  }
+
+  .cell {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .admins-table-container {
+    overflow-x: auto;
+  }
+}

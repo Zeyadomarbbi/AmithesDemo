@@ -1,0 +1,172 @@
+/* =========================================
+   1. CONTAINER
+   ========================================= */
+.shares-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem; /* relative sizing */
+  line-height: 1.4rem;
+  letter-spacing: 0.01em;
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* =========================================
+   2. TABLES
+   ========================================= */
+.shares-table-wrapper {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.shares-table-wrapper.mt-large {
+  margin-top: 0.5rem;
+  width: 62%; /* relative container width */
+}
+
+.shares-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* fluid column sizing */
+  box-sizing: border-box;
+}
+
+.shares-table th,
+.shares-table td {
+  padding: 0.75rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.4rem;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  vertical-align: middle;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* --- HEADERS --- */
+.shares-table th {
+  font-weight: 600;
+  color: #E2E8F0;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* --- DATA CELLS --- */
+.shares-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- TABLE 1 (fluid) --- */
+.shares-table:not(.performance-table) .th-label,
+.shares-table:not(.performance-table) .td-label {
+  width: 25%;
+}
+
+.shares-table:not(.performance-table) .th-val,
+.shares-table:not(.performance-table) .td-val {
+  width: 18.75%;
+}
+
+/* --- TABLE 2 (fluid 62% width) --- */
+.performance-table .th-label,
+.performance-table .td-label {
+  width: 38.7%;
+}
+
+.performance-table .th-val,
+.performance-table .td-val {
+  width: 30.6%;
+}
+
+/* --- STYLING COLORS AND BORDERS --- */
+.shares-table .th-val,
+.shares-table .td-val {
+  color: #E2E8F0;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
+
+.shares-table th span {
+  font-size: 0.6875rem;
+  color: #94A3B8;
+  font-weight: 400;
+  margin-left: 0.125rem;
+  white-space: nowrap;
+}
+
+.shares-table td.td-label {
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.shares-table:not(.performance-table) th:nth-child(even),
+.shares-table:not(.performance-table) td:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.shares-table:not(.performance-table) th:nth-child(odd),
+.shares-table:not(.performance-table) td:nth-child(odd) {
+  background-color: transparent;
+}
+
+.performance-table th:nth-child(2),
+.performance-table td:nth-child(2) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.performance-table th:nth-child(1),
+.performance-table td:nth-child(1) {
+  background-color: transparent;
+}
+
+.shares-table:not(.performance-table) td,
+.performance-table td.td-label,
+.performance-table td:nth-child(2),
+.performance-table td:nth-child(3) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.row-fund td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+/* =========================================
+   3. KPI CARDS
+   ========================================= */
+.shares-kpi-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem 0;
+  flex-wrap: wrap; /* allows wrapping for tablets */
+}
+
+.kpi-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1 1 15rem; /* flexible width, minimum basis for tablets */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kpi-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #E2E8F0;
+}
+
+.kpi-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}

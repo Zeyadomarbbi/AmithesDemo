@@ -1,0 +1,172 @@
+.fund-card {
+  box-sizing: border-box;
+  width: 100%;                 /* ✅ responsive */
+  max-width: 330.67px;         /* matches Figma on desktop */
+  min-height: 169px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+  padding: 16px 15px;
+  gap: 8px;
+
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.fund-card.clickable {
+  cursor: pointer;
+}
+
+.fund-card.clickable:hover {
+  box-shadow: 0 6px 14px rgba(28, 25, 23, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ===== TOP: LEFT BLOCK + ARROW ===== */
+
+.fund-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fund-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* title + alert */
+.fund-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fund-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: #1c1917;
+  margin: 0;
+}
+
+/* created on */
+.fund-created {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #375A89; /* ✅ grey, not blue */
+}
+
+/* badge between date + stats */
+.fund-badge {
+  height: 20px;
+  width: 90.5px;
+  gap: 2px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.badge-info {
+  background: #d3f2ff;
+  color: #4c6977;
+}
+.badge-warn {
+  background: #fef1bf;
+  color: #854c0a;
+}
+.badge-success {
+  background: #daf8e3;
+  color: #1a6433;
+  
+}
+
+/* arrow on the right */
+.fund-arrow {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.arrow-circle {
+  width: 32px;
+  height: 32px;
+  background: #fafaf9;
+  border-radius: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ inline SVG icon */
+.arrow-icon {
+  width: 10.67px;
+  height: 10.67px;
+  display: block;
+}
+
+/* ===== STATS ROW ===== */
+
+.fund-stats {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+/* each stat tile */
+.stat-box {
+  flex: 1;                   /* ✅ flexible, no hard width */
+  min-width: 0;
+  background: #fafaf9;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #375A89;           
+}
+
+.stat-value {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}
+
+/* ===== RESPONSIVE ===== */
+
+/* On smaller screens, let card stretch full width of grid column */
+@media (max-width: 640px) {
+  .fund-card {
+    max-width: 100%;
+  }
+}
+
+/* On very small phones, stack stats if needed */
+@media (max-width: 420px) {
+  .fund-stats {
+    flex-direction: column;
+  }
+}

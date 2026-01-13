@@ -1,0 +1,29 @@
+/* src/features/Scenarios/components/SynthesisList/Details/components/DrawerTable.css */
+
+.drawer-table-wrapper {
+  /* Matches the padding from your Figma design */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 56px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-svg-container {
+  /* Ensure the container takes the full width available up to the design max */
+  width: 100%; 
+  max-width: 1024px;
+  height: auto;
+  
+  /* Optional: Add the border radius/stroke if it's not in the SVG itself */
+  border-radius: 3px;
+  /* border: 1px solid rgba(204, 205, 206, 0.5); <--- Uncomment if your SVG doesn't have a border */
+}
+
+.table-preview-img {
+  /* Makes the SVG responsive */
+  width: 100%;
+  height: auto;
+  display: block; /* Removes tiny bottom gap typical with images */
+}
