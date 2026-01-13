@@ -865,6 +865,24 @@ body {
   font-size: 12px;
   color: #6b7280;
 }
+.subtotal-btn {
+  background: none;           /* ← شيل أي باكجراوند */
+  border: none;               /* ← شيل البوردر */
+  padding: 1;
+  margin: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subtotal-btn svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+  fill: white;                /* ← خلي لون الأيقونة أبيض */
+}
+
 
 .fairvalue-date-btn {
   padding: 6px 10px;
@@ -1065,7 +1083,8 @@ body {
 .investment-modal {
   width: 720px;
   max-width: 100%;
-  max-height: 90vh;
+  height: auto;
+  min-height: 600px;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
@@ -1074,6 +1093,7 @@ body {
   display: flex;
   flex-direction: column;
 }
+
 
 /* Header */
 
@@ -1134,7 +1154,9 @@ body {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-width: 240px;
 }
+
 
 .investment-label {
   font-size: 13px;
@@ -1153,7 +1175,11 @@ body {
 .investment-row {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  flex-direction: column;
 }
+
 
 .investment-select {
   display: flex;
@@ -1413,3 +1439,187 @@ body {
   display: inline-block !important;
 }
 
+.sidepanel {
+  width: 50vw;                /* ← نصف عرض الشاشة */
+  max-width: none;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -4px 0 16px rgba(15, 23, 42, 0.18);
+  padding: 24px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.left-limit-panel {
+  position: fixed;
+  left: 0;                      /* ← يفتح من الشمال */
+  top: 0;
+  width: 50vw;                  /* ← نص الشاشة */
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: 4px 0 16px rgba(15, 23, 42, 0.1);
+  padding: 24px 32px;
+  overflow-y: auto;
+  z-index: 9999;
+  transition: transform 0.3s ease;
+}
+.limit-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 50vw;                     /* ← نص عرض الشاشة */
+  max-width: 800px;                /* ← للحد الأقصى */
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  padding: 32px 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: transform 0.3s ease;
+}
+.limit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.limit-form label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.limit-form input,
+.limit-form select,
+.limit-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+/* ==== البانل ==== */
+.limit-panel {
+  position: fixed;
+  right: 0;
+  top: 0; 
+  width: 20vw;
+  max-width: 700px;
+  height: 100vh;
+  background-color: #ffffff;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==== العنوان ==== */
+.limit-panel h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+/* ==== الفورم ==== */
+.limit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.limit-form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin-bottom: 4px;
+}
+
+.limit-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.limit-form input,
+.limit-form select,
+.limit-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.limit-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ==== الزرار ==== */
+.limit-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.limit-form-actions button {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+}
+
+.limit-form-actions .cancel-btn {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.limit-form-actions .save-btn {
+  background-color: #f59e0b;
+  color: white;
+}
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  margin-bottom: 24px;
+}
+
+.panel-header .back-btn,
+.panel-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s ease;
+}
+
+.panel-header .back-btn:hover,
+.panel-header .close-btn:hover {
+  color: #111827;
+}
+
+
+.quarter-width {
+  width: 25vw;
+  max-width: 400px;
+}

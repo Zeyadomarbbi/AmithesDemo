@@ -91,7 +91,7 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
           <table className="portfolio-table">
             <thead>
               <tr>
-                <th className="col-name">
+                <th className="sort-indicator">
                   Name <span className="sort-indicator">↕</span>
                 </th>
                 <th className="col-number">
@@ -147,10 +147,12 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
 
               <tr className="portfolio-subtotal-row total-row">
                 <td className="subtotal-name-cell">
-                  <ArrowTrendingUpIcon
-                    className="icon-svg subtotal-icon"
-                    style={iconStyle}
-                  />
+                  <button className="subtotal-btn">
+  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fillRule="evenodd" clipRule="evenodd" d="M10.8333 1.66667C10.3731 1.66667 10 1.29357 10 0.833333C10 0.373096 10.3731 0 10.8333 0H15.8333C16.2936 0 16.6667 0.373096 16.6667 0.833333V5.83333C16.6667 6.29357 16.2936 6.66667 15.8333 6.66667C15.3731 6.66667 15 6.29357 15 5.83333V2.84518L10.5893 7.25592C10.2638 7.58136 9.73618 7.58136 9.41074 7.25592C9.08531 6.93049 9.08531 6.40285 9.41074 6.07741L13.8215 1.66667H10.8333ZM7.25592 9.41074C7.58136 9.73618 7.58136 10.2638 7.25592 10.5893L2.84518 15H5.83333C6.29357 15 6.66667 15.3731 6.66667 15.8333C6.66667 16.2936 6.29357 16.6667 5.83333 16.6667H0.833333C0.61232 16.6667 0.400358 16.5789 0.244078 16.4226C0.0877973 16.2663 0 16.0543 0 15.8333L2.48353e-07 10.8333C2.48353e-07 10.3731 0.373096 10 0.833333 10C1.29357 10 1.66667 10.3731 1.66667 10.8333L1.66667 13.8215L6.07741 9.41074C6.40285 9.08531 6.93048 9.08531 7.25592 9.41074Z" fill="white"/>
+  </svg>
+</button>
+
                 <span>Total</span>
                 </td>
                 <td className="col-number">{COMPARE_TOTAL_ROW.costQ1}</td>

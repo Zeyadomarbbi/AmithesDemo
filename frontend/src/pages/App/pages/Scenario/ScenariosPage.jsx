@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-// 1. Import Outlet here
+import React from 'react';
 import { useParams, Outlet } from 'react-router-dom'; 
+import { useScenarioHandlers } from './useScenarioHandlers';
 import AddNewScenarioModal from './components/ScenarioControls/AddNewScenarioModal/AddNewScenarioModal';
 import CreateSynthesisModal from './components/ScenarioControls/CreateSynthesisModal/CreateSynthesisModal';
 import ScenarioList from './components/ScenarioList/ScenarioList';
@@ -9,120 +9,25 @@ import ScenarioControls from './components/ScenarioControls/ScenarioControls';
 
 import './ScenariosPage.css'; 
 
+// Move outside component to prevent re-creation
+function apiRowToScenario(row) {
+    return {
+        id: row.scenario_id,
+        fundId: row.fund_id,
+        title: row.scenario_name,
+        author: row.created_by,
+        description: row.description,
+        createdDate: new Date(row.created_at).toLocaleDateString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: '2-digit'
+        }).replace(/\//g, '.')
+    };
+}
+
 function ScenariosPage() {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false); // <--- NEW STATE
-    const [scenarios, setScenarios] = useState([]);
-    const [syntheses, setSyntheses] = useState([]);
     const { fundId } = useParams();
-    const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
-    const author = "Abdelrahman Rabah"
-    useEffect(() => {
-        const allScenarios = [
-             { id: 1, fundId: 1, title: "Asterium - Optimistic", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 2, fundId: 1, title: "Asterium - Status Quo", createdDate: "12.04.25", author: "Yann Maurice", description: "test desc"},
-             { id: 3, fundId: 2, title: "Lynx - Early Exit", createdDate: "08.04.25", author: "Mathieu Rigot", description: "test desc"},
-             { id: 4, fundId: 2, title: "Lynx - Secondary Sale", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 5, fundId: 1, title: "Scenario Expansion Round", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"},
-             { id: 6, fundId: 1, title: "Scenario Strategic Acquisition", createdDate: "19.03.24", author: "Mathieu Rigot", description: "test desc"}
-        ];
-        const allSyntheses = [
-            { id: 1, fundId: 1, title: "Exit Strategy Review", createdDate: "08.04.25", author: "Yann Maurice", links: ["Scenario Optimistic", "Secondary Sale"], description: "Detailed analysis of potential fund exit strategies and Q4 projections." }, // ADDED DESCRIPTION
-            { id: 2, fundId: 2, title: "Q2 Committee Pitch", author: "Yann Maurice", links: ["Scenario Status Quo", "Scenario Expansion Round"], description: "Presentation slides summarizing portfolio performance for the Q2 committee." }, // ADDED DESCRIPTION
-            { id: 3, fundId: 1, title: "Base vs Stress vs Optimistic", author: "Yann Maurice", links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "A three-way comparison of market scenarios impact on fund valuations." }, // ADDED DESCRIPTION
-            { id: 4, fundId: 1, title: "Base vs Stress vs Optimistic 2", author: author, links: ["@Scenario1", "@Scenario1", "@Scenario1"], description: "Follow-up analysis addressing committee feedback from the previous quarter." } // ADDED DESCRIPTION
-        ];
-        const currentFundId = parseInt(fundId) || 1; 
-        setScenarios(allScenarios.filter(s => s.fundId === currentFundId));
-        setSyntheses(allSyntheses.filter(s => s.fundId === currentFundId));
-        
-    }, [fundId]);
-
-    const handleAddScenario = (newScenarioData) => {
-        // 1. Determine a new unique ID
-        const newId = scenarios.length > 0 ? Math.max(...scenarios.map(s => s.id)) + 1 : 7; // Start at 7 to avoid conflicts with mock data
-        
-        // Function to format the date as DD.MM.YY
-        const getFormattedDate = () => {
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}.${month}.${year}`;
-        };
-
-        // 2. Format the new scenario object
-        const newScenario = {
-            id: newId,
-            fundId: parseInt(fundId) || 1, // Use current fund ID
-            title: newScenarioData.name,
-            author: author,
-            description: newScenarioData.description,
-            createdDate: getFormattedDate(),
-        };
-
-        // 3. Update the state
-        setScenarios(prevScenarios => [...prevScenarios, newScenario]);
-        
-        // 4. Close the modal
-        setIsModalOpen(false);
-    };
-
-    const handleAddSynthesis = (newSynthesisData) => {
-        // 1. Determine a new unique ID (In a real app, this comes from the database/API response)
-        const newId = syntheses.length > 0 ? Math.max(...syntheses.map(s => s.id)) + 1 : 1;
-        const getFormattedDate = () => {
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-            const year = String(date.getFullYear()).slice(-2); // Get last two digits of the year
-            return `${day}.${month}.${year}`;
-        };
-        
-        // 2. Format the new synthesis object
-        const newSynthesis = {
-            id: newId,
-            fundId: parseInt(fundId) || 1, 
-            title: newSynthesisData.name,
-            author: author, 
-            links: newSynthesisData.scenarioTitles, 
-            description: newSynthesisData.description,
-            
-            // MODIFICATION HERE: Use the new format function
-            createdDate: getFormattedDate(), 
-        };
-
-        // 3. Update the state
-        setSyntheses(prevSyntheses => [...prevSyntheses, newSynthesis]);
-        setSelectedScenarioIds([]);
-        setIsSynthesisModalOpen(false);
-    };
-
-    const handleDeleteScenario = (idToDelete) => {
-        // Filter the scenarios list to remove the scenario with idToDelete
-        setScenarios(prevScenarios => 
-            prevScenarios.filter(scenario => scenario.id !== idToDelete)
-        );
-        // Also remove from selected IDs if it was selected
-        setSelectedScenarioIds(prev => 
-            prev.filter(selectedId => selectedId !== idToDelete)
-        );
-    };
-
-    const handleDeleteSynthesis = (idToDelete) => {
-        // Filter the syntheses list to remove the synthesis with idToDelete
-        setSyntheses(prevSyntheses => 
-            prevSyntheses.filter(synthesis => synthesis.id !== idToDelete)
-        );
-    };  
-
-    const toggleScenarioSelection = (id) => {
-        setSelectedScenarioIds(prev => 
-            prev.includes(id) 
-                ? prev.filter(scenarioId => scenarioId !== id) 
-                : [...prev, id] 
-        );
-    };
+    const author = "Abdelrahman Rabah";
+    
+    const { state, actions } = useScenarioHandlers(fundId, author, apiRowToScenario);
 
     return (
         <div className="scenarios-page-container">
@@ -131,47 +36,47 @@ function ScenariosPage() {
             </div>
             
             <ScenarioControls 
-                onAddClick={() => setIsModalOpen(true)}
-                selectedScenarioCount={selectedScenarioIds.length}
-                onCreateSynthesisClick={() => setIsSynthesisModalOpen(true)} 
+                onAddClick={() => actions.setIsModalOpen(true)}
+                selectedScenarioCount={state.selectedScenarioIds.length}
+                onCreateSynthesisClick={() => actions.setIsSynthesisModalOpen(true)} 
             />
 
             <div className="scenarios-frame-3">
                 <ScenarioList 
                     title="List Of Scenario" 
-                    scenarios={scenarios} 
-                    selectedIds={selectedScenarioIds}
-                    onToggleSelect={toggleScenarioSelection}
-                    onDelete={handleDeleteScenario}
+                    scenarios={state.scenarios} 
+                    selectedIds={state.selectedScenarioIds}
+                    onToggleSelect={actions.toggleScenarioSelection}
+                    onDelete={actions.handleDeleteScenario}
                 />
             </div>
 
             <div className="scenarios-frame-4">
                 <SynthesisList 
                     title="Scenario Synthesis" 
-                    syntheses={syntheses}
-                    onDelete={handleDeleteSynthesis}
+                    syntheses={state.syntheses}
+                    onDelete={actions.handleDeleteSynthesis}
                 />
             </div>
-            {/* For Scenario Creation */}
-            {isModalOpen && (
+
+            {state.isModalOpen && (
                 <AddNewScenarioModal 
-                    author={author} // Pass the current user
-                    onSave={handleAddScenario} // New save handler
-                    onClose={() => setIsModalOpen(false)}
+                    author={author} 
+                    onSave={actions.handleAddScenario} 
+                    onClose={() => actions.setIsModalOpen(false)} 
                 />
             )}
-            {/* For Synthesis Creation */}
-            {isSynthesisModalOpen && (
+
+            {state.isSynthesisModalOpen && (
                  <CreateSynthesisModal 
-                    selectedScenarioIds={selectedScenarioIds} 
-                    allScenarios={scenarios} // Pass available scenarios to look up titles/details
-                    onSave={handleAddSynthesis} // <--- NEW PROP
-                    onClose={() => setIsSynthesisModalOpen(false)}
+                    selectedScenarioIds={state.selectedScenarioIds} 
+                    allScenarios={state.scenarios} 
+                    onSave={actions.handleAddSynthesis} 
+                    onClose={() => actions.setIsSynthesisModalOpen(false)}
                  />
             )}
+            
             <Outlet />
-
         </div>
     );
 }

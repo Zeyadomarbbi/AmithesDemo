@@ -1,75 +1,85 @@
 import React, { useState } from "react";
+
+/* ===== External Components ===== */
+import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
+
+/* ===== Icons ===== */
 import {
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
   DocumentIcon,
   PencilSquareIcon,
-  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+
+/* ===== Mock Data ===== */
 import {
   pnlPeriods,
-  timeframeData,
   incomeLines,
   expenseLines,
 } from "../data/mockData";
+
+/* ===== Styles ===== */
 import "../styles/PnL.css";
 
 const PnLTab = () => {
+  /* ================= Timeframe ================= */
+  const [selectedQuarters, setSelectedQuarters] = useState([]);
+
+  /* ================= UI Toggles ================= */
   const [showIncome, setShowIncome] = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
   const [showTax, setShowTax] = useState(true);
-  const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
+
+  /* ================= Values ================= */
+  const [incomeValues, setIncomeValues] = useState(
+    incomeLines.map(() => ({ col1: 0, col2: 0 }))
+  );
+
+  const [expenseValues, setExpenseValues] = useState(
+    expenseLines.map(() => ({ col1: 0, col2: 0 }))
+  );
+
+  const [taxValues, setTaxValues] = useState([{ col1: 0, col2: 0 }]);
+
+  /* ================= Helpers ================= */
+  const sumColumn = (arr, col) =>
+    arr.reduce((acc, v) => acc + Number(v[col] || 0), 0);
+
+  const totalIncomeCol1 = sumColumn(incomeValues, "col1");
+  const totalIncomeCol2 = sumColumn(incomeValues, "col2");
+
+  const totalExpensesCol1 = sumColumn(expenseValues, "col1");
+  const totalExpensesCol2 = sumColumn(expenseValues, "col2");
+
+  const totalTaxCol1 = sumColumn(taxValues, "col1");
+  const totalTaxCol2 = sumColumn(taxValues, "col2");
+
+  const netCol1 =
+    totalIncomeCol1 - totalExpensesCol1 - totalTaxCol1;
+  const netCol2 =
+    totalIncomeCol2 - totalExpensesCol2 - totalTaxCol2;
 
   return (
     <>
-      {/* Toolbar */}
+      {/* ===== Toolbar ===== */}
       <div className="toolbar-row">
-        <div className="left-tools">
-          <div className="timeframe-wrapper">
-            <button
-              type="button"
-              className="timeframe-btn"
-              onClick={() => setIsTimeframeOpen((v) => !v)}
-            >
-              <span>Timeframe ({timeframeData.length})</span>
-              <ChevronDownIcon className="icon-svg caret-icon" />
-            </button>
-
-            {isTimeframeOpen && (
-              <div className="timeframe-dropdown">
-                {timeframeData.map((tf) => (
-                  <div key={tf.id} className="timeframe-item">
-                    <input
-                      type="checkbox"
-                      checked={tf.checked}
-                      readOnly
-                      className="timeframe-check"
-                    />
-                    <span className="timeframe-label">{tf.label}</span>
-                    <span className="timeframe-date">{tf.date}</span>
-                  </div>
-                ))}
-                <div className="timeframe-add">+ Add a new timeframe</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="right-tools">
-          <button className="ghost-btn" type="button">
-            <ArrowUpTrayIcon className="icon-svg" />
-            Upload
-          </button>
-          <button className="ghost-btn" type="button">
-            <ArrowDownTrayIcon className="icon-svg" />
-            Download
-          </button>
+        <div
+          className="left-tools"
+          style={{ gap: "12px", alignItems: "center" }}
+        >
+          {/* Quarter Selector (MULTI) */}
+          <QuarterSelector
+            isSingle={false}
+            selected={selectedQuarters}
+            onChange={(values) => {
+              setSelectedQuarters(values);
+              console.log("Selected quarters:", values);
+            }}
+          />
         </div>
       </div>
 
-      {/* TABLE CARD */}
+      {/* ===== TABLE ===== */}
       <section className="financials-card">
-        {/* Periods Header */}
+        {/* ===== Header ===== */}
         <div className="table-header-row">
           <div />
           {pnlPeriods.map((p) => (
@@ -91,26 +101,46 @@ const PnLTab = () => {
             <span className="sign">{showIncome ? "−" : "+"}</span>
             Income
           </button>
-          <div className="group-value">2 500 000</div>
-          <div className="group-value">-</div>
+          <div className="group-value">
+            {totalIncomeCol1.toLocaleString()}
+          </div>
+          <div className="group-value">
+            {totalIncomeCol2.toLocaleString()}
+          </div>
           <div className="group-action-cell">
             <button className="pill-btn">+ Add income</button>
           </div>
         </div>
 
         {showIncome &&
-          incomeLines.map((line) => (
+          incomeLines.map((line, index) => (
             <div className="detail-row" key={line.id}>
               <div className="detail-label">{line.label}</div>
+
               <div className="detail-input-wrapper">
                 <PencilSquareIcon className="edit-icon" />
-                <div >{line.value}</div>
+                <input
+                  className="amount-input"
+                  type="number"
+                  value={incomeValues[index].col1}
+                  onChange={(e) => {
+                    const copy = [...incomeValues];
+                    copy[index].col1 = e.target.value;
+                    setIncomeValues(copy);
+                  }}
+                />
               </div>
+
               <div className="detail-input-wrapper">
                 <input
-                  className="amount-input grey"
-                  readOnly
-                  value="0,000,000"
+                  className="amount-input"
+                  type="number"
+                  value={incomeValues[index].col2}
+                  onChange={(e) => {
+                    const copy = [...incomeValues];
+                    copy[index].col2 = e.target.value;
+                    setIncomeValues(copy);
+                  }}
                 />
               </div>
               <div />
@@ -126,28 +156,45 @@ const PnLTab = () => {
             <span className="sign">{showExpenses ? "−" : "+"}</span>
             Expenses
           </button>
-          <div className="group-value">1 900 000</div>
-          <div className="group-value">-</div>
+          <div className="group-value">
+            {totalExpensesCol1.toLocaleString()}
+          </div>
+          <div className="group-value">
+            {totalExpensesCol2.toLocaleString()}
+          </div>
           <div className="group-action-cell">
             <button className="pill-btn">+ Add expense</button>
           </div>
         </div>
 
         {showExpenses &&
-          expenseLines.map((line) => (
+          expenseLines.map((line, index) => (
             <div className="detail-row" key={line.id}>
               <div className="detail-label">{line.label}</div>
-              <div className="detail-input-wrapper">
-                { (
-                  <PencilSquareIcon className="edit-icon" />
-                )}
-                <div>{line.value}</div>
-              </div>
+
               <div className="detail-input-wrapper">
                 <input
-                  className="amount-input grey"
-                  readOnly
-                  value="0,000,000"
+                  className="amount-input"
+                  type="number"
+                  value={expenseValues[index].col1}
+                  onChange={(e) => {
+                    const copy = [...expenseValues];
+                    copy[index].col1 = e.target.value;
+                    setExpenseValues(copy);
+                  }}
+                />
+              </div>
+
+              <div className="detail-input-wrapper">
+                <input
+                  className="amount-input"
+                  type="number"
+                  value={expenseValues[index].col2}
+                  onChange={(e) => {
+                    const copy = [...expenseValues];
+                    copy[index].col2 = e.target.value;
+                    setExpenseValues(copy);
+                  }}
                 />
               </div>
               <div />
@@ -163,20 +210,63 @@ const PnLTab = () => {
             <span className="sign">{showTax ? "−" : "+"}</span>
             Tax
           </button>
-          <div className="group-value">4 875</div>
-          <div className="group-value">4 875</div>
+          <div className="group-value">
+            {totalTaxCol1.toLocaleString()}
+          </div>
+          <div className="group-value">
+            {totalTaxCol2.toLocaleString()}
+          </div>
           <div className="group-action-cell">
             <button className="pill-btn">+ Add tax</button>
           </div>
         </div>
 
-        
+        {showTax && (
+          <div className="detail-row">
+            <div className="detail-label">Tax</div>
+
+            <div className="detail-input-wrapper">
+              <input
+                className="amount-input"
+                type="number"
+                value={taxValues[0].col1}
+                onChange={(e) =>
+                  setTaxValues([{ ...taxValues[0], col1: e.target.value }])
+                }
+              />
+            </div>
+
+            <div className="detail-input-wrapper">
+              <input
+                className="amount-input"
+                type="number"
+                value={taxValues[0].col2}
+                onChange={(e) =>
+                  setTaxValues([{ ...taxValues[0], col2: e.target.value }])
+                }
+              />
+            </div>
+            <div />
+          </div>
+        )}
 
         {/* ================= Net Profit ================= */}
         <div className="net-row">
           <div>Net Profit / Net loss</div>
-          <div className="net-value positive">600 000</div>
-          <div className="net-value negative">- 100 000</div>
+          <div
+            className={`net-value ${
+              netCol1 >= 0 ? "positive" : "negative"
+            }`}
+          >
+            {netCol1.toLocaleString()}
+          </div>
+          <div
+            className={`net-value ${
+              netCol2 >= 0 ? "positive" : "negative"
+            }`}
+          >
+            {netCol2.toLocaleString()}
+          </div>
           <div />
         </div>
       </section>
