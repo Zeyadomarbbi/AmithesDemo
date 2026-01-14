@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     CurrencyListView, 
+    PhaseListView,
     FundTimeframeView, 
     FundScenarioView, 
     ScenarioSynthesisView, 
@@ -14,6 +15,11 @@ urlpatterns = [
         "currencies/",
         CurrencyListView.as_view(), 
         name="currency-list"
+    ),
+    path(
+        "phases/", 
+        PhaseListView.as_view(), 
+        name="phase-list"
     ),
 
     # 2. Initialization & List (GET / POST)

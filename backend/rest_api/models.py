@@ -14,7 +14,7 @@ class DimDate(models.Model):
 class DimPhase(models.Model):
     phase_id = models.AutoField(primary_key=True)
     phase_name = models.CharField(max_length=100)
-
+    
     class Meta:
         managed = False
         db_table = "dim_phase"

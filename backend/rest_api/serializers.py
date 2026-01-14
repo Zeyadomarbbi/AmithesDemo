@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund
+from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund, DimPhase
+
+
+class PhaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DimPhase
+        fields = ['phase_id', 'phase_name']
+
 
 class FundSerializer(serializers.ModelSerializer):
     # source='...' will crash if the relation is None unless we handle it.

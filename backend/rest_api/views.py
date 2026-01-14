@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from .models import DimTimeframe, DimDate, DimFund, DimScenarioList, DimScenarioSynthesis, DimCurrency, DimPhase
-from .serializers import TimeframeSerializer, ScenarioSerializer, DimScenarioSynthesisSerializer, FundSerializer
+from .serializers import TimeframeSerializer, ScenarioSerializer, DimScenarioSynthesisSerializer, FundSerializer, PhaseSerializer
 
 class CurrencyListView(APIView):
     def get(self, request):
@@ -22,6 +22,15 @@ class CurrencyListView(APIView):
             } for c in currencies
         ]
         return Response(data)
+    
+class PhaseListView(APIView):
+    """
+    GET: Fetch all available fund phases for dropdowns.
+    """
+    def get(self, request):
+        phases = DimPhase.objects.all().order_by('phase_id')
+        serializer = PhaseSerializer(phases, many=True)
+        return Response(serializer.data)
 
 class FundListView(APIView):
     """
@@ -83,6 +92,17 @@ class FundListView(APIView):
 
 
 class FundDetailView(APIView):
+    def get(self, request, fund_id):
+        # Fetch the fund or return 404 if not found
+        fund = get_object_or_404(
+            DimFund.objects.select_related('formation_date', 'phase', 'currency'), 
+            fund_id=fund_id
+        )
+        
+        # Serialize the single fund instance
+        serializer = FundSerializer(fund)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def put(self, request, fund_id):
         fund = get_object_or_404(DimFund, fund_id=fund_id)
         data = request.data
