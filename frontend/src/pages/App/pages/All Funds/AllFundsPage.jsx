@@ -2,10 +2,12 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import FundList from "./components/FundList";
-import NewFundModal from "./components/NewFundModal";
-import KPIsTable from "./components/KPIsTable";
-import Toast from "./components/Toast";
+import FundList from "./components/FundLists/FundList";
+import NewFundModal from "./components/NewFund/NewFundModal";
+import KPIsTable from "./components/Kpi/KPIsTable";
+import Toast from "./components/NewFund/Toast";
+import { PlusIcon } from "./components/Icons.jsx";
+
 
 import "./AllFundsPageStyles.css";
 
@@ -254,13 +256,14 @@ export default function AllFundsPage() {
           />
         </div>
 
-        <button
-          className="new-fund-btn"
-          onClick={() => setIsNewFundOpen(true)}
-        >
-          <span className="plus-icon">+</span>
-          New fund
-        </button>
+  <button
+  className="new-fund-btn"
+  onClick={() => setIsNewFundOpen(true)}
+>
+  <PlusIcon />
+  <span>New fund</span>
+</button>
+
       </div>
 
       {/* ===== Content ===== */}

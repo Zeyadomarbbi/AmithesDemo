@@ -1,0 +1,288 @@
+/* =========================
+   OVERLAY
+========================= */
+
+.transfer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.transfer-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+  max-width: 593px;
+  width: calc(100% - 40px);
+  padding: 24px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.transfer-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.transfer-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.transfer-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: #fafaf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #374151;
+}
+
+/* =========================
+   BODY / GRID
+========================= */
+
+.transfer-modal-body {
+  padding: 0 4px 24px;
+}
+
+.transfer-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* =========================
+   FIELDS
+========================= */
+
+.transfer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.transfer-label {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.transfer-input,
+.transfer-select {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #ffffff;
+  font-size: 14px;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.transfer-input::placeholder {
+  color: #797979;
+}
+
+/* =========================
+   SELECT + CHEVRON (FIXED)
+========================= */
+
+.transfer-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.transfer-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px; /* space for chevron */
+}
+
+.transfer-select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transfer-select-chevron svg {
+  display: block;
+}
+
+/* =========================
+   € SUFFIX (FIXED)
+========================= */
+
+.transfer-field-with-suffix {
+  position: relative;
+}
+
+.transfer-suffix {
+  position: absolute;
+  right: 12px;
+  top: 70%;
+  transform: translateY(-50%);
+  height: 12.67px;      
+  width: 12px;        /* match input height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* =========================
+   CARDS (FROM / TO)
+========================= */
+
+.transfer-card {
+  background: #fafaf9;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.transfer-card-row {
+  margin-bottom: 24px;
+}
+
+/* =========================
+   MODE BUTTONS
+========================= */
+
+.transfer-mode-row {
+  display: flex;
+  width: 100%;
+  background: #fafaf9;
+  border-radius: 4px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+
+.transfer-mode-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  width: 257px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7b7d7e;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.transfer-mode-btn-active {
+  background: rgba(55, 90, 137, 0.2);
+  color: #1c1917;
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+.transfer-modal-footer {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 16px;
+  display: flex;
+  gap: 13px;
+}
+
+.btn-secondary-wide,
+.btn-primary-wide {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-secondary-wide {
+  background: #fafaf9;
+  color: #9ca3af;
+}
+
+.btn-primary-wide {
+  background: #f7a93b;
+  color: #ffffff;
+}
+.transfer-modal-footer { justify-content: flex-end; }
+
+
+
+
+/* =============== RESPONSIVE =============== */
+
+@media (max-width: 768px) {
+  .transfer-modal {
+    width: 100%;
+    margin: 0 12px;
+    padding: 16px;
+  }
+
+  .transfer-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .transfer-mode-row {
+    flex-direction: column;
+  }
+
+  .transfer-modal-footer {
+    flex-direction: column;
+  }
+}
+/* FORCE Figma sizing for mode buttons (override anything above) */
+/* FORCE Figma sizing for mode buttons (override anything above) */
+.transfer-mode-row{
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;  /* ✅ center */
+  gap: 8px !important;
+}
+
+
+.transfer-mode-btn{
+  flex: 0 0 257px !important;   /* fixed width */
+  height: 68px !important;
+  padding: 8px 16px !important;
+}

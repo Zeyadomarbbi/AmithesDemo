@@ -79,8 +79,9 @@
 
 /* SEARCH */
 .search-input-wrapper {
-  width: 320px;
-  height: 44px;
+   box-sizing: border-box;
+  width: 280px;
+  height: 40px;
   padding: 10px 16px;
   border-radius: 8px;
   border: 1px solid #dde3f2;

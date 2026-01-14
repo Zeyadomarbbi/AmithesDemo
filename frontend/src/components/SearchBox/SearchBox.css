@@ -1,0 +1,61 @@
+/* ============= SEARCH INPUT ============= */
+
+/* Search bar */
+.search-input-wrapper,
+.search-box {
+  box-sizing: border-box;
+  width: 280px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+/* span that wraps ONLY the SVG search icon */
+.search-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background: none !important;
+  position: relative;
+}
+
+/* kill any old pseudo-content/icon from other styles */
+.search-icon::before,
+.search-icon::after {
+  content: none !important;
+}
+
+/* make sure the SVG fits perfectly */
+.search-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #1c1917;
+}
+
+.search-input::placeholder {
+  color: #7b7d7e;
+}
