@@ -154,14 +154,19 @@
   background: rgba(55, 90, 137, 0.2);
   border: 1px solid transparent;
   border-radius: 8px;
+  
+  /* Typography */
+  font-family: var(--font-body, "Inter", sans-serif); /* Fallback to standard sans-serif */
   font-weight: 500;
-  font-size: 14px;
+  font-size: 14px;      /* text-sm */
   line-height: 20px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.01em; /* 1% of font size */
+  
   color: #375a89;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
   margin-left: auto;
+  white-space: nowrap; /* Ensures text doesn't wrap given the fixed width */
 }
 
 .new-fund-btn:hover {

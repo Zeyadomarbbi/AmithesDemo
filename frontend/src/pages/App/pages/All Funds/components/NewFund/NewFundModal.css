@@ -157,6 +157,9 @@
   cursor: pointer;
 }
 
+.nf-select:has(option[value=""]:checked) {
+  color: #7B7D7E; /* var(--text-placeholder) */
+}
 
 .nf-select-chevron {
   position: absolute;

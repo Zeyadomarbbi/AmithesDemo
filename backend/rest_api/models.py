@@ -11,9 +11,58 @@ class DimDate(models.Model):
         managed = False
         db_table = "dim_date"
 
+class DimPhase(models.Model):
+    phase_id = models.AutoField(primary_key=True)
+    phase_name = models.CharField(max_length=100)
+
+    class Meta:
+        managed = False
+        db_table = "dim_phase"
+
+class DimCurrency(models.Model):
+    currency_id = models.AutoField(primary_key=True)
+    currency_name = models.CharField(max_length=100)
+    currency_symbol = models.CharField(max_length=10)
+    currency_code = models.CharField(max_length=10)
+
+    class Meta:
+        managed = False
+        db_table = "dim_currency"
+
 
 class DimFund(models.Model):
     fund_id = models.AutoField(primary_key=True)
+    legal_name = models.CharField(max_length=255)
+    short_name = models.CharField(max_length=100)
+    
+    # ⚠️ ADD null=True TO THESE 3 FIELDS
+    formation_date = models.ForeignKey(
+        'DimDate', 
+        on_delete=models.DO_NOTHING, 
+        db_column='formation_date_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    phase = models.ForeignKey(
+        'DimPhase', 
+        on_delete=models.DO_NOTHING, 
+        db_column='phase_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    currency = models.ForeignKey(
+        'DimCurrency', 
+        on_delete=models.DO_NOTHING, 
+        db_column='currency_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    
+    legal_form = models.CharField(max_length=100, blank=True, null=True)
+    management_company = models.CharField(max_length=255, blank=True, null=True)
+    fund_strategy = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = False

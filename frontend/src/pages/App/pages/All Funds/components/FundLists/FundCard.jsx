@@ -32,7 +32,7 @@ export default function FundCard({ fund, clickable = false, onClick }) {
             {fund.hasAlert && <span className="alert-dot" />}
           </div>
 
-          <div className="fund-created">{fund.createdOn}</div>
+          <div className="fund-created">{fund.formationDate}</div>
 
           <div className={`fund-badge ${toneClass}`}>{fund.badgeText}</div>
         </div>

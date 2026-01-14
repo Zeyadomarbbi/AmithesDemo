@@ -1,47 +1,58 @@
-// src/pages/App/pages/All Funds/components/NewFundModal.jsx
-import React, { useState } from "react";
-import "./NewFundModal.css";
+import React, { useState, useEffect } from "react";
+import { useCurrencies } from "../../../../hooks/useCurrencies.js"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
 
+import "./NewFundModal.css";
+
+// Helper to get "DD/MM/YYYY" format
+const getTodayString = () => {
+  const today = new Date();
+  const d = String(today.getDate()).padStart(2, '0');
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const y = today.getFullYear();
+  return `${d}/${m}/${y}`;
+};
 
 export default function NewFundModal({ open, onClose, onCreate }) {
-  if (!open) return null;
+  const { currencies, isLoading } = useCurrencies();
 
-  // Local state for form fields
+  // 1. Initialize all to "none" (null/empty)
   const [legalName, setLegalName] = useState("");
   const [shortName, setShortName] = useState("");
   const [formationDate, setFormationDate] = useState(null);
   const [currency, setCurrency] = useState("");
 
+  // 2. Reset/Sync fields when modal opens
+  useEffect(() => {
+    if (open) {
+      setLegalName("");
+      setShortName("");
+      setCurrency("");
+      // Sync state with the DatePicker's visual default (Today)
+      // This ensures the user doesn't have to "pick" today manually to enable the button.
+      setFormationDate(getTodayString());
+    }
+  }, [open]);
+
+  if (!open) return null;
+
   const stopClick = (e) => e.stopPropagation();
 
   const handleCreate = () => {
-    // ✅ build payload from fields (no silent return)
     const payload = {
       legalName: legalName.trim(),
       shortName: shortName.trim(),
-      formationDate: formationDate.trim(),
-      currency,
+      formationDate: formationDate, 
+      currency_id: currency, 
     };
 
-    if (onCreate) {
-      onCreate(payload);       // 🔥 this calls handleCreateFund in AllFundsPage
-    }
-
-    // reset fields
-    setLegalName("");
-    setShortName("");
-    setFormationDate("");
-    setCurrency("");
-
-    // close modal
+    if (onCreate) onCreate(payload);
     if (onClose) onClose();
   };
 
   return (
     <div className="nf-backdrop" onClick={onClose}>
       <div className="nf-modal" onClick={stopClick}>
-        {/* HEADER */}
         <div className="nf-header">
           <h2 className="nf-title">Create new fund</h2>
           <button
@@ -54,9 +65,7 @@ export default function NewFundModal({ open, onClose, onCreate }) {
           </button>
         </div>
 
-        {/* BODY */}
         <div className="nf-body">
-          {/* Legal name */}
           <div className="nf-field">
             <label className="nf-label">
               Legal name<span className="nf-required">*</span>
@@ -69,7 +78,6 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             />
           </div>
 
-          {/* Short name */}
           <div className="nf-field">
             <label className="nf-label">
               Short name<span className="nf-required">*</span>
@@ -82,36 +90,28 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             />
           </div>
 
-          {/* Formation date */}
           <div className="nf-field">
-  <label className="nf-label">
-    Formation date<span className="nf-required">*</span>
-  </label>
+            <label className="nf-label">
+              Formation date<span className="nf-required">*</span>
+            </label>
+            <DateInputWithPicker
+              initialDate={(() => {
+                 // If null, visual defaults to Today (new Date())
+                 if (!formationDate) return new Date();
+                 const [d, m, y] = formationDate.split("/");
+                 return new Date(y, m - 1, d);
+              })()}
+              onDateChange={(date) => {
+                const day = String(date.getDate()).padStart(2, "0");
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const year = date.getFullYear();
+                setFormationDate(`${day}/${month}/${year}`);
+              }}
+              isSingle
+              dateFormat="DD/MM/YYYY"
+            />
+          </div>
 
-<DateInputWithPicker
-  initialDate={
-    formationDate
-      ? (() => {
-          const [d, m, y] = formationDate.split("/");
-          return new Date(y, m - 1, d);
-        })()
-      : new Date()
-  }
-  onDateChange={(date) => {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    setFormationDate(`${day}/${month}/${year}`);
-  }}
-  isSingle
-  dateFormat="DD/MM/YYYY"
-/>
-
-
-</div>
-
-
-          {/* Fund currency */}
           <div className="nf-field">
             <label className="nf-label">
               Fund currency<span className="nf-required">*</span>
@@ -121,18 +121,22 @@ export default function NewFundModal({ open, onClose, onCreate }) {
                 className="nf-input nf-select"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
+                disabled={isLoading}
               >
-                <option value="">Please select a currency</option>
-                <option value="EUR">EUR</option>
-                <option value="USD">USD</option>
-                <option value="GBP">GBP</option>
+                <option value="">
+                  {isLoading ? "Loading..." : "Please select a currency"}
+                </option>
+                {currencies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.symbol})
+                  </option>
+                ))}
               </select>
               <span className="nf-select-chevron" />
             </div>
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="nf-footer">
           <button
             type="button"
@@ -145,6 +149,8 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             type="button"
             className="nf-btn nf-btn-primary"
             onClick={handleCreate}
+            // Check checks that all fields are truthy
+            disabled={!legalName || !shortName || !currency || !formationDate}
           >
             Create
           </button>
@@ -152,4 +158,4 @@ export default function NewFundModal({ open, onClose, onCreate }) {
       </div>
     </div>
   );
-}  
+}

@@ -1,5 +1,38 @@
 from rest_framework import serializers
-from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis
+from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund
+
+class FundSerializer(serializers.ModelSerializer):
+    # source='...' will crash if the relation is None unless we handle it.
+    # The safest way for nullable relations is using SerializerMethodField, 
+    # OR simpler: rely on DRF's ability to handle nullable sources if defined correctly.
+    
+    # Let's use SerializerMethodField to be 100% safe against AttributeErrors
+    formation_date_string = serializers.SerializerMethodField()
+    phase_name = serializers.SerializerMethodField()
+    currency_name = serializers.SerializerMethodField()
+    currency_symbol = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DimFund
+        fields = [
+            'fund_id', 'created_at', 'updated_at',
+            'legal_name', 'short_name', 'fund_strategy', 'legal_form', 'management_company',
+            'formation_date', 'phase', 'currency',
+            'formation_date_string', 'phase_name', 'currency_name', 'currency_symbol'
+        ]
+
+    # These methods safely return None or "–" if the relation is missing
+    def get_formation_date_string(self, obj):
+        return obj.formation_date.full_date if obj.formation_date else None
+
+    def get_phase_name(self, obj):
+        return obj.phase.phase_name if obj.phase else "–"
+
+    def get_currency_name(self, obj):
+        return obj.currency.currency_name if obj.currency else None
+
+    def get_currency_symbol(self, obj):
+        return obj.currency.currency_symbol if obj.currency else ""
 
 class TimeframeSerializer(serializers.ModelSerializer):
     date_id = serializers.IntegerField(source="date.date_id")

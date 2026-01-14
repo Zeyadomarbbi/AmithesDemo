@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom'; 
+import { useFundData } from '../hooks/useFundData.js'; // Adjust path to where you saved the hook
 import SidePanel from './SidePanel/SidePanel';
 import Header from './Header/Header';
 
@@ -8,22 +9,22 @@ import './AppLayout.css';
 function AppLayout() {
   const location = useLocation();
   const showHeader = location.pathname.startsWith('/funds/');
-  const funds = [
-    { id: 1, name: 'Asterium Fund I', code: 'AST' },
-    { id: 2, name: 'Lynx Capital II', code: 'LYN' },
-    { id: 3, name: 'Orion Partners III', code: 'ORI' },
-    { id: 4, name: 'Silvergate Ventures', code: 'SIL' },
-    { id: 5, name: 'Huron Growth Fund', code: 'HUR' },
-    { id: 6, name: 'Pioneer Equity I', code: 'PIO' },
-  ];
+
+  // 1. Fetch dynamic funds using the global hook
+  // We ignore isLoading here so the layout renders immediately (SidePanel can handle empty lists gracefully)
+  const { funds } = useFundData();
 
   return (
     <div className="app-layout">
+      {/* 2. Pass dynamic funds to SidePanel */}
       <SidePanel funds={funds} />
       
       <div className="right-column">
+        {/* 3. Pass dynamic funds to Header */}
         {showHeader && <Header funds={funds} />}
+        
         <main className="main-content">
+          {/* 4. Pass funds context to children (optional, if children don't fetch themselves) */}
           <Outlet context={{ funds }} />
         </main>
       </div>
