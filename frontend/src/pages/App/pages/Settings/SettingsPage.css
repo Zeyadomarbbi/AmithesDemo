@@ -13,245 +13,123 @@
   --dp-accent: #f7a93b;
 }
 
-.settings-page {
-  min-height: 100vh;
+.fund-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   width: 100%;
+  background-color: #FFFFFF;
 }
-.settings-container {
+.fund-settings-container {
   width: 100%;
   max-width: 100%;
-  
   box-sizing: border-box;
 }
+
 :root {
   --surface-active-fg: #375A8933;
   --surface-primary: #FAFAF9;
 }
-.settings-title {
+.fund-settings-title {
   font-family: "Crimson Pro", serif;
   font-weight: 500;
   font-size: 30px;
   line-height: 100%;
   color: #1c1917;
-  margin: 0 0 16px 0;
+  padding-bottom: 24px;
 }
 
 /* Tabs */
 
-.settings-tabs {
-  position: relative;
+.fund-settings-tabs {
   display: flex;
-  gap: 1.75rem;
-  margin-bottom: 1.75rem;
-}
-
-.settings-tabs::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: #e5e7eb;
-}
-
-.settings-tab {
-  padding: 0 0 0.4rem 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #375a89;
-  border-bottom: 2px solid transparent;
-  position: relative;
-  z-index: 1;
-}
-
-.settings-tab--active {
-  color: #375a89;
-  border-bottom-color: var(--fs-tabs-underline);
-}
-
-/* Share Classes */
-
-.share-classes-wrap {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.share-search {
-  position: relative;
-  max-width: 360px;
-  width: 100%;
-}
-
-.share-search-input {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid var(--fs-border-soft);
-  background: var(--fs-input-bg);
-  padding: 0.55rem 0.75rem 0.55rem 2rem;
-  font-size: 0.9rem;
-  outline: none;
-}
-
-.share-search-input::placeholder {
-  color: var(--fs-placeholder);
-}
-
-.share-search-icon {
-  position: absolute;
-  left: 0.6rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.9rem;
-  color: var(--fs-placeholder);
-}
-
-.share-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.share-card {
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: var(--surface-primary, #FAFAF9);
-  padding: 1.1rem 1.2rem;
-  box-sizing: border-box;
-}
-
-.share-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-}
-
-.share-card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--fs-text-main);
-}
-
-.share-card-menu-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1.1rem;
-  color: #9ca3af;
-}
-
-.share-card-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.6rem 1.5rem;
-  margin-bottom: 0.9rem;
-}
-
-.share-meta-column {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.share-meta-label {
-  font-size: 0.8rem;
-  color: #375a89;
-}
-
-.share-meta-value {
-  font-size: 0.9rem;
-  color: var(--fs-text-main);
-}
-
-.share-badge {
-  display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  padding: 0.18rem 0.5rem;
-  border-radius: 5px;
-  font-size: 0.75rem;
+  gap: 16px; 
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  margin-bottom: 24px;
+}
+
+.fund-settings-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none; /* For NavLink */
+  
+  /* Spacing */
+  padding: 0 4px 12px; 
+  
+  /* Typography */
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  
+  /* Color: Always Blue */
+  color: #375A89;
+  
+  /* Border Logic */
+  border-bottom: 2px solid transparent;
+  
+  /* Pull item down to overlap container border */
+  margin-bottom: -1px; 
+  
+  transition: border-color 0.2s, color 0.2s;
 }
 
-.share-badge--green {
-  background: #c6f6d5;
-  color: #166534;
+.fund-settings-tab:hover {
+  color: #375A89;
 }
 
-.share-badge--blue {
-  background: #dbeafe;
-  color: #1d4ed8;
+/* Active State */
+.fund-settings-tab--active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B; /* The Orange Active Line */
 }
 
-.share-badge--purple {
-  background: #ede9fe;
-  color: #6d28d9;
+.fund-settings-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  display: flex;
+  justify-content: flex-end; /* Align button to the right */
 }
 
-.share-description-block {
-  margin-bottom: 0.85rem;
+/* Constrain the actions width to allow flex: 1 to work */
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
 }
 
-.share-desc-title {
-  font-size: 0.85rem;
-  color: #375a89;
-  margin-bottom: 0.25rem;
-}
-
-.share-desc-text {
-  font-size: 0.85rem;
-  color: #4b5563;
-  margin: 0;
-}
-
-.share-file-btn {
-  margin-top: 0.3rem;
-  border-radius: 6px;
-  border: 1px solid #d1e3ff;
-  background: #e7f0ff;
-  padding: 0.4rem 0.55rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: #1d4ed8;
+/* Footer */
+.fund-settings-btn-save {
+  flex: 1; /* Makes buttons equal width and fills space */
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
   cursor: pointer;
-}
-
-.share-file-icon {
-  font-size: 0.9rem;
-}
-
-.share-new-btn {
-  margin-top: 0.25rem;
-  border-radius: 6px;
-  border: 1px solid #cbd5f5;
-  background: #f5f7ff;
-  padding: 0.45rem 0.75rem;
-  display: inline-flex;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: #375a89;
-  cursor: pointer;
+  /* Theme colors */
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
 }
 
-.share-new-icon {
-  font-size: 1rem;
+.fund-settings-btn-save:hover {
+  background-color: #e2962d;
 }
 
-/* Placeholder for other tabs */
-
-.tab-placeholder {
-  font-size: 0.9rem;
-  color: #6b7280;
-  padding-top: 0.5rem;
+.fund-settings-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
 }
 
 /* Responsive */

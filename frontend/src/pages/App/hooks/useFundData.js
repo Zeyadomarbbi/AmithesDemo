@@ -5,6 +5,7 @@ export function useFundData() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // --- FETCH FUNDS ---
     useEffect(() => {
         const fetchFunds = async () => {
             try {
@@ -16,40 +17,7 @@ export function useFundData() {
                 }
 
                 const data = await response.json();
-
-                // Map ALL backend fields to frontend structure
-                const formattedFunds = data.map(f => ({
-                    // --- Identifiers & Timestamps ---
-                    id: f.fund_id,
-                    created_at: f.created_at,
-                    updated_at: f.updated_at,
-
-                    // --- Core Fields ---
-                    name: f.legal_name,
-                    shortName: f.short_name,
-                    legalForm: f.legal_form,
-                    manCo: f.management_company || "",
-                    strategy: f.fund_strategy || "",
-
-                    // --- Related Data (IDs & Strings) ---
-                    formationDate: f.formation_date_string, // "14/01/2026"
-                    formationDateId: f.formation_date,      // 20260114
-                    
-                    currencyId: f.currency,                 // ID
-                    currencyName: f.currency_name,          // "Euro"
-                    currencySymbol: f.currency_symbol,      // "€"
-                    
-                    phaseId: f.phase,                       // ID
-                    badgeText: f.phase_name || "–",         // "Investment Period"
-
-                    // --- KPI Placeholders (To be fetched separately via /api/funds/:id/kpis/) ---
-                    grossIrr: "–",
-                    netIrr: "–",
-                    dpi: "–",
-                    rvpi: "–",
-                    tvpi: "–",
-                    deals: "–"
-                }));
+                const formattedFunds = data.map(f => formatFund(f));
 
                 setFunds(formattedFunds);
             } catch (err) {
@@ -63,6 +31,27 @@ export function useFundData() {
         fetchFunds();
     }, []);
 
+    // --- HELPER: FORMAT BACKEND DATA TO FRONTEND STRUCTURE ---
+    const formatFund = (f) => ({
+        id: f.fund_id,
+        created_at: f.created_at,
+        updated_at: f.updated_at,
+        name: f.legal_name,
+        shortName: f.short_name,
+        legalForm: f.legal_form || "",
+        manCo: f.management_company || "",
+        strategy: f.fund_strategy || "",
+        formationDate: f.formation_date_string,
+        formationDateId: f.formation_date,
+        currencyId: f.currency,
+        currencyName: f.currency_name,
+        currencySymbol: f.currency_symbol,
+        phaseId: f.phase,
+        badgeText: f.phase_name || "–",
+        grossIrr: "–", netIrr: "–", dpi: "–", rvpi: "–", tvpi: "–", deals: "–"
+    });
+
+    // --- CREATE FUND ---
     const initializeFund = async (payload) => {
         try {
             const response = await fetch("http://127.0.0.1:8000/api/funds/", {
@@ -82,37 +71,7 @@ export function useFundData() {
             }
 
             const savedFund = await response.json();
-
-            // Match the structure used in fetchFunds
-            const formatted = {
-                id: savedFund.fund_id,
-                created_at: savedFund.created_at,
-                updated_at: savedFund.updated_at,
-                
-                name: savedFund.legal_name,
-                shortName: savedFund.short_name,
-                legalForm: savedFund.legal_form || "",
-                manCo: savedFund.management_company || "",
-                strategy: savedFund.fund_strategy || "",
-                
-                formationDate: savedFund.formation_date_string,
-                formationDateId: savedFund.formation_date,
-                
-                currencyId: savedFund.currency,
-                currencyName: savedFund.currency_name,
-                currencySymbol: savedFund.currency_symbol,
-                
-                phaseId: savedFund.phase,
-                badgeText: savedFund.phase_name || "–",
-
-                // KPI Placeholders
-                grossIrr: "–",
-                netIrr: "–",
-                dpi: "–",
-                rvpi: "–",
-                tvpi: "–",
-                deals: "–"
-            };
+            const formatted = formatFund(savedFund);
 
             setFunds((prev) => [formatted, ...prev]);
             return { success: true };
@@ -122,5 +81,34 @@ export function useFundData() {
         }
     };
 
-    return { funds, setFunds, isLoading, error, initializeFund };
+    // --- NEW: UPDATE FUND ---
+    const updateFund = async (id, payload) => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/funds/${id}/`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload), // Maps snake_case keys from the component
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to update fund");
+            }
+
+            const updatedBackendFund = await response.json();
+            const formatted = formatFund(updatedBackendFund);
+
+            // Update local state by replacing the specific fund in the array
+            setFunds((prev) => 
+                prev.map((fund) => (fund.id === id ? formatted : fund))
+            );
+
+            return { success: true, data: formatted };
+        } catch (err) {
+            console.error("Fund update failed:", err);
+            return { success: false, error: err.message };
+        }
+    };
+
+    return { funds, setFunds, isLoading, error, initializeFund, updateFund };
 }

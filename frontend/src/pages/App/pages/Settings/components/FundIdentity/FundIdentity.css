@@ -1,16 +1,19 @@
-/* Fund Identity form */
-
 .settings-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.5rem 2.5rem;
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 24px 16px;
+  margin-top: 8px;
+  width: 100%;
 }
 
+/* Base field container */
 .form-field {
+  grid-column: span 1;
   display: flex;
   flex-direction: column;
 }
 
+/* Row 4 - Full Width Strategy */
 .form-field--full {
   grid-column: 1 / -1;
 }
@@ -19,199 +22,109 @@
   font-size: 0.8rem;
   color: var(--fs-label);
   margin-bottom: 0.4rem;
+  font-weight: 500;
 }
 
-.required {
-  color: var(--fs-label);
-  margin-left: 0.15rem;
-}
-
+/* Consistent Input Wrapper */
 .field-input {
+  position: relative;
   background: var(--fs-input-bg);
   border: 1px solid var(--fs-border-soft);
   border-radius: 4px;
-  padding: 0.65rem 0.75rem;
+  width: 100%;
+  height: 40px; 
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  box-sizing: border-box;
 }
 
-.static-field {
-  cursor: default;
+/* Remove "static-field" specific overrides to keep them looking like inputs */
+.field-input.static-field {
+  padding: 0.65rem 0.75rem;
   color: var(--fs-text-main);
+  background: #fdfdfd; /* Subtly different to indicate read-only */
 }
 
-.field-input--with-icon {
-  position: relative;
-  padding-right: 2rem;
-  cursor: pointer;
-}
-
+/* Internal padding for actual input elements */
 .field-input-inner {
   width: 100%;
+  height: 100%;
   border: none;
   background: transparent;
   font-size: 0.9rem;
-  color: var(--fs-text-main);
   outline: none;
-  cursor: inherit;
 }
 
-.field-input-inner::placeholder {
-  color: var(--fs-placeholder);
+.field-select.placeholder-active {
+  color: #9ca3af; /* Your --fs-placeholder color */
 }
 
-.field-icon {
+/* Ensure dropdown options themselves stay dark/main text color */
+.field-select option {
+  color: var(--fs-text-main);
+  background-color: #ffffff;
+}
+
+/* Optional: Gray out the first option specifically if it's visible in the list */
+.field-select option[value=""][disabled] {
+  display: none;
+}
+
+/* Custom Chevron Styling */
+.nf-select-chevron {
   position: absolute;
-  right: 0.65rem;
-  font-size: 0.9rem;
-  color: var(--fs-placeholder);
+  right: 14px;
+  top: calc(50% - 6px); /* Centers the 8x8 diamond vertically */
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #375A89;
+  border-bottom: 2px solid #375A89;
+  transform: rotate(45deg);
   pointer-events: none;
+  z-index: 2;
 }
 
+/* Hide default browser arrow */
 .field-select {
   appearance: none;
-}
-
-/* Date picker */
-
-.form-field--date {
-  position: relative;
-}
-
-.date-picker-popover {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  width: 280px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid var(--dp-border);
-  box-shadow: var(--dp-shadow);
-  padding: 0.85rem 0.85rem 0.75rem;
-  box-sizing: border-box;
-  z-index: 20;
-}
-
-.date-picker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.date-picker-month-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--fs-text-main);
-}
-
-.date-picker-nav {
-  border: none;
-  background: transparent;
+  -webkit-appearance: none;
   cursor: pointer;
-  font-size: 1.1rem;
-  padding: 0.15rem 0.35rem;
-  border-radius: 999px;
+  padding-right: 2rem; /* Make room for the chevron */
 }
 
-.date-picker-input-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+.settings-form .date-input-container .input-trigger {
+  background-color: var(--fs-input-bg) !important; /* Forces light gray background */
+  border: 1px solid var(--fs-border-soft) !important;
+  border-radius: 4px !important;
+  height: 40px !important;
+  padding: 0 0.75rem !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
-.date-picker-display-input {
-  flex: 1;
-  border-radius: 8px;
-  border: 1px solid var(--dp-border);
-  padding: 0.35rem 0.55rem;
-  font-size: 0.85rem;
-  outline: none;
+/* 2. Style the text inside the trigger */
+.settings-form .date-input-container .selected-date-text {
+  color: #1f2933 !important; /* Force matches --fs-text-main */
+  opacity: 1 !important;
 }
 
-.date-picker-today-btn {
-  border-radius: 8px;
-  border: 1px solid var(--dp-border);
-  background: #ffffff;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.8rem;
-  cursor: pointer;
+/* 3. Handle Placeholder state (gray out if date is missing/default) */
+.settings-form .date-input-container .input-trigger.placeholder-active .selected-date-text {
+  color: #ffffff !important;
 }
 
-.date-picker-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 0.35rem;
+/* 4. Match hover/active borders to the rest of the form */
+.settings-form .date-input-container .input-trigger.active {
+  border-color: var(--fs-accent) !important;
+  background: var(--fs-input-bg) !important;
 }
 
-.date-picker-weekday {
-  text-align: center;
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.date-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
-  margin-bottom: 0.6rem;
-}
-
-.date-picker-cell {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  font-size: 0.8rem;
-  cursor: pointer;
-  margin: 0 auto;
-}
-
-.date-picker-cell--empty {
-  cursor: default;
-}
-
-.date-picker-cell--today {
-  box-shadow: 0 0 0 1px var(--dp-accent);
-}
-
-.date-picker-cell--selected {
-  background: var(--dp-accent);
-  color: #ffffff;
-}
-
-.date-picker-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.date-picker-footer-btn {
-  border-radius: 8px;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.8rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-
-.date-picker-footer-btn--ghost {
-  background: #ffffff;
-  border-color: var(--dp-border);
-}
-
-.date-picker-footer-btn--primary {
-  background: var(--dp-accent);
-  border-color: var(--dp-accent);
-  color: #ffffff;
-}
-
-/* Responsive */
-
-@media (max-width: 640px) {
-  .date-picker-popover {
-    left: auto;
-    right: 0;
-  }
+/* 5. Icon Alignment */
+.settings-form .date-input-container .input-trigger svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
 }

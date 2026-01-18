@@ -11,7 +11,7 @@
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
 }
 
-.tab-item {
+.dashboard-tab-item {
   background: none;
   border: none;
   cursor: pointer;
@@ -40,7 +40,7 @@
 }
 
 /* Active State styling */
-.tab-item.active {
+.dashboard-tab-item.active {
   color: #375A89;
   /* The Orange Active Line */
   border-bottom: 2px solid #F7A93B;

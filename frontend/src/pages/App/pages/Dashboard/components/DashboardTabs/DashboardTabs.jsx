@@ -7,14 +7,14 @@ function DashboardTabs({ activeTab, onTabChange }) {
       {/* The buttons are direct children of the flex container now */}
       
       <button 
-        className={`tab-item ${activeTab === 'KPI' ? 'active' : ''}`}
+        className={`dashboard-tab-item ${activeTab === 'KPI' ? 'active' : ''}`}
         onClick={() => onTabChange('KPI')}
       >
         KPI
       </button>
       
       <button 
-        className={`tab-item ${activeTab === 'Limits' ? 'active' : ''}`}
+        className={`dashboard-tab-item ${activeTab === 'Limits' ? 'active' : ''}`}
         onClick={() => onTabChange('Limits')}
       >
         Limits
