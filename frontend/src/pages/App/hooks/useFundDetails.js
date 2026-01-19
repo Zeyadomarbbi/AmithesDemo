@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const BASE_URL = "http://127.0.0.1:8000/api";
+
 export function useFundDetails(fundId) {
     const [fund, setFund] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +14,7 @@ export function useFundDetails(fundId) {
         const fetchFund = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/`);
+                const response = await fetch(`${BASE_URL}/funds/${fundId}/`);
                 
                 if (!response.ok) {
                     throw new Error(`Error: ${response.status}`);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Removed useOutletContext
+import { useFundData } from '../../hooks/useFundData';     // <--- ADD THIS IMPORT
 import './DashboardPage.css';
 
 import DashboardHeader from './components/DashboardHeader/DashboardHeader';
@@ -11,7 +12,10 @@ function DashboardPage() {
     const { fundId, tab, timeframeId: urlTimeframeId } = useParams();
     const navigate = useNavigate();
 
-    const { funds = [] } = useOutletContext() || {};
+    // 1. CHANGE: Get funds from Global State instead of Outlet Context
+    const { funds } = useFundData(); 
+
+    // 2. Logic remains the same
     const currentFund = funds.find(f => String(f.id) === String(fundId));
 
     const [selectedTimeframeId, setSelectedTimeframeId] = useState(
@@ -50,6 +54,7 @@ function DashboardPage() {
         navigate(`/funds/${currentFund.id}/dashboard/kpi/${id}`);
     };
 
+    // 3. Loading State: This will briefly show while funds fetch initially
     if (!currentFund) {
         return <div className="dashboard-loading">Loading Fund...</div>;
     }

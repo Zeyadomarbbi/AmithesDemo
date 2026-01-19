@@ -1,0 +1,117 @@
+.share-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: var(--surface-primary, #FAFAF9);
+  padding: 1.1rem 1.2rem;
+  box-sizing: border-box;
+}
+
+.share-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.share-card-title {
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-weight: 700;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0%;
+  color: var(--fs-text-main);
+}
+
+.share-card-menu-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #9ca3af;
+}
+
+.share-card-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem 1.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.share-meta-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.share-meta-label {
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.share-meta-value {
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-weight: 500;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: var(--fs-text-main);
+}
+
+.share-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* === UPDATED COLORS === */
+
+.share-badge--green {
+  background: #DAF8E3; /* Updated */
+  color: #1A6433;
+}
+
+.share-badge--blue {
+  background: #D3F2FF; /* Updated */
+  color: #4C6977;
+}
+
+.share-badge--purple {
+  background: #F2E5FF; /* Updated */
+  color: #7D1ED7;
+}
+
+/* Fallback for undefined variants */
+.share-badge--gray {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.share-description-block {
+  margin-bottom: 0.85rem;
+}
+
+.share-file-btn {
+  margin-top: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #CCCDCE80;
+  background: #ffffff;
+  padding: 0.4rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #375A89;
+  cursor: pointer;
+}

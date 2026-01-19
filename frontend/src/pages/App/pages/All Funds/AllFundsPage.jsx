@@ -1,7 +1,9 @@
-// frontend/src/pages/App/pages/All Funds/AllFundsPage.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFundData } from "../../hooks/useFundData.js";
+
+// FIXED: Import 'useFundData' (the hook), not 'FundProvider'
+import { useFundData } from "../../hooks/useFundData"; 
+
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
@@ -13,8 +15,8 @@ import "./AllFundsPage.css";
 export default function AllFundsPage() {
   const navigate = useNavigate();
   
-  // 1. Initialize the custom hook
-  const { funds, setFunds, isLoading, error, initializeFund } = useFundData();
+  // FIXED: Call the hook
+  const { funds, isLoading, error, initializeFund } = useFundData();
 
   const [activeTab, setActiveTab] = useState("funds");
   const [query, setQuery] = useState("");

@@ -6,7 +6,9 @@ from .views import (
     FundScenarioView, 
     ScenarioSynthesisView, 
     FundListView, 
-    FundDetailView  # Make sure to import this!
+    FundDetailView,
+    ShareClassByFundView,
+    ShareClassDetailView  # Make sure to import this!
 )
 
 urlpatterns = [
@@ -35,7 +37,14 @@ urlpatterns = [
         FundDetailView.as_view(), 
         name="fund-detail"
     ),
-
+    path(
+        "funds/<int:fund_id>/share-classes/",
+        ShareClassByFundView.as_view(),
+    ),
+    path(
+        "funds/<int:fund_id>/share-classes/<int:share_class_id>/",
+        ShareClassDetailView.as_view(),
+    ),
     # 4. Related Data
     path(
         "funds/<int:fund_id>/timeframes/",

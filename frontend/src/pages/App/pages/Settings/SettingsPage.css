@@ -13,23 +13,33 @@
   --dp-accent: #f7a93b;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .fund-settings-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  min-height: 100%; /* CHANGED: from height to min-height */
   width: 100%;
   background-color: #FFFFFF;
 }
+
 .fund-settings-container {
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Ensures this container fills the min-height of the page */
 }
 
-:root {
-  --surface-active-fg: #375A8933;
-  --surface-primary: #FAFAF9;
+/* HEADER */
+.fund-settings-header {
+  flex-shrink: 0; /* Prevents header from shrinking */
+  padding-bottom: 0;
 }
+
 .fund-settings-title {
   font-family: "Crimson Pro", serif;
   font-weight: 500;
@@ -40,7 +50,6 @@
 }
 
 /* Tabs */
-
 .fund-settings-tabs {
   display: flex;
   flex-direction: row;
@@ -55,27 +64,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  text-decoration: none; /* For NavLink */
-  
-  /* Spacing */
+  text-decoration: none;
   padding: 0 4px 12px; 
-  
-  /* Typography */
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  
-  /* Color: Always Blue */
   color: #375A89;
-  
-  /* Border Logic */
   border-bottom: 2px solid transparent;
-  
-  /* Pull item down to overlap container border */
   margin-bottom: -1px; 
-  
   transition: border-color 0.2s, color 0.2s;
 }
 
@@ -83,18 +79,25 @@
   color: #375A89;
 }
 
-/* Active State */
 .fund-settings-tab--active {
   color: #375A89;
-  border-bottom: 2px solid #F7A93B; /* The Orange Active Line */
+  border-bottom: 2px solid #F7A93B;
 }
 
+/* CONTENT AREA - THIS PUSHES THE FOOTER DOWN */
+.fund-settings-content-area {
+  flex: 1; /* Grow to fill ALL remaining space */
+  padding-bottom: 40px; /* Space before footer */
+}
+
+/* FOOTER - FIXED AT BOTTOM */
 .fund-settings-footer {
-  margin-top: 40px;
-  padding-top: 24px;
+  margin-top: auto; /* Ensures it stays at bottom even if flex acts up */
+  background: #fff;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
   display: flex;
-  justify-content: flex-end; /* Align button to the right */
+  justify-content: flex-end;
 }
 
 /* Constrain the actions width to allow flex: 1 to work */
@@ -106,7 +109,7 @@
 
 /* Footer */
 .fund-settings-btn-save {
-  flex: 1; /* Makes buttons equal width and fills space */
+  flex: 1;
   height: 40px;
   border-radius: 4px; 
   border: none; 
@@ -117,7 +120,6 @@
   display: flex; 
   justify-content: center; 
   align-items: center;
-  /* Theme colors */
   background-color: #F7A93B;
   color: #FFFFFF;
   transition: background 0.2s ease;
@@ -447,198 +449,6 @@
 
 /* New share class drawer */
 
-.share-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.1);
-  display: flex;
-  justify-content: flex-end;
-  z-index: 40;
-}
-
-.share-drawer {
-  width: 480px;
-  max-width: 100%;
-  height: 100%;
-  background: #ffffff;
-  box-shadow: -18px 0 45px rgba(15, 23, 42, 0.15);
-  display: flex;
-  flex-direction: column;
-}
-
-.share-drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.share-drawer-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--fs-text-main);
-}
-
-.share-drawer-back,
-.share-drawer-close {
-  border: none;
-  background: #f9fafb;
-  border-radius: 999px;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-}
-
-.share-drawer-body {
-  padding: 1.25rem 1.5rem 1rem;
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.share-drawer-row {
-  display: grid;
-  gap: 0.75rem 1rem;
-}
-
-.share-drawer-row--two {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.share-drawer-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.share-drawer-help {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.2rem;
-}
-
-.share-drawer-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.share-toggle-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.share-toggle-btn {
-  flex: 1 1 0;
-  min-width: 150px;
-  padding: 0.55rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  font-size: 0.85rem;
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  color: #375a89;
-}
-
-.share-toggle-btn--active {
-  background: #e1e7f5;
-  border-color: #c7d2fe;
-}
-
-.share-drawer-textarea {
-  min-height: 120px;
-  border-radius: 4px;
-  border: 1px solid var(--fs-border-soft);
-  background: var(--fs-input-bg);
-  padding: 0.6rem 0.7rem;
-  font-size: 0.9rem;
-  resize: vertical;
-  outline: none;
-}
-
-.share-drawer-textarea::placeholder {
-  color: var(--fs-placeholder);
-}
-
-/* Upload box */
-
-.share-upload-box {
-  border-radius: 8px;
-  border: 1px dashed #d1d5e0;
-  background: #f9fafb;
-  padding: 1.4rem 0.75rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-
-.share-upload-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid #d1d5e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  color: #375a89;
-}
-
-.share-upload-text {
-  font-size: 0.85rem;
-  color: var(--fs-text-main);
-}
-
-.share-upload-hint {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-/* Footer buttons */
-
-.share-drawer-footer {
-  padding: 0.9rem 1.5rem 1.1rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-.share-drawer-footer-btn {
-  min-width: 120px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.share-drawer-footer-btn--ghost {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #4b5563;
-}
-
-.share-drawer-footer-btn--primary {
-  background: #f7a93b;
-  border-color: #f7a93b;
-  color: #ffffff;
-}
 
 /* Management fees – date input with icon */
 

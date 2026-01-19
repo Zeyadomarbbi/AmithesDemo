@@ -68,6 +68,42 @@ class DimFund(models.Model):
         managed = False
         db_table = "dim_fund"
 
+class DimShareClass(models.Model):
+    class DistributionMethod(models.TextChoices):
+        DIVIDEND = "DIVIDEND", "Dividend"
+        REDEMPTION_OF_SHARES = "REDEMPTION_OF_SHARES", "Redemption of Shares"
+
+    share_class_id = models.BigAutoField(primary_key=True)
+
+    fund = models.ForeignKey(
+        "DimFund",
+        on_delete=models.CASCADE,
+        db_column="fund_id",
+        related_name="share_classes",
+    )
+
+    share_class_name = models.TextField()
+    isin_code = models.TextField()
+    nominal_value = models.DecimalField(max_digits=18, decimal_places=2)
+    issuance_method = models.TextField()
+    distribution_method = models.TextField(
+        choices=DistributionMethod.choices
+    )
+    ppm_description = models.TextField()
+    document_name = models.TextField(null=True, blank=True)
+    document_mime_type = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.IntegerField()
+    document_file = models.FileField(upload_to='share_class_docs/', null=True, blank=True)
+    document_size = models.IntegerField(null=True, blank=True)
+    class Meta:
+        db_table = "dim_share_class"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fund", "share_class_name"],
+                name="uq_share_class_fund_name",
+            )
+        ]
 
 class DimTimeframe(models.Model):
     timeframe_id = models.AutoField(primary_key=True)

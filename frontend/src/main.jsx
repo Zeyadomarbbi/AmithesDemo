@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import './index.css'; 
+import { FundProvider } from './pages/App/hooks/useFundData';
+import './index.css';
 
 // --- AUTH ---
 import LoginPage from './pages/Auth/Login/LoginPage';
@@ -81,6 +82,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <FundProvider>
+      <RouterProvider router={router} />
+    </FundProvider>
   </React.StrictMode>
 );

@@ -1,24 +1,32 @@
 from rest_framework import serializers
-from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund, DimPhase
+from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund, DimPhase, DimShareClass
 
+class TimeframeSerializer(serializers.ModelSerializer):
+    date_id = serializers.IntegerField(source="date.date_id")
+    full_date = serializers.DateField(source="date.full_date")
+    quarter = serializers.IntegerField(source="date.quarter")
+    year = serializers.IntegerField(source="date.year")
+    class Meta:
+        model = DimTimeframe
+        fields = [
+            "timeframe_id",
+            "display_label",
+            "date_id",
+            "full_date",
+            "quarter",
+            "year",
+        ]
 
 class PhaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = DimPhase
         fields = ['phase_id', 'phase_name']
 
-
 class FundSerializer(serializers.ModelSerializer):
-    # source='...' will crash if the relation is None unless we handle it.
-    # The safest way for nullable relations is using SerializerMethodField, 
-    # OR simpler: rely on DRF's ability to handle nullable sources if defined correctly.
-    
-    # Let's use SerializerMethodField to be 100% safe against AttributeErrors
     formation_date_string = serializers.SerializerMethodField()
     phase_name = serializers.SerializerMethodField()
     currency_name = serializers.SerializerMethodField()
     currency_symbol = serializers.SerializerMethodField()
-
     class Meta:
         model = DimFund
         fields = [
@@ -41,21 +49,39 @@ class FundSerializer(serializers.ModelSerializer):
     def get_currency_symbol(self, obj):
         return obj.currency.currency_symbol if obj.currency else ""
 
-class TimeframeSerializer(serializers.ModelSerializer):
-    date_id = serializers.IntegerField(source="date.date_id")
-    full_date = serializers.DateField(source="date.full_date")
-    quarter = serializers.IntegerField(source="date.quarter")
-    year = serializers.IntegerField(source="date.year")
+class ShareClassSerializer(serializers.ModelSerializer):
+    fund_id = serializers.IntegerField(source="fund.fund_id", read_only=True)
+    document_file = serializers.FileField(write_only=True, required=False)
+    
+    # NEW: Read-only field for the download URL
+    document_url = serializers.SerializerMethodField()
+
     class Meta:
-        model = DimTimeframe
+        model = DimShareClass
         fields = [
-            "timeframe_id",
-            "display_label",
-            "date_id",
-            "full_date",
-            "quarter",
-            "year",
+            "share_class_id", "fund_id", "share_class_name", "isin_code", 
+            "nominal_value", "issuance_method", "distribution_method", 
+            "ppm_description", 
+            "document_name", "document_mime_type", 
+            "document_file", "document_url", "document_size",
+            "created_at", "created_by"
         ]
+        read_only_fields = ["share_class_id", "created_at", "created_by", "document_url", "document_size"]
+
+    def get_document_url(self, obj):
+        if obj.document_file:
+            # Returns full URL: http://localhost:8000/media/share_class_docs/file.pdf
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.document_file.url)
+        return None
+
+    def create(self, validated_data):
+        file_obj = validated_data.get('document_file')
+        if file_obj:
+            validated_data['document_name'] = file_obj.name
+            validated_data['document_mime_type'] = file_obj.content_type
+            validated_data['document_size'] = file_obj.size
+        return super().create(validated_data)
 
 class ScenarioSerializer(serializers.ModelSerializer):
     class Meta:

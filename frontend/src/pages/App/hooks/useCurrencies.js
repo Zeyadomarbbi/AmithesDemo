@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const BASE_URL = "http://127.0.0.1:8000/api";
+
 export function useCurrencies() {
     const [currencies, setCurrencies] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -9,7 +11,7 @@ export function useCurrencies() {
         const fetchCurrencies = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch("http://127.0.0.1:8000/api/currencies/");
+                const response = await fetch(`${BASE_URL}/currencies/`);
                 if (!response.ok) throw new Error("Failed to fetch currencies");
                 
                 const data = await response.json();

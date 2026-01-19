@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import { useCurrencies } from "../../../../hooks/useCurrencies.js";
 import { usePhases } from "../../../../hooks/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
+
 import "./FundIdentity.css";
 
 const FundIdentity = () => {
