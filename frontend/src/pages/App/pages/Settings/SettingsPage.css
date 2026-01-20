@@ -86,52 +86,10 @@ html, body {
 
 /* CONTENT AREA - THIS PUSHES THE FOOTER DOWN */
 .fund-settings-content-area {
-  flex: 1; /* Grow to fill ALL remaining space */
-  padding-bottom: 40px; /* Space before footer */
-}
-
-/* FOOTER - FIXED AT BOTTOM */
-.fund-settings-footer {
-  margin-top: auto; /* Ensures it stays at bottom even if flex acts up */
-  background: #fff;
-  border-top: 1px solid rgba(204, 205, 206, 0.5);
-  padding: 24px 0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Constrain the actions width to allow flex: 1 to work */
-.settings-actions {
-  display: flex;
-  gap: 12px;
-  width: 200px; 
-}
-
-/* Footer */
-.fund-settings-btn-save {
-  flex: 1;
-  height: 40px;
-  border-radius: 4px; 
-  border: none; 
-  cursor: pointer;
-  font-family: 'Inter', sans-serif; 
-  font-weight: 500; 
-  font-size: 14px;
-  display: flex; 
-  justify-content: center; 
-  align-items: center;
-  background-color: #F7A93B;
-  color: #FFFFFF;
-  transition: background 0.2s ease;
-}
-
-.fund-settings-btn-save:hover {
-  background-color: #e2962d;
-}
-
-.fund-settings-btn-save:disabled {
-  background-color: #D0D5DD;
-  cursor: not-allowed;
+  flex: 1;              /* Grow to fill page */
+  display: flex;        /* NEW: Turn this into a flex container */
+  flex-direction: column; /* NEW: Stack children vertically */
+  padding-bottom: 0;
 }
 
 /* Responsive */

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const BASE_URL = "http://127.0.0.1:8000/api";
 
@@ -7,30 +7,34 @@ export function useFundDetails(fundId) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        // Only fetch if a valid ID exists
+    // 1. Wrap the fetch logic in useCallback so it can be reused
+    const fetchData = useCallback(async () => {
         if (!fundId) return;
 
-        const fetchFund = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch(`${BASE_URL}/funds/${fundId}/`);
-                
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
-                }
+        setIsLoading(true);
+        setError(null);
 
-                const data = await response.json();
-                setFund(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setIsLoading(false);
+        try {
+            const response = await fetch(`${BASE_URL}/funds/${fundId}/`);
+            
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`);
             }
-        };
 
-        fetchFund();
-    }, [fundId]); // Re-fetch if the user switches funds in the sidebar
+            const data = await response.json();
+            setFund(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [fundId]);
 
-    return { fund, isLoading, error };
+    // 2. Initial Fetch
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    // 3. Return 'refetch' so components can call it manually
+    return { fund, isLoading, error, refetch: fetchData };
 }

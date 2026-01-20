@@ -4,50 +4,50 @@ import { useOutletContext } from "react-router-dom";
 import { SearchIcon, PlusIcon } from "./icons"; 
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";
+// IMPORT THE HOOK HERE DIRECTLY
+import { useShareClasses } from "../../../../hooks/useShareClass.js"; 
 
 import "./ShareClasses.css";
 
 const ShareClasses = () => {
-  // 1. Get Context from Parent (SettingsPage)  
+  // 1. Get Fund ID from Layout
+  const { fundId } = useOutletContext();
+
+  // 2. Fetch Data LOCALLY (Source of Truth)
   const { 
-    fundId, 
-    pendingShareClasses, 
-    setPendingShareClasses,
-    // NEW: Get the data from context
-    savedShareClasses,      
-    isShareClassLoading,
-    shareClassError
-  } = useOutletContext();
+    data: savedShareClasses, 
+    isLoading, 
+    error, 
+    create,     // The API create function
+    fetchAll    // The refresh function
+  } = useShareClasses(fundId);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewShareOpen, setIsNewShareOpen] = useState(false);
 
-  // 3. HANDLER: Add to Parent's Pending State
-  const handleLocalCreate = async (newShareClassData) => {
-    const newClass = {
-      ...newShareClassData,
-      id: `temp-${Date.now()}`, // Temp ID for React keys
-      isLocal: true // Flag for styling (e.g., yellow border)
-    };
-    
-    setPendingShareClasses((prev) => [...prev, newClass]);
+  // 3. HANDLER: Save to DB & Refresh List
+  // This function is passed down to the Drawer
+  const handleCreate = async (payload) => {
+    // A. Call API
+    await create(payload);
+    // B. Refresh List immediately to show the new item
+    await fetchAll();
   };
 
-  // 4. MERGE: Combine Server Data + Pending Data
-  // Note: pendingShareClasses comes from context now
-  const allShareClasses = [...(savedShareClasses || []), ...(pendingShareClasses || [])];
-  // 5. FILTER
-  const filteredShareClasses = allShareClasses.filter((cls) => {
+  // 4. FILTER (Client-side search)
+  const filteredShareClasses = (savedShareClasses || []).filter((cls) => {
     const query = searchTerm.toLowerCase();
     const nameMatch = (cls.share_class_name || "").toLowerCase().includes(query);
     const isinMatch = (cls.isin_code || "").toLowerCase().includes(query);
     return nameMatch || isinMatch;
   });
 
-  if (isShareClassLoading) return <div className="p-4 text-gray-500">Loading share classes...</div>;
-  if (shareClassError) return <div className="p-4 text-red-500">Error: {shareClassError}</div>;
+  if (isLoading) return <div className="p-4 text-gray-500">Loading share classes...</div>;
+  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
+
   return (
     <div className="share-classes-wrap">
+      {/* Search Bar */}
       <div className="share-search">
         <span className="share-search-icon"><SearchIcon /></span>
         <input
@@ -59,25 +59,28 @@ const ShareClasses = () => {
         />
       </div>
 
+      {/* List */}
       <div className="share-list">
         {filteredShareClasses.length === 0 ? (
            <p className="no-shares-msg">No share classes found.</p>
         ) : (
           filteredShareClasses.map((cls) => (
-            <ShareClassCard key={cls.id} shareClass={cls} />
+            <ShareClassCard key={cls.share_class_id} shareClass={cls} />
           ))
         )}
       </div>
 
+      {/* Add Button */}
       <button type="button" className="share-new-btn" onClick={() => setIsNewShareOpen(true)}>
         <PlusIcon />
         <span>New share class</span>
       </button>
 
+      {/* Drawer - Note we pass handleCreate as 'onCreate' */}
       <NewShareClassDrawer 
         isOpen={isNewShareOpen} 
         onClose={() => setIsNewShareOpen(false)} 
-        onCreate={handleLocalCreate} 
+        onCreate={handleCreate} 
       />
     </div>
   );

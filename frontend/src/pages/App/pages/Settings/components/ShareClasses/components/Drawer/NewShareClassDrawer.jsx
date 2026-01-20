@@ -1,14 +1,9 @@
+// frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Drawer/NewShareClassDrawer.jsx
 import React, { useState, useEffect } from "react";
-import { useFileUpload } from "../../../../../../../../hooks/Upload";
+import { useFileUpload } from "../../../../../../../../hooks/Upload"; // Adjust path as needed
 import { 
-  ChevronLeftIcon, 
-  CloseIcon, 
-  CurrencyIcon, 
-  PoundIcon, 
-  PieChartIcon, 
-  CreditCardIcon, 
-  CreditCardXIcon, 
-  UploadIcon 
+  ChevronLeftIcon, CloseIcon, CurrencyIcon, PoundIcon, 
+  PieChartIcon, CreditCardIcon, CreditCardXIcon, UploadIcon 
 } from "../../icons";
 
 import "./NewShareClassDrawer.css";
@@ -53,7 +48,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
 
   const { trigger, InputComponent } = useFileUpload(handleFileSelected);
 
-  // --- Save Logic ---
+  // --- SAVE LOGIC (Commits to Database) ---
   const handleSave = async () => {
     // 1. Basic Validation
     if (!name || !shareValue) {
@@ -65,37 +60,32 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
 
     try {
       // 2. Enum Mapping: Convert UI state to Database ENUMs
-      // UI: "pro-rata" -> DB: "PRO_RATA_CALLED"
-      // UI: "upfront"  -> DB: "UPFRONT" (Assumed)
       const dbIssuanceMethod = issuanceMethod === "pro-rata" 
         ? "PRO_RATA_CALLED" 
         : "UPFRONT";
 
-      // UI: "dividend"   -> DB: "DIVIDEND"
-      // UI: "redemption" -> DB: "REDEMPTION" (Assumed, or REDEMPTION_OF_SHARE)
       const dbDistributionMethod = distributionMethod === "dividend" 
         ? "DIVIDEND" 
         : "REDEMPTION_OF_SHARES";
 
-      // 3. Construct Payload matches your Database Schema
-      // Note: We send the 'file' object. Your 'useShareClasses' hook 
-      // should handle converting this object to FormData if sending a file.
+      // 3. Construct Payload
       const newShareClassData = {
         share_class_name: name,
         isin_code: isin,
-        nominal_value: shareValue, // Mapped from UI 'shareValue'
+        nominal_value: shareValue, 
         issuance_method: dbIssuanceMethod,
         distribution_method: dbDistributionMethod,
-        ppm_description: description, // Mapped from UI 'description'
-        file: uploadedFile // The file object to be uploaded
+        ppm_description: description,
+        file: uploadedFile 
       };
 
-      // 4. Call Parent Create Function
-      // This function comes from your useShareClasses hook
+      // 4. Call Parent API Function (Commits to DB)
+      console.log("Committing to DB...", newShareClassData);
       await onCreate(newShareClassData);
 
       // 5. Close Drawer on Success
       onClose();
+      
     } catch (error) {
       console.error("Failed to save share class:", error);
       alert("An error occurred while saving.");
@@ -110,6 +100,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
     <div className="share-drawer-overlay">
       <div className={`share-drawer ${isExpanded ? "share-drawer--expanded" : ""}`}>
         
+        {/* HEADER */}
         <div className="share-drawer-header">
           <div className="share-drawer-header-actions">
             <button 
@@ -124,10 +115,10 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               <CloseIcon />
             </button>
           </div>
-
           <div className="share-drawer-title">New share class</div>
         </div>
 
+        {/* BODY */}
         <div className="share-drawer-body">
           <div className="share-drawer-row share-drawer-row--two">
             <div className="share-drawer-field">
@@ -179,23 +170,17 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               <div className="share-toggle-group">
                 <button
                   type="button"
-                  className={`share-toggle-btn${
-                    issuanceMethod === "upfront" ? " share-toggle-btn--active" : ""
-                  }`}
+                  className={`share-toggle-btn${issuanceMethod === "upfront" ? " share-toggle-btn--active" : ""}`}
                   onClick={() => setIssuanceMethod("upfront")}
                 >
-                  <PoundIcon /> 
-                  <span>Upfront</span> 
+                  <PoundIcon /> <span>Upfront</span> 
                 </button>
                 <button
                   type="button"
-                  className={`share-toggle-btn${
-                    issuanceMethod === "pro-rata" ? " share-toggle-btn--active" : ""
-                  }`}
+                  className={`share-toggle-btn${issuanceMethod === "pro-rata" ? " share-toggle-btn--active" : ""}`}
                   onClick={() => setIssuanceMethod("pro-rata")}
                 >
-                  <PieChartIcon /> 
-                  <span>Pro rata capital called</span>
+                  <PieChartIcon /> <span>Pro rata capital called</span>
                 </button>
               </div>
           </div>
@@ -205,23 +190,17 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
             <div className="share-toggle-group">
               <button
                 type="button"
-                className={`share-toggle-btn${
-                  distributionMethod === "redemption" ? " share-toggle-btn--active" : ""
-                }`}
+                className={`share-toggle-btn${distributionMethod === "redemption" ? " share-toggle-btn--active" : ""}`}
                 onClick={() => setDistributionMethod("redemption")}
               >
-                <CreditCardIcon /> 
-                <span>Redemption of share</span>
+                <CreditCardIcon /> <span>Redemption of share</span>
               </button>
               <button
                 type="button"
-                className={`share-toggle-btn${
-                  distributionMethod === "dividend" ? " share-toggle-btn--active" : ""
-                }`}
+                className={`share-toggle-btn${distributionMethod === "dividend" ? " share-toggle-btn--active" : ""}`}
                 onClick={() => setDistributionMethod("dividend")}
               >
-                <CreditCardXIcon /> 
-                <span>Dividend</span>
+                <CreditCardXIcon /> <span>Dividend</span>
               </button>
             </div>
           </div>
@@ -238,7 +217,6 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
 
           <div className="share-drawer-section">
             <div className="share-class-drawer-field-label">Files</div>
-            
             <div 
               className={`share-upload-box ${uploadedFile ? "share-upload-box--has-file" : ""}`} 
               onClick={!uploadedFile ? trigger : undefined} 
@@ -257,7 +235,6 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
                         </span>
                       </div>
                    </div>
-
                    <button 
                      type="button" 
                      className="share-file-remove" 
@@ -278,10 +255,10 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
                 </>
               )}
             </div>
-
           </div>
         </div>
 
+        {/* FOOTER */}
         <div className="share-drawer-footer">
           <button
             type="button"
