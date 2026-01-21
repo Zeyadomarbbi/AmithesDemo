@@ -1,5 +1,6 @@
 from django.db import models
 
+# General Dimension Models
 class DimDate(models.Model):
     date_id = models.IntegerField(primary_key=True)
     full_date = models.DateField()
@@ -29,7 +30,30 @@ class DimCurrency(models.Model):
         managed = False
         db_table = "dim_currency"
 
+class DimTimeframe(models.Model):
+    timeframe_id = models.AutoField(primary_key=True)
 
+    fund = models.ForeignKey(
+        "DimFund",
+        db_column="fund_id",
+        on_delete=models.CASCADE
+    )
+
+    date = models.ForeignKey(
+        "DimDate",
+        db_column="date_id",
+        on_delete=models.RESTRICT
+    )
+
+    display_label = models.CharField(max_length=20, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+    class Meta:
+        managed = False
+        db_table = "dim_timeframe"
+        unique_together = (("fund", "date"),)
+
+# Fund & Related Dimension Models
 class DimFund(models.Model):
     fund_id = models.AutoField(primary_key=True)
     legal_name = models.CharField(max_length=255)
@@ -105,30 +129,37 @@ class DimShareClass(models.Model):
             )
         ]
 
-class DimTimeframe(models.Model):
-    timeframe_id = models.AutoField(primary_key=True)
-
-    fund = models.ForeignKey(
-        "DimFund",
-        db_column="fund_id",
-        on_delete=models.CASCADE
-    )
-
-    date = models.ForeignKey(
-        "DimDate",
-        db_column="date_id",
-        on_delete=models.RESTRICT
-    )
-
-    display_label = models.CharField(max_length=20, null=False)
+class DimWaterfallStep(models.Model):
+    """
+    Static reference table.
+    IDs: 1=Nominal, 2=Hurdle, 3=Catch-up, 4=Special Return
+    """
+    waterfall_step_id = models.AutoField(primary_key=True)
+    step_number = models.IntegerField(unique=True)
+    description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.CharField(max_length=100, null=True, blank=True)
+
     class Meta:
+        db_table = "dim_waterfall_step"
+        ordering = ["step_number"]
+
+    def __str__(self):
+        return f"{self.step_number} - {self.description}"
+
+class DimManFeePhase(models.Model):
+    phase_id = models.SmallIntegerField(primary_key=True)
+    phase_name = models.CharField(max_length=50)
+    basis_description = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "dim_man_fee_phase"
         managed = False
-        db_table = "dim_timeframe"
-        unique_together = (("fund", "date"),)
 
 
+
+
+# Scenario Dimension Models
 class DimScenarioList(models.Model):
     scenario_id = models.BigAutoField(primary_key=True)
     fund = models.ForeignKey(
@@ -175,21 +206,3 @@ class DimScenarioSynthesis(models.Model):
                 name='unique_synthesis_per_fund'
             )
         ]
-
-class MapScenarioSynthesis(models.Model):
-    record_id = models.AutoField(primary_key=True)
-    synthesis = models.ForeignKey(
-        'DimScenarioSynthesis', 
-        on_delete=models.CASCADE, 
-        db_column='synthesis_id',
-        related_name='scenario_mappings'
-    )
-    # Assuming DimScenarioList is your existing scenario table
-    scenario = models.ForeignKey(
-        'DimScenarioList', 
-        on_delete=models.CASCADE, 
-        db_column='scenario_id'
-    )
-
-    class Meta:
-        db_table = 'map_scenario_synthesis'

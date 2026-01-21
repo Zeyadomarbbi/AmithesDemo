@@ -2,13 +2,13 @@ from datetime import datetime
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from django.utils import timezone
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from .utils import get_or_create_dim_date
-from .models import DimTimeframe, DimDate, DimFund, DimScenarioList, DimScenarioSynthesis, DimCurrency, DimPhase, DimShareClass
-from .serializers import TimeframeSerializer, ScenarioSerializer, DimScenarioSynthesisSerializer, FundSerializer, PhaseSerializer, ShareClassSerializer
+from .models import *
+from .serializers import *
 
 class CurrencyListView(APIView):
     def get(self, request):
@@ -211,6 +211,87 @@ class ShareClassDetailView(APIView):
         obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+class WaterfallStepDefinitionListView(APIView):
+    def get(self, request):
+        steps = DimWaterfallStep.objects.all().values()
+        return Response(steps)
+
+# 2. List/Create: Get all steps for a fund or Create a new one
+class FundWaterfallListCreateView(generics.ListCreateAPIView):
+    serializer_class = FactFundWaterfallStepSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs['fund_id']
+        return FactFundWaterfallStep.objects.filter(fund_id=fund_id)
+
+    def perform_create(self, serializer):
+        fund_id = self.kwargs['fund_id']
+        serializer.save(fund_id=fund_id)
+
+# 3. Detail: Update a specific step
+class FundWaterfallDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = FactFundWaterfallStepSerializer
+    queryset = FactFundWaterfallStep.objects.all()
+    lookup_field = 'id'
+
+    def get_object(self):
+        # Ensure we only fetch steps belonging to the specific fund in URL
+        return get_object_or_404(
+            FactFundWaterfallStep, 
+            pk=self.kwargs['pk'], 
+            fund_id=self.kwargs['fund_id']
+        )
+
+class ManFeePhaseListView(APIView):
+    def get(self, request):
+        qs = DimManFeePhase.objects.order_by("phase_id")
+        serializer = ManFeePhaseSerializer(qs, many=True)
+        return Response(serializer.data)
+
+class FundManFeeRuleListCreateView(APIView):
+    def get(self, request, fund_id):
+        qs = (
+            FactFundManFeeRule.objects
+            .filter(fund_id=fund_id)
+            .order_by("date_from")
+        )
+        serializer = FundManFeeRuleSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        data = request.data.copy()
+        data["fund"] = fund_id
+        data["updated_at"] = timezone.now()
+
+        serializer = FundManFeeRuleSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class FundManFeeRuleDetailView(APIView):
+    # FIXED: Added fund_id to the arguments to match the URL pattern
+    def put(self, request, fund_id, fee_rule_id):
+        try:
+            # Best Practice: Ensure the rule actually belongs to this fund for security
+            rule = FactFundManFeeRule.objects.get(pk=fee_rule_id, fund_id=fund_id)
+        except FactFundManFeeRule.DoesNotExist:
+            return Response({"error": "Rule not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data["updated_at"] = timezone.now()
+        
+        # Ensure the fund in the body matches the URL (optional safety)
+        data["fund"] = fund_id 
+
+        # partial=False ensures all required fields are present (standard for PUT)
+        # If you want to allow updating just one field, change to partial=True
+        serializer = FundManFeeRuleSerializer(
+            rule, data=data, partial=False
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
 class FundTimeframeView(APIView):
     def get(self, request, fund_id):
         qs = DimTimeframe.objects.filter(fund_id=fund_id).select_related("date").order_by("date__full_date")

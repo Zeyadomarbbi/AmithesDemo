@@ -1,5 +1,5 @@
-/* Management fees */
-.mgmt-wrapper {
+
+.wf-wrapper {
   display: flex;
   flex-direction: column;
   flex: 1;              /* Grow to fill parent */
@@ -8,7 +8,7 @@
   min-height: 0;
 }
 
-.mgmt-content {
+.wf-content {
   /* 1. REQUIRED: Make this a flex container so 'gap' works */
   display: flex;
   flex-direction: column; 
@@ -19,7 +19,7 @@
 }
 
 /* Footer Save Button */
-.mgmt-footer {
+.wf-footer {
   margin-top: auto;
   background: #fff;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
@@ -29,13 +29,13 @@
   flex-shrink: 0;
 }
 
-.mgmt-actions {
+.wf-actions {
   display: flex;
   gap: 12px;
   width: 200px;
 }
 
-.mgmt-btn-save {
+.wf-btn-save {
   flex: 1;
   height: 40px;
   border-radius: 4px;
@@ -52,11 +52,11 @@
   transition: background 0.2s ease;
 }
 
-.mgmt-btn-save:hover {
+.wf-btn-save:hover {
   background-color: #e2962d;
 }
 
-.mgmt-btn-save:disabled {
+.wf-btn-save:disabled {
   background-color: #D0D5DD;
   cursor: not-allowed;
 }

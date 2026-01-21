@@ -23,9 +23,10 @@ import AdminsPage from './pages/App/pages/Admins/AdminsPage';
 import HelpPage from './pages/App/pages/Help/HelpPage';
 
 // --- SETTINGS COMPONENTS ---
-import FundIdentity from './pages/App/pages/Settings/components/FundIdentity/FundIdentity.jsx';
-import ManagementFees from './pages/App/pages/Settings/components/ManagementFees/ManagementFees.jsx';
-import ShareClasses from './pages/App/pages/Settings/components/ShareClasses/ShareClasses.jsx';
+import FundIdentity from './pages/App/pages/Settings/components/FundIdentity/FundIdentity';
+import ManagementFees from './pages/App/pages/Settings/components/ManagementFees/ManagementFees';
+import ShareClasses from './pages/App/pages/Settings/components/ShareClasses/ShareClasses';
+import WaterfallStructure from './pages/App/pages/Settings/components/WaterfallStructure/WaterfallStructure';
 import SettingsPage from './pages/App/pages/Settings/SettingsPage';
 
 const router = createBrowserRouter([
@@ -52,7 +53,7 @@ const router = createBrowserRouter([
                 { index: true, element: <Navigate to="fund-identity" replace /> },
                 { path: 'fund-identity', element: <FundIdentity /> },
                 { path: 'share-classes', element: <ShareClasses /> },
-                { path: 'waterfall-structure', element: <div>Waterfall Component</div> },
+                { path: 'waterfall-structure', element: <WaterfallStructure /> },
                 { path: 'management-fees', element: <ManagementFees /> },
             ]
           },

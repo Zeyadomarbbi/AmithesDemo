@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis, DimFund, DimPhase, DimShareClass
+from .models import *
 
 class TimeframeSerializer(serializers.ModelSerializer):
     date_id = serializers.IntegerField(source="date.date_id")
@@ -82,6 +82,119 @@ class ShareClassSerializer(serializers.ModelSerializer):
             validated_data['document_mime_type'] = file_obj.content_type
             validated_data['document_size'] = file_obj.size
         return super().create(validated_data)
+
+class FactWaterfallRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FactWaterfallRule
+        fields = ['id', 'share_class', 'is_selected', 'is_pro_rata', 'fixed_percentage']
+
+
+class FactWaterfallEnvelopeSerializer(serializers.ModelSerializer):
+    rules = FactWaterfallRuleSerializer(many=True)
+
+    class Meta:
+        model = FactWaterfallEnvelope
+        fields = ['id', 'envelope_number', 'allocation_percentage', 'rules']
+
+
+class FactFundWaterfallStepSerializer(serializers.ModelSerializer):
+    envelopes = FactWaterfallEnvelopeSerializer(many=True)
+    
+    # Read-only fields for UI display
+    step_number = serializers.IntegerField(source='step_definition.step_number', read_only=True)
+    step_description = serializers.CharField(source='step_definition.description', read_only=True)
+
+    class Meta:
+        model = FactFundWaterfallStep
+        fields = [
+            'id', 'fund', 'step_definition', 'step_number', 'step_description', 
+            'name', 'rate', 'envelopes'
+        ]
+
+    def create(self, validated_data):
+        """
+        Handles creating a whole Step hierarchy: Step -> Envelopes -> Rules
+        """
+        envelopes_data = validated_data.pop('envelopes')
+        step_instance = FactFundWaterfallStep.objects.create(**validated_data)
+
+        for env_data in envelopes_data:
+            rules_data = env_data.pop('rules')
+            envelope = FactWaterfallEnvelope.objects.create(step_instance=step_instance, **env_data)
+            
+            for rule_data in rules_data:
+                FactWaterfallRule.objects.create(envelope=envelope, **rule_data)
+
+        return step_instance
+
+    def update(self, instance, validated_data):
+        """
+        Handles updating the hierarchy. 
+        Uses update_or_create to allow partial updates of nested data.
+        """
+        # 1. Update Step Fields
+        instance.name = validated_data.get('name', instance.name)
+        instance.rate = validated_data.get('rate', instance.rate)
+        instance.save()
+
+        # 2. Update Envelopes
+        if 'envelopes' in validated_data:
+            envelopes_data = validated_data.pop('envelopes')
+            
+            for env_data in envelopes_data:
+                env_number = env_data.get('envelope_number')
+                rules_data = env_data.pop('rules', [])
+                
+                # Get Envelope (1 or 2)
+                envelope, _ = FactWaterfallEnvelope.objects.update_or_create(
+                    step_instance=instance,
+                    envelope_number=env_number,
+                    defaults={
+                        'allocation_percentage': env_data.get('allocation_percentage', 0)
+                    }
+                )
+
+                # 3. Update Rules (Share Classes)
+                for rule_data in rules_data:
+                    share_class = rule_data.get('share_class')
+                    FactWaterfallRule.objects.update_or_create(
+                        envelope=envelope,
+                        share_class=share_class,
+                        defaults={
+                            'is_selected': rule_data.get('is_selected'),
+                            'is_pro_rata': rule_data.get('is_pro_rata', True),
+                            'fixed_percentage': rule_data.get('fixed_percentage')
+                        }
+                    )
+        
+        return instance
+
+class ManFeePhaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DimManFeePhase
+        fields = [
+            "phase_id",
+            "phase_name",
+            "basis_description",
+            "created_at",
+        ]
+        
+class FundManFeeRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FactFundManFeeRule
+        fields = [
+            "fee_rule_id",
+            "fund",
+            "phase",
+            "share_class",
+            "date_from",
+            "date_until",
+            "rate_percentage",
+            "created_at",
+            "created_by",
+            "updated_at",
+        ]
+        read_only_fields = ["fee_rule_id", "created_at", "created_by"]
 
 class ScenarioSerializer(serializers.ModelSerializer):
     class Meta:

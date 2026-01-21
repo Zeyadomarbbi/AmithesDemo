@@ -1,0 +1,115 @@
+/* Container & Structure */
+.wf-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: var(--surface-primary, #FAFAF9);
+  padding: 1.25%;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.wf-step-title {
+  margin-bottom: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1vw, 0.9rem);
+  line-height: 1.5;
+  color: #375A89;
+}
+
+/* Body Layout - The GAP is defined here */
+.wf-step-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px; /* Fixed gap to ensure separation between Name and Share Classes */
+  align-items: flex-start;
+}
+
+/* Left Container (Name Input) */
+.wf-left-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* Gap between Label and Input */
+  flex: 1 1 25%;
+  min-width: 250px; /* Increased slightly to prevent crushing */
+  max-width: 400px;
+}
+
+/* Right Grid (Share Classes) */
+.wf-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5vw;
+  flex: 2 1 60%;
+}
+
+.wf-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* Gap between Label and Box matches Left Container */
+  flex: 0 1 auto;
+  min-width: 100px;
+}
+
+/* Typography */
+.wf-meta-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+}
+
+/* Inputs & Boxes */
+.wf-field-input {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  background: #FFFFFF;
+  height: 40px; 
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wf-text-input-inner {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: transparent;
+}
+
+/* Static Box (Pro Rata) */
+.wf-static-input-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F9FAFB;
+  border: 1px dashed #E5E7EB; /* Dashed border for static feel */
+  border-radius: 6px;
+  height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  min-width: 80px;
+}
+
+.wf-static-inner {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #6B7280;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .wf-left-container {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
