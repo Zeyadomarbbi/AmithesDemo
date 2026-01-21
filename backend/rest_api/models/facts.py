@@ -1,7 +1,7 @@
 from django.db import models
 
 class FactFundWaterfallStep(models.Model):
-    id = models.BigAutoField(primary_key=True)
+    fund_waterfall_step_id = models.BigAutoField(primary_key=True)
     
     fund = models.ForeignKey(
         "DimFund", 
@@ -13,14 +13,14 @@ class FactFundWaterfallStep(models.Model):
     step_definition = models.ForeignKey(
         "DimWaterfallStep", 
         on_delete=models.PROTECT,
-        db_column="step_definition_id"
+        db_column="waterfall_step_id"
     )
 
     # The custom name (e.g. "Nominal Repayment", "Special Return")
-    name = models.CharField(max_length=255)
+    step_name = models.CharField(max_length=255)
     
     # Used for Step 2 (8.00%) and Step 3 (25.00%)
-    rate = models.DecimalField(
+    hurdle_rate = models.DecimalField(
         max_digits=18, decimal_places=4, null=True, blank=True
     )
 
@@ -34,13 +34,12 @@ class FactFundWaterfallStep(models.Model):
 
 
 class FactWaterfallEnvelope(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    
+    waterfall_envelope_id = models.BigAutoField(primary_key=True)
     step_instance = models.ForeignKey(
         FactFundWaterfallStep, 
         on_delete=models.CASCADE, 
         related_name="envelopes",
-        db_column="step_instance_id"
+        db_column="fund_waterfall_step_id"
     )
     
     # Strictly 1 or 2
@@ -60,13 +59,13 @@ class FactWaterfallEnvelope(models.Model):
 
 
 class FactWaterfallRule(models.Model):
-    id = models.BigAutoField(primary_key=True)
+    waterfall_rule_id = models.BigAutoField(primary_key=True)
     
     envelope = models.ForeignKey(
         FactWaterfallEnvelope, 
         on_delete=models.CASCADE, 
         related_name="rules",
-        db_column="envelope_id"
+        db_column="waterfall_envelope_id"
     )
     
     share_class = models.ForeignKey(

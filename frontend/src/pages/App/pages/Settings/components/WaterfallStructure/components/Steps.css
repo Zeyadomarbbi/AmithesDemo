@@ -6,110 +6,194 @@
   padding: 1.25%;
   box-sizing: border-box;
   width: 100%;
-  margin-bottom: 24px;
 }
 
 .wf-step-title {
   margin-bottom: 0.75rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter';
   font-weight: 600;
   font-size: clamp(0.8rem, 1vw, 0.9rem);
   line-height: 1.5;
   color: #375A89;
 }
 
-/* Body Layout - The GAP is defined here */
+/* Body Layout - The Row Container */
 .wf-step-body {
   display: flex;
-  flex-wrap: wrap;
-  gap: 32px; /* Fixed gap to ensure separation between Name and Share Classes */
+  flex-wrap: wrap; 
+  gap: 2vw;        
   align-items: flex-start;
+  width: 100%;
 }
 
-/* Left Container (Name Input) */
-.wf-left-container {
+/* COLUMN 1: Name (Approx 28%) */
+.wf-col-name {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Gap between Label and Input */
-  flex: 1 1 25%;
-  min-width: 250px; /* Increased slightly to prevent crushing */
-  max-width: 400px;
+  flex: 2;         /* Flex value 2 */
+  min-width: 180px; 
 }
 
-/* Right Grid (Share Classes) */
-.wf-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.5vw;
-  flex: 2 1 60%;
-}
-
-.wf-meta-item {
+/* COLUMN 2: Rate (Approx 14%) */
+.wf-col-rate {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Gap between Label and Box matches Left Container */
-  flex: 0 1 auto;
+  flex: 1;         /* Flex value 1 */
   min-width: 100px;
 }
 
-/* Typography */
-.wf-meta-label {
-  font-family: 'Inter', sans-serif;
+/* COLUMN 3: Share Classes (Approx 57% - Twice the size of Name) */
+.wf-col-classes {
+  display: flex;
+  flex-wrap: wrap; /* Allow classes to wrap inside this column */
+  gap: 1rem 1.5vw;
+  flex: 4;         /* Flex value 4 (Double of Col 1) */
+  align-items: flex-start;
+}
+
+/* --------------------------------------------------------- */
+/* Field Styling */
+
+.wf-label {
+  font-family: 'Inter';
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
+  letter-spacing: 0.01em;
   color: #375A89;
+  margin-bottom: 0.5rem; /* Space between label and input */
 }
 
-/* Inputs & Boxes */
+/* Standard Text Input Wrapper */
 .wf-field-input {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #E5E7EB;
   border-radius: 6px;
   background: #FFFFFF;
   height: 40px; 
-  width: 100%;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .wf-text-input-inner {
   border: none;
   outline: none;
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter';
+  font-weight: 500;
   font-size: 14px;
-  color: #111827;
+  color: #1C1917;
   background: transparent;
 }
 
-/* Static Box (Pro Rata) */
+/* Share Class Group Item */
+.wf-sc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 0 1 auto; 
+  min-width: 100px;
+}
+
+/* Static Box (Pro Rata) & Standard Inputs */
 .wf-static-input-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #F9FAFB;
-  border: 1px dashed #E5E7EB; /* Dashed border for static feel */
-  border-radius: 6px;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 0.5rem;
+  border-radius: 6px;
   box-sizing: border-box;
-  min-width: 80px;
+  border: 1px solid #E5E7EB;
+  background-color: #F9FAFB; 
+  border-style: dashed;      
+  cursor: default;
+  width: 100%; /* Fills the flex item width */
 }
 
 .wf-static-inner {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter';
   font-size: 14px;
-  color: #6B7280;
+  color: #6B7280; 
   font-weight: 500;
   pointer-events: none;
 }
 
+/* --- Rate Input Styling --- */
+.wf-input-with-unit {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Custom Orange Checkbox --- */
+
+/* Container to center it like the inputs */
+.wf-checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content:flex-start;
+}
+
+.wf-checkbox-custom {
+  /* Remove default browser styling */
+  -webkit-appearance: none;
+  appearance: none;
+  
+  /* Dimensions */
+  width: 20px;
+  height: 20px;
+  
+  /* Unchecked State */
+  background-color: #fff;
+  border: 2px solid #D1D5DB; /* Grey border */
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Checked State (Orange Background) */
+.wf-checkbox-custom:checked {
+  background-color: #F59E0B; /* Orange */
+  border-color: #F59E0B;
+}
+
+/* The Checkmark Icon */
+.wf-checkbox-custom:checked::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 5px;
+  width: 4px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Hover effect */
+.wf-checkbox-custom:hover {
+  border-color: #9CA3AF;
+}
+.wf-checkbox-custom:checked:hover {
+  border-color: #D97706; /* Darker Orange */
+}
+
+.wf-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #E5E7EB;
+}
+
 /* Mobile Adjustments */
 @media (max-width: 768px) {
-  .wf-left-container {
+  .wf-step-body {
+    flex-direction: column;
+  }
+  .wf-col-name, .wf-col-rate, .wf-col-classes {
+    width: 100%;
     flex: 1 1 100%;
-    max-width: none;
   }
 }

@@ -6,161 +6,158 @@ import { useFundWaterfallSteps } from "../../../../hooks/Waterfall/useFundWaterf
 
 // Components for each specific UI layout
 import Step1 from "./components/Step1";
-// import Step2 from "./components/Step2";
-// import Step3 from "./components/Step3";
-// import Step4 from "./components/Step4";
+import Step2 from "./components/Step2";
+import Step3 from "./components/Step3";
+import Step4 from "./components/Step4";
 
 import "./WaterfallStructure.css";
 
 const WaterfallStructure = () => {
-  const { fundId } = useOutletContext();
-  
-  // 1. Hooks
-  const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
-  const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
+    const { fundId } = useOutletContext();
 
-  const isSaving = wfLoading; // Alias for UI clarity
+    // 1. Hooks
+    const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
+    const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
 
-  // 2. State Initialization (Empty defaults until data loads)
-  // Each step tracks: DB ID, Name, Rate, and Envelopes (1 & 2) with Rules
-  const createDefaultStepState = (name, rate = "") => ({
+    const isSaving = wfLoading; // Alias for UI clarity
+
+    // 2. State Initialization (Empty defaults until data loads)
+    // Each step tracks: DB ID, Name, Rate, and Envelopes (1 & 2) with Rules
+    const createDefaultStepState = (step_name, hurdle_rate = "") => ({
     id: null, // Backend ID (null = new)
-    name: name,
-    rate: rate,
+    step_name: step_name,
+    hurdle_rate: hurdle_rate,
     envelopes: [
-      { number: 1, allocation: 100, rules: {} }, // rules: { shareClassId: { isSelected, isProRata, fixed... } }
-      { number: 2, allocation: 0, rules: {} }
+        { number: 1, allocation: "", rules: {} }, // rules: { shareClassId: { isSelected, isProRata, fixed... } }
+        { number: 2, allocation: "", rules: {} }
     ]
-  });
+    });
 
-  const [step1Data, setStep1Data] = useState(createDefaultStepState("Nominal Repayment"));
-  const [step2Data, setStep2Data] = useState(createDefaultStepState("Hurdle", "8.00"));
-  const [step3Data, setStep3Data] = useState(createDefaultStepState("Catch-up", "25.00"));
-  const [step4Data, setStep4Data] = useState(createDefaultStepState("Special Return", ""));
+    const [step1Data, setStep1Data] = useState(createDefaultStepState("Nominal Repayment"));
+    const [step2Data, setStep2Data] = useState(createDefaultStepState("Hurdle", ""));
+    const [step3Data, setStep3Data] = useState(createDefaultStepState("Catch-up", ""));
+    const [step4Data, setStep4Data] = useState(createDefaultStepState("Special Return", ""));
 
   // 3. Helper: Map Backend Data to Frontend State
   // This takes a "Step" from the DB and formats it for our state
-  const mapBackendToState = useCallback((backendStep) => {
-    // Sort envelopes to ensure [Env1, Env2] order
-    const sortedEnvs = backendStep.envelopes.sort((a, b) => a.envelope_number - b.envelope_number);
-    
-    // Map rules into a lookup object: { [shareClassId]: ruleObject }
-    const mapRules = (rulesArray) => {
-      const rulesObj = {};
-      rulesArray.forEach(r => {
-        rulesObj[r.share_class] = {
-          id: r.id,
-          isSelected: r.is_selected,
-          isProRata: r.is_pro_rata,
-          fixedPercentage: r.fixed_percentage
+    const mapBackendToState = useCallback((backendStep) => {
+        const sortedEnvs = backendStep.envelopes.sort((a, b) => a.envelope_number - b.envelope_number);
+        
+        const mapRules = (rulesArray) => {
+        const rulesObj = {};
+        rulesArray.forEach(r => {
+            rulesObj[r.share_class] = {
+            id: r.waterfall_rule_id, // Updated from r.id
+            isSelected: r.is_selected,
+            isProRata: r.is_pro_rata,
+            fixedPercentage: r.fixed_percentage
+            };
+        });
+        return rulesObj;
         };
-      });
-      return rulesObj;
-    };
 
-    return {
-      id: backendStep.id,
-      name: backendStep.name,
-      rate: backendStep.rate || "",
-      envelopes: [
-        { 
-          number: 1, 
-          allocation: sortedEnvs[0]?.allocation_percentage || 0, 
-          rules: mapRules(sortedEnvs[0]?.rules || []) 
-        },
-        { 
-          number: 2, 
-          allocation: sortedEnvs[1]?.allocation_percentage || 0, 
-          rules: mapRules(sortedEnvs[1]?.rules || []) 
-        }
-      ]
-    };
-  }, []);
+        return {
+            id: backendStep.fund_waterfall_step_id,
+            step_name: backendStep.step_name,
+            hurdle_rate: backendStep.hurdle_rate || "",
+            envelopes: [
+                { 
+                number: 1, 
+                id: sortedEnvs[0]?.waterfall_envelope_id, // Updated from .id
+                allocation: sortedEnvs[0]?.allocation_percentage || 0, 
+                rules: mapRules(sortedEnvs[0]?.rules || []) 
+                },
+                { 
+                number: 2, 
+                id: sortedEnvs[1]?.waterfall_envelope_id, // Updated from .id
+                allocation: sortedEnvs[1]?.allocation_percentage || 0, 
+                rules: mapRules(sortedEnvs[1]?.rules || []) 
+                }
+            ]
+        };
+    }, []);
 
   // 4. Load Data Effect
-  useEffect(() => {
-    if (!fundId || scLoading) return;
+    useEffect(() => {
+        if (!fundId || scLoading) return;
 
-    const loadData = async () => {
-      const dbSteps = await fetchFundSteps(fundId);
-      
-      // Map DB steps to specific state buckets based on definition ID (1,2,3,4)
-      // Note: Assuming step_definition ID corresponds to step number (1=Nominal, 2=Hurdle...)
-      
-      const s1 = dbSteps.find(s => s.step_number === 1);
-      if (s1) setStep1Data(mapBackendToState(s1));
+        const loadData = async () => {
+            const dbSteps = await fetchFundSteps(fundId);
+            
+            // Map DB steps to specific state buckets based on definition ID (1,2,3,4)
+            // Note: Assuming step_definition ID corresponds to step number (1=Nominal, 2=Hurdle...)
+            
+            const s1 = dbSteps.find(s => s.step_number === 1);
+            if (s1) setStep1Data(mapBackendToState(s1));
 
-      const s2 = dbSteps.find(s => s.step_number === 2);
-      if (s2) setStep2Data(mapBackendToState(s2));
+            const s2 = dbSteps.find(s => s.step_number === 2);
+            if (s2) setStep2Data(mapBackendToState(s2));
 
-      const s3 = dbSteps.find(s => s.step_number === 3);
-      if (s3) setStep3Data(mapBackendToState(s3));
+            const s3 = dbSteps.find(s => s.step_number === 3);
+            if (s3) setStep3Data(mapBackendToState(s3));
 
-      const s4 = dbSteps.find(s => s.step_number === 4);
-      if (s4) setStep4Data(mapBackendToState(s4));
-    };
+            const s4 = dbSteps.find(s => s.step_number === 4);
+            if (s4) setStep4Data(mapBackendToState(s4));
+        };
 
-    loadData();
-  }, [fundId, fetchFundSteps, scLoading, mapBackendToState]);
-
+        loadData();
+    }, 
+    [fundId, fetchFundSteps, scLoading, mapBackendToState]);
 
   // 5. Save Handler (The "Upsert" Logic)
   const handleSave = async () => {
     try {
       // Helper to format a single step for the API
-      const formatPayload = (stepDefinitionId, stateData) => {
+        const formatPayload = (stepDefinitionId, stateData) => {
         return {
-          step_definition: stepDefinitionId,
-          name: stateData.name,
-          rate: stateData.rate ? parseFloat(stateData.rate) : null,
-          envelopes: stateData.envelopes.map(env => ({
+            fund: fundId, // Add this line to provide the foreign key the backend is missing
+            step_definition: stepDefinitionId,
+            step_name: stateData.step_name,
+            hurdle_rate: stateData.hurdle_rate ? parseFloat(stateData.hurdle_rate) : null,
+            envelopes: stateData.envelopes.map(env => ({
             envelope_number: env.number,
             allocation_percentage: parseFloat(env.allocation || 0),
             rules: shareClasses.map(sc => {
-              // Get rule from state, or default to "unchecked/pro-rata" if missing
-              const rule = env.rules[sc.share_class_id] || {};
-              return {
+                const rule = env.rules[sc.share_class_id] || {};
+                return {
                 share_class: sc.share_class_id,
                 is_selected: !!rule.isSelected,
-                is_pro_rata: rule.isProRata !== false, // Default true
+                is_pro_rata: rule.isProRata !== false,
                 fixed_percentage: rule.fixedPercentage ? parseFloat(rule.fixedPercentage) : null
-              };
+                };
             })
-          }))
+            }))
         };
-      };
+        };
 
       const promises = [];
 
       // --- Process Step 1 ---
-      const payload1 = formatPayload(1, step1Data);
-      if (step1Data.id) promises.push(updateStep(fundId, step1Data.id, payload1));
-      else promises.push(createStep(fundId, payload1));
+        const p1 = formatPayload(1, step1Data);
+        const p2 = formatPayload(2, step2Data);
+        const p3 = formatPayload(3, step3Data);
+        const p4 = formatPayload(4, step4Data);
 
-      // --- Process Step 2 ---
-      const payload2 = formatPayload(2, step2Data);
-      if (step2Data.id) promises.push(updateStep(fundId, step2Data.id, payload2));
-      else promises.push(createStep(fundId, payload2));
+        // Use update if ID exists, otherwise create
+        // Now that constraints are gone, this is the ONLY thing preventing duplicates
+        promises.push(step1Data.id ? updateStep(fundId, step1Data.id, p1) : createStep(fundId, p1));
+        promises.push(step2Data.id ? updateStep(fundId, step2Data.id, p2) : createStep(fundId, p2));
+        promises.push(step3Data.id ? updateStep(fundId, step3Data.id, p3) : createStep(fundId, p3));
+        promises.push(step4Data.id ? updateStep(fundId, step4Data.id, p4) : createStep(fundId, p4));
 
-      // --- Process Step 3 ---
-      const payload3 = formatPayload(3, step3Data);
-      if (step3Data.id) promises.push(updateStep(fundId, step3Data.id, payload3));
-      else promises.push(createStep(fundId, payload3));
+        const results = await Promise.all(promises);
 
-      // --- Process Step 4 ---
-      const payload4 = formatPayload(4, step4Data);
-      if (step4Data.id) promises.push(updateStep(fundId, step4Data.id, payload4));
-      else promises.push(createStep(fundId, payload4));
+        // Immediately map results back to state to capture new IDs
+        if (results[0]) setStep1Data(mapBackendToState(results[0]));
+        if (results[1]) setStep2Data(mapBackendToState(results[1]));
+        if (results[2]) setStep3Data(mapBackendToState(results[2]));
+        if (results[3]) setStep4Data(mapBackendToState(results[3]));
 
-      await Promise.all(promises);
-      alert("Waterfall structure saved successfully!");
-      // Optional: Refresh data here
-    } catch (err) {
-      console.error(err);
-      alert("Error saving: " + err.message);
-    }
-  };
-
+        alert("Saved successfully.");
+        } catch (err) {
+            console.error("Save Error:", err);
+        }
+    };
   if (scLoading) return <div>Loading Share Classes...</div>;
 
   return (
@@ -175,25 +172,25 @@ const WaterfallStructure = () => {
         />
 
         {/* STEP 2: Hurdle */}
-        {/* <Step2 
+        <Step2 
           values={step2Data}
           onChange={setStep2Data}
           shareClasses={shareClasses}
-        /> */}
+        />
 
         {/* STEP 3: Catch-up */}
-        {/* <Step3 
+        <Step3 
           values={step3Data}
           onChange={setStep3Data}
           shareClasses={shareClasses}
-        /> */}
+        />
 
         {/* STEP 4: Special Return */}
-        {/* <Step4 
+        <Step4 
           values={step4Data}
           onChange={setStep4Data}
           shareClasses={shareClasses}
-        /> */}
+        />
 
       </div>
       <div className="wf-footer">

@@ -86,7 +86,7 @@ class ShareClassSerializer(serializers.ModelSerializer):
 class FactWaterfallRuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = FactWaterfallRule
-        fields = ['id', 'share_class', 'is_selected', 'is_pro_rata', 'fixed_percentage']
+        fields = ['waterfall_rule_id', 'share_class', 'is_selected', 'is_pro_rata', 'fixed_percentage']
 
 
 class FactWaterfallEnvelopeSerializer(serializers.ModelSerializer):
@@ -94,7 +94,7 @@ class FactWaterfallEnvelopeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FactWaterfallEnvelope
-        fields = ['id', 'envelope_number', 'allocation_percentage', 'rules']
+        fields = ['waterfall_envelope_id', 'envelope_number', 'allocation_percentage', 'rules']
 
 
 class FactFundWaterfallStepSerializer(serializers.ModelSerializer):
@@ -107,8 +107,8 @@ class FactFundWaterfallStepSerializer(serializers.ModelSerializer):
     class Meta:
         model = FactFundWaterfallStep
         fields = [
-            'id', 'fund', 'step_definition', 'step_number', 'step_description', 
-            'name', 'rate', 'envelopes'
+            'fund_waterfall_step_id', 'fund', 'step_definition', 'step_number', 'step_description', 
+            'step_name', 'hurdle_rate', 'envelopes'
         ]
 
     def create(self, validated_data):
@@ -128,45 +128,34 @@ class FactFundWaterfallStepSerializer(serializers.ModelSerializer):
         return step_instance
 
     def update(self, instance, validated_data):
-        """
-        Handles updating the hierarchy. 
-        Uses update_or_create to allow partial updates of nested data.
-        """
-        # 1. Update Step Fields
-        instance.name = validated_data.get('name', instance.name)
-        instance.rate = validated_data.get('rate', instance.rate)
+        instance.step_name = validated_data.get('step_name', instance.step_name)
+        instance.hurdle_rate = validated_data.get('hurdle_rate', instance.hurdle_rate)
         instance.save()
 
-        # 2. Update Envelopes
         if 'envelopes' in validated_data:
             envelopes_data = validated_data.pop('envelopes')
             
             for env_data in envelopes_data:
-                env_number = env_data.get('envelope_number')
                 rules_data = env_data.pop('rules', [])
                 
-                # Get Envelope (1 or 2)
+                # Since we removed DB constraints, we rely on envelope_number to find the right one
                 envelope, _ = FactWaterfallEnvelope.objects.update_or_create(
-                    step_instance=instance,
-                    envelope_number=env_number,
-                    defaults={
-                        'allocation_percentage': env_data.get('allocation_percentage', 0)
-                    }
+                    fund_waterfall_step_id=instance, # Updated FK name
+                    envelope_number=env_data.get('envelope_number'),
+                    defaults={'allocation_percentage': env_data.get('allocation_percentage')}
                 )
 
-                # 3. Update Rules (Share Classes)
                 for rule_data in rules_data:
-                    share_class = rule_data.get('share_class')
+                    # We use share_class to identify the rule within the envelope
                     FactWaterfallRule.objects.update_or_create(
-                        envelope=envelope,
-                        share_class=share_class,
+                        waterfall_envelope_id=envelope, # Updated FK name
+                        share_class=rule_data.get('share_class'),
                         defaults={
                             'is_selected': rule_data.get('is_selected'),
-                            'is_pro_rata': rule_data.get('is_pro_rata', True),
+                            'is_pro_rata': rule_data.get('is_pro_rata'),
                             'fixed_percentage': rule_data.get('fixed_percentage')
                         }
                     )
-        
         return instance
 
 class ManFeePhaseSerializer(serializers.ModelSerializer):

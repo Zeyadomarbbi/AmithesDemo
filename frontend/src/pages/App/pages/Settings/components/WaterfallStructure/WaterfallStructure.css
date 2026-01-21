@@ -14,7 +14,7 @@
   flex-direction: column; 
   flex: 1;              
   overflow-y: auto;     
-  gap: 24px;            /* Now this will separate Phase1 and Phase2 */
+  gap: 12px;            /* Now this will separate Phase1 and Phase2 */
   padding-bottom: 24px; 
 }
 
