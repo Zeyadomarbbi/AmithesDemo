@@ -1,36 +1,33 @@
+// frontend/src/pages/App/pages/Settings/components/NewFundModal/NewFundModal.jsx
 import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/useCurrencies.js"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
 
 import "./NewFundModal.css";
 
-// Helper to get "DD/MM/YYYY" format
-const getTodayString = () => {
+// Helper to get ISO format "YYYY-MM-DD" for backend compatibility
+const getTodayISO = () => {
   const today = new Date();
   const d = String(today.getDate()).padStart(2, '0');
   const m = String(today.getMonth() + 1).padStart(2, '0');
   const y = today.getFullYear();
-  return `${d}/${m}/${y}`;
+  return `${y}-${m}-${d}`;
 };
 
 export default function NewFundModal({ open, onClose, onCreate }) {
   const { currencies, isLoading } = useCurrencies();
 
-  // 1. Initialize all to "none" (null/empty)
   const [legalName, setLegalName] = useState("");
   const [shortName, setShortName] = useState("");
   const [formationDate, setFormationDate] = useState(null);
   const [currency, setCurrency] = useState("");
 
-  // 2. Reset/Sync fields when modal opens
   useEffect(() => {
     if (open) {
       setLegalName("");
       setShortName("");
       setCurrency("");
-      // Sync state with the DatePicker's visual default (Today)
-      // This ensures the user doesn't have to "pick" today manually to enable the button.
-      setFormationDate(getTodayString());
+      setFormationDate(getTodayISO());
     }
   }, [open]);
 
@@ -96,16 +93,15 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             </label>
             <DateInputWithPicker
               initialDate={(() => {
-                 // If null, visual defaults to Today (new Date())
                  if (!formationDate) return new Date();
-                 const [d, m, y] = formationDate.split("/");
+                 const [y, m, d] = formationDate.split("-");
                  return new Date(y, m - 1, d);
               })()}
               onDateChange={(date) => {
                 const day = String(date.getDate()).padStart(2, "0");
                 const month = String(date.getMonth() + 1).padStart(2, "0");
                 const year = date.getFullYear();
-                setFormationDate(`${day}/${month}/${year}`);
+                setFormationDate(`${year}-${month}-${day}`);
               }}
               isSingle
               dateFormat="DD/MM/YYYY"
@@ -149,7 +145,6 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             type="button"
             className="nf-btn nf-btn-primary"
             onClick={handleCreate}
-            // Check checks that all fields are truthy
             disabled={!legalName || !shortName || !currency || !formationDate}
           >
             Create

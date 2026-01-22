@@ -74,7 +74,12 @@ const router = createBrowserRouter([
             children: [{}],
           },
           { path: 'lps-statement', element: <LPsStatementPage /> },
-          { path: 'financials', element: <FinancialsPage /> },
+          { path: 'financials', 
+            element: <FinancialsPage />,
+            children: [
+
+            ]
+          },
         ]
       }
     ],
