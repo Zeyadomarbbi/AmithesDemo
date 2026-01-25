@@ -73,7 +73,7 @@ const PortfolioSummaryTab = ({ onSelectInvestment }) => {
 
       <div className="toolbar-right">
         <button className="ghost-btn">
-          <DownloadIcon style={iconStyle} />
+          <DownloadIcon />
           <span>Download</span>
         </button>
         <button
