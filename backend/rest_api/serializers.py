@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DimTimeframe, DimScenarioList, DimScenarioSynthesis, MapScenarioSynthesis
+from .models import *
 
 class TimeframeSerializer(serializers.ModelSerializer):
     date_id = serializers.IntegerField(source="date.date_id")
@@ -16,6 +16,174 @@ class TimeframeSerializer(serializers.ModelSerializer):
             "quarter",
             "year",
         ]
+
+class PhaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DimPhase
+        fields = ['phase_id', 'phase_name']
+
+class FundSerializer(serializers.ModelSerializer):
+    formation_date_string = serializers.SerializerMethodField()
+    phase_name = serializers.SerializerMethodField()
+    currency_name = serializers.SerializerMethodField()
+    currency_symbol = serializers.SerializerMethodField()
+    class Meta:
+        model = DimFund
+        fields = [
+            'fund_id', 'created_at', 'updated_at',
+            'legal_name', 'short_name', 'fund_strategy', 'legal_form', 'management_company',
+            'formation_date', 'phase', 'currency',
+            'formation_date_string', 'phase_name', 'currency_name', 'currency_symbol'
+        ]
+
+    # These methods safely return None or "–" if the relation is missing
+    def get_formation_date_string(self, obj):
+        return obj.formation_date.full_date if obj.formation_date else None
+
+    def get_phase_name(self, obj):
+        return obj.phase.phase_name if obj.phase else "–"
+
+    def get_currency_name(self, obj):
+        return obj.currency.currency_name if obj.currency else None
+
+    def get_currency_symbol(self, obj):
+        return obj.currency.currency_symbol if obj.currency else ""
+
+class ShareClassSerializer(serializers.ModelSerializer):
+    fund_id = serializers.IntegerField(source="fund.fund_id", read_only=True)
+    document_file = serializers.FileField(write_only=True, required=False)
+    
+    # NEW: Read-only field for the download URL
+    document_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DimShareClass
+        fields = [
+            "share_class_id", "fund_id", "share_class_name", "isin_code", 
+            "nominal_value", "issuance_method", "distribution_method", 
+            "ppm_description", 
+            "document_name", "document_mime_type", 
+            "document_file", "document_url", "document_size",
+            "created_at", "created_by"
+        ]
+        read_only_fields = ["share_class_id", "created_at", "created_by", "document_url", "document_size"]
+
+    def get_document_url(self, obj):
+        if obj.document_file:
+            # Returns full URL: http://localhost:8000/media/share_class_docs/file.pdf
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.document_file.url)
+        return None
+
+    def create(self, validated_data):
+        file_obj = validated_data.get('document_file')
+        if file_obj:
+            validated_data['document_name'] = file_obj.name
+            validated_data['document_mime_type'] = file_obj.content_type
+            validated_data['document_size'] = file_obj.size
+        return super().create(validated_data)
+
+class FactWaterfallRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FactWaterfallRule
+        fields = ['waterfall_rule_id', 'share_class', 'is_selected', 'is_pro_rata', 'fixed_percentage']
+
+
+class FactWaterfallEnvelopeSerializer(serializers.ModelSerializer):
+    rules = FactWaterfallRuleSerializer(many=True)
+
+    class Meta:
+        model = FactWaterfallEnvelope
+        fields = ['waterfall_envelope_id', 'envelope_number', 'allocation_percentage', 'rules']
+
+
+class FactFundWaterfallStepSerializer(serializers.ModelSerializer):
+    envelopes = FactWaterfallEnvelopeSerializer(many=True)
+    
+    # Read-only fields for UI display
+    step_number = serializers.IntegerField(source='step_definition.step_number', read_only=True)
+    step_description = serializers.CharField(source='step_definition.description', read_only=True)
+
+    class Meta:
+        model = FactFundWaterfallStep
+        fields = [
+            'fund_waterfall_step_id', 'fund', 'step_definition', 'step_number', 'step_description', 
+            'step_name', 'hurdle_rate', 'envelopes'
+        ]
+
+    def create(self, validated_data):
+        """
+        Handles creating a whole Step hierarchy: Step -> Envelopes -> Rules
+        """
+        envelopes_data = validated_data.pop('envelopes')
+        step_instance = FactFundWaterfallStep.objects.create(**validated_data)
+
+        for env_data in envelopes_data:
+            rules_data = env_data.pop('rules')
+            envelope = FactWaterfallEnvelope.objects.create(step_instance=step_instance, **env_data)
+            
+            for rule_data in rules_data:
+                FactWaterfallRule.objects.create(envelope=envelope, **rule_data)
+
+        return step_instance
+
+    def update(self, instance, validated_data):
+        instance.step_name = validated_data.get('step_name', instance.step_name)
+        instance.hurdle_rate = validated_data.get('hurdle_rate', instance.hurdle_rate)
+        instance.save()
+
+        if 'envelopes' in validated_data:
+            envelopes_data = validated_data.pop('envelopes')
+            
+            for env_data in envelopes_data:
+                rules_data = env_data.pop('rules', [])
+                
+                # Since we removed DB constraints, we rely on envelope_number to find the right one
+                envelope, _ = FactWaterfallEnvelope.objects.update_or_create(
+                    fund_waterfall_step_id=instance, # Updated FK name
+                    envelope_number=env_data.get('envelope_number'),
+                    defaults={'allocation_percentage': env_data.get('allocation_percentage')}
+                )
+
+                for rule_data in rules_data:
+                    # We use share_class to identify the rule within the envelope
+                    FactWaterfallRule.objects.update_or_create(
+                        waterfall_envelope_id=envelope, # Updated FK name
+                        share_class=rule_data.get('share_class'),
+                        defaults={
+                            'is_selected': rule_data.get('is_selected'),
+                            'is_pro_rata': rule_data.get('is_pro_rata'),
+                            'fixed_percentage': rule_data.get('fixed_percentage')
+                        }
+                    )
+        return instance
+
+class ManFeePhaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DimManFeePhase
+        fields = [
+            "phase_id",
+            "phase_name",
+            "basis_description",
+            "created_at",
+        ]
+        
+class FundManFeeRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FactFundManFeeRule
+        fields = [
+            "fee_rule_id",
+            "fund",
+            "phase",
+            "share_class",
+            "date_from",
+            "date_until",
+            "rate_percentage",
+            "created_at",
+            "created_by",
+            "updated_at",
+        ]
+        read_only_fields = ["fee_rule_id", "created_at", "created_by"]
 
 class ScenarioSerializer(serializers.ModelSerializer):
     class Meta:

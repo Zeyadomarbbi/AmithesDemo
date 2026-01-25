@@ -1,0 +1,88 @@
+/* ===== Portfolio Page Layout ===== */
+
+.portfolio-page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+.portfolio-content {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: auto;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+}
+
+/* ===== Page Title ===== */
+
+.portfolio-title {
+  font-family: "Crimson Pro", serif;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 100%;
+  color: #1c1917;
+  margin: 0 0 16px 0;
+}
+
+/* ===== Tabs ===== */
+
+.financials-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.portfolio-tabs {
+  margin-top: 4px;
+}
+
+.tab {
+  position: relative;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.tab.active {
+  color: #f59e0b;
+}
+
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 2px;
+  background: #f59e0b;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .portfolio-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 550px) {
+  .financials-tabs {
+    gap: 6px;
+  }
+
+  .tab {
+    font-size: 13px;
+    padding: 6px 0;
+  }
+}

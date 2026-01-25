@@ -13,7 +13,8 @@ const DateInputWithPicker = ({
   initialDate = new Date(), 
   onDateChange,
   isSingle = true,
-  dateFormat = 'DD/MM/YYYY'
+  dateFormat = 'DD/MM/YYYY',
+  disabled = false // Added disabled prop
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
@@ -95,7 +96,7 @@ const DateInputWithPicker = ({
     if (isOpen) {
       calculatePosition();
     }
-  }, [isOpen]);
+  }, [isOpen, calculatePosition]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -134,20 +135,19 @@ const DateInputWithPicker = ({
 
   return (
     <>
-
       <div 
         className="date-input-container" 
         ref={containerRef} 
         style={{ position: 'relative', display: 'inline-block', width: '100%' }}
       >
         <div 
-          onClick={() => setIsOpen(!isOpen)} 
-          className={`input-trigger ${isOpen ? 'active' : ''}`}
+          onClick={() => !disabled && setIsOpen(!isOpen)} // Prevent toggle if disabled
+          className={`input-trigger ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`} // Added disabled class
           style={{
             display: 'flex',
             justifyContent: 'space-between', 
             alignItems: 'center',
-            cursor: 'pointer'
+            cursor: disabled ? 'not-allowed' : 'pointer' // Update cursor
           }}
         >
           <span className="selected-date-text">

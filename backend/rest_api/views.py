@@ -1,11 +1,297 @@
+from datetime import datetime
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from django.utils import timezone
 from django.db import IntegrityError
-from .models import DimTimeframe, DimDate, DimFund, DimScenarioList, DimScenarioSynthesis
-from .serializers import TimeframeSerializer, ScenarioSerializer, DimScenarioSynthesisSerializer
+from django.shortcuts import get_object_or_404
+from .utils import get_or_create_dim_date
+from .models import *
+from .serializers import *
 
+class CurrencyListView(APIView):
+    def get(self, request):
+        currencies = DimCurrency.objects.all().order_by('currency_name')
+        # Simple list return or use a basic serializer
+        data = [
+            {
+                "id": c.currency_id, 
+                "name": c.currency_name, 
+                "code": c.currency_code,
+                "symbol": c.currency_symbol
+            } for c in currencies
+        ]
+        return Response(data)
+    
+class PhaseListView(APIView):
+    """
+    GET: Fetch all available fund phases for dropdowns.
+    """
+    def get(self, request):
+        phases = DimPhase.objects.all().order_by('phase_id')
+        serializer = PhaseSerializer(phases, many=True)
+        return Response(serializer.data)
+
+class FundListView(APIView):
+    """
+    STEP 1: INITIALIZATION
+    Only accepts: legal_name, short_name, formation_date, currency_id.
+    """
+    def get(self, request):
+        # We fetch everything and join related tables to populate the serializer's extra fields
+        funds = DimFund.objects.select_related(
+            'formation_date', 
+            'phase', 
+            'currency'
+        ).all().order_by("-created_at")
+        
+        # The serializer now includes ALL fields defined above
+        serializer = FundSerializer(funds, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data
+        
+        # 1. Parsing the Date
+        try:
+            # FIX: Changed format from "%d/%m/%Y" to "%Y-%m-%d"
+            dt_obj = datetime.strptime(data["formation_date_string"], "%Y-%m-%d")
+            
+            # Create/Get the date record inline (Safe & Consistent)
+            date_record, _ = DimDate.objects.get_or_create(
+                full_date=dt_obj.date(),
+                defaults={
+                    'date_id': int(dt_obj.strftime("%Y%m%d")),
+                    'quarter': (dt_obj.month - 1) // 3 + 1,
+                    'year': dt_obj.year
+                }
+            )
+        except (ValueError, KeyError) as e:
+            return Response(
+                {"detail": f"Invalid date format (expected YYYY-MM-DD) or missing field: {str(e)}"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Get Default Phase (ID 1)
+        # We must assign a phase, even if not provided by user, to avoid DB errors
+        default_phase, _ = DimPhase.objects.get_or_create(pk=1)
+
+        # 3. Initialize Fund (Strictly the 4 fields + required defaults)
+        try:
+            fund = DimFund.objects.create(
+                legal_name=data["legal_name"],
+                short_name=data["short_name"],
+                formation_date=date_record,
+                currency_id=data["currency_id"],
+                phase=default_phase,   # Technical requirement (cannot be null)
+                fund_strategy="",      # Default empty
+                legal_form="",         # Default empty
+                management_company=""  # Default empty
+            )
+
+            # Reload to get readable names for frontend (e.g. "EUR", "Investment Period")
+            fund = DimFund.objects.select_related('formation_date', 'phase', 'currency').get(pk=fund.pk)
+            return Response(FundSerializer(fund).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class FundDetailView(APIView):
+    def get(self, request, fund_id):
+        fund = get_object_or_404(
+            DimFund.objects.select_related('formation_date', 'phase', 'currency'), 
+            fund_id=fund_id
+        )
+        serializer = FundSerializer(fund)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def put(self, request, fund_id):
+        fund = get_object_or_404(DimFund, fund_id=fund_id)
+        data = request.data
+
+        try:
+            # --- Field Updates ---
+            if "legal_name" in data: fund.legal_name = data["legal_name"]
+            if "short_name" in data: fund.short_name = data["short_name"]
+            if "fund_strategy" in data: fund.fund_strategy = data["fund_strategy"]
+            if "legal_form" in data: fund.legal_form = data["legal_form"]
+            if "management_company" in data: fund.management_company = data["management_company"]
+            if "currency_id" in data: fund.currency_id = data["currency_id"]
+            if "phase_id" in data: fund.phase_id = data["phase_id"]
+
+            if "formation_date_string" in data:
+                # FIX: Changed format from "%d/%m/%Y" to "%Y-%m-%d"
+                # to match the frontend payload "2026-01-18"
+                dt_obj = datetime.strptime(data["formation_date_string"], "%Y-%m-%d")
+                
+                date_record, _ = DimDate.objects.get_or_create(
+                    full_date=dt_obj.date(),
+                    defaults={
+                        'date_id': int(dt_obj.strftime("%Y%m%d")), 
+                        'quarter': (dt_obj.month - 1) // 3 + 1, 
+                        'year': dt_obj.year
+                    }
+                )
+                fund.formation_date = date_record
+
+            # --- Manual Timestamp Update ---
+            fund.updated_at = timezone.now()
+
+            fund.save()
+
+            # Refresh and serialize
+            fund = DimFund.objects.select_related('formation_date', 'phase', 'currency').get(pk=fund.pk)
+            return Response(FundSerializer(fund).data, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            # Specific error for date parsing issues
+            return Response({"detail": f"Date format error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class ShareClassByFundView(APIView):
+    def get(self, request, fund_id):
+        qs = DimShareClass.objects.filter(fund_id=fund_id)
+        # FIX: Pass context={'request': request} here
+        serializer = ShareClassSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        try:
+            fund = get_object_or_404(DimFund, fund_id=fund_id)
+            user_id = request.user.id if request.user.is_authenticated else 1
+            
+            # --- THE FIX IS HERE ---
+            # We must pass context={'request': request} so the serializer can build URLs
+            serializer = ShareClassSerializer(
+                data=request.data, 
+                context={'request': request} 
+            )
+            
+            if serializer.is_valid():
+                serializer.save(
+                    fund=fund,
+                    created_by=user_id
+                )
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print(f"CRITICAL ERROR: {str(e)}")
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+class ShareClassDetailView(APIView):
+    def get_object(self, fund_id, share_class_id):
+        return get_object_or_404(
+            DimShareClass,
+            fund_id=fund_id,
+            share_class_id=share_class_id,
+        )
+
+    def get(self, request, fund_id, share_class_id):
+        obj = self.get_object(fund_id, share_class_id)
+        # FIX: Pass context={'request': request} here
+        return Response(ShareClassSerializer(obj, context={'request': request}).data)
+
+    def put(self, request, fund_id, share_class_id):
+        obj = self.get_object(fund_id, share_class_id)
+        serializer = ShareClassSerializer(obj, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, fund_id, share_class_id):
+        obj = self.get_object(fund_id, share_class_id)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class WaterfallStepDefinitionListView(APIView):
+    def get(self, request):
+        steps = DimWaterfallStep.objects.all().values()
+        return Response(steps)
+
+# 2. List/Create: Get all steps for a fund or Create a new one
+class FundWaterfallListCreateView(generics.ListCreateAPIView):
+    serializer_class = FactFundWaterfallStepSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs['fund_id']
+        return FactFundWaterfallStep.objects.filter(fund_id=fund_id)
+
+    def perform_create(self, serializer):
+        fund_id = self.kwargs['fund_id']
+        serializer.save(fund_id=fund_id)
+
+# 3. Detail: Update a specific step
+class FundWaterfallDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = FactFundWaterfallStepSerializer
+    queryset = FactFundWaterfallStep.objects.all()
+    lookup_field = 'id'
+
+    def get_object(self):
+        # Ensure we only fetch steps belonging to the specific fund in URL
+        return get_object_or_404(
+            FactFundWaterfallStep, 
+            pk=self.kwargs['pk'], 
+            fund_id=self.kwargs['fund_id']
+        )
+
+class ManFeePhaseListView(APIView):
+    def get(self, request):
+        qs = DimManFeePhase.objects.order_by("phase_id")
+        serializer = ManFeePhaseSerializer(qs, many=True)
+        return Response(serializer.data)
+
+class FundManFeeRuleListCreateView(APIView):
+    def get(self, request, fund_id):
+        qs = (
+            FactFundManFeeRule.objects
+            .filter(fund_id=fund_id)
+            .order_by("date_from")
+        )
+        serializer = FundManFeeRuleSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        data = request.data.copy()
+        data["fund"] = fund_id
+        data["updated_at"] = timezone.now()
+
+        serializer = FundManFeeRuleSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class FundManFeeRuleDetailView(APIView):
+    # FIXED: Added fund_id to the arguments to match the URL pattern
+    def put(self, request, fund_id, fee_rule_id):
+        try:
+            # Best Practice: Ensure the rule actually belongs to this fund for security
+            rule = FactFundManFeeRule.objects.get(pk=fee_rule_id, fund_id=fund_id)
+        except FactFundManFeeRule.DoesNotExist:
+            return Response({"error": "Rule not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data.copy()
+        data["updated_at"] = timezone.now()
+        
+        # Ensure the fund in the body matches the URL (optional safety)
+        data["fund"] = fund_id 
+
+        # partial=False ensures all required fields are present (standard for PUT)
+        # If you want to allow updating just one field, change to partial=True
+        serializer = FundManFeeRuleSerializer(
+            rule, data=data, partial=False
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
 class FundTimeframeView(APIView):
     def get(self, request, fund_id):
         qs = DimTimeframe.objects.filter(fund_id=fund_id).select_related("date").order_by("date__full_date")

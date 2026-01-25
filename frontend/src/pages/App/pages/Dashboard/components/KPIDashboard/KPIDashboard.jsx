@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext, useParams } from 'react-router-dom';
+
 import './KPIDashboard.css';
 
 // Import the 4 modular sections
@@ -84,18 +86,18 @@ const ALL_MOCK_KPI_DATA = {
 };
 
 
-function KPIDashboard({ fundId, timeframeId }) {
+function KPIDashboard() {
+  const { fundId } = useOutletContext();
+  const { timeframeId } = useParams();
   const [activeData, setActiveData] = useState({});
 
   useEffect(() => {
-    // 1. Ensure keys are strings for dictionary lookup
     const fId = String(fundId);
     const tId = String(timeframeId);
 
     if (fId && tId) {
       const fundData = ALL_MOCK_KPI_DATA[fId];
       const specificData = fundData ? fundData[tId] : null;
-      
       setActiveData(specificData || {});
     } else {
       setActiveData({});

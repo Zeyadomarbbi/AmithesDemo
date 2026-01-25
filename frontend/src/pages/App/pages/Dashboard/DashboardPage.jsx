@@ -1,86 +1,51 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
+import { Outlet, useMatch, useParams, useNavigate } from 'react-router-dom';
+
+import { useFundData } from '../../hooks/useFundData';     // <--- ADD THIS IMPORT
 import './DashboardPage.css';
 
 import DashboardHeader from './components/DashboardHeader/DashboardHeader';
 import DashboardTabs from './components/DashboardTabs/DashboardTabs';
-import KPIDashboard from './components/KPIDashboard/KPIDashboard';
-import LimitsDashboard from './components/LimitsDashboard/LimitsDashboard';
 
 function DashboardPage() {
-    const { fundId, tab, timeframeId: urlTimeframeId } = useParams();
-    const navigate = useNavigate();
+  const { fundId } = useParams();
+  const navigate = useNavigate();
+  const { funds } = useFundData();
 
-    const { funds = [] } = useOutletContext() || {};
-    const currentFund = funds.find(f => String(f.id) === String(fundId));
+  const currentFund = funds.find(f => String(f.id) === String(fundId));
+  const isKPI = useMatch('/funds/:fundId/dashboard/kpi/*');
+  if (!currentFund) {
+    return <div className="dashboard-loading">Loading Fund...</div>;
+  }
 
-    const [selectedTimeframeId, setSelectedTimeframeId] = useState(
-        urlTimeframeId ? Number(urlTimeframeId) : null
-    );
+  const handleTabChange = (tab) => {
+    navigate(tab === 'KPI' ? 'kpi' : 'limits');
+  };
 
-    const activeTab = tab?.toLowerCase() === 'limits' ? 'Limits' : 'KPI';
+  const handleTimeframeChange = (id) => {
+    navigate(`kpi/${id}`);
+  };
 
-    // Synchronize local state with URL changes (Back/Forward buttons)
-    useEffect(() => {
-        if (urlTimeframeId) {
-            setSelectedTimeframeId(Number(urlTimeframeId));
-        }
-    }, [urlTimeframeId]);
+  return (
+    <div className="dashboard-page">
+      <DashboardHeader
+        fundId={fundId}
+        fundName={currentFund.name}
+        showQuarterSelector={Boolean(isKPI)}
+        onTimeframeChange={handleTimeframeChange}
+      />
 
-    // Handle initial redirect
-    useEffect(() => {
-        if (currentFund && !tab) {
-            navigate(`/funds/${currentFund.id}/dashboard/kpi`, { replace: true });
-        }
-    }, [tab, currentFund, navigate]);
+      <DashboardTabs onTabChange={handleTabChange} />
 
-    const handleTabChange = (newTab) => {
-        if (!currentFund) return;
-        const target = newTab.toLowerCase();
-        const path = target === 'kpi' && selectedTimeframeId 
-            ? `kpi/${selectedTimeframeId}` 
-            : target;
-        
-        navigate(`/funds/${currentFund.id}/dashboard/${path}`);
-    };
-
-    const handleTimeframeChange = (id) => {
-        if (!currentFund) return;
-        setSelectedTimeframeId(id);
-        navigate(`/funds/${currentFund.id}/dashboard/kpi/${id}`);
-    };
-
-    if (!currentFund) {
-        return <div className="dashboard-loading">Loading Fund...</div>;
-    }
-
-    return (
-        <div className="dashboard-page">
-            <DashboardHeader
-                fundId={fundId}
-                fundName={currentFund.name}
-                showQuarterSelector={activeTab === 'KPI'}
-                selectedTimeframeId={selectedTimeframeId}
-                onTimeframeChange={handleTimeframeChange}
-            />
-
-            <DashboardTabs
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-            />
-
-            <div className="dashboard-content-frame">
-                {activeTab === 'KPI' ? (
-                    <KPIDashboard
-                        fundId={fundId}
-                        timeframeId={selectedTimeframeId}
-                    />
-                ) : (
-                    <LimitsDashboard fundId={fundId} />
-                )}
-            </div>
-        </div>
-    );
+      <div className="dashboard-content-frame">
+        <Outlet
+          context={{
+            fund: currentFund,
+            fundId: currentFund.id,
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default DashboardPage;

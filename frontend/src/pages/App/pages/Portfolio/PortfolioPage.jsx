@@ -1,6 +1,9 @@
 // PortfolioPage.jsx
 import React, { useState } from "react";
-import "./PortfolioPage.css";
+import "./styles/portfolio.tokens.css";
+import "./styles/portfolio.layout.css";
+import "./styles/portfolio.tables.css";
+
 
 
 import PortfolioSummaryTab from "./components/PortfolioSummaryTab";

@@ -1,0 +1,208 @@
+from django.db import models
+
+# General Dimension Models
+class DimDate(models.Model):
+    date_id = models.IntegerField(primary_key=True)
+    full_date = models.DateField()
+    quarter = models.IntegerField()
+    year = models.IntegerField()
+    quarter_end = models.DateField()
+
+    class Meta:
+        managed = False
+        db_table = "dim_date"
+
+class DimPhase(models.Model):
+    phase_id = models.AutoField(primary_key=True)
+    phase_name = models.CharField(max_length=100)
+    
+    class Meta:
+        managed = False
+        db_table = "dim_phase"
+
+class DimCurrency(models.Model):
+    currency_id = models.AutoField(primary_key=True)
+    currency_name = models.CharField(max_length=100)
+    currency_symbol = models.CharField(max_length=10)
+    currency_code = models.CharField(max_length=10)
+
+    class Meta:
+        managed = False
+        db_table = "dim_currency"
+
+class DimTimeframe(models.Model):
+    timeframe_id = models.AutoField(primary_key=True)
+
+    fund = models.ForeignKey(
+        "DimFund",
+        db_column="fund_id",
+        on_delete=models.CASCADE
+    )
+
+    date = models.ForeignKey(
+        "DimDate",
+        db_column="date_id",
+        on_delete=models.RESTRICT
+    )
+
+    display_label = models.CharField(max_length=20, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+    class Meta:
+        managed = False
+        db_table = "dim_timeframe"
+        unique_together = (("fund", "date"),)
+
+# Fund & Related Dimension Models
+class DimFund(models.Model):
+    fund_id = models.AutoField(primary_key=True)
+    legal_name = models.CharField(max_length=255)
+    short_name = models.CharField(max_length=100)
+    
+    # ⚠️ ADD null=True TO THESE 3 FIELDS
+    formation_date = models.ForeignKey(
+        'DimDate', 
+        on_delete=models.DO_NOTHING, 
+        db_column='formation_date_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    phase = models.ForeignKey(
+        'DimPhase', 
+        on_delete=models.DO_NOTHING, 
+        db_column='phase_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    currency = models.ForeignKey(
+        'DimCurrency', 
+        on_delete=models.DO_NOTHING, 
+        db_column='currency_id',
+        null=True,   # <--- Forces LEFT JOIN
+        blank=True
+    )
+    
+    legal_form = models.CharField(max_length=100, blank=True, null=True)
+    management_company = models.CharField(max_length=255, blank=True, null=True)
+    fund_strategy = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "dim_fund"
+
+class DimShareClass(models.Model):
+    class DistributionMethod(models.TextChoices):
+        DIVIDEND = "DIVIDEND", "Dividend"
+        REDEMPTION_OF_SHARES = "REDEMPTION_OF_SHARES", "Redemption of Shares"
+
+    share_class_id = models.BigAutoField(primary_key=True)
+
+    fund = models.ForeignKey(
+        "DimFund",
+        on_delete=models.CASCADE,
+        db_column="fund_id",
+        related_name="share_classes",
+    )
+
+    share_class_name = models.TextField()
+    isin_code = models.TextField()
+    nominal_value = models.DecimalField(max_digits=18, decimal_places=2)
+    issuance_method = models.TextField()
+    distribution_method = models.TextField(
+        choices=DistributionMethod.choices
+    )
+    ppm_description = models.TextField()
+    document_name = models.TextField(null=True, blank=True)
+    document_mime_type = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.IntegerField()
+    document_file = models.FileField(upload_to='share_class_docs/', null=True, blank=True)
+    document_size = models.IntegerField(null=True, blank=True)
+    class Meta:
+        db_table = "dim_share_class"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fund", "share_class_name"],
+                name="uq_share_class_fund_name",
+            )
+        ]
+
+class DimWaterfallStep(models.Model):
+    """
+    Static reference table.
+    IDs: 1=Nominal, 2=Hurdle, 3=Catch-up, 4=Special Return
+    """
+    waterfall_step_id = models.AutoField(primary_key=True)
+    step_number = models.IntegerField(unique=True)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "dim_waterfall_step"
+        ordering = ["step_number"]
+
+    def __str__(self):
+        return f"{self.step_number} - {self.description}"
+
+class DimManFeePhase(models.Model):
+    phase_id = models.SmallIntegerField(primary_key=True)
+    phase_name = models.CharField(max_length=50)
+    basis_description = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "dim_man_fee_phase"
+        managed = False
+
+
+
+
+# Scenario Dimension Models
+class DimScenarioList(models.Model):
+    scenario_id = models.BigAutoField(primary_key=True)
+    fund = models.ForeignKey(
+        "DimFund",
+        db_column="fund_id",
+        on_delete=models.CASCADE,
+        related_name="scenarios"
+    )
+
+    scenario_name = models.TextField()
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=150, default="system")
+    class Meta:
+        db_table = "dim_scenario_list"
+        managed = False
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fund", "scenario_name"],
+                name="uq_scenario_fund_name"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.fund_id} | {self.scenario_name}"
+
+class DimScenarioSynthesis(models.Model):
+    synthesis_id = models.AutoField(primary_key=True)
+    fund = models.ForeignKey(
+        'DimFund', 
+        on_delete=models.CASCADE, 
+        db_column='fund_id'
+    )
+    synthesis_name = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100)
+    class Meta:
+        db_table = 'dim_scenario_synthesis'
+        # Constraint: synthesis names must be unique per fund
+        constraints = [
+            models.UniqueConstraint(
+                fields=['fund', 'synthesis_name'], 
+                name='unique_synthesis_per_fund'
+            )
+        ]
