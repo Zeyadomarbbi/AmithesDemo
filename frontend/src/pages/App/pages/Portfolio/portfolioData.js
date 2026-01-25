@@ -146,8 +146,6 @@ export const LIMITS_ROWS = [
     description: "No single investment shall represent more than 15.00%",
     limit: "15.00%",
     q4: "13.15%",
-    scenario: "15.00%",
-    isBreach: true,
   },
   {
     id: 2,
@@ -156,8 +154,6 @@ export const LIMITS_ROWS = [
     description: "No more than 60.00% shall be invested in Spain",
     limit: "60.00%",
     q4: "22.04%",
-    scenario: "40.08%",
-    isBreach: false,
   },
 ];
 
@@ -368,6 +364,8 @@ export const FX_PORTFOLIO_DATA = {
     }
   }
 };
+
+
 
 export const COMPARE_ROWS = [
   {

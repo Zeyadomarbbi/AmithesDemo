@@ -3,7 +3,7 @@ import "../PortfolioLimitsTab.css";
 import "../../Compare/PortfolioCompareTab.css";
 
 
-const NewLimitPanel = ({ onClose }) => {
+const NewLimitPanel = ({ open, onClose, onSave }) => {
   return (
     <div className="sidepanel limit-panel quarter-width">
       {/* Header bar */}

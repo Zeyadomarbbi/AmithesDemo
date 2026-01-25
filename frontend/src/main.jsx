@@ -37,7 +37,7 @@ import PortfolioSummaryTab from "./pages/App/pages/Portfolio/components/Summary/
 import PortfolioFxTab from "./pages/App/pages/Portfolio/components/FX/PortfolioFxTab";
 import PortfolioLimitsTab from "./pages/App/pages/Portfolio/components/Limits/PortfolioLimitsTab";
 import PortfolioCompareTab from "./pages/App/pages/Portfolio/components/Compare/PortfolioCompareTab";
-import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Limits/components/CompareDetailPanel";
+import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/CompareDetailPanel";
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
