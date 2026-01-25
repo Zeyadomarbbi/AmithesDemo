@@ -1,0 +1,98 @@
+/* ===== Investment Section ===== */
+
+.fx-deals-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.fx-deals-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fx-deals-title {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    color: #1C1917;
+    margin: 0;
+}
+
+/* ===== Table Card & Layout ===== */
+
+.fx-deals-table-card {
+    background: #ffffff;
+    overflow: hidden;
+    overflow-x: auto;
+}
+
+.fx-deals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* ===== Table Headers ===== */
+
+.fx-deals-table thead th {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    
+    /* Typography per specification */
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    text-align: left;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    white-space: nowrap;
+}
+
+.fx-deals-table thead th.col-number {
+    text-align: right;
+}
+
+/* ===== Table Body & Striping ===== */
+
+.fx-deals-table tbody td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C1917;
+}
+
+/* Striped logic: Odd rows gray, Even rows white */
+.fx-deals-table tbody tr:nth-child(odd):not(.fx-total-row) {
+    background-color: #FAFAF9;
+}
+
+.fx-deals-table tbody tr:nth-child(even):not(.fx-total-row) {
+    background-color: #FFFFFF;
+}
+
+.fx-deals-table .col-number {
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ===== FX Totals ===== */
+
+.fx-total-row {
+    background-color: #375A89 !important;
+}
+
+.fx-total-row td {
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fx-total-row .col-number {
+    color: #FFFFFF;
+}

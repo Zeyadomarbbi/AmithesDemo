@@ -161,7 +161,7 @@ export const LIMITS_ROWS = [
   },
 ];
 
-export const FX_INVESTMENT_1_ROWS = [
+const FX_INVESTMENT_1_ROWS = [
   {
     id: 1,
     type: "row",
@@ -169,7 +169,10 @@ export const FX_INVESTMENT_1_ROWS = [
     flow: "10 000 000",
     currency: "GBP",
     fxRate: "0.8801",
+    impactQ22023: "31 025",
+    impactQ32023: "31 025",
     impactQ42023: "21 547",
+    impactQ12024: "32 143",
     impactQ22024: "- 5 785",
     impactQ42024: "210 547",
     impactInception: "150 875",
@@ -181,26 +184,18 @@ export const FX_INVESTMENT_1_ROWS = [
     flow: "2 000 000",
     currency: "GBP",
     fxRate: "0.8554",
+    impactQ22023: "31 025",
+    impactQ32023: "31 025",
     impactQ42023: "31 025",
+    impactQ12024: "22 547",
     impactQ22024: "- 10 875",
     impactQ42024: "310 025",
     impactInception: "225 365",
   },
-  {
-    id: "fx1-total",
-    type: "total",
-    date: "Total",
-    flow: "12 000 000",
-    currency: "",
-    fxRate: "0.8762",
-    impactQ42023: "52 572",
-    impactQ22024: "- 16 660",
-    impactQ42024: "520 572",
-    impactInception: "376 240",
-  },
+
 ];
 
-export const FX_INVESTMENT_2_ROWS = [
+const FX_INVESTMENT_2_ROWS = [
   {
     id: 1,
     type: "row",
@@ -237,21 +232,10 @@ export const FX_INVESTMENT_2_ROWS = [
     impactQ42024: "- 101 965",
     impactInception: "- 101 965",
   },
-  {
-    id: "fx2-total",
-    type: "total",
-    date: "Total",
-    flow: "10 500 000",
-    currency: "",
-    fxRate: "1.0964",
-    impactQ42023: "-",
-    impactQ22024: "131 048",
-    impactQ42024: "113 229",
-    impactInception: "113 229",
-  },
+
 ];
 
-export const FX_INVESTMENT_3_ROWS = [
+const FX_INVESTMENT_3_ROWS = [
   {
     id: 1,
     type: "row",
@@ -276,19 +260,114 @@ export const FX_INVESTMENT_3_ROWS = [
     impactQ42024: "310 025",
     impactInception: "225 365",
   },
+];
+
+const FX_INVESTMENT_4_ROWS = [
   {
-    id: "fx3-total",
-    type: "total",
-    date: "Total",
-    flow: "120 000 000",
-    currency: "",
-    fxRate: "10.8762",
-    impactQ42023: "520 572",
-    impactQ22024: "- 160 660",
-    impactQ42024: "520 572",
-    impactInception: "376 240",
+    id: 1,
+    type: "row",
+    date: "18/06/2021",
+    flow: "100 000 000",
+    currency: "MAD",
+    fxRate: "10.8801",
+    impactQ42023: "210 547",
+    impactQ22024: "- 50 785",
+    impactQ42024: "210 547",
+    impactInception: "150 875",
+  },
+  {
+    id: 2,
+    type: "row",
+    date: "23/10/2021",
+    flow: "20 000 000",
+    currency: "MAD",
+    fxRate: "10.8554",
+    impactQ42023: "310 025",
+    impactQ22024: "- 100 875",
+    impactQ42024: "310 025",
+    impactInception: "225 365",
   },
 ];
+
+export const FX_DEALS_DATA = {
+  "1": [ // fundId: 1
+    { title: "Investment #1", rows: FX_INVESTMENT_1_ROWS },
+    { title: "Investment #2", rows: FX_INVESTMENT_2_ROWS },
+    { title: "Investment #3", rows: FX_INVESTMENT_3_ROWS },
+  ],
+  "2": [ // fundId: 2
+    { title: "Investment #4", rows: FX_INVESTMENT_4_ROWS },
+  ]
+};
+
+export const FX_PORTFOLIO_DATA = {
+  "1": {
+    rows: [
+      {
+        id: "inv-1",
+        name: "Investment #1",
+        cost: "12 000 000",
+        currency: "GBP",
+        fxEntry: "0.8762",
+        impactQ42023: "52 572",
+        impactQ22024: "- 16 660",
+        impactQ42024: "520 572",
+        impactInception: "376 240",
+      },
+      {
+        id: "inv-2",
+        name: "Investment #2",
+        cost: "10 500 000",
+        currency: "USD",
+        fxEntry: "1.0964",
+        impactQ42023: "-",
+        impactQ22024: "131 048",
+        impactQ42024: "113 229",
+        impactInception: "113 229",
+      },
+      {
+        id: "inv-3",
+        name: "Investment #3",
+        cost: "120 000 000",
+        currency: "MAD",
+        fxEntry: "10.8762",
+        impactQ42023: "520 572",
+        impactQ22024: "- 160 660",
+        impactQ42024: "520 572",
+        impactInception: "376 240",
+      }
+    ],
+    total: {
+      cost: "142 500 000",
+      impactQ42023: "573 144",
+      impactQ22024: "- 46 272",
+      impactQ42024: "1 154 041",
+      impactInception: "865 709",
+    }
+  },
+  "2": {
+    rows: [
+      {
+        id: "inv-4",
+        name: "Investment #4",
+        cost: "120 000 000",
+        currency: "MAD",
+        fxEntry: "10.8762",
+        impactQ42023: "520 572",
+        impactQ22024: "- 160 660",
+        impactQ42024: "520 572",
+        impactInception: "376 240",
+      }
+    ],
+    total: {
+      cost: "120 000 000",
+      impactQ42023: "520 572",
+      impactQ22024: "- 160 660",
+      impactQ42024: "520 572",
+      impactInception: "376 240",
+    }
+  }
+};
 
 export const COMPARE_ROWS = [
   {
@@ -355,97 +434,6 @@ export const COMPARE_TOTAL_ROW = {
   moicQ1: "1.72x",
   moicQ2: "1.72x",
 };
-
-export const FX_PORTFOLIO_ROWS = [
-  {
-    id: 1,
-    name: "Investment #1",
-    cost: "12 104 000",
-    currency: "USD",
-    fxEntry: "1.0578",
-    impactQ42023: "127 934",
-    impactQ22024: "- 42 385",
-    impactQ42024: "98 415",
-    impactInception: "92 814",
-  },
-  {
-    id: 2,
-    name: "Investment #2",
-    cost: "11 323 000",
-    currency: "USD",
-    fxEntry: "1.1065",
-    impactQ42023: "- 96 517",
-    impactQ22024: "117 300",
-    impactQ42024: "137 982",
-    impactInception: "54 772",
-  },
-  {
-    id: 3,
-    name: "Investment #3",
-    cost: "14 949 000",
-    currency: "EUR",
-    fxEntry: "1.0000",
-    impactQ42023: "84 209",
-    impactQ22024: "- 31 458",
-    impactQ42024: "- 42 376",
-    impactInception: "112 009",
-  },
-  {
-    id: 4,
-    name: "Investment #4",
-    cost: "13 300 000",
-    currency: "GBP",
-    fxEntry: "0.8801",
-    impactQ42023: "- 61 239",
-    impactQ22024: "- 26 811",
-    impactQ42024: "122 594",
-    impactInception: "- 26 435",
-  },
-  {
-    id: 5,
-    name: "Investment #5",
-    cost: "13 191 000",
-    currency: "MAD",
-    fxEntry: "10.8700",
-    impactQ42023: "72 011",
-    impactQ22024: "- 15 073",
-    impactQ42024: "- 18 706",
-    impactInception: "78 660",
-  },
-  {
-    id: 6,
-    name: "Investment #6",
-    cost: "14 727 000",
-    currency: "ZAR",
-    fxEntry: "20.7820",
-    impactQ42023: "- 42 286",
-    impactQ22024: "- 5 874",
-    impactQ42024: "76 801",
-    impactInception: "- 31 728",
-  },
-  {
-    id: 7,
-    name: "Investment #7",
-    cost: "9 047 000",
-    currency: "EUR",
-    fxEntry: "1.0000",
-    impactQ42023: "35 188",
-    impactQ22024: "- 16 048",
-    impactQ42024: "62 307",
-    impactInception: "50 221",
-  },
-  {
-    id: 8,
-    name: "Investment #8",
-    cost: "12 392 000",
-    currency: "GBP",
-    fxEntry: "0.8554",
-    impactQ42023: "- 64 385",
-    impactQ22024: "- 3 653",
-    impactQ42024: "83 555",
-    impactInception: "45 927",
-  },
-];
 
 export const FX_PORTFOLIO_TOTAL = {
   cost: "97 257 000",

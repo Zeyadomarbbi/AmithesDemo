@@ -75,8 +75,8 @@ const FundIdentity = () => {
         fund_strategy: formData.fund_strategy,
         legal_form: formData.legal_form,
         management_company: formData.management_company,
-        currency: formData.currency,
-        phase: formData.phase,
+        currency_id: formData.currency,
+        phase_id: formData.phase,
         formation_date_string: formData.formation_date_string,
       };
 

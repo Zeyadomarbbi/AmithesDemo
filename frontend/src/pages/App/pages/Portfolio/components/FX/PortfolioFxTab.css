@@ -2,105 +2,48 @@
 
 .fx-breakdown-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; /* Aligning left per image */
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-top: 16px;
+  gap: 4px;
+  padding-bottom: 16px;
 }
 
 .fx-breakdown-label {
-  margin-right: 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+.fx-breakdown-controls {
+  display: flex;
+  background: #F9FAFB; /* Light gray background for the group */
+  padding: 4px;
+  border-radius: 12px;
 }
 
 .fx-breakdown-pill {
-  border-radius: 999px;
-  border: 1px solid transparent;
-  padding: 4px 10px;
+  border: none;
+  border-radius: 8px; /* Slightly rounded corners inside the container */
+  padding: 6px 16px;
   background: transparent;
-  font-size: 13px;
   cursor: pointer;
-  color: #4b5563;
+  transition: all 0.2s ease;
+
+  /* Text-SM/Medium Default */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
 }
 
 .fx-breakdown-pill.active {
-  border-color: #d1d5db;
-  background: #f3f4f6;
-  color: var(--text-main);
-}
-
-/* ===== FX Investment Sections ===== */
-
-.fx-investment-section {
-  margin-top: 16px;
-}
-
-.fx-investment-title {
-  margin: 0 0 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-/* ===== FX Table ===== */
-
-.fx-table-card {
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
-}
-
-.fx-table-scroll {
-  overflow-x: auto;
-}
-
-.fx-table {
-  width: 100%;
-  min-width: 960px;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.fx-table thead th {
-  padding: 10px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: #f9fafb;
-  white-space: nowrap;
-}
-
-.fx-table tbody td {
-  padding: 10px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-}
-
-.fx-table .col-number {
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* ===== FX Totals ===== */
-
-.fx-total-row {
-  background: var(--net-bg);
-  color: #ffffff;
-}
-
-.fx-total-row td {
-  border-bottom: none;
-}
-
-.fx-total-label {
-  font-weight: 600;
-}
-
-.fx-total-row .col-number {
-  color: #ffffff;
+  background: #FFFFFF; /* White pill background */
+  color: #111827; /* Black text when selected */
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); /* Subtle elevation */
 }
 
 /* ===== FX Charts ===== */
