@@ -1,9 +1,11 @@
 /* ===== Portfolio Page Layout ===== */
 
 .portfolio-page {
-  min-height: 100vh;
-  background: var(--bg-page);
-  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%; /* CHANGED: from height to min-height */
+  width: 100%;
+  background-color: #FFFFFF;
 }
 
 .portfolio-content {
@@ -27,45 +29,46 @@
   font-size: 30px;
   line-height: 100%;
   color: #1c1917;
-  margin: 0 0 16px 0;
+  padding-bottom: 24px;
 }
 
 /* ===== Tabs ===== */
 
-.financials-tabs {
-  display: flex;
-  gap: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
 .portfolio-tabs {
-  margin-top: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  margin-bottom: 24px;
 }
 
-.tab {
-  position: relative;
-  padding: 8px 0;
-  font-size: 14px;
-  font-weight: 500;
+.portfolio-tabs-tab {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0 4px 12px; 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; 
+  transition: border-color 0.2s, color 0.2s;
 }
 
-.tab.active {
-  color: #f59e0b;
+.portfolio-tabs-tab:hover {
+  color: #375A89;
 }
 
-.tab.active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -1px;
-  width: 100%;
-  height: 2px;
-  background: #f59e0b;
+/* React Router NavLink active state */
+.portfolio-tabs-tab.active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B;
 }
+
 
 /* ===== Responsive ===== */
 

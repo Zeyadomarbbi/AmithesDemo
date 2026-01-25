@@ -18,7 +18,6 @@ import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashbo
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
-import PortfolioPage from './pages/App/pages/Portfolio/PortfolioPage';
 import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
 import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
@@ -31,6 +30,14 @@ import FundIdentity from './pages/App/pages/Settings/components/FundIdentity/Fun
 import ManagementFees from './pages/App/pages/Settings/components/ManagementFees/ManagementFees';
 import ShareClasses from './pages/App/pages/Settings/components/ShareClasses/ShareClasses';
 import WaterfallStructure from './pages/App/pages/Settings/components/WaterfallStructure/WaterfallStructure';
+
+// --- PORTFOLIO COMPONENTS ---
+import PortfolioPage from './pages/App/pages/Portfolio/PortfolioPage';
+import PortfolioSummaryTab from "./pages/App/pages/Portfolio/components/Summary/PortfolioSummaryTab";
+import PortfolioFxTab from "./pages/App/pages/Portfolio/components/FX/PortfolioFxTab";
+import PortfolioLimitsTab from "./pages/App/pages/Portfolio/components/Limits/PortfolioLimitsTab";
+import PortfolioCompareTab from "./pages/App/pages/Portfolio/components/Compare/PortfolioCompareTab";
+import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Limits/components/CompareDetailPanel";
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -79,8 +86,17 @@ const router = createBrowserRouter([
               { path: ':scenarioId/:tab?', element: <ScenarioDetailPage /> }
             ], 
           },
-          { path: 'portfolio', element: <PortfolioPage />, 
-            children: [{}],
+          {
+            path: 'portfolio',
+            element: <PortfolioPage />,
+            children: [
+              { index: true, element: <Navigate to="summary" replace /> },
+              { path: 'summary', element: <PortfolioSummaryTab /> },
+              { path: 'fx', element: <PortfolioFxTab /> },
+              { path: 'limits', element: <PortfolioLimitsTab /> },
+              { path: 'compare', element: <PortfolioCompareTab /> },
+              { path: 'compare/:positionId', element: <CompareDetailPanel /> },
+            ],
           },
           { path: 'lps-statement', element: <LPsStatementPage /> },
           { path: 'financials', 

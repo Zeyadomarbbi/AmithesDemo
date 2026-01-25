@@ -1,6 +1,8 @@
 // components/PortfolioSummaryTab.jsx
 import React, { useState } from "react";
-import "../styles/portfolio.summary.css";
+import { useOutletContext, useParams } from 'react-router-dom';
+
+import "./PortfolioSummaryTab.css";
 
 import {
   ChevronDownIcon,
@@ -11,17 +13,27 @@ import {
   DownloadIcon,
   iconStyle,
   smallIconStyle,
-} from "../icons";
+} from "../../icons";
 
 
-import { UNREALIZED_ROWS, REALIZED_ROWS } from "../portfolioData";
-import NewInvestmentModal from "./NewInvestmentModal";
+import { UNREALIZED_ROWS, REALIZED_ROWS } from "../../portfolioData";
+import NewInvestmentModal from "./components/NewInvestmentModal";
 
 
 
 const PortfolioSummaryTab = ({ onSelectInvestment }) => {
+  const { fundId } = useOutletContext();
+  const numericFundId = Number(fundId);
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
   const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
+
+  const unrealizedRows = UNREALIZED_ROWS.filter(
+    r => r.fund_id === numericFundId
+  );
+
+  const realizedRows = REALIZED_ROWS.filter(
+    r => r.fund_id === numericFundId
+  );
 
   return (
     <>
@@ -125,7 +137,7 @@ const PortfolioSummaryTab = ({ onSelectInvestment }) => {
                 </tr>
               </thead>
               <tbody>
-                {UNREALIZED_ROWS.map((row) =>
+                {unrealizedRows.map((row) =>
                   row.type === "subtotal" ? (
                     <tr key={row.id} className="portfolio-subtotal-row">
                       <td className="subtotal-name-cell">
@@ -234,7 +246,7 @@ const PortfolioSummaryTab = ({ onSelectInvestment }) => {
                 </tr>
               </thead>
               <tbody>
-                {REALIZED_ROWS.map((row) =>
+                {realizedRows.map((row) =>
                   row.type === "subtotal" ? (
                     <tr key={row.id} className="portfolio-subtotal-row">
                       <td className="subtotal-name-cell">

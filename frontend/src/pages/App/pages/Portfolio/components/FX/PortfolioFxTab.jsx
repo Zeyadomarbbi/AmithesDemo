@@ -1,6 +1,6 @@
 // components/PortfolioFxTab.jsx
 import React, { useState } from "react";
-import "../styles/portfolio.fx.css";
+import "./PortfolioFxTab.css";
 
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import {
@@ -9,7 +9,7 @@ import {
   FX_INVESTMENT_3_ROWS,
   FX_PORTFOLIO_ROWS,
   FX_PORTFOLIO_TOTAL,
-} from "../portfolioData";
+} from "../../portfolioData";
 
 const iconStyle = {
   color: "#111827",

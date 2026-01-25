@@ -3,6 +3,7 @@
 export const UNREALIZED_ROWS = [
   {
     id: 1,
+    fund_id: 1,
     type: "row",
     name: "Alyra BioTech",
     sector: "Healthcare",
@@ -18,6 +19,7 @@ export const UNREALIZED_ROWS = [
   },
   {
     id: 2,
+    fund_id: 1,
     type: "row",
     name: "SBM Health Healthcare",
     sector: "Healthcare",
@@ -33,6 +35,7 @@ export const UNREALIZED_ROWS = [
   },
   {
     id: 3,
+    fund_id: 1,
     type: "row",
     name: "Vantech AI",
     sector: "Technology",
@@ -48,6 +51,7 @@ export const UNREALIZED_ROWS = [
   },
   {
     id: 4,
+    fund_id: 1,
     type: "row",
     name: "Medisis Industry",
     sector: "Healthcare",
@@ -63,6 +67,7 @@ export const UNREALIZED_ROWS = [
   },
   {
     id: 5,
+    fund_id: 1,
     type: "row",
     name: "NeoGrid Industry",
     sector: "Industry",
@@ -91,6 +96,7 @@ export const UNREALIZED_ROWS = [
 export const REALIZED_ROWS = [
   {
     id: 1,
+    fund_id: 1,
     type: "row",
     name: "Solenix Capital Bank",
     sector: "Financials",
@@ -106,6 +112,7 @@ export const REALIZED_ROWS = [
   },
   {
     id: 2,
+    fund_id: 1,
     type: "row",
     name: "Terapia Group Healthcare",
     sector: "Healthcare",

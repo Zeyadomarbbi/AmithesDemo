@@ -1,8 +1,8 @@
 // components/PortfolioLimitsTab.jsx
 import React, { useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { LIMITS_ROWS } from "../portfolioData";
-import NewLimitPanel from "./NewLimitPanel";
+import { LIMITS_ROWS } from "../../portfolioData";
+import NewLimitPanel from "./components/NewLimitPanel";
 
 const iconStyle = {
   color: "#111827",
