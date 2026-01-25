@@ -1,17 +1,12 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import QuarterSelector from '../../../../../../components/QuarterSelection/QuarterSelector'; // Import the new component
 import { useTimeframes, apiRowToQuarter } from '../../../../../../components/QuarterSelection/useTimeframes';
 import './DashboardHeader.css';
 
-function DashboardHeader({ 
-    fundId, 
-    fundName, 
-    showQuarterSelector, 
-    selectedTimeframeId, 
-    onTimeframeChange 
-}) {
+function DashboardHeader({ fundId, fundName, showQuarterSelector, onTimeframeChange }) {
     const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
-
+    const { timeframeId } = useParams();
     const handleSaveNew = async (newTimeframe) => {
         const payload = {
             fund: fundId,
@@ -45,7 +40,7 @@ function DashboardHeader({
                 <div className="header-actions">
                     <QuarterSelector 
                         options={quarters}
-                        selected={selectedTimeframeId}
+                        selected={timeframeId ? Number(timeframeId) : null}
                         onChange={onTimeframeChange}
                         onSaveNew={handleSaveNew}
                         isLoading={isLoading}

@@ -1,12 +1,11 @@
 import React from 'react';
-import './LimitsDashboard.css';
-
-// Import the modular sections
+import { useOutletContext, useParams } from 'react-router-dom';
 import LPsStatement from './LPsStatement/LPsStatement';
 import Financials from './Financials/Financials';
 import Portfolio from './Portfolio/Portfolio';
 
-// --- CENTRAL MOCK DATA SOURCE ---
+import './LimitsDashboard.css';
+
 // Structure is now keyed by fundId, containing the category limits for that fund.
 const ALL_MOCK_LIMITS_DATA = {
   '1': { // Assuming fundId '1'
@@ -43,10 +42,10 @@ const ALL_MOCK_LIMITS_DATA = {
 // --- END MOCK DATA ---
 
 
-function LimitsDashboard({ fundId }) { 
+function LimitsDashboard() { 
   // Get the data for the current fund_id. Use fund_1 data as a default if fundId is missing or invalid.
-  const currentFundId = fundId?.toString() || '1'; 
-  const fundData = ALL_MOCK_LIMITS_DATA[currentFundId] || {};
+  const { fundId } = useOutletContext();
+  const fundData = ALL_MOCK_LIMITS_DATA[fundId] || {};
 
   const { 
     LPsStatement: lpsData = [], 

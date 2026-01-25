@@ -26,23 +26,10 @@ function QuarterSelector({
     }, []);
 
     const getButtonLabel = () => {
-        if (isLoading) return { q: 'Loading...', y: '' };
-        
-        const findItem = (id) => options.find(item => Number(item.id) === Number(id));
+        if (isLoading) return 'Loading...';
 
-        if (isSingle) {
-            const active = findItem(selected);
-            return active ? { q: active.quarter, y: active.year } : { q: 'Select', y: '' };
-        }
-
-        if (!selected || selected.length === 0) return { q: 'Select', y: '' };
-        
-        if (selected.length === 1) {
-            const active = findItem(selected[0]);
-            return active ? { q: active.quarter, y: active.year } : { q: 'Select', y: '' };
-        }
-
-        return { q: `Timeframes (${selected.length})`, y: '' };
+        const active = options.find(o => Number(o.id) === Number(selected));
+        return active ? active.display_label : 'Select';
     };
 
     const label = getButtonLabel();
@@ -55,8 +42,7 @@ function QuarterSelector({
                 style={{ opacity: isLoading ? 0.7 : 1 }}
             >
                 <div className="quarter-text-group">
-                    <span className="quarter-part">{label.q}</span>
-                    {label.y && <span className="year-part">{label.y}</span>}
+                    <span className="quarter-part">{label}</span>
                 </div>
                 <div className={`quarter-icon ${isOpen ? 'open' : ''}`}>
                     <ChevronDownIcon />
@@ -87,7 +73,7 @@ function QuarterSelector({
                                     )}
 
                                     <span className="item-label-bold">
-                                        {item.quarter} {item.year}
+                                        {item.display_label}
                                     </span>
                                     
                                     <div className="item-details-group">

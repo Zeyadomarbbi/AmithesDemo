@@ -12,6 +12,9 @@ import AppLayout from './pages/App/components/AppLayout';
 
 // --- PAGES ---
 import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
+import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
+import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
+
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
@@ -23,11 +26,11 @@ import AdminsPage from './pages/App/pages/Admins/AdminsPage';
 import HelpPage from './pages/App/pages/Help/HelpPage';
 
 // --- SETTINGS COMPONENTS ---
+import SettingsPage from './pages/App/pages/Settings/SettingsPage';
 import FundIdentity from './pages/App/pages/Settings/components/FundIdentity/FundIdentity';
 import ManagementFees from './pages/App/pages/Settings/components/ManagementFees/ManagementFees';
 import ShareClasses from './pages/App/pages/Settings/components/ShareClasses/ShareClasses';
 import WaterfallStructure from './pages/App/pages/Settings/components/WaterfallStructure/WaterfallStructure';
-import SettingsPage from './pages/App/pages/Settings/SettingsPage';
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -57,11 +60,17 @@ const router = createBrowserRouter([
                 { path: 'management-fees', element: <ManagementFees /> },
             ]
           },
-          { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'dashboard/:tab?', element: <DashboardPage /> },
-          { path: 'dashboard/:tab/:quarter?', element: <DashboardPage /> },
+          {
+            path: 'dashboard',
+            element: <DashboardPage />,
+            children: [
+              { index: true, element: <Navigate to="kpi" replace /> },
+              { path: 'kpi', element: <KPIDashboard /> },
+              { path: 'kpi/:timeframeId', element: <KPIDashboard /> },
+              { path: 'limits', element: <LimitsDashboard /> },
+            ]
+          },
 
-          // === 1. SCENARIOS LIST + DRAWER OVERLAY ===
           { 
             path: 'scenarios', 
             element: <ScenariosPage />, 
