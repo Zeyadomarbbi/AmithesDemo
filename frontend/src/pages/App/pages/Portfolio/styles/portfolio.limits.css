@@ -1,0 +1,193 @@
+/* ===== Limits Section ===== */
+
+.limits-section {
+  margin-top: 24px;
+}
+
+.limits-filters-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.limits-filters-left {
+  display: flex;
+  gap: 12px;
+}
+
+/* ===== Dropdown Button ===== */
+
+.dropdown-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 14px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+/* ===== New Limit Button ===== */
+
+.new-limit-btn {
+  background: #f59e0b;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+/* ===== Limits Table ===== */
+
+.limits-table-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.limits-table th,
+.limits-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.limits-table thead th {
+  font-weight: 500;
+  color: var(--text-muted);
+  background: #f9fafb;
+}
+
+.limits-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.limits-link {
+  font-size: 12px;
+  color: #2563eb;
+}
+
+.breach-red {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ===== Limit Side Panel ===== */
+
+.limit-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 25vw;
+  max-width: 700px;
+  height: 100vh;
+
+  background: #ffffff;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+
+  padding: 32px 40px;
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ===== Panel Header ===== */
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+}
+
+.panel-header .back-btn,
+.panel-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ===== Limit Form ===== */
+
+.limit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.limit-form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.limit-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.limit-form input,
+.limit-form select,
+.limit-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text-main);
+}
+
+.limit-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ===== Form Actions ===== */
+
+.limit-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.limit-form-actions .cancel-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.limit-form-actions .save-btn {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .limit-panel {
+    width: 100%;
+  }
+}

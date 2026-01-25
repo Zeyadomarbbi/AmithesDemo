@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { ChevronDownIcon, ArrowTrendingUpIcon } from "@heroicons/react/24/outline";
 import { COMPARE_ROWS, COMPARE_TOTAL_ROW } from "../portfolioData";
+import "../styles/portfolio.compare.css";
 
 const iconStyle = {
   color: "#111827",

@@ -1,5 +1,7 @@
 // components/PortfolioFxTab.jsx
 import React, { useState } from "react";
+import "../styles/portfolio.fx.css";
+
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import {
   FX_INVESTMENT_1_ROWS,

@@ -1,0 +1,191 @@
+/* ===== Sections ===== */
+
+.portfolio-section {
+  margin-top: 16px;
+  width: 100%;
+}
+
+/* ===== Table Cards ===== */
+
+.portfolio-table-card {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: var(--card-bg);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
+
+.portfolio-section-header {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.portfolio-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.portfolio-count {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ===== Table Tools ===== */
+
+.portfolio-table-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-circle-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ===== Table ===== */
+
+.portfolio-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.portfolio-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.portfolio-table thead th {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: #f9fafb;
+  white-space: nowrap;
+}
+
+.portfolio-table tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+/* ===== Columns ===== */
+
+.col-number {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.col-highlight {
+  background: #edf2ff;
+}
+
+/* ===== Sorting ===== */
+
+.sort-indicator {
+  font-size: 11px;
+  margin-left: 4px;
+  color: #9ca3af;
+}
+
+/* ===== Name Cell ===== */
+
+.name-cell {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.name-main {
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.name-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ===== Geography ===== */
+
+.flag {
+  margin-right: 6px;
+  font-size: 15px;
+}
+
+.geo-label {
+  font-size: 13px;
+}
+
+/* ===== Subtotal / Total Rows ===== */
+
+.portfolio-subtotal-row {
+  background: var(--net-bg);
+  color: #ffffff;
+}
+
+.portfolio-subtotal-row td {
+  border-bottom: none;
+}
+
+.portfolio-subtotal-row .col-number {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.portfolio-subtotal-row .col-highlight {
+  background: transparent;
+}
+
+/* ===== Subtotal Button ===== */
+
+.subtotal-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-right: 6px;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subtotal-btn svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  fill: white;
+}
+
+/* ===== Hide Scrollbars ===== */
+
+.portfolio-table-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+.portfolio-table-scroll {
+  scrollbar-width: none;
+}

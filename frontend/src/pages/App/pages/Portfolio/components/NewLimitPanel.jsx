@@ -1,5 +1,6 @@
 import React from "react";
-import "../PortfolioPage.css";
+import "../styles/portfolio.limits.css";
+import "../styles/portfolio.compare.css";
 
 
 const NewLimitPanel = ({ onClose }) => {

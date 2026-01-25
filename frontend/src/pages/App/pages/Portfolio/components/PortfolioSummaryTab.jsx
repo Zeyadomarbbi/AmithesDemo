@@ -1,5 +1,6 @@
 // components/PortfolioSummaryTab.jsx
 import React, { useState } from "react";
+import "../styles/portfolio.summary.css";
 
 import {
   ChevronDownIcon,
