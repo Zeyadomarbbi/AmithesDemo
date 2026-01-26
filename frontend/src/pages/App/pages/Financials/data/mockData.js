@@ -1,8 +1,14 @@
+// frontend/src/pages/App/pages/Financials/data/mockData.js
+
 export const pnlPeriods = [
   { id: "q1_2024", label: "Q1 2024 (€)" },
   { id: "q1_2025", label: "Q1 2025 (€)" },
 ];
 
+/**
+ * If QuarterSelector needs these, keep them.
+ * Otherwise you can delete them later.
+ */
 export const timeframeData = [
   { id: 1, label: "Q1 2024", date: "08/03/26", checked: true },
   { id: 2, label: "Q1 2025", date: "08/07/26", checked: true },
@@ -15,22 +21,28 @@ export const quarterOptions = [
   { id: 4, label: "Q4 2024", date: "08/12/26" },
 ];
 
+/**
+ * ✅ Lines = labels only (UI renders the inputs from incomeValues/expenseValues)
+ * ✅ isCustom false so pencil/edit icon shows only for base rows
+ */
 export const incomeLines = [
-  { id: "realized_gain", label: "Realized gain", value: "500 000" },
-  { id: "unrealized_gain", label: "Unrealized gain", value: "2 000 000" },
-  { id: "fx_gain", label: "FX gain", value: "750 000" },
-  { id: "dividends", label: "Dividends & Interests", value: "200 000" },
-  { id: "other_income", label: "Other income", value: "50 000" },
+  { id: "realized_gain", label: "Realized gain", isCustom: false },
+  { id: "unrealized_gain", label: "Unrealized gain", isCustom: false },
+  { id: "fx_gain", label: "FX gain", isCustom: false },
+  { id: "dividends", label: "Dividends & Interests", isCustom: false },
+  { id: "other_income", label: "Other income", isCustom: false },
 ];
 
 export const expenseLines = [
-  { id: "management_fees", label: "Management fees", value: "1 000 000" },
-  { id: "dd_fees", label: "Due diligence fees", value: "500 000" },
-  { id: "opex", label: "Opex", value: "150 000" },
-  { id: "unrealized_losses", label: "Unrealized losses", value: "50 000" },
-  { id: "fx_losses", label: "FX losses", value: "100 000" },
+  { id: "management_fees", label: "Management fees", isCustom: false },
+  { id: "dd_fees", label: "Due diligence fees", isCustom: false },
+  { id: "opex", label: "Opex", isCustom: false },
+  { id: "unrealized_losses", label: "Unrealized losses", isCustom: false },
+  { id: "fx_losses", label: "FX losses", isCustom: false },
 ];
 
+/**
+ * Limits tab mock stays the same (until we wire DB later) */
 export const limitsRows = [
   {
     id: "due_dil_fees",

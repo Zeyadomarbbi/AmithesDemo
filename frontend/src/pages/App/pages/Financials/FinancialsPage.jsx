@@ -1,38 +1,34 @@
-import React, { useState } from "react";
-import PnLTab from "./components/PnLTab";
-import LimitsTab from "./components/LimitsTab";
+// frontend/src/pages/App/pages/Financials/FinancialsPage.jsx
+import React from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import "./FinancialsLayout.css";
 
 const FinancialsPage = () => {
-  const [activeTab, setActiveTab] = useState("pnl");
-
   return (
     <div className="financials-page">
       <main className="financials-content">
         <h1 className="financials-title">Financials</h1>
 
-        {/* TABS Navigation */}
+        {/* TABS Navigation (real links) */}
         <div className="financials-tabs">
-          <button
-            className={`tab ${activeTab === "pnl" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("pnl")}
+          <NavLink
+            to="pnl"
+            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+            end
           >
-            P&L
-          </button>
+            P&amp;L
+          </NavLink>
 
-          <button
-            className={`tab ${activeTab === "limits" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("limits")}
+          <NavLink
+            to="limits"
+            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
           >
             Limits
-          </button>
+          </NavLink>
         </div>
 
-        {/* VIEW RENDERER */}
-        {activeTab === "pnl" && <PnLTab />}
-        {activeTab === "limits" && <LimitsTab />}
+        {/* Child routes render here */}
+        <Outlet />
       </main>
     </div>
   );

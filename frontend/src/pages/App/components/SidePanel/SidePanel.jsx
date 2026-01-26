@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
 import { useFundData } from '../../hooks/useFundData'; 
@@ -14,46 +14,45 @@ import './SidePanel.css';
 
 function SidePanel() {
   const [isFundSelectorOpen, setIsFundSelectorOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
-  // 1. Get Global Data & Current State
-  const { funds } = useFundData(); // Access global list of funds
-  const activeFundId = useActiveFund(); // Get current ID from URL (Source of Truth)
+  const { funds } = useFundData();
+  const activeFundId = useActiveFund();
   
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 2. Determine Current Section (e.g., 'dashboard', 'settings', 'portfolio')
-  // URL structure: /funds/:id/:section
   const pathSegments = location.pathname.split('/');
-  // pathSegments[0] is empty, [1] is 'funds', [2] is id, [3] is section
   const currentSection = pathSegments[1] === 'funds' && pathSegments[3] 
     ? pathSegments[3] 
-    : 'dashboard'; // Default to dashboard if no section found
+    : 'dashboard';
 
-  // 3. derive the Active Fund Object
-  // We compare as strings to avoid type mismatch (e.g., "1" vs 1)
+  const filteredFunds = useMemo(() => {
+    return funds.filter(fund => 
+      fund.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      fund.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [funds, searchQuery]);
+
   const currentFund = funds.length > 0 
     ? (funds.find(f => f.id.toString() === activeFundId?.toString()) || funds[0]) 
     : { name: 'Loading...', id: '' }; 
 
-  // 4. Handle Fund Switching
   const handleSwitchFund = (newFundId) => {
-    // This updates the URL. The rest of the app listens to the URL change.
     navigate(`/funds/${newFundId}/${currentSection}`);
     setIsFundSelectorOpen(false);
+    setSearchQuery("");
   };
 
   return (
     <div className="side-panel">
       
-      {/* === FRAME 1: TOP SECTION === */}
       <div className="frame-1">
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
         </div>
 
         <div className="frame-1-2">
-          {/* FUND SELECTOR */}
           <div className="fund-selector-container">
             <div className="fund-selector-button">
               <div className="fund-info-section">
@@ -79,13 +78,18 @@ function SidePanel() {
               </div>
             </div>
             
-            {/* DROPDOWN MENU */}
             {isFundSelectorOpen && (
               <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
                 
                 <div className="dropdown-search-container">
                   <SearchIcon />
-                  <input type="text" placeholder="Search" className="dropdown-search-input" />
+                  <input 
+                    type="text" 
+                    placeholder="Search by name or code" 
+                    className="dropdown-search-input" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
 
                 <div className="dropdown-action-row">
@@ -95,26 +99,29 @@ function SidePanel() {
                 </div>
 
                 <div className="dropdown-scroll">
-                  {funds.map(fund => (
-                    <div
-                      key={fund.id}
-                      className={`dropdown-item ${fund.id.toString() === activeFundId?.toString() ? 'selected' : ''}`}
-                      onClick={() => handleSwitchFund(fund.id)}
-                    >
-                      <div className="dropdown-item-content">
-                        <span className="item-name">{fund.name}</span> 
-                        <span className="item-code">{fund.code}</span>
+                  {filteredFunds.length > 0 ? (
+                    filteredFunds.map(fund => (
+                      <div
+                        key={fund.id}
+                        className={`side-panel-dropdown-item ${fund.id.toString() === activeFundId?.toString() ? 'selected' : ''}`}
+                        onClick={() => handleSwitchFund(fund.id)}
+                      >
+                        <div className="side-panel-dropdown-item-content">
+                          <span className="side-panel-item-name">{fund.name}</span> 
+                          <span className="side-panel-item-code">{fund.code}</span>
+                        </div>
                       </div>
-                      {/* Optional: Add a checkmark icon if selected */}
+                    ))
+                  ) : (
+                    <div className="dropdown-no-results" style={{ padding: '12px', fontSize: '14px', color: '#6b7280', textAlign: 'center' }}>
+                      No funds found
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* NAVIGATION LINKS */}
-          {/* Using NavLink automatically handles 'active' styling based on URL */}
           <nav className="side-panel-nav">
             <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
               <DashboardIcon /> <span>Dashboard</span>
@@ -140,7 +147,6 @@ function SidePanel() {
 
       <div className="frame-2-waves"></div>
 
-      {/* === FRAME 3: FOOTER SECTION === */}
       <div className="frame-3">
         <div className="footer-links">
           <NavLink to="/all-funds" className="footer-item">

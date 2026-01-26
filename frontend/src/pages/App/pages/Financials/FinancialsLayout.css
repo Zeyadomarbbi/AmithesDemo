@@ -44,7 +44,6 @@ body {
   color: #1c1917;
   margin: 0 0 16px 0;
 }
-
 /* ===== Tabs ===== */
 .financials-tabs {
   /* Container Styling */
@@ -53,46 +52,47 @@ body {
   align-items: center;
   gap: 16px;
   width: 100%;
-
+  
+ 
   /* The Grey Separator Line */
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
   margin-bottom: 4px;
 }
-
+ 
 .tab {
   background: none;
   border: none;
   cursor: pointer;
-
+ 
   /* Spacing */
   padding: 0 4px 12px;
-
+ 
   /* Typography */
   font-family: var(--font-body);
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
-
+ 
   /* Color: Always Blue */
   color: #375A89;
-
+ 
   /* BORDER LOGIC */
   /* Transparent border prevents jumping on hover/active */
   border-bottom: 2px solid transparent;
-
+ 
   /* Pull item down to overlap container border */
   margin-bottom: -1px;
-
+ 
   transition: border-color 0.2s;
 }
-
+ 
 .tab.active {
   color: #375A89;
   /* The Orange Active Line */
   border-bottom: 2px solid #F7A93B;
 }
-
+ 
 .tab.active::after {
   content: none;
   display: none;
@@ -141,4 +141,9 @@ body {
 }
 .pnl-table {
   width: 100%;
+}
+/* FORCE remove underline for the Financials tabs */
+.financials-tabs,
+.financials-tabs * {
+  text-decoration: none !important;
 }

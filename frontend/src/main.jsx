@@ -19,10 +19,14 @@ import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
 import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
-import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
 import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
 import AdminsPage from './pages/App/pages/Admins/AdminsPage';
 import HelpPage from './pages/App/pages/Help/HelpPage';
+
+// --- FINANCIALS COMPONENTS ---
+import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
+import PnLTab from "./pages/App/pages/Financials/components/PnLTab/PnLTab.jsx";
+import LimitsTab from "./pages/App/pages/Financials/components/limitstab/LimitsTab.jsx";
 
 // --- SETTINGS COMPONENTS ---
 import SettingsPage from './pages/App/pages/Settings/SettingsPage';
@@ -99,11 +103,14 @@ const router = createBrowserRouter([
             ],
           },
           { path: 'lps-statement', element: <LPsStatementPage /> },
-          { path: 'financials', 
+          { 
+            path: "financials",
             element: <FinancialsPage />,
             children: [
-
-            ]
+              { index: true, element: <Navigate to="pnl" replace /> },
+              { path: "pnl", element: <PnLTab /> },
+              { path: "limits", element: <LimitsTab /> },
+            ],
           },
         ]
       }

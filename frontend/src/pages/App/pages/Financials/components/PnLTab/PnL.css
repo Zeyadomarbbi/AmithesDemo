@@ -1,0 +1,154 @@
+/* frontend/src/pages/App/pages/Financials/styles/PnL.css */
+
+/* ===== Toolbar ===== */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+
+.left-tools,
+.right-tools {
+  display: flex;
+  gap: 12px;
+}
+.right-tools {
+  gap: 8px;
+}
+
+/* upload/download */
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  background: #f6f6f6;
+  font-size: 13px;
+  color: #1c1917;
+  cursor: pointer;
+}
+.ghost-btn:focus,
+.ghost-btn:focus-visible {
+  outline: none;
+}
+
+/* ===== Card wrapper ===== */
+.financials-card {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+/* ===== Header row (periods) ===== */
+.table-header-row {
+  display: grid;
+  grid-template-columns: 0.4fr 0.3fr 0.3fr 1fr;
+  align-items: center;
+  box-sizing: border-box;
+
+  border-bottom: 1px solid var(--border-soft);
+  padding: 20px 50px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: #f9fafb;
+}
+
+.col-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-label {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ✅ FIX: header icon buttons (removes default browser button box) */
+.col-period .icon-btn-muted {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+
+  width: 18px;
+  height: 18px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: #7b7d7e;
+  line-height: 0;
+}
+
+.col-period .icon-btn-muted.small {
+  width: 16px;
+  height: 16px;
+}
+
+.col-period .icon-btn-muted svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.col-period .icon-btn-muted:focus,
+.col-period .icon-btn-muted:focus-visible {
+  outline: none;
+}
+
+/* ===== Net Row (bottom) ===== */
+.net-row {
+  display: grid;
+  grid-template-columns: 0.4fr 0.3fr 0.3fr 1fr;
+  align-items: center;
+  box-sizing: border-box;
+
+  background: var(--net-bg);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 14px 16px;
+}
+
+.net-value {
+  text-align: left;
+}
+.net-value.positive {
+  color: #c8f5d0;
+}
+.net-value.negative {
+  color: #ffd1cf;
+}
+
+/* ===== Save button (from drawer style) ===== */
+.btn-primary-wide {
+  flex: 0 0 auto;
+  width: 211px;
+  min-width: 211px;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #f7a93b;
+  color: #ffffff;
+}
+
+/* container to place Save under the card, right aligned */
+.pnl-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px; /* after the card border */
+}
+  
