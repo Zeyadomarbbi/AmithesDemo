@@ -26,11 +26,10 @@ SECRET_KEY = 'django-insecure-3qrl7p8cdyb_t1k254#bd9frwxpncj&q91icvd=6=kta)19#ha
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['*']
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Application definition
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     
@@ -44,12 +43,15 @@ INSTALLED_APPS = [
     'rest_api'
 ]
 
-MIDDLEWARE = [
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',  # Keep this at the top
+    'whitenoise.middleware.WhiteNoiseMiddleware',     # Move this here
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Add this right here
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -131,9 +133,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+# This ensures WhiteNoise can serve files from the folder you just defined
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
