@@ -33,16 +33,19 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
+    "corsheaders",
     'rest_api'
 ]
 
 MIDDLEWARE = [
+
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -54,7 +57,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'project_config.urls'
-CORS_ALLOW_ALL_ORIGINS = True
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
@@ -74,17 +78,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'project_config.wsgi.application'
 
 
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "amethis_test",
-        "USER": "postgres",
-        "PASSWORD": "Apc389jc",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": "postgres",
+        "USER": "postgres.sonllyktwpfxapzsauat",  # Note the [dot]project-ref
+        "PASSWORD": "xu7aWo8E6Li7KuPj",
+        "HOST": "aws-1-eu-west-3.pooler.supabase.com",
+        "PORT": "6543",
+        "OPTIONS": {
+            "connect_timeout": 10,
+        },
     }
 }
 
