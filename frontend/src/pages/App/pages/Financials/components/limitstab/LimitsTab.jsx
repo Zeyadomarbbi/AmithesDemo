@@ -1,6 +1,5 @@
-// frontend/src/pages/App/pages/Financials/components/LimitsTab/LimitsTab.jsx
 import React, { useMemo, useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import "./Limits.css";
 
 import NewLimitDrawer from "./NewLimitDrawer.jsx";
@@ -9,7 +8,7 @@ import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.js
 import { useTimeframes, apiRowToQuarter } from "/src/components/QuarterSelection/useTimeframes";
 
 const INITIAL_LIMITS = {
-  "1": [ // Fund ID 1
+  "1": [
     {
       id: "init_1",
       name: "Shares A",
@@ -28,26 +27,48 @@ const INITIAL_LIMITS = {
     },
   ]
 };
+
 export default function LimitsTab() {
   const { fundId } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
 
-  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
+  // 1. Initialize state from URL Search Params
+  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState(() => {
+    const ids = searchParams.get("timeframes");
+    return ids ? ids.split(",").map(Number).filter(id => !isNaN(id)) : [];
+  });
+
   const [isNewLimitOpen, setIsNewLimitOpen] = useState(false);
   const [limits, setLimits] = useState(() => INITIAL_LIMITS[fundId] || []);
+
+  // 2. Sync State back to URL Address Bar (encoded with %2C automatically)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (selectedTimeframeIds.length > 0) {
+      params.set("timeframes", selectedTimeframeIds.join(","));
+    } else {
+      params.delete("timeframes");
+    }
+    setSearchParams(params, { replace: true });
+  }, [selectedTimeframeIds, setSearchParams]);
+
   useEffect(() => {
     setLimits(INITIAL_LIMITS[fundId] || []);
   }, [fundId]);
+
   const [sort, setSort] = useState({ key: null, dir: "asc" });
 
-  // Resolve Header periods (latest 2 by default, or filtered selection)
+  // 3. Resolve Header periods
   const headerPeriods = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
     const sorted = list.slice().sort(
       (a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date)
     );
 
+    // Default: Show latest 2 if no selection in URL
     if (selectedTimeframeIds.length === 0) return sorted.slice(0, 2);
+    
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
     return sorted.filter((q) => selectedSet.has(Number(q.id)));
   }, [quarters, selectedTimeframeIds]);
@@ -97,7 +118,6 @@ export default function LimitsTab() {
     });
   };
 
-  // Helper for numeric/percentage sorting
   const parsePct = (v) => {
     if (v == null) return null;
     const n = parseFloat(String(v).replace("%", "").replace(",", "."));
@@ -169,7 +189,6 @@ export default function LimitsTab() {
                     <SortIcon />
                   </span>
                 </th>
-                {/* Dynamic Timeframe Columns */}
                 {headerPeriods.map((p) => (
                   <th key={p.id} className="limits-th limits-th-number">
                     <span className="limits-th-inner">
@@ -193,7 +212,6 @@ export default function LimitsTab() {
                   <td className="limits-td limits-td-number">{row.limit}</td>
                   {headerPeriods.map((p) => (
                     <td key={p.id} className="limits-td limits-td-number">
-                      {/* Mapping values: check for keyed ID first, fallback to INITIAL_LIMITS keys for mock data */}
                       {row.values?.[p.id] || row[`q${p.quarter}`] || "-"}
                     </td>
                   ))}

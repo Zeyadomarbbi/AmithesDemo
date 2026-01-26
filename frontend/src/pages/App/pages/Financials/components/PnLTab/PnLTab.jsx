@@ -1,6 +1,5 @@
-// frontend/src/pages/App/pages/Financials/components/PnLTab.jsx
-import React, { useMemo, useRef, useState } from "react";
-import { useParams, useOutletContext } from "react-router-dom";
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
 
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
 import {
@@ -34,10 +33,15 @@ const PnLTab = () => {
   const params = useParams();
   const effectiveFundId = fundId || params?.fundId || params?.id || "";
 
+  // 1. URL Persistence Setup
+  const [searchParams, setSearchParams] = useSearchParams();
   const { quarters, isLoading, setQuarters } = useTimeframes(effectiveFundId);
 
-  // ✅ ALWAYS store NUMBERS
-  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
+  // 2. Initialize state from URL Search Params
+  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState(() => {
+    const ids = searchParams.get("timeframes");
+    return ids ? ids.split(",").map(Number).filter(id => !isNaN(id)) : [];
+  });
 
   const [showIncome, setShowIncome] = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
@@ -57,21 +61,25 @@ const PnLTab = () => {
   );
   const [taxValues, setTaxValues] = useState(() => [{ col1: "", col2: "" }]);
 
-  // ✅ Header periods (safe fallback to pnlPeriods if API empty)
+  // 3. Sync State back to URL Address Bar
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (selectedTimeframeIds.length > 0) {
+      params.set("timeframes", selectedTimeframeIds.join(","));
+    } else {
+      params.delete("timeframes");
+    }
+    setSearchParams(params, { replace: true });
+  }, [selectedTimeframeIds, setSearchParams]);
+
   const headerPeriods = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
-
-    // fallback ONLY while API list is empty
     if (list.length === 0) return pnlPeriods;
 
     const sorted = list
       .slice()
-      .sort(
-        (a, b) =>
-          new Date(b.full_date || b.date) - new Date(a.full_date || a.date)
-      );
+      .sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date));
 
-    // default (no selection): latest 2
     if (selectedTimeframeIds.length === 0) return sorted.slice(0, 2);
 
     const selectedSet = new Set(selectedTimeframeIds);
@@ -80,10 +88,7 @@ const PnLTab = () => {
 
   // ---------- add / remove row helpers ----------
   const addIncomeRow = () => {
-    setIncomeLines((prev) => [
-      ...prev,
-      { id: makeId("inc"), label: "", isCustom: true },
-    ]);
+    setIncomeLines((prev) => [...prev, { id: makeId("inc"), label: "", isCustom: true }]);
     setIncomeValues((prev) => [...prev, { col1: "", col2: "" }]);
   };
 
@@ -93,10 +98,7 @@ const PnLTab = () => {
   };
 
   const addExpenseRow = () => {
-    setExpenseLines((prev) => [
-      ...prev,
-      { id: makeId("exp"), label: "", isCustom: true },
-    ]);
+    setExpenseLines((prev) => [...prev, { id: makeId("exp"), label: "", isCustom: true }]);
     setExpenseValues((prev) => [...prev, { col1: "", col2: "" }]);
   };
 
@@ -106,10 +108,7 @@ const PnLTab = () => {
   };
 
   const addTaxRow = () => {
-    setTaxLines((prev) => [
-      ...prev,
-      { id: makeId("tax"), label: "", isCustom: true },
-    ]);
+    setTaxLines((prev) => [...prev, { id: makeId("tax"), label: "", isCustom: true }]);
     setTaxValues((prev) => [...prev, { col1: "", col2: "" }]);
   };
 
@@ -119,74 +118,45 @@ const PnLTab = () => {
   };
 
   // ---------- totals ----------
-  const sumColumn = (arr, col) =>
-    arr.reduce((acc, v) => acc + Number(v?.[col] || 0), 0);
+  const sumColumn = (arr, col) => arr.reduce((acc, v) => acc + Number(v?.[col] || 0), 0);
 
-  const totalIncomeCol1 = useMemo(
-    () => sumColumn(incomeValues, "col1"),
-    [incomeValues]
-  );
-  const totalIncomeCol2 = useMemo(
-    () => sumColumn(incomeValues, "col2"),
-    [incomeValues]
-  );
-
-  const totalExpensesCol1 = useMemo(
-    () => sumColumn(expenseValues, "col1"),
-    [expenseValues]
-  );
-  const totalExpensesCol2 = useMemo(
-    () => sumColumn(expenseValues, "col2"),
-    [expenseValues]
-  );
-
+  const totalIncomeCol1 = useMemo(() => sumColumn(incomeValues, "col1"), [incomeValues]);
+  const totalIncomeCol2 = useMemo(() => sumColumn(incomeValues, "col2"), [incomeValues]);
+  const totalExpensesCol1 = useMemo(() => sumColumn(expenseValues, "col1"), [expenseValues]);
+  const totalExpensesCol2 = useMemo(() => sumColumn(expenseValues, "col2"), [expenseValues]);
   const totalTaxCol1 = useMemo(() => sumColumn(taxValues, "col1"), [taxValues]);
   const totalTaxCol2 = useMemo(() => sumColumn(taxValues, "col2"), [taxValues]);
 
   const netCol1 = totalIncomeCol1 - totalExpensesCol1 - totalTaxCol1;
   const netCol2 = totalIncomeCol2 - totalExpensesCol2 - totalTaxCol2;
 
-  // ================= Upload (functional) =================
+  // ================= Upload / Save / Download =================
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
   const handleUploadClick = () => {
-    if (!effectiveFundId) {
-      alert("Missing fundId in URL.");
-      return;
-    }
+    if (!effectiveFundId) return alert("Missing fundId in URL.");
     fileInputRef.current?.click();
   };
 
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setUploading(true);
-
       const form = new FormData();
       form.append("file", file);
-
-      // send numeric ids
       form.append("quarters", JSON.stringify(selectedTimeframeIds || []));
 
-      const res = await fetch(
-        `/api/funds/${encodeURIComponent(
-          effectiveFundId
-        )}/financials/pnl/upload`,
-        { method: "POST", body: form }
-      );
+      const res = await fetch(`/api/funds/${encodeURIComponent(effectiveFundId)}/financials/pnl/upload`, {
+        method: "POST", 
+        body: form 
+      });
 
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        throw new Error(msg || `Upload failed (${res.status})`);
-      }
-
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
       const data = await res.json();
       console.log("Upload success:", data);
     } catch (err) {
-      console.error(err);
       alert(err?.message || "Upload failed");
     } finally {
       setUploading(false);
@@ -194,34 +164,10 @@ const PnLTab = () => {
     }
   };
 
-  const handleDownload = () => {
-    console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
-  };
+  const handleDownload = () => console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
+  const handleSave = () => console.log("SAVE P&L", { fundId: effectiveFundId, selectedTimeframes: selectedTimeframeIds });
 
-  const handleSave = () => {
-    console.log("SAVE P&L", {
-      fundId: effectiveFundId,
-      selectedTimeframes: selectedTimeframeIds,
-      incomeLines,
-      incomeValues,
-      expenseLines,
-      expenseValues,
-      taxLines,
-      taxValues,
-      totals: {
-        totalIncomeCol1,
-        totalIncomeCol2,
-        totalExpensesCol1,
-        totalExpensesCol2,
-        totalTaxCol1,
-        totalTaxCol2,
-        netCol1,
-        netCol2,
-      },
-    });
-  };
-
-  // ✅ Toggle selection (ALWAYS NUMBERS)
+  // 4. Update state (which triggers URL update)
   const handleToggleTimeframe = (id) => {
     const numId = Number(id);
     setSelectedTimeframeIds((prev) => {
@@ -230,31 +176,22 @@ const PnLTab = () => {
     });
   };
 
-  // ✅ Persist new timeframe
   const handleSaveNew = async (newTimeframe) => {
     const payload = {
       fund: effectiveFundId,
       display_label: newTimeframe.name,
       full_date: newTimeframe.endDate.toISOString().split("T")[0],
     };
-
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/funds/${effectiveFundId}/timeframes/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${effectiveFundId}/timeframes/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       if (!response.ok) throw new Error("Persistence failed");
-
       const savedRow = await response.json();
       const formatted = apiRowToQuarter(savedRow);
-
       setQuarters((prev) => [...prev, formatted]);
-
-      // toggle with numeric id
       handleToggleTimeframe(formatted.id);
     } catch (error) {
       console.error("PnLTab: Persistence error:", error);
@@ -276,29 +213,15 @@ const PnLTab = () => {
         </div>
 
         <div className="right-tools">
-          <button
-            className="ghost-btn"
-            type="button"
-            onClick={handleUploadClick}
-            disabled={!effectiveFundId || uploading}
-          >
-            <UploadIcon />
-            {uploading ? "Uploading..." : "Upload"}
+          <button className="ghost-btn" type="button" onClick={handleUploadClick} disabled={!effectiveFundId || uploading}>
+            <UploadIcon /> {uploading ? "Uploading..." : "Upload"}
           </button>
-
           <button className="ghost-btn" type="button" onClick={handleDownload}>
-            <DownloadIcon />
-            Download
+            <DownloadIcon /> Download
           </button>
         </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          style={{ display: "none" }}
-          onChange={handleFileSelected}
-        />
+        <input ref={fileInputRef} type="file" accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={handleFileSelected} />
       </div>
 
       <section className="financials-card">
@@ -306,84 +229,28 @@ const PnLTab = () => {
           <div />
           {headerPeriods.map((p) => (
             <div key={p.id || p.label || p.name} className="col-period">
-              <span className="icon-svg-muted">
-                <AddFileIcon />
-              </span>
-
-              <span className="icon-svg-muted small">
-                <EditLineIcon />
-              </span>
-
+              <span className="icon-svg-muted"><AddFileIcon /></span>
+              <span className="icon-svg-muted small"><EditLineIcon /></span>
               <span className="period-label">{p.label || p.name}</span>
             </div>
           ))}
           <div />
         </div>
 
-        <PnLIncome
-          fundId={effectiveFundId}
-          showIncome={showIncome}
-          setShowIncome={setShowIncome}
-          incomeLines={incomeLines}
-          setIncomeLines={setIncomeLines}
-          incomeValues={incomeValues}
-          setIncomeValues={setIncomeValues}
-          totalIncomeCol1={totalIncomeCol1}
-          totalIncomeCol2={totalIncomeCol2}
-          onAddRow={addIncomeRow}
-          onRemoveRow={removeIncomeRow}
-        />
-
-        <PnLExpenses
-          fundId={effectiveFundId}
-          showExpenses={showExpenses}
-          setShowExpenses={setShowExpenses}
-          expenseLines={expenseLines}
-          setExpenseLines={setExpenseLines}
-          expenseValues={expenseValues}
-          setExpenseValues={setExpenseValues}
-          totalExpensesCol1={totalExpensesCol1}
-          totalExpensesCol2={totalExpensesCol2}
-          onAddRow={addExpenseRow}
-          onRemoveRow={removeExpenseRow}
-        />
-
-        <PnLTax
-          fundId={effectiveFundId}
-          showTax={showTax}
-          setShowTax={setShowTax}
-          taxLines={taxLines}
-          setTaxLines={setTaxLines}
-          taxValues={taxValues}
-          setTaxValues={setTaxValues}
-          totalTaxCol1={totalTaxCol1}
-          totalTaxCol2={totalTaxCol2}
-          onAddRow={addTaxRow}
-          onRemoveRow={removeTaxRow}
-        />
+        <PnLIncome fundId={effectiveFundId} showIncome={showIncome} setShowIncome={setShowIncome} incomeLines={incomeLines} setIncomeLines={setIncomeLines} incomeValues={incomeValues} setIncomeValues={setIncomeValues} totalIncomeCol1={totalIncomeCol1} totalIncomeCol2={totalIncomeCol2} onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow} />
+        <PnLExpenses fundId={effectiveFundId} showExpenses={showExpenses} setShowExpenses={setShowExpenses} expenseLines={expenseLines} setExpenseLines={setExpenseLines} expenseValues={expenseValues} setExpenseValues={setExpenseValues} totalExpensesCol1={totalExpensesCol1} totalExpensesCol2={totalExpensesCol2} onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow} />
+        <PnLTax fundId={effectiveFundId} showTax={showTax} setShowTax={setShowTax} taxLines={taxLines} setTaxLines={setTaxLines} taxValues={taxValues} setTaxValues={setTaxValues} totalTaxCol1={totalTaxCol1} totalTaxCol2={totalTaxCol2} onAddRow={addTaxRow} onRemoveRow={removeTaxRow} />
 
         <div className="net-row">
           <div>Net Profit / Net loss</div>
-          <div className={`net-value ${netCol1 >= 0 ? "positive" : "negative"}`}>
-            {netCol1.toLocaleString()}
-          </div>
-          <div className={`net-value ${netCol2 >= 0 ? "positive" : "negative"}`}>
-            {netCol2.toLocaleString()}
-          </div>
+          <div className={`net-value ${netCol1 >= 0 ? "positive" : "negative"}`}>{netCol1.toLocaleString()}</div>
+          <div className={`net-value ${netCol2 >= 0 ? "positive" : "negative"}`}>{netCol2.toLocaleString()}</div>
           <div />
         </div>
       </section>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          paddingTop: "12px",
-        }}
-      >
-        <button className="btn-primary-wide" type="button" onClick={handleSave}>
-          Save
-        </button>
+      <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "12px" }}>
+        <button className="btn-primary-wide" type="button" onClick={handleSave}>Save</button>
       </div>
     </>
   );
