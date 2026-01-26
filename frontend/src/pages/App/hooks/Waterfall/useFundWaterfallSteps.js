@@ -1,7 +1,7 @@
 // frontend/src/hooks/Waterfall/useFundWaterfallSteps.js
 import { useState, useCallback } from "react";
 
-const BASE_URL = "http://127.0.0.1:8000/api";
+const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
 
 export function useFundWaterfallSteps() {
   const [isLoading, setIsLoading] = useState(false);

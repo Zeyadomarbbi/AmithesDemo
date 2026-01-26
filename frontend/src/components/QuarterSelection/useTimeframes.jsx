@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
+const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+
 export function apiRowToQuarter(row) {
     return {
         id: row.timeframe_id,
@@ -7,7 +9,7 @@ export function apiRowToQuarter(row) {
         year: String(row.year),
         date: new Date(row.full_date).toLocaleDateString(),
         display_label: row.display_label,
-        rawDate: row.full_date // Keep raw date for logic/comparison if needed
+        rawDate: row.full_date
     };
 }
 
@@ -19,7 +21,7 @@ export function useTimeframes(fundId) {
         if (!fundId) return;
         try {
             setIsLoading(true);
-            const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`);
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/timeframes/`);
             if (!response.ok) throw new Error("Failed to fetch");
             const rows = await response.json();
             setQuarters(rows.map(apiRowToQuarter));

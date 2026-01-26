@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const BASE_URL = "http://127.0.0.1:8000/api";
+const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
 
 // 1. Create the Context
 const FundContext = createContext(null);

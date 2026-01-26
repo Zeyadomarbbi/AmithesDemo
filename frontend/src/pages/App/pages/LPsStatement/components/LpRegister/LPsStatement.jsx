@@ -165,7 +165,7 @@ export default function LPsStatement({
   };
 
   /* ✅ DB Period selector (real periods from Postgres) */
-  const API_BASE = "http://127.0.0.1:8000/api";
+  const API_BASE = "https://dual-pam-bbi-59551b8d.koyeb.app/api";
   const [dbPeriods, setDbPeriods] = React.useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState(null);
 
