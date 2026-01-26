@@ -1,6 +1,7 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTab.jsx
 import React, { useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
+
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
 import {
   UploadIcon,
@@ -28,7 +29,8 @@ import "./PnL.css";
 const makeId = (prefix) =>
   `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
-const PnLTab = ({ fundId = "" }) => {
+const PnLTab = () => {
+  const { fundId } = useOutletContext();
   const params = useParams();
   const effectiveFundId = fundId || params?.fundId || params?.id || "";
 

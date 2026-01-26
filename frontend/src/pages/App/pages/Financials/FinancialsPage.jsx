@@ -1,15 +1,18 @@
-// frontend/src/pages/App/pages/Financials/FinancialsPage.jsx
 import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet, NavLink, useParams } from "react-router-dom"; // Removed useLocation, Navigate
+
 import "./FinancialsLayout.css";
 
 const FinancialsPage = () => {
+  const { fundId } = useParams();
+
+  // REMOVED: Manual redirect logic. The Router handles this via 'index: true'.
+
   return (
     <div className="financials-page">
       <main className="financials-content">
         <h1 className="financials-title">Financials</h1>
 
-        {/* TABS Navigation (real links) */}
         <div className="financials-tabs">
           <NavLink
             to="pnl"
@@ -27,8 +30,8 @@ const FinancialsPage = () => {
           </NavLink>
         </div>
 
-        {/* Child routes render here */}
-        <Outlet />
+        {/* This renders the child route (PnLTab or LimitsTab) */}
+        <Outlet context={{ fundId }} />
       </main>
     </div>
   );

@@ -4,8 +4,6 @@
 
 .limits-root {
   /* a bit more space under the tabs */
-  margin-top: 32px;
-  margin-bottom: 48px;
 
   /* left aligned, no centering */
   margin-left: 0;

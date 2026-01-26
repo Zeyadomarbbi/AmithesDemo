@@ -1,153 +1,256 @@
-import React, { useState } from "react";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { limitsRows } from "../data/mockData";
-import LimitSidePanel from "./LimitSidePanel";
-import "../styles/Limits.css";
+import React, { useMemo, useState, useEffect } from "react";
+import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
+import "./limitstab/Limits.css";
 
-const iconStyle = {
-  color: "#111827",
-  stroke: "#111827",
-  strokeWidth: 1.5,
-  width: 20,
-  height: 20,
-};
+import NewLimitDrawer from "./limitstab/NewLimitDrawer.jsx";
+import { SortIcon, PlusIcon } from "../../../../../components/Icons.jsx";
 
-const smallIconStyle = {
-  ...iconStyle,
-  width: 14,
-  height: 14,
-};
+// Import Hooks and Utils for QuarterSelector
+import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
+import { useTimeframes, apiRowToQuarter } from '../../../../../components/QuarterSelection/useTimeframes';
 
-const LimitsTab = () => {
-  const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
+const INITIAL_LIMITS = [
+  {
+    name: "Shares A",
+    article: "Art 12.7",
+    description: "Shares A shall represent 99.00% of the total commitment",
+    limit: "99.00%",
+    q1: "13.15%",
+    q2: "13.15%",
+    q3: "13.15%",
+    q4: "13.15%",
+  },
+  {
+    name: "Shares B",
+    article: "Art 12.8",
+    description: "Shares B shall represent 1.00% of the total commitment",
+    limit: "1.00%",
+    q1: "1.00%",
+    q2: "1.00%",
+    q3: "1.00%",
+    q4: "1.00%",
+  },
+];
+
+export default function LimitsTab() {
+  const { fundId } = useOutletContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 1. Fetch Timeframes
+  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
+  
   const [isNewLimitOpen, setIsNewLimitOpen] = useState(false);
+  const [limits, setLimits] = useState(INITIAL_LIMITS);
+  const [sort, setSort] = useState({ key: null, dir: "asc" });
+
+  // 2. Resolve Active Timeframe from URL (Same logic as PortfolioCompareTab)
+  const queryParams = new URLSearchParams(location.search);
+  const selectedIdParam = queryParams.get("timeframe");
+  
+  // Use parseInt to sanitize and filter out '0' or invalid IDs
+  const selectedTimeframeId = useMemo(() => {
+    const id = parseInt(selectedIdParam, 10);
+    return !isNaN(id) && id > 0 ? id : null;
+  }, [selectedIdParam]);
+
+  // 3. Synchronize: Auto-select most recent timeframe if none in URL and data is ready
+  useEffect(() => {
+    if (!isLoading && quarters.length > 0 && !selectedTimeframeId) {
+      handleTimeframeChange(quarters[0].id);
+    }
+  }, [quarters, isLoading, selectedTimeframeId]);
+
+  const activeQuarter = useMemo(() => {
+    return quarters.find(q => q.id === selectedTimeframeId) || quarters[0];
+  }, [quarters, selectedTimeframeId]);
+
+  // 4. Handle Selection Change (Updates URL)
+  const handleTimeframeChange = (id) => {
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set("timeframe", id);
+    navigate(`${location.pathname}?${searchParams.toString()}`, { replace: true });
+  };
+
+  const handleSaveNewTimeframe = async (newTimeframe) => {
+    const payload = {
+      fund: fundId,
+      display_label: newTimeframe.name,
+      full_date: newTimeframe.endDate.toISOString().split('T')[0] 
+    };
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("Persistence failed");
+
+      const savedRow = await response.json();
+      const formatted = apiRowToQuarter(savedRow);
+
+      setQuarters(prev => [...prev, formatted]);
+      handleTimeframeChange(formatted.id);
+    } catch (error) {
+      console.error("Limits Tab: Persistence error:", error);
+    }
+  };
+
+  const handleSaveNewLimit = (newLimit) => {
+    if (!newLimit) return;
+    setLimits((prev) => [...prev, newLimit]);
+    setIsNewLimitOpen(false);
+  };
+
+  // 5. Derive keys for table column logic
+  const { activeQuarterKey, activeQuarterLabel } = useMemo(() => {
+    if (isLoading || !activeQuarter) {
+      return { activeQuarterKey: "q4", activeQuarterLabel: "Loading..." };
+    }
+
+    const qNum = activeQuarter.quarter || 
+                 activeQuarter.display_label?.replace(/[^\d]/g, "")?.charAt(0) || 
+                 "4";
+    
+    return {
+      activeQuarterKey: `q${qNum}`,
+      activeQuarterLabel: activeQuarter.display_label,
+    };
+  }, [activeQuarter, isLoading]);
+
+  // Sorting and Parsing
+  const parsePct = (v) => {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s || s === "-") return null;
+    const n = Number(s.replace(/\s+/g, "").replace("%", "").replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const setSortKey = (key) => {
+    setSort((prev) => {
+      if (prev.key === key) return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      return { key, dir: "asc" };
+    });
+  };
+
+  const sortedLimits = useMemo(() => {
+    if (!sort.key) return limits;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const rows = [...limits];
+
+    rows.sort((a, b) => {
+      let av, bv;
+      if (sort.key === "name") {
+        av = (a.name || "").toLowerCase();
+        bv = (b.name || "").toLowerCase();
+        return av.localeCompare(bv) * dir;
+      }
+      if (sort.key === "description") {
+        av = (a.description || "").toLowerCase();
+        bv = (b.description || "").toLowerCase();
+        return av.localeCompare(bv) * dir;
+      }
+      if (sort.key === "limit") {
+        av = parsePct(a.limit);
+        bv = parsePct(b.limit);
+      } else {
+        av = parsePct(a[sort.key]);
+        bv = parsePct(b[sort.key]);
+      }
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return (av - bv) * dir;
+    });
+    return rows;
+  }, [limits, sort]);
 
   return (
     <>
-      <section className="limits-section">
-        {/* ===== Filters ===== */}
-        <div className="limits-filters-row">
-          <div className="limits-filters-left">
-            {/* Timeframe */}
-            <div className="timeframe-dropdown">
-              <button
-                className="dropdown-btn"
-                type="button"
-                onClick={() => setIsTimeframeOpen((prev) => !prev)}
-              >
-                <span>Q2 2024</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-
-              {isTimeframeOpen && (
-                <div className="timeframe-menu">
-                  <button className="timeframe-menu-item">
-                    <span className="timeframe-menu-item-label">
-                      Q1 2024
-                    </span>
-                    <span className="timeframe-menu-item-date">
-                      08/03/26
-                    </span>
-                  </button>
-
-                  <button className="timeframe-menu-item active">
-                    <span className="timeframe-menu-item-label">
-                      Q2 2024
-                    </span>
-                    <span className="timeframe-menu-item-date">
-                      08/07/26
-                    </span>
-                  </button>
-
-                  <button className="timeframe-menu-add">
-                    + Add a new timeframe
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Scenario */}
-            <button className="dropdown-btn" type="button">
-              <span>Scenario Opti...</span>
-              <ChevronDownIcon
-                className="icon-svg caret-icon"
-                style={smallIconStyle}
-              />
-            </button>
+      <div className="limits-root">
+        <div className="limits-top-row">
+          <div className="limits-period-wrapper">
+            <QuarterSelector
+              options={quarters}
+              selected={selectedTimeframeId}
+              onChange={handleTimeframeChange}
+              onSaveNew={handleSaveNewTimeframe}
+              isLoading={isLoading}
+              isSingle={true}
+            />
           </div>
 
-          {/* New Limit */}
           <button
-            className="new-limit-btn"
             type="button"
+            className="limits-new-btn"
             onClick={() => setIsNewLimitOpen(true)}
           >
-            + New limit
+            <span className="limits-new-plus" aria-hidden="true">
+              <PlusIcon />
+            </span>
+            <span>New limit</span>
           </button>
         </div>
 
-        {/* ===== Table ===== */}
         <div className="limits-table-wrapper">
           <table className="limits-table">
             <thead>
               <tr>
-                <th>
-                  Name <span className="sort-indicator">↕</span>
+                <th className="limits-th limits-th-name limits-th--sortable" onClick={() => setSortKey("name")}>
+                  <span className="limits-th-inner">
+                    <span>Name</span>
+                    <SortIcon />
+                  </span>
                 </th>
-                <th>Description</th>
-                <th className="col-number">
-                  Limits <span className="sort-indicator">↕</span>
+                <th className="limits-th limits-th-description limits-th--sortable" onClick={() => setSortKey("description")}>
+                  <span className="limits-th-inner">
+                    <span>Description</span>
+                    <SortIcon />
+                  </span>
                 </th>
-                <th className="col-number">
-                  Q4 2024 <span className="sort-indicator">↕</span>
+                <th className="limits-th limits-th-number limits-th--sortable" onClick={() => setSortKey("limit")}>
+                  <span className="limits-th-inner">
+                    <span>Limits</span>
+                    <SortIcon />
+                  </span>
                 </th>
-                <th className="col-number">
-                  Scenario Optimi…
-                  <span className="sort-indicator">↕</span>
+                <th className="limits-th limits-th-number limits-th--sortable" onClick={() => setSortKey(activeQuarterKey)}>
+                  <span className="limits-th-inner">
+                    <span>{activeQuarterLabel}</span>
+                    <SortIcon />
+                  </span>
                 </th>
               </tr>
             </thead>
-
             <tbody>
-              {limitsRows.map((row) => (
-                <tr key={row.id}>
-                  <td className="name-cell">
-                    <div className="name-main">{row.name}</div>
-                    <div className="name-sub limits-link">
+              {sortedLimits.map((row, index) => (
+                <tr key={`${row.name}-${index}`} className="limits-row">
+                  <td className="limits-td limits-td-name">
+                    <div className="limits-name-main">{row.name}</div>
+                    <button type="button" className="limits-article-link">
                       {row.article}
-                    </div>
+                    </button>
                   </td>
-
-                  <td>{row.description}</td>
-
-                  <td className="col-number">{row.limit}</td>
-                  <td className="col-number">{row.q4}</td>
-
-                  <td
-                    className={`col-number ${
-                      row.breach ? "breach-red" : ""
-                    }`}
-                  >
-                    {row.scenario}
+                  <td className="limits-td limits-td-description">{row.description}</td>
+                  <td className="limits-td limits-td-number">{row.limit}</td>
+                  <td className="limits-td limits-td-number">
+                    {row[activeQuarterKey] ?? "-"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
 
-      {/* ===== Side Panel ===== */}
-      <LimitSidePanel
-  isOpen={isNewLimitOpen}
-  onClose={() => setIsNewLimitOpen(false)}
-/>
-
+      <NewLimitDrawer
+        open={isNewLimitOpen}
+        onClose={() => setIsNewLimitOpen(false)}
+        onSave={handleSaveNewLimit}
+      />
     </>
   );
-};
-
-export default LimitsTab;
+}

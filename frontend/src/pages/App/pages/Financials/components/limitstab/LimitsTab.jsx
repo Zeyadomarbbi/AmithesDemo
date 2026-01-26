@@ -1,65 +1,93 @@
 // frontend/src/pages/App/pages/Financials/components/LimitsTab/LimitsTab.jsx
-import React, { useMemo, useState } from "react";
-import "./Limits.css"; // ✅ create this OR point to an existing css (see note below)
+import React, { useMemo, useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import "./Limits.css";
 
 import NewLimitDrawer from "./NewLimitDrawer.jsx";
 import { SortIcon, PlusIcon } from "/src/pages/App/pages/LPsStatement/components/Icons.jsx";
-
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
+import { useTimeframes, apiRowToQuarter } from "/src/components/QuarterSelection/useTimeframes";
 
-const INITIAL_LIMITS = [
-  {
-    name: "Shares A",
-    article: "Art 12.7",
-    description: "Shares A shall represent 99.00% of the total commitment",
-    limit: "99.00%",
-    q1: "13.15%",
-    q2: "13.15%",
-    q3: "13.15%",
-    q4: "13.15%",
-  },
-  {
-    name: "Shares B",
-    article: "Art 12.8",
-    description: "Shares B shall represent 1.00% of the total commitment",
-    limit: "1.00%",
-    q1: "1.00%",
-    q2: "1.00%",
-    q3: "1.00%",
-    q4: "1.00%",
-  },
-];
-
+const INITIAL_LIMITS = {
+  "1": [ // Fund ID 1
+    {
+      id: "init_1",
+      name: "Shares A",
+      article: "Art 12.7",
+      description: "Shares A shall represent 99.00% of the total commitment",
+      limit: "99.00%",
+      values: { 18: "13.15%", 19: "13.15%" } 
+    },
+    {
+      id: "init_2",
+      name: "Shares B",
+      article: "Art 12.8",
+      description: "Shares B shall represent 1.00% of the total commitment",
+      limit: "1.00%",
+      values: { 18: "1.00%", 19: "1.00%" }
+    },
+  ]
+};
 export default function LimitsTab() {
-  const [selectedPeriod, setSelectedPeriod] = useState("Q2-2024");
-  const [isNewLimitOpen, setIsNewLimitOpen] = useState(false);
-  const [limits, setLimits] = useState(INITIAL_LIMITS);
+  const { fundId } = useOutletContext();
+  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
 
+  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
+  const [isNewLimitOpen, setIsNewLimitOpen] = useState(false);
+  const [limits, setLimits] = useState(() => INITIAL_LIMITS[fundId] || []);
+  useEffect(() => {
+    setLimits(INITIAL_LIMITS[fundId] || []);
+  }, [fundId]);
   const [sort, setSort] = useState({ key: null, dir: "asc" });
+
+  // Resolve Header periods (latest 2 by default, or filtered selection)
+  const headerPeriods = useMemo(() => {
+    const list = Array.isArray(quarters) ? quarters : [];
+    const sorted = list.slice().sort(
+      (a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date)
+    );
+
+    if (selectedTimeframeIds.length === 0) return sorted.slice(0, 2);
+    const selectedSet = new Set(selectedTimeframeIds.map(Number));
+    return sorted.filter((q) => selectedSet.has(Number(q.id)));
+  }, [quarters, selectedTimeframeIds]);
+
+  const handleToggleTimeframe = (id) => {
+    const numId = Number(id);
+    setSelectedTimeframeIds((prev) => {
+      if (prev.includes(numId)) return prev.filter((x) => x !== numId);
+      return [...prev, numId];
+    });
+  };
+
+  const handleSaveNewTimeframe = async (newTimeframe) => {
+    const payload = {
+      fund: fundId,
+      display_label: newTimeframe.name,
+      full_date: newTimeframe.endDate.toISOString().split("T")[0],
+    };
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error("Persistence failed");
+
+      const savedRow = await response.json();
+      const formatted = apiRowToQuarter(savedRow);
+      setQuarters((prev) => [...prev, formatted]);
+      handleToggleTimeframe(formatted.id);
+    } catch (error) {
+      console.error("LimitsTab: Persistence error:", error);
+    }
+  };
 
   const handleSaveNewLimit = (newLimit) => {
     if (!newLimit) return;
     setLimits((prev) => [...prev, newLimit]);
     setIsNewLimitOpen(false);
-  };
-
-  const { activeQuarterKey, activeQuarterLabel } = useMemo(() => {
-    const [qRaw = "Q4", year = "2024"] = String(selectedPeriod || "Q4-2024").split(
-      "-"
-    );
-    const qNum = qRaw.replace(/[^\d]/g, "") || "4";
-    return {
-      activeQuarterKey: `q${qNum}`,
-      activeQuarterLabel: `${qRaw} ${year}`,
-    };
-  }, [selectedPeriod]);
-
-  const parsePct = (v) => {
-    if (v == null) return null;
-    const s = String(v).trim();
-    if (!s || s === "-") return null;
-    const n = Number(s.replace(/\s+/g, "").replace("%", "").replace(",", "."));
-    return Number.isFinite(n) ? n : null;
   };
 
   const setSortKey = (key) => {
@@ -69,49 +97,28 @@ export default function LimitsTab() {
     });
   };
 
+  // Helper for numeric/percentage sorting
+  const parsePct = (v) => {
+    if (v == null) return null;
+    const n = parseFloat(String(v).replace("%", "").replace(",", "."));
+    return isFinite(n) ? n : null;
+  };
+
   const sortedLimits = useMemo(() => {
     if (!sort.key) return limits;
-
     const dir = sort.dir === "asc" ? 1 : -1;
-    const rows = [...limits];
-
-    rows.sort((a, b) => {
-      let av;
-      let bv;
-
+    return [...limits].sort((a, b) => {
+      let av, bv;
       if (sort.key === "name") {
         av = (a.name || "").toLowerCase();
         bv = (b.name || "").toLowerCase();
         return av.localeCompare(bv) * dir;
       }
-
-      if (sort.key === "description") {
-        av = (a.description || "").toLowerCase();
-        bv = (b.description || "").toLowerCase();
-        return av.localeCompare(bv) * dir;
-      }
-
-      if (sort.key === "limit") {
-        av = parsePct(a.limit);
-        bv = parsePct(b.limit);
-      } else if (
-        sort.key === "q1" ||
-        sort.key === "q2" ||
-        sort.key === "q3" ||
-        sort.key === "q4"
-      ) {
-        av = parsePct(a[sort.key]);
-        bv = parsePct(b[sort.key]);
-      }
-
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-
-      return (av - bv) * dir;
+      av = parsePct(a[sort.key]);
+      bv = parsePct(b[sort.key]);
+      if (av === bv) return 0;
+      return (av === null ? 1 : bv === null ? -1 : av - bv) * dir;
     });
-
-    return rows;
   }, [limits, sort]);
 
   return (
@@ -120,9 +127,12 @@ export default function LimitsTab() {
         <div className="limits-top-row">
           <div className="limits-period-wrapper">
             <QuarterSelector
-              selected={selectedPeriod}
-              onChange={setSelectedPeriod}
-              isSingle={true}
+              options={quarters}
+              selected={selectedTimeframeIds}
+              onChange={handleToggleTimeframe}
+              onSaveNew={handleSaveNewTimeframe}
+              isLoading={isLoading}
+              isSingle={false}
             />
           </div>
 
@@ -142,65 +152,51 @@ export default function LimitsTab() {
           <table className="limits-table">
             <thead>
               <tr>
-                <th
-                  className="limits-th limits-th-name limits-th--sortable"
-                  onClick={() => setSortKey("name")}
-                >
+                <th className="limits-th limits-th-name limits-th--sortable" onClick={() => setSortKey("name")}>
                   <span className="limits-th-inner">
                     <span>Name</span>
                     <SortIcon />
                   </span>
                 </th>
-
-                <th
-                  className="limits-th limits-th-description limits-th--sortable"
-                  onClick={() => setSortKey("description")}
-                >
+                <th className="limits-th limits-th-description">
                   <span className="limits-th-inner">
                     <span>Description</span>
-                    <SortIcon />
                   </span>
                 </th>
-
-                <th
-                  className="limits-th limits-th-number limits-th--sortable"
-                  onClick={() => setSortKey("limit")}
-                >
+                <th className="limits-th limits-th-number limits-th--sortable" onClick={() => setSortKey("limit")}>
                   <span className="limits-th-inner">
                     <span>Limits</span>
                     <SortIcon />
                   </span>
                 </th>
-
-                <th
-                  className="limits-th limits-th-number limits-th--sortable"
-                  onClick={() => setSortKey(activeQuarterKey)}
-                >
-                  <span className="limits-th-inner">
-                    <span>{activeQuarterLabel}</span>
-                    <SortIcon />
-                  </span>
-                </th>
+                {/* Dynamic Timeframe Columns */}
+                {headerPeriods.map((p) => (
+                  <th key={p.id} className="limits-th limits-th-number">
+                    <span className="limits-th-inner">
+                      <span>{p.label || p.display_label}</span>
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
 
             <tbody>
-              {sortedLimits.map((row, index) => (
-                <tr key={`${row.article}-${index}`} className="limits-row">
+              {sortedLimits.map((row) => (
+                <tr key={row.id || row.name} className="limits-row">
                   <td className="limits-td limits-td-name">
                     <div className="limits-name-main">{row.name}</div>
                     <button type="button" className="limits-article-link">
                       {row.article}
                     </button>
                   </td>
-
                   <td className="limits-td limits-td-description">{row.description}</td>
-
                   <td className="limits-td limits-td-number">{row.limit}</td>
-
-                  <td className="limits-td limits-td-number">
-                    {row[activeQuarterKey] ?? "-"}
-                  </td>
+                  {headerPeriods.map((p) => (
+                    <td key={p.id} className="limits-td limits-td-number">
+                      {/* Mapping values: check for keyed ID first, fallback to INITIAL_LIMITS keys for mock data */}
+                      {row.values?.[p.id] || row[`q${p.quarter}`] || "-"}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
