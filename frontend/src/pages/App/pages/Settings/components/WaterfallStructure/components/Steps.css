@@ -88,6 +88,12 @@
   background: transparent;
 }
 
+.wf-text-input-inner::-webkit-outer-spin-button,
+.wf-text-input-inner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Share Class Group Item */
 .wf-sc-group {
   display: flex;
