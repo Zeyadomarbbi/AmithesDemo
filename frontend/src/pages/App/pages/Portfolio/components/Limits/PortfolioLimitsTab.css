@@ -1,14 +1,8 @@
 /* ===== Limits Section ===== */
 .portfolio-limits-root {
-  /* a bit more space under the tabs */
-  /* left aligned, no centering */
-  margin-left: 0;
-  margin-right: 0;
-
-  width: 100%;
-  box-sizing: border-box;
-
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .limits-filters-row {

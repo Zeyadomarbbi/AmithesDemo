@@ -138,24 +138,32 @@ export const REALIZED_ROWS = [
   },
 ];
 
-export const LIMITS_ROWS = [
-  {
-    id: 1,
-    name: "Single ticket",
-    article: "Art 12.7",
-    description: "No single investment shall represent more than 15.00%",
-    limit: "15.00%",
-    q4: "13.15%",
-  },
-  {
-    id: 2,
-    name: "Countries",
-    article: "Art 12.8",
-    description: "No more than 60.00% shall be invested in Spain",
-    limit: "60.00%",
-    q4: "22.04%",
-  },
-];
+export const LIMITS_DATA = {
+  "1": [ // Fund ID
+    {
+      id: 1,
+      name: "Single ticket",
+      article: "Art 12.7",
+      description: "No single investment shall represent more than 15.00%",
+      limit: "15.00%",
+      values: {
+        "18": "13.15%", // Timeframe ID: Value
+        "19": "14.20%"
+      }
+    },
+    {
+      id: 2,
+      name: "Countries",
+      article: "Art 12.8",
+      description: "No more than 60.00% shall be invested in Spain",
+      limit: "60.00%",
+      values: {
+        "18": "22.04%",
+        "19": "25.10%"
+      }
+    }
+  ]
+};
 
 const FX_INVESTMENT_1_ROWS = [
   {

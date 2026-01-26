@@ -2,7 +2,6 @@
 .quarter-selector-container {
   position: relative;
   display: inline-block;
-  z-index: 50;
 }
 
 /* --- TRIGGER BUTTON --- */
