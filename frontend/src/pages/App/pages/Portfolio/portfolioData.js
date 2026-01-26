@@ -366,78 +366,47 @@ export const FX_PORTFOLIO_DATA = {
 };
 
 
-
-export const COMPARE_ROWS = [
-  {
-    id: 1,
-    name: "Alyra BioTech",
-    sector: "BioTech",
-    costQ1: "8 000 000",
-    costQ2: "8 000 000",
-    diff: "-",
-    fvQ1: "15 000 000",
-    fvQ2: "16 500 000",
-    change: "- 1 500 000",
-    moicQ1: "1.88x",
-    moicQ2: "2.06x",
-  },
-  {
-    id: 2,
-    name: "SBM Health Healthcare",
-    sector: "Healthcare",
-    costQ1: "10 000 000",
-    costQ2: "9 000 000",
-    diff: "1 000 000",
-    fvQ1: "16 000 000",
-    fvQ2: "12 000 000",
-    change: "4 000 000",
-    moicQ1: "1.60x",
-    moicQ2: "1.33x",
-  },
-  {
-    id: 3,
-    name: "Vantech AI",
-    sector: "AI",
-    costQ1: "9 000 000",
-    costQ2: "8 500 000",
-    diff: "500 000",
-    fvQ1: "18 000 000",
-    fvQ2: "15 000 000",
-    change: "3 000 000",
-    moicQ1: "2.00x",
-    moicQ2: "1.76x",
-  },
-  {
-    id: 4,
-    name: "Medisis Industry",
-    sector: "Industry",
-    costQ1: "9 000 000",
-    costQ2: "9 000 000",
-    diff: "-",
-    fvQ1: "13 000 000",
-    fvQ2: "13 000 000",
-    change: "-",
-    moicQ1: "1.44x",
-    moicQ2: "1.44x",
-  },
-];
-
-export const COMPARE_TOTAL_ROW = {
-  costQ1: "36 000 000",
-  costQ2: "34 500 000",
-  diff: "1 500 000",
-  fvQ1: "62 000 000",
-  fvQ2: "59 500 000",
-  change: "5 500 000",
-  moicQ1: "1.72x",
-  moicQ2: "1.72x",
-};
-
-export const FX_PORTFOLIO_TOTAL = {
-  cost: "97 257 000",
-  fxEntry: "0.8762",
-  impactQ42023: "52 572",
-  impactQ22024: "- 16 660",
-  impactQ42024: "520 572",
-  impactInception: "376 240",
+export const PORTFOLIO_COMPARE_DATA = {
+  "1": [ // Fund ID: 1
+    {
+      id: 101,
+      name: "Alyra BioTech",
+      sector: "BioTech",
+      // Data keyed by Timeframe ID (e.g., 18, 19 from your DB)
+      timeframes: {
+        18: { cost: 8000000, fv: 15000000, moic: 1.88 }, // Oldest (e.g., Q1)
+        19: { cost: 8000000, fv: 16500000, moic: 2.06 }, // Newest (e.g., Q2)
+        // Add more IDs as needed...
+      }
+    },
+    {
+      id: 102,
+      name: "SBM Health Healthcare",
+      sector: "Healthcare",
+      timeframes: {
+        18: { cost: 10000000, fv: 16000000, moic: 1.60 },
+        19: { cost: 9000000, fv: 12000000, moic: 1.33 }
+      }
+    },
+    {
+      id: 103,
+      name: "Vantech AI",
+      sector: "AI",
+      timeframes: {
+        18: { cost: 9000000, fv: 18000000, moic: 2.00 },
+        19: { cost: 8500000, fv: 15000000, moic: 1.76 }
+      }
+    }
+  ],
+  "2": [ // Fund ID: 2
+    {
+      id: 201,
+      name: "Medisis Industry",
+      sector: "Industry",
+      timeframes: {
+        18: { cost: 9000000, fv: 13000000, moic: 1.44 },
+        19: { cost: 9000000, fv: 13000000, moic: 1.44 }
+      }
+    }
+  ]
 };

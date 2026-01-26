@@ -20,7 +20,6 @@ const FxChartsView = ({ fundId }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { funds, isLoading: isFundsLoading } = useFundData();
-    // Destructure setQuarters to update local state after POST
     const { quarters, isLoading: isQuartersLoading, setQuarters } = useTimeframes(fundId);
     
     const queryParams = new URLSearchParams(location.search);
@@ -29,7 +28,6 @@ const FxChartsView = ({ fundId }) => {
     const [selectedInvestmentIdx, setSelectedInvestmentIdx] = useState(0); 
     const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
 
-    // --- ADDED SAVE HANDLER ---
     const handleSaveNew = async (newTimeframe) => {
         const payload = {
             fund: fundId,
@@ -49,17 +47,14 @@ const FxChartsView = ({ fundId }) => {
             const savedRow = await response.json();
             const formatted = apiRowToQuarter(savedRow);
 
-            // Update the timeframe list
             setQuarters(prev => [...prev, formatted]);
             
-            // Add the new timeframe ID to the current URL selection
             const updatedIds = [...selectedIdsFromUrl, formatted.id];
             navigate(`${location.pathname}?timeframes=${updatedIds.join(",")}`);
         } catch (error) {
             console.error("Persistence error:", error);
         }
     };
-    // ---------------------------
 
     const fundInvestments = FX_DEALS_DATA[fundId] || FX_DEALS_DATA[Number(fundId)] || [];
     const activeInvestment = fundInvestments[selectedInvestmentIdx];
@@ -113,11 +108,20 @@ const FxChartsView = ({ fundId }) => {
     return (
         <section className="fx-charts-section">
             <div className="fx-charts-filters-row">
-                <div className="dropdown-container">
-                    <button className="dropdown-btn" onClick={() => setIsInvDropdownOpen(!isInvDropdownOpen)}>
-                        <span>{activeInvestment?.title || "Investment"}</span>
-                        <ChevronDownIcon className="w-4 h-4" />
-                    </button>
+                {/* INVESTMENT DROPDOWN WITH QUARTER SELECTOR STYLING */}
+                <div className="quarter-selector-container">
+                    <div 
+                        className={`quarter-selector-button ${isInvDropdownOpen ? 'active' : ''}`} 
+                        onClick={() => setIsInvDropdownOpen(!isInvDropdownOpen)}
+                    >
+                        <div className="quarter-text-group">
+                            <span className="quarter-part">{activeInvestment?.title || "Investment"}</span>
+                        </div>
+                        <div className={`quarter-icon ${isInvDropdownOpen ? 'open' : ''}`}>
+                            <ChevronDownIcon />
+                        </div>
+                    </div>
+                    
                     {isInvDropdownOpen && (
                         <div className="quarter-dropdown">
                             <div className="quarter-list">
@@ -138,6 +142,7 @@ const FxChartsView = ({ fundId }) => {
                     )}
                 </div>
 
+                {/* CURRENCY DROPDOWN (DISABLED) */}
                 <div className="quarter-selector-container" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
                     <div className="quarter-selector-button">
                         <div className="quarter-text-group">
@@ -153,7 +158,7 @@ const FxChartsView = ({ fundId }) => {
                     options={quarters}
                     selected={selectedIdsFromUrl}
                     onChange={handleToggleTimeframe}
-                    onSaveNew={handleSaveNew} // PASSED HERE
+                    onSaveNew={handleSaveNew}
                     isLoading={isQuartersLoading}
                     isSingle={false}
                 />

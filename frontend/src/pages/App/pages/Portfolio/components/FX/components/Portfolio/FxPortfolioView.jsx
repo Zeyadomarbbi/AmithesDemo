@@ -80,10 +80,13 @@ const FxPortfolioView = ({ fundId }) => {
               <th className="col-number">FX Entry <SortIcon /></th>
               {impactKeys.map((key) => (
                 <th key={key} className="col-number">
-                  {formatHeader(key)} ({symbol})
+                  {formatHeader(key)} 
+                  <span className="header-currency-hint">({symbol})</span>
                 </th>
               ))}
-              <th className="col-number">Impact Inception ({symbol})</th>
+              <th className="col-number">Impact Inception 
+                <span className="header-currency-hint">({symbol})</span>
+              </th>
             </tr>
           </thead>
           <tbody>

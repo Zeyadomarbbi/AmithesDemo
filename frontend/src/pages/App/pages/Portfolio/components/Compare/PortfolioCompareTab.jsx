@@ -1,211 +1,218 @@
-// components/PortfolioCompareTab.jsx
-import React, { useState } from "react";
-import { ChevronDownIcon, ArrowTrendingUpIcon } from "@heroicons/react/24/outline";
-import { COMPARE_ROWS, COMPARE_TOTAL_ROW } from "../../portfolioData";
+import React, { useState, useMemo } from "react";
+import { useOutletContext, useNavigate, useLocation } from 'react-router-dom';
+import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
+
+// Hooks and Components
+import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
+import { useTimeframes, apiRowToQuarter } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { ChevronDownIcon } from "../../icons.jsx";
+
+// Sub-components
+import PortfolioCompareTable from "./components/PortfolioCompareTable";
+import PortfolioCompareChart from "./components/PortfolioCompareChart";
+
 import "./PortfolioCompareTab.css";
 
-const iconStyle = {
-  color: "#111827",
-  stroke: "#111827",
-  strokeWidth: 1.5,
-  width: 20,
-  height: 20,
-};
-
-const smallIconStyle = {
-  ...iconStyle,
-  width: 14,
-  height: 14,
+// --- Helpers ---
+const formatMoney = (val) => {
+  if (val === undefined || val === null) return "-";
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal', maximumFractionDigits: 0 }).format(val).replace(/,/g, " ");
 };
 
 const PortfolioCompareTab = ({ onSelectInvestment }) => {
-  const [isTimeframe1Open, setIsTimeframe1Open] = useState(false);
-  const [isTimeframe2Open, setIsTimeframe2Open] = useState(false);
+  const { fundId } = useOutletContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
+
+  // URL State
+  const queryParams = new URLSearchParams(location.search);
+  const selectedTimeframeIds = queryParams.get("timeframes")?.split(",").map(Number).filter(id => !isNaN(id)) || [];
+  const selectedCount = selectedTimeframeIds.length;
+
+  // Local UI State
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState("all");
+  const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
+  
+  // --- Chart Metric State ('fv' or 'cost') ---
+  const [chartMetric, setChartMetric] = useState("fv");
+
+  // --- REMOVED DEFAULT SELECTION EFFECT ---
+  // The component now starts with empty selection [] unless URL has params.
+
+  const handleSaveNew = async (newTimeframe) => {
+    const payload = {
+      fund: fundId,
+      display_label: newTimeframe.name,
+      full_date: newTimeframe.endDate.toISOString().split('T')[0] 
+    };
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error("Persistence failed");
+      const savedRow = await response.json();
+      const formatted = apiRowToQuarter(savedRow);
+      setQuarters(prev => [...prev, formatted]);
+      handleToggleTimeframe(formatted.id);
+    } catch (error) {
+      console.error("Compare Tab: Persistence error:", error);
+    }
+  };
+
+  const handleToggleTimeframe = (id) => {
+    let newIds;
+    if (selectedTimeframeIds.includes(id)) {
+      newIds = selectedTimeframeIds.filter(item => item !== id);
+    } else {
+      newIds = [...selectedTimeframeIds, id];
+    }
+    navigate(`${location.pathname}?timeframes=${newIds.join(",")}`);
+  };
+
+  // --- DATA PROCESSING ---
+
+  // 1. Get Active Quarters sorted by Date (Newest first)
+  const activeQuarters = useMemo(() => {
+    return quarters
+      .filter(q => selectedTimeframeIds.includes(q.id))
+      .sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date)); 
+  }, [quarters, selectedTimeframeIds]);
+
+  // 2. Resolve Investment Data
+  const fundInvestments = PORTFOLIO_COMPARE_DATA[fundId] || [];
+  
+  // 3. Filter Rows
+  const visibleRows = useMemo(() => {
+    if (selectedInvestmentId === "all") return fundInvestments;
+    return fundInvestments.filter(inv => String(inv.id) === String(selectedInvestmentId));
+  }, [fundInvestments, selectedInvestmentId]);
+
+  // 4. Calculate Total Row
+  const totalRow = useMemo(() => {
+    const totals = { name: "Total", isTotal: true, timeframes: {} };
+    activeQuarters.forEach(q => {
+      let costSum = 0;
+      let fvSum = 0;
+      visibleRows.forEach(row => {
+        const tfData = row.timeframes[q.id] || {};
+        costSum += (tfData.cost || 0);
+        fvSum += (tfData.fv || 0);
+      });
+      totals.timeframes[q.id] = { cost: costSum, fv: fvSum, moic: costSum ? (fvSum / costSum).toFixed(2) : 0 };
+    });
+    return totals;
+  }, [visibleRows, activeQuarters]);
+
+  // Helper: Diff = Newest - Oldest
+  const getDiff = (row, key) => {
+    // If fewer than 2 quarters are selected, we cannot calculate a difference
+    if (activeQuarters.length < 2) return "-";
+    
+    const newestId = activeQuarters[0].id;
+    const oldestId = activeQuarters[activeQuarters.length - 1].id;
+    
+    const newestVal = row.timeframes[newestId]?.[key] || 0;
+    const oldestVal = row.timeframes[oldestId]?.[key] || 0;
+    return formatMoney(newestVal - oldestVal);
+  };
+
+  // --- CHART DATA CALCULATION ---
+  const chartData = useMemo(() => {
+    if (activeQuarters.length < 2) return [];
+
+    const newestId = activeQuarters[0].id;
+    const oldestId = activeQuarters[activeQuarters.length - 1].id;
+
+    return visibleRows.map(row => {
+        const newestVal = row.timeframes[newestId]?.[chartMetric] || 0;
+        const oldestVal = row.timeframes[oldestId]?.[chartMetric] || 0;
+        const delta = newestVal - oldestVal;
+
+        return {
+            name: row.name,
+            value: Number((delta / 1000000).toFixed(2)) 
+        };
+    });
+  }, [activeQuarters, visibleRows, chartMetric]);
+
+
+  const activeInvLabel = selectedInvestmentId === "all" 
+    ? "All Investments" 
+    : fundInvestments.find(i => String(i.id) === String(selectedInvestmentId))?.name || "Select";
 
   return (
     <section className="compare-section">
+      {/* FILTER ROW */}
       <div className="compare-timeframes-row">
-        {/* Left timeframe */}
-        <div className="timeframe-dropdown">
-          <button
-            className="dropdown-btn"
-            onClick={() => setIsTimeframe1Open((prev) => !prev)}
-          >
-            <span>Q2 2024</span>
-            <ChevronDownIcon
-              className="icon-svg caret-icon"
-              style={smallIconStyle}
-            />
-          </button>
-
-          {isTimeframe1Open && (
-            <div className="timeframe-menu">
-              <button className="timeframe-menu-item">
-                <span className="timeframe-menu-item-label">Q1 2024</span>
-                <span className="timeframe-menu-item-date">08/03/26</span>
-              </button>
-              <button className="timeframe-menu-item active">
-                <span className="timeframe-menu-item-label">Q2 2024</span>
-                <span className="timeframe-menu-item-date">08/07/26</span>
-              </button>
-              <button className="timeframe-menu-add">
-                + Add a new timeframe
-              </button>
+        {/* INVESTMENT DROPDOWN */}
+        <div className="quarter-selector-container">
+           <div 
+                className={`quarter-selector-button ${isInvDropdownOpen ? 'active' : ''}`} 
+                onClick={() => setIsInvDropdownOpen(!isInvDropdownOpen)}
+            >
+                <div className="quarter-text-group">
+                    <span className="quarter-part">{activeInvLabel}</span>
+                </div>
+                <div className={`quarter-icon ${isInvDropdownOpen ? 'open' : ''}`}>
+                    <ChevronDownIcon />
+                </div>
             </div>
-          )}
+            
+            {isInvDropdownOpen && (
+                <div className="quarter-dropdown">
+                    <div className="quarter-list">
+                        <div 
+                            className={`quarter-item ${selectedInvestmentId === 'all' ? 'selected' : ''}`}
+                            onClick={() => { setSelectedInvestmentId("all"); setIsInvDropdownOpen(false); }}
+                        >
+                            <span className="item-label-bold">All Investments</span>
+                        </div>
+                        {fundInvestments.map((inv) => (
+                            <div 
+                                key={inv.id} 
+                                className={`quarter-item ${String(selectedInvestmentId) === String(inv.id) ? 'selected' : ''}`}
+                                onClick={() => { setSelectedInvestmentId(inv.id); setIsInvDropdownOpen(false); }}
+                            >
+                                <span className="item-label-bold">{inv.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
 
-        {/* Right timeframe */}
-        <div className="timeframe-dropdown">
-          <button
-            className="dropdown-btn"
-            onClick={() => setIsTimeframe2Open((prev) => !prev)}
-          >
-            <span>Q2 2025</span>
-            <ChevronDownIcon
-              className="icon-svg caret-icon"
-              style={smallIconStyle}
-            />
-          </button>
-
-          {isTimeframe2Open && (
-            <div className="timeframe-menu">
-              <button className="timeframe-menu-item">
-                <span className="timeframe-menu-item-label">Q1 2025</span>
-                <span className="timeframe-menu-item-date">08/03/27</span>
-              </button>
-              <button className="timeframe-menu-item active">
-                <span className="timeframe-menu-item-label">Q2 2025</span>
-                <span className="timeframe-menu-item-date">08/07/27</span>
-              </button>
-              <button className="timeframe-menu-add">
-                + Add a new timeframe
-              </button>
-            </div>
-          )}
+        {/* TIMEFRAME SELECTOR */}
+        <div className="limits-period-wrapper">
+          <QuarterSelector 
+            options={quarters}
+            selected={selectedTimeframeIds}
+            onChange={handleToggleTimeframe}
+            onSaveNew={handleSaveNew}
+            isLoading={isLoading}
+            isSingle={false}
+            maxSelections={2}
+          />
         </div>
       </div>
 
-      {/* Compare table */}
-      <div className="portfolio-table-card compare-table-card">
-        <div className="portfolio-table-scroll">
-          <table className="portfolio-table">
-            <thead>
-              <tr>
-                <th className="sort-indicator">
-                  Name <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  Cost Q2 2024 (€) <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  Cost Q2 2025 (€) <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number col-highlight">
-                  Difference (€) <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  Fair value Q2 2024 (€){" "}
-                  <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  Fair value Q2 2025 (€){" "}
-                  <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number col-highlight">
-                  Change (€) <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  MOIC Q2 2024 (net){" "}
-                  <span className="sort-indicator">↕</span>
-                </th>
-                <th className="col-number">
-                  MOIC Q2 2025 (net){" "}
-                  <span className="sort-indicator">↕</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARE_ROWS.map((row) => (
-                <tr
-                  key={row.id}
-                  onClick={() => onSelectInvestment({ ...row })}
-                >
-                  <td className="name-cell compare-name-cell">
-                    <div className="name-main">{row.name}</div>
-                    <div className="name-sub">{row.sector}</div>
-                  </td>
-                  <td className="col-number">{row.costQ1}</td>
-                  <td className="col-number">{row.costQ2}</td>
-                  <td className="col-number col-highlight">{row.diff}</td>
-                  <td className="col-number">{row.fvQ1}</td>
-                  <td className="col-number">{row.fvQ2}</td>
-                  <td className="col-number col-highlight">{row.change}</td>
-                  <td className="col-number">{row.moicQ1}</td>
-                  <td className="col-number">{row.moicQ2}</td>
-                </tr>
-              ))}
+      <PortfolioCompareTable 
+        activeQuarters={activeQuarters}
+        visibleRows={visibleRows}
+        totalRow={totalRow}
+        onSelectInvestment={onSelectInvestment}
+        formatMoney={formatMoney}
+        getDiff={getDiff}
+      />
 
-              <tr className="portfolio-subtotal-row total-row">
-                <td className="subtotal-name-cell">
-                  <button className="subtotal-btn">
-  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fillRule="evenodd" clipRule="evenodd" d="M10.8333 1.66667C10.3731 1.66667 10 1.29357 10 0.833333C10 0.373096 10.3731 0 10.8333 0H15.8333C16.2936 0 16.6667 0.373096 16.6667 0.833333V5.83333C16.6667 6.29357 16.2936 6.66667 15.8333 6.66667C15.3731 6.66667 15 6.29357 15 5.83333V2.84518L10.5893 7.25592C10.2638 7.58136 9.73618 7.58136 9.41074 7.25592C9.08531 6.93049 9.08531 6.40285 9.41074 6.07741L13.8215 1.66667H10.8333ZM7.25592 9.41074C7.58136 9.73618 7.58136 10.2638 7.25592 10.5893L2.84518 15H5.83333C6.29357 15 6.66667 15.3731 6.66667 15.8333C6.66667 16.2936 6.29357 16.6667 5.83333 16.6667H0.833333C0.61232 16.6667 0.400358 16.5789 0.244078 16.4226C0.0877973 16.2663 0 16.0543 0 15.8333L2.48353e-07 10.8333C2.48353e-07 10.3731 0.373096 10 0.833333 10C1.29357 10 1.66667 10.3731 1.66667 10.8333L1.66667 13.8215L6.07741 9.41074C6.40285 9.08531 6.93048 9.08531 7.25592 9.41074Z" fill="white"/>
-  </svg>
-</button>
-
-                <span>Total</span>
-                </td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.costQ1}</td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.costQ2}</td>
-                <td className="col-number col-highlight">
-                  {COMPARE_TOTAL_ROW.diff}
-                </td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.fvQ1}</td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.fvQ2}</td>
-                <td className="col-number col-highlight">
-                  {COMPARE_TOTAL_ROW.change}
-                </td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.moicQ1}</td>
-                <td className="col-number">{COMPARE_TOTAL_ROW.moicQ2}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Placeholder chart card */}
-      <section className="compare-chart-section">
-        <div className="compare-chart-card">
-          <div className="compare-chart-header">
-            <span className="compare-chart-title">m€</span>
-            <div className="compare-chart-filters">
-              <button className="dropdown-btn">
-                <span>Select an investment</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-              <button className="dropdown-btn">
-                <span>Cost</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-              <button className="dropdown-btn">
-                <span>Timeframe (2)</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-            </div>
-          </div>
-          <div className="compare-chart-placeholder" />
-        </div>
-      </section>
+      <PortfolioCompareChart 
+        chartData={chartData}
+        metric={chartMetric}
+        setMetric={setChartMetric}
+      />
     </section>
   );
 };
