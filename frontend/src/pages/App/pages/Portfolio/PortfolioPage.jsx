@@ -1,79 +1,38 @@
 // PortfolioPage.jsx
-import React, { useState } from "react";
+import { Outlet, NavLink, useParams } from 'react-router-dom';
 import "./styles/portfolio.tokens.css";
-import "./styles/portfolio.layout.css";
+import "./PortfolioPage.css";
 import "./styles/portfolio.tables.css";
 
-
-
-import PortfolioSummaryTab from "./components/PortfolioSummaryTab";
-import PortfolioFxTab from "./components/PortfolioFxTab";
-import PortfolioLimitsTab from "./components/PortfolioLimitsTab";
-import PortfolioCompareTab from "./components/PortfolioCompareTab";
-import CompareDetailPanel from "./components/CompareDetailPanel";
-
-const Portfolio = () => {
-  const [activeTab, setActiveTab] = useState("summary");
-  const [selectedCompareRow, setSelectedCompareRow] = useState(null);
+const PortfolioPage = () => {
+  const { fundId } = useParams();
 
   return (
     <div className="portfolio-page">
       <main className="portfolio-content">
-       <h1 className="portfolio-title">Portfolio</h1>
-    
-
+        <h1 className="portfolio-title">Portfolio</h1>
 
         {/* Tabs */}
-        <div className="financials-tabs portfolio-tabs">
-          <button
-            className={`tab ${activeTab === "summary" ? "active" : ""}`}
-            onClick={() => setActiveTab("summary")}
-          >
+        <div className="portfolio-tabs">
+          <NavLink to="summary" className="portfolio-tabs-tab">
             Portfolio summary
-          </button>
-          <button
-            className={`tab ${activeTab === "fx" ? "active" : ""}`}
-            onClick={() => setActiveTab("fx")}
-          >
+          </NavLink>
+          <NavLink to="fx" className="portfolio-tabs-tab">
             Portfolio FX
-          </button>
-          <button
-            className={`tab ${activeTab === "limits" ? "active" : ""}`}
-            onClick={() => setActiveTab("limits")}
-          >
+          </NavLink>
+          <NavLink to="limits" className="portfolio-tabs-tab">
             Limits
-          </button>
-          <button
-            className={`tab ${activeTab === "compare" ? "active" : ""}`}
-            onClick={() => setActiveTab("compare")}
-          >
+          </NavLink>
+          <NavLink to="compare" className="portfolio-tabs-tab">
             Compare
-          </button>
+          </NavLink>
         </div>
 
-        {/* Tabs content */}
-        {activeTab === "summary" && (
-          <PortfolioSummaryTab onSelectInvestment={setSelectedCompareRow} />
-        )}
-
-        {activeTab === "fx" && <PortfolioFxTab />}
-
-        {activeTab === "limits" && <PortfolioLimitsTab />}
-
-        {activeTab === "compare" && (
-          <PortfolioCompareTab onSelectInvestment={setSelectedCompareRow} />
-        )}
-
-        {/* Right detail panel (shared بين summary & compare) */}
-        {selectedCompareRow && (
-          <CompareDetailPanel
-            investment={selectedCompareRow}
-            onClose={() => setSelectedCompareRow(null)}
-          />
-        )}
+        {/* Routed content */}
+        <Outlet context={{ fundId }} />
       </main>
     </div>
   );
 };
 
-export default Portfolio;
+export default PortfolioPage;

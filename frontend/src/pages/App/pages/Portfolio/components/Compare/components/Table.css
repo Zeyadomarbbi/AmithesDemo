@@ -1,0 +1,7 @@
+.header-currency-hint2 {
+  color: #9CA3AF;     /* Gray text */
+  font-size: 12px;    /* Smaller than the 12px/14px header text */
+  font-weight: 400;   /* Normal weight (not bold like the rest of the header) */
+  padding-left: 4px;   /* Small spacing from the label */
+  padding-right: 4px
+}

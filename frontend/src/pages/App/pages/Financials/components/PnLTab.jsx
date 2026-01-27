@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 /* ===== External Components ===== */
 import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
@@ -20,6 +21,7 @@ import {
 import "../styles/PnL.css";
 
 const PnLTab = () => {
+  const { fundId } = useOutletContext();
   /* ================= Timeframe ================= */
   const [selectedQuarters, setSelectedQuarters] = useState([]);
 

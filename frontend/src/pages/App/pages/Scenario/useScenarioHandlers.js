@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+
 export function useScenarioHandlers(fundId, author, apiRowToScenario) {
     const [scenarios, setScenarios] = useState([]);
     const [syntheses, setSyntheses] = useState([]);
@@ -7,24 +9,20 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 
-    // Fetching Logic for Scenarios and Syntheses
     useEffect(() => {
         if (!fundId) return;
         
         const fetchData = async () => {
             try {
-                // Fetch Scenarios
-                const scResp = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`);
+                const scResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenarios/`);
                 if (!scResp.ok) throw new Error("Failed to fetch scenarios");
                 const scData = await scResp.json();
                 setScenarios(scData.map(apiRowToScenario));
 
-                // Fetch Syntheses from Backend
-                const synResp = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/synthesis/`);
+                const synResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis/`);
                 if (!synResp.ok) throw new Error("Failed to fetch syntheses");
                 const synData = await synResp.json();
                 
-                // Map backend synthesis data to frontend structure
                 const formattedSyntheses = synData.map(syn => ({
                     id: syn.synthesis_id,
                     fundId: syn.fund,
@@ -32,7 +30,6 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
                     author: syn.created_by,
                     description: syn.description,
                     createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
-                    // 'scenarios' field comes from the nested serializer
                     links: syn.scenarios?.map(s => s.scenario_name) || []
                 }));
                 
@@ -45,7 +42,6 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         fetchData();
     }, [fundId]);
 
-    // Scenario Handlers
     const handleAddScenario = async (newScenarioData) => {
         const payload = { 
             scenario_name: newScenarioData.name, 
@@ -54,7 +50,7 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         };
         
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/scenarios/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenarios/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -85,7 +81,6 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         );
     };
 
-    // Synthesis Handlers with Backend Persistence
     const handleAddSynthesis = async (newSynthesisData) => {
         const payload = {
             synthesis_name: newSynthesisData.name,
@@ -95,7 +90,7 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         };
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/synthesis/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -128,7 +123,6 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
     };
 
     const handleDeleteSynthesis = async (id) => {
-        // Implementation for DELETE request to backend should be added here
         setSyntheses(prev => prev.filter(s => s.id !== id));
     };
 

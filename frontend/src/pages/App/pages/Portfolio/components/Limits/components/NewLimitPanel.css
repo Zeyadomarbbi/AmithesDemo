@@ -1,0 +1,246 @@
+/* --- Animation --- */
+@keyframes slideInRightLimit {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.portfolio-new-limit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.1); 
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+}
+
+/* --- Main Drawer Container --- */
+.portfolio-new-limit-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  height: 100%;
+  width: 35vw; 
+  min-width: 400px; 
+  max-width: 100%;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  animation: slideInRightLimit 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 50; 
+}
+
+/* --- Expanded State --- */
+.portfolio-new-limit-panel--expanded {
+  width: calc(100% - 280px) !important;
+}
+
+/* --- Header Section --- */
+.portfolio-new-limit-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column; 
+  align-items: flex-start;
+  padding: 24px; 
+  gap: 16px;     
+}
+
+.portfolio-new-limit-header-actions {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.portfolio-new-limit-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px; 
+  line-height: 28px;
+  color: #1C1917;
+  margin: 0;
+}
+
+.portfolio-new-limit-back,
+.portfolio-new-limit-close {
+  border: none;
+  background: #f9fafb;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.portfolio-new-limit-back--rotated {
+  transform: rotate(180deg);
+}
+
+/* --- Body Section --- */
+.portfolio-new-limit-body {
+  flex: 1; 
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.portfolio-new-limit-section-label {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* --- Field Styling --- */
+.portfolio-new-limit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.portfolio-new-limit-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+/* Base Input/Textarea/Select Styling */
+.portfolio-new-limit-input,
+.portfolio-new-limit-textarea,
+.portfolio-new-limit-select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  padding: 0.6rem 0.7rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  outline: none;
+  background-color: #fff;
+}
+
+/* Custom Select Logic */
+.portfolio-new-limit-select-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.portfolio-new-limit-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px; 
+  cursor: pointer;
+}
+
+/* Fix: Placeholder-like color for invalid/unselected select */
+.portfolio-new-limit-select:invalid,
+.portfolio-new-limit-select option[value=""] {
+  color: #9CA3AF;
+}
+
+.portfolio-new-limit-select-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+}
+
+.portfolio-new-limit-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.portfolio-new-limit-row--two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* --- Footer Section --- */
+.portfolio-new-limit-footer {
+  flex-shrink: 0;
+  padding: 0.9rem 1.5rem 1.1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #fff;
+}
+
+.portfolio-new-limit-btn {
+  min-width: 25%; 
+  padding: 10px 24px; 
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.portfolio-new-limit-btn-cancel {
+  background: #FAFAF9;
+  border-color: #FAFAF9;
+  color: #7B7D7E;
+}
+
+.portfolio-new-limit-btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.portfolio-new-limit-btn-save {
+  background: #F7A93B;
+  border-color: #F7A93B;
+  color: #FFFFFF;
+}
+
+.portfolio-new-limit-btn-save:hover {
+  background: #e6962e;
+}
+
+.portfolio-new-limit-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #E5E7EB;
+}
+
+/* --- Mobile Response --- */
+@media (max-width: 768px) {
+  .portfolio-new-limit-panel {
+    width: 100% !important;
+    min-width: 0;
+  }
+}

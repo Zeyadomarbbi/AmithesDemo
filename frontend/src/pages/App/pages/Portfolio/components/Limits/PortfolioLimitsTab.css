@@ -1,7 +1,8 @@
 /* ===== Limits Section ===== */
-
-.limits-section {
-  margin-top: 24px;
+.portfolio-limits-root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .limits-filters-row {

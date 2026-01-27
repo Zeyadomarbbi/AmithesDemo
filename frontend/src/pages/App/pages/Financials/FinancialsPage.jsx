@@ -1,38 +1,37 @@
-import React, { useState } from "react";
-import PnLTab from "./components/PnLTab";
-import LimitsTab from "./components/LimitsTab";
+import React from "react";
+import { Outlet, NavLink, useParams } from "react-router-dom"; // Removed useLocation, Navigate
+
 import "./FinancialsLayout.css";
 
 const FinancialsPage = () => {
-  const [activeTab, setActiveTab] = useState("pnl");
+  const { fundId } = useParams();
+
+  // REMOVED: Manual redirect logic. The Router handles this via 'index: true'.
 
   return (
     <div className="financials-page">
       <main className="financials-content">
         <h1 className="financials-title">Financials</h1>
 
-        {/* TABS Navigation */}
         <div className="financials-tabs">
-          <button
-            className={`tab ${activeTab === "pnl" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("pnl")}
+          <NavLink
+            to="pnl"
+            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+            end
           >
-            P&L
-          </button>
+            P&amp;L
+          </NavLink>
 
-          <button
-            className={`tab ${activeTab === "limits" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("limits")}
+          <NavLink
+            to="limits"
+            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
           >
             Limits
-          </button>
+          </NavLink>
         </div>
 
-        {/* VIEW RENDERER */}
-        {activeTab === "pnl" && <PnLTab />}
-        {activeTab === "limits" && <LimitsTab />}
+        {/* This renders the child route (PnLTab or LimitsTab) */}
+        <Outlet context={{ fundId }} />
       </main>
     </div>
   );

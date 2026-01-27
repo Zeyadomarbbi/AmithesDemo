@@ -76,5 +76,10 @@ urlpatterns = [
     path(
         "funds/<int:fund_id>/synthesis/",
         ScenarioSynthesisView.as_view()
-    )
+    ),
+        # Limits / fees
+    path("funds/<int:fund_id>/management-fee/configs/", management_fee_configs),
+    path("funds/<int:fund_id>/management-fee/rates/", management_fee_rates),
+    path("funds/<int:fund_id>/closing-periods/", closing_periods),
+    path("funds/<int:fund_id>/lp-register/", lp_register),
 ]

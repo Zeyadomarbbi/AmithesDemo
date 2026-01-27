@@ -9,11 +9,18 @@ function QuarterSelector({
     onChange, 
     onSaveNew, 
     isLoading,
-    isSingle = true 
+    isSingle = true,
+    maxSelections = null 
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const wrapperRef = useRef(null);
+
+    // --- SANITIZE SELECTION ---
+    // This ensures that [0] or [NaN] from URL parsing never affects the UI
+    const validSelection = isSingle 
+        ? selected 
+        : (Array.isArray(selected) ? selected : []).filter(id => Number(id) > 0);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -28,11 +35,29 @@ function QuarterSelector({
     const getButtonLabel = () => {
         if (isLoading) return 'Loading...';
 
-        const active = options.find(o => Number(o.id) === Number(selected));
-        return active ? active.display_label : 'Select';
+        // Single Selection Logic
+        if (isSingle) {
+            const active = options.find(o => Number(o.id) === Number(validSelection));
+            return active ? active.display_label : 'Select';
+        }
+
+        // Multi-Selection Logic (using sanitized list)
+        const selectedCount = validSelection.length;
+
+        if (selectedCount === 0) return 'Select';
+        
+        if (selectedCount === 1) {
+            const active = options.find(o => Number(o.id) === Number(validSelection[0]));
+            return active ? active.display_label : 'Select';
+        }
+        
+        return `Timeframes (${selectedCount})`;
     };
 
     const label = getButtonLabel();
+
+    // Limit Check (using sanitized list)
+    const isAtLimit = !isSingle && maxSelections !== null && validSelection.length >= maxSelections;
 
     return (
         <div className="quarter-selector-container" ref={wrapperRef}>
@@ -54,14 +79,23 @@ function QuarterSelector({
                     <div className="quarter-list">
                         {options.map((item) => {
                             const isActive = isSingle
-                                ? Number(selected) === Number(item.id)
-                                : (selected || []).includes(item.id);
+                                ? Number(validSelection) === Number(item.id)
+                                : validSelection.includes(item.id); // Check against valid list
+
+                            // Disable if at limit AND not currently selected
+                            const isDisabled = !isActive && isAtLimit;
 
                             return (
                                 <div 
                                     key={item.id} 
                                     className={`quarter-item ${isActive ? 'selected' : ''}`}
+                                    style={{ 
+                                        opacity: isDisabled ? 0.5 : 1, 
+                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                        pointerEvents: isDisabled ? 'none' : 'auto' 
+                                    }}
                                     onClick={() => {
+                                        if (isDisabled) return;
                                         onChange(item.id);
                                         if (isSingle) setIsOpen(false);
                                     }}

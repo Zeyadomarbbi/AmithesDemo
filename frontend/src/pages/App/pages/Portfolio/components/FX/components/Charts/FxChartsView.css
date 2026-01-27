@@ -1,0 +1,131 @@
+/* ===== FX Charts ===== */
+.fx-charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fx-charts-filters-row {
+  display: flex;
+  justify-content: flex-start; /* Aligns with Breakdown label start */
+  align-items: center;
+  gap: 12px;
+  margin-top: -8px; /* Pulls it up slightly to align with parent header baseline if needed */
+}
+
+.fx-charts-card {
+  background: #ffffff;
+  padding: 16px 20px 18px;
+}
+
+.fx-charts-header {
+    display: flex;
+    position: relative;
+    height: 30px;
+    margin-bottom: 20px;
+}
+
+.fx-charts-container {
+    width: 100%;
+    background: #ffffff; /* strictly white background */
+}
+
+.fx-charts-title {
+    position: absolute;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 25px;
+    color: #030229;
+    opacity: 0.7;
+}
+
+/* --- DROPDOWN CONTAINER --- */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+    z-index: 50;
+}
+
+/* --- TRIGGER BUTTON (Mirrors .quarter-selector-button) --- */
+.dropdown-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+    width: auto;
+    height: 40px;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    user-select: none;
+
+    /* Text Style */
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #1C1917;
+}
+
+.dropdown-btn:hover,
+.dropdown-btn.active {
+    background-color: #F8FAFC;
+    border-color: rgba(204, 205, 206, 0.5);
+}
+
+.dropdown-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #F9FAFB;
+}
+
+/* --- DROPDOWN MENU (Mirrors .quarter-dropdown) --- */
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+    min-width: 160px;
+}
+
+/* --- MENU ITEMS (Mirrors .quarter-item) --- */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C1917;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+    background-color: #F3F4F6;
+}
+
+.dropdown-item.active {
+    background-color: #F8FAFC;
+    font-weight: 600; /* Mirrors .item-label-bold feel */
+    color: #375A89;   /* Fund Primary Blue */
+}
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .fx-charts-filters-row {
+    flex-wrap: wrap;
+  }
+}
