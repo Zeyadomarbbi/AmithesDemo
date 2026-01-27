@@ -1,7 +1,6 @@
 // frontend/src/pages/App/AppLayout.jsx
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom'; 
-// Note: We don't even need to import useFundData here anymore!
 import SidePanel from './SidePanel/SidePanel';
 import Header from './Header/Header';
 import './AppLayout.css';

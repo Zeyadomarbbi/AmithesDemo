@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from './useApi';
+import { API_BASE_URL } from '../useApi';
 
 export function usePhases() {
     const [phases, setPhases] = useState([]);
@@ -9,7 +9,7 @@ export function usePhases() {
         const fetchPhases = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/phases/`);
+                const response = await fetch(`${API_BASE_URL}/api/fund-phases/`);
                 const data = await response.json();
                 setPhases(data);
             } catch (err) {

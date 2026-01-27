@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { API_BASE_URL } from "./useApi";
+import { API_BASE_URL } from "../useApi";
 
 // --- PRIVATE SERVICE HELPERS (Internal to this file) ---
 const api = {
@@ -8,12 +8,15 @@ const api = {
     if (!res.ok) throw new Error(`Fetch failed: ${res.statusText}`);
     return res.json();
   },
+
   async fetchOne(id) {
     const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`);
     if (!res.ok) throw new Error(`Fetch detail failed: ${res.status}`);
     return res.json();
   },
+
   async post(payload) {
+    console.log("API POST Payload:", payload);
     const res = await fetch(`${API_BASE_URL}/api/funds/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,6 +25,7 @@ const api = {
     if (!res.ok) throw new Error("Creation failed");
     return res.json();
   },
+
   async put(id, payload) {
     const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
       method: "PUT",
@@ -31,6 +35,7 @@ const api = {
     if (!res.ok) throw new Error("Update failed");
     return res.json();
   },
+
   async delete(id) {
     const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
       method: "DELETE",
@@ -80,14 +85,15 @@ export function FundProvider({ children }) {
   const initializeFund = async (payload) => {
     try {
       const data = await api.post({
-        legal_name: payload.name,
+        // Use the keys sent by the NewFundModal
+        legal_name: payload.legalName,     // Adjusted from payload.name
         short_name: payload.shortName,
         formation_date: payload.formationDate,
-        currency_id: payload.currencyId,
-        phase_name: payload.phaseName,
-        legal_form: payload.legalForm,
-        management_company: payload.manCo,
-        fund_strategy: payload.strategy,
+        currency_id: payload.currency_id || null,  // Adjusted from payload.currencyId
+        phase_name: payload.phaseName || "Marketing", 
+        legal_form: payload.legalForm || "",
+        management_company: payload.manCo || "",
+        fund_strategy: payload.strategy || "",
       });
       setFunds((prev) => [formatFund(data), ...prev]);
       return { success: true };

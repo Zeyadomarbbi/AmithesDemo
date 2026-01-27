@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import { FundProvider } from './pages/App/hooks/useFundData';
+import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
 import './index.css';
 
 // --- AUTH ---

@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
-import { useFundData } from "../../../../../../hooks/useFundData";
+import { useFundData } from "../../../../../../hooks/Core/FundContext";
 import { ChevronDownIcon } from "../../Icons";
 import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../../../../../components/QuarterSelection/useTimeframes';

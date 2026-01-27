@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useFundDetails } from "../../../../hooks/useFundDetails.js"; // Fetch Hook
-import { useFundData } from "../../../../hooks/useFundData";       // Action Hook
-import { useCurrencies } from "../../../../hooks/Core/useCurrencies.js";
-import { usePhases } from "../../../../hooks/useFundPhase.js";
+import { useFundData } from "../../../../hooks/Core/FundContext";       // Action Hook
+import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
+import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 
 import "./FundIdentity.css";
@@ -213,7 +213,8 @@ const FundIdentity = () => {
             >
               <option value="" disabled>Please select a phase</option>
               {phases?.map((p) => (
-                <option key={p.phase_id} value={p.phase_id}>{p.phase_name}</option>
+                /* CHANGED: p.id and p.name instead of p.phase_id and p.phase_name */
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
             <span className="nf-select-chevron" />

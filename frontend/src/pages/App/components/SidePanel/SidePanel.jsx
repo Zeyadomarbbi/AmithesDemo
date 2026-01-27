@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
-import { useFundData } from '../../hooks/useFundData'; 
+import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,

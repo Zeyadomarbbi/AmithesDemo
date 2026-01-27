@@ -1,4 +1,4 @@
-import { useFundData } from "../../../../../../hooks/useFundData"; 
+import { useFundData } from "../../../../../../hooks/Core/FundContext"; 
 import { FX_DEALS_DATA } from "../../../../portfolioData";
 import { SortIcon } from "../../Icons";
 import "./FxDealsView.css";

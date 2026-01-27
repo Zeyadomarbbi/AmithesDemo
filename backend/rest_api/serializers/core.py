@@ -1,12 +1,16 @@
 from rest_framework import serializers
 
+
 from ..models.core import *
 from ..models.transactions import Timeframe
+from ..models.reference import Currency
 
 class FundSerializer(serializers.ModelSerializer):
     formation_date_string = serializers.SerializerMethodField()
-    currency_name = serializers.SerializerMethodField(read_only=True)
-    currency_symbol = serializers.SerializerMethodField(read_only=True)
+    currency_id = serializers.PrimaryKeyRelatedField(
+        queryset=Currency.objects.all(), 
+        source='currency'
+    )
 
     class Meta:
         model = Fund
@@ -18,11 +22,8 @@ class FundSerializer(serializers.ModelSerializer):
             'legal_form',
             'management_company',
             'formation_date',
-            'formation_date_string',
             'phase_name',
             'currency_id',  # Changed from 'currency'
-            'currency_name',
-            'currency_symbol',
             'created_at',
             'updated_at',
             'is_deleted',

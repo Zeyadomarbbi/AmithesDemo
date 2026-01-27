@@ -205,7 +205,8 @@ class FundViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         """Override to add created_by from request"""
-        serializer.save(created_by=self.request.user)
+        user_name = "test"
+        serializer.save(created_by=user_name)
 
     def perform_update(self, serializer):
         """Override to set updated_at"""

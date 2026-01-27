@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// FIXED: Import 'useFundData' (the hook), not 'FundProvider'
-import { useFundData } from "../../hooks/useFundData"; 
-
+import { useFundData } from "../../hooks/Core/FundContext"; 
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
@@ -15,7 +12,7 @@ import "./AllFundsPage.css";
 export default function AllFundsPage() {
   const navigate = useNavigate();
   
-  // FIXED: Call the hook
+  // Access state and actions from the Context
   const { funds, isLoading, error, initializeFund } = useFundData();
 
   const [activeTab, setActiveTab] = useState("funds");
@@ -25,7 +22,7 @@ export default function AllFundsPage() {
 
   const normalizedQuery = (query || "").toLowerCase().trim();
 
-  // 2. Filter data provided by the hook
+  // Filter logic remains the same, but 'f.name' is now guaranteed by the formatFund normalizer
   const filteredFunds = useMemo(() => {
     return funds.filter((f) =>
       (f.name || "").toLowerCase().includes(normalizedQuery)
@@ -37,27 +34,24 @@ export default function AllFundsPage() {
   };
 
   const handleCreateFund = async (payload) => {
-    // payload contains: legalName, shortName, formationDate, currency_id
     const result = await initializeFund(payload);
-
     if (result.success) {
       setToast({
         title: "Fund Initialized",
         message: "The new fund has been created successfully.",
       });
+      setIsNewFundOpen(false); // Close modal on success
     } else {
-      // Show error toast if initialization fails
       setToast({
         title: "Error",
-        message: result.error || "Could not initialize fund.",
+        message: result.error || "Could not initialize fund 123.",
       });
     }
   };
 
-  // 3. Handle Loading and Error states
   if (isLoading) {
     return (
-      <div className="allfunds-page" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+      <div className="allfunds-page allfunds-flex-center">
         <p>Loading portfolio data...</p>
       </div>
     );
@@ -65,7 +59,7 @@ export default function AllFundsPage() {
 
   if (error) {
     return (
-      <div className="allfunds-page" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex', color: 'red' }}>
+      <div className="allfunds-page allfunds-flex-center allfunds-error">
         <p>Error loading funds: {error}</p>
       </div>
     );
@@ -91,7 +85,6 @@ export default function AllFundsPage() {
             KPIs
           </span>
         </div>
-
         <div className="tabs-underline" />
       </header>
 
@@ -101,7 +94,6 @@ export default function AllFundsPage() {
           <span className="search-icon" aria-hidden="true">
             <SearchIcon />
           </span>
-
           <input
             className="search-input"
             placeholder="Search by fund name..."
