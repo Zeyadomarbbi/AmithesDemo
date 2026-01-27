@@ -45,7 +45,7 @@ const FundIdentity = () => {
     // This prevents the "does not match format" error we fixed earlier.
     setFormData((prev) => ({ 
       ...prev, 
-      formation_date_string: `${year}-${month}-${day}` 
+      formation_date: `${year}-${month}-${day}` 
     }));
   };
 
@@ -77,7 +77,7 @@ const FundIdentity = () => {
         management_company: formData.management_company,
         currency_id: formData.currency,
         phase_id: formData.phase,
-        formation_date_string: formData.formation_date_string,
+        formation_date: formData.formation_date,
       };
 
       console.log("Saving Fund Identity:", payload);

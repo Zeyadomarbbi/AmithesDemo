@@ -6,7 +6,7 @@ from ..models.transactions import Timeframe
 from ..models.reference import Currency
 
 class FundSerializer(serializers.ModelSerializer):
-    formation_date_string = serializers.SerializerMethodField()
+    # Explicitly map currency_id for the incoming payload
     currency_id = serializers.PrimaryKeyRelatedField(
         queryset=Currency.objects.all(), 
         source='currency'
@@ -23,21 +23,12 @@ class FundSerializer(serializers.ModelSerializer):
             'management_company',
             'formation_date',
             'phase_name',
-            'currency_id',  # Changed from 'currency'
+            'currency_id',
             'created_at',
             'updated_at',
             'is_deleted',
         ]
         read_only_fields = ['fund_id', 'created_at', 'updated_at', 'is_deleted']
-
-    def get_formation_date_string(self, obj):
-        return obj.formation_date.isoformat() if obj.formation_date else None
-
-    def get_currency_name(self, obj):
-        return obj.currency.currency_name if obj and obj.currency else None
-
-    def get_currency_symbol(self, obj):
-        return obj.currency.currency_symbol if obj and obj.currency else None
 
 class TimeframeSerializer(serializers.ModelSerializer):
     class Meta:
