@@ -26,12 +26,12 @@ class Fund(models.Model):
 class ShareClass(models.Model):
 
     class IssuanceMethod(models.TextChoices):
-        PRO_RATA = "Pro Rata Called Amount", "Pro Rata Called Amount"
-        UPFRONT = "Upfront", "Upfront"
+        PRO_RATA = "PRO_RATA_CALLED", "Pro Rata Called Amount"
+        UPFRONT = "UPFRONT", "Upfront"
 
     class DistributionMethod(models.TextChoices):
-        REDEMPTION = "Redemption of Shares", "Redemption of Shares"
-        DIVIDEND = "Dividend", "Dividend"
+        REDEMPTION = "REDEMPTION_OF_SHARES", "Redemption of shares"
+        DIVIDEND = "DIVIDEND", "Dividend"
 
     share_class_id = models.AutoField(primary_key=True)
 
@@ -58,6 +58,9 @@ class ShareClass(models.Model):
 
     ppm_description = models.TextField(null=True, blank=True)
     document_link = models.TextField(null=True, blank=True)
+    document_name = models.CharField(max_length=255, null=True, blank=True)
+    document_mime_type = models.CharField(max_length=100, null=True, blank=True) # Mime Type
+    document_size = models.BigIntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.IntegerField(null=True, blank=True)
@@ -66,7 +69,6 @@ class ShareClass(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
         db_table = "share_class"
         constraints = [
             models.UniqueConstraint(

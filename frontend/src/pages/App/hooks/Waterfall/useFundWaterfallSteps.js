@@ -1,119 +1,103 @@
-// frontend/src/hooks/Waterfall/useFundWaterfallSteps.js
 import { useState, useCallback } from "react";
-import { API_BASE_URL } from '../useApi';
+import { API_BASE_URL } from "../useApi";
 
 export function useFundWaterfallSteps() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    fetch: false,
+    save: false,
+    delete: false,
+  });
+
   const [error, setError] = useState(null);
 
-  // 1. GET Definitions: Fetch static step types (Nominal, Hurdle, etc.)
-  const fetchDefinitions = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/waterfall-definitions/`);
-      if (!response.ok) throw new Error("Failed to fetch waterfall definitions");
-      return await response.json();
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const setLoadingState = (key, value) =>
+    setLoading(prev => ({ ...prev, [key]: value }));
 
-  // 2. GET Steps: Fetch existing configuration for a specific fund
+  // Helper to convert "" to null for Decimal compatibility
+  const sanitizePayload = (obj) => {
+    return JSON.parse(JSON.stringify(obj, (key, value) => 
+      value === "" ? null : value
+    ));
+  };
+
   const fetchFundSteps = useCallback(async (fundId) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`);
-      if (!response.ok) throw new Error("Failed to fetch fund waterfall steps");
-      return await response.json();
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // 3. POST: Create a new step with nested envelopes/rules
-  const createStep = async (fundId, stepData) => {
-    setIsLoading(true);
+    setLoadingState("fetch", true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`, {
+      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`);
+      if (!res.ok) throw await res.json();
+      return await res.json();
+    } catch (err) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoadingState("fetch", false);
+    }
+  }, []);
+
+  const createStep = async (fundId, payload) => {
+    setLoadingState("save", true);
+    setError(null);
+    try {
+      const cleanPayload = sanitizePayload(payload);
+      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(stepData),
+        body: JSON.stringify(cleanPayload),
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(JSON.stringify(err));
-      }
-      return await response.json();
+      if (!res.ok) throw await res.json();
+      return await res.json();
     } catch (err) {
-      setError(err.message);
+      setError(err);
       throw err;
     } finally {
-      setIsLoading(false);
+      setLoadingState("save", false);
     }
   };
 
-  // 4. PUT: Update an existing step (including nested envelopes/rules)
-  const updateStep = async (fundId, stepId, stepData) => {
-    setIsLoading(true);
+  const updateStep = async (fundId, stepId, payload) => {
+    setLoadingState("save", true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
+      const cleanPayload = sanitizePayload(payload);
+      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(stepData),
+        body: JSON.stringify(cleanPayload),
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(JSON.stringify(err));
-      }
-      return await response.json();
+      if (!res.ok) throw await res.json();
+      return await res.json();
     } catch (err) {
-      setError(err.message);
+      setError(err);
       throw err;
     } finally {
-      setIsLoading(false);
+      setLoadingState("save", false);
     }
   };
 
-  // 5. DELETE: Remove a step configuration
   const deleteStep = async (fundId, stepId) => {
-    setIsLoading(true);
+    setLoadingState("delete", true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
+      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
         method: "DELETE",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete step");
-      }
+      if (!res.ok) throw await res.json();
       return true;
     } catch (err) {
-      setError(err.message);
+      setError(err);
       throw err;
     } finally {
-      setIsLoading(false);
+      setLoadingState("delete", false);
     }
   };
 
   return {
-    fetchDefinitions,
     fetchFundSteps,
     createStep,
     updateStep,
     deleteStep,
-    isLoading,
+    loading,
     error,
   };
 }

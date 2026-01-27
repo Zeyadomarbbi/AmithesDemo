@@ -26,12 +26,21 @@ export function useShareClasses(fundId) {
     }, [fundId]);
 
     const create = async (payload) => {
+        // 1. Check if we have a file to use FormData
+        const formData = new FormData();
+        Object.keys(payload).forEach(key => {
+            if (payload[key] !== null && payload[key] !== undefined) {
+                formData.append(key, payload[key]);
+            }
+        });
+
         const res = await fetch(
             `${API_BASE_URL}/api/funds/${fundId}/share-classes/`,
             {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                // Note: Don't set Content-Type header when sending FormData; 
+                // the browser sets it automatically with the boundary.
+                body: formData,
             }
         );
 
@@ -42,7 +51,6 @@ export function useShareClasses(fundId) {
 
         await fetchAll();
     };
-
     const update = async (id, payload) => {
         const res = await fetch(
             `${API_BASE_URL}/api/funds/${fundId}/share-classes/${id}/`,
@@ -58,7 +66,8 @@ export function useShareClasses(fundId) {
 
     const remove = async (id) => {
         const res = await fetch(
-            `${API_BASE_URL}/api/share-classes/${id}/`,
+            // Must match the fund-nested path defined in urls.py
+            `${API_BASE_URL}/api/funds/${fundId}/share-classes/${id}/`,
             { method: "DELETE" }
         );
         if (!res.ok) throw new Error("Delete failed");

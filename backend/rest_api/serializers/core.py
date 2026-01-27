@@ -68,6 +68,9 @@ class ShareClassSerializer(serializers.ModelSerializer):
             "document_link",    # DB column
             "document_file",    # Upload field
             "document_url",     # Computed download URL
+            "document_name", # <--- Ensure this is here
+            "document_mime_type", # <--- Ensure this is here
+            "document_size", # <--- Ensure this is here
             "created_at",
             "created_by",
             "updated_at",
@@ -90,6 +93,9 @@ class ShareClassSerializer(serializers.ModelSerializer):
             from django.core.files.storage import default_storage
             path = default_storage.save(f"share_class_docs/{file_obj.name}", file_obj)
             validated_data["document_link"] = default_storage.url(path)
+            validated_data["document_name"] = file_obj.name
+            validated_data["document_mime_type"] = file_obj.content_type  # Mime Type
+            validated_data["document_size"] = file_obj.size
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

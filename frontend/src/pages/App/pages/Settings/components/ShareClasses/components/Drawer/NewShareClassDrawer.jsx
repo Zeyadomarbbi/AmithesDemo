@@ -72,11 +72,11 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
       const newShareClassData = {
         share_class_name: name,
         isin_code: isin,
-        nominal_value: shareValue, 
+        nominal_value: parseFloat(shareValue), // Ensure it's a number/decimal
         issuance_method: dbIssuanceMethod,
         distribution_method: dbDistributionMethod,
         ppm_description: description,
-        file: uploadedFile 
+        document_file: uploadedFile // Changed from 'file' to 'document_file'
       };
 
       // 4. Call Parent API Function (Commits to DB)

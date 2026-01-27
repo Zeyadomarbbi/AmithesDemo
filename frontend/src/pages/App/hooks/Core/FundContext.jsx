@@ -89,7 +89,7 @@ export function FundProvider({ children }) {
         legal_name: payload.legalName,     // Adjusted from payload.name
         short_name: payload.shortName,
         formation_date: payload.formationDate,
-        currency_id: payload.currency_id || null,  // Adjusted from payload.currencyId
+        currency_id: payload.currency_id,  // Adjusted from payload.currencyId
         phase_name: payload.phaseName || "Marketing", 
         legal_form: payload.legalForm || "",
         management_company: payload.manCo || "",
@@ -105,14 +105,14 @@ export function FundProvider({ children }) {
   const updateFund = async (id, payload) => {
     try {
       const data = await api.put(id, {
-        legal_name: payload.name,
-        short_name: payload.shortName,
-        formation_date: payload.formationDate,
-        currency_id: payload.currencyId,
-        phase_name: payload.phaseName,
-        legal_form: payload.legalForm,
-        management_company: payload.manCo,
-        fund_strategy: payload.strategy,
+        legal_name: payload.legal_name,
+        short_name: payload.short_name,
+        formation_date: payload.formation_date,
+        currency_id: payload.currency_id,
+        phase_name: payload.phase_name,
+        legal_form: payload.legal_form,
+        management_company: payload.management_company,
+        fund_strategy: payload.fund_strategy,
       });
       const formatted = formatFund(data);
       setFunds((prev) => prev.map((f) => (f.id === id ? formatted : f)));

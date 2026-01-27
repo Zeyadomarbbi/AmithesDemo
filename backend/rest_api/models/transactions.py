@@ -66,6 +66,43 @@ class FundWaterfallSteps(models.Model):
             )
         ]
 
+class FundWaterfallStepRules(models.Model):
+    step_rule_id = models.BigAutoField(primary_key=True)
+    fund_waterfall_step = models.ForeignKey(
+        "FundWaterfallSteps",
+        on_delete=models.CASCADE,
+        related_name="step_rules",
+        db_column="fund_waterfall_step_id"
+    )
+
+    share_class = models.ForeignKey(
+        "ShareClass",
+        on_delete=models.CASCADE,
+        db_column="share_class_id"
+    )
+
+    is_selected = models.BooleanField(default=False)
+    is_pro_rata = models.BooleanField(default=False)
+
+    fixed_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ],
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "fund_waterfall_step_rules"
+        unique_together = ("fund_waterfall_step", "share_class")
+
 class FundWaterfallEnvelopes(models.Model):
     waterfall_envelope_id = models.BigAutoField(primary_key=True)
 
@@ -100,8 +137,8 @@ class FundWaterfallEnvelopes(models.Model):
             )
         ]
 
-class FundWaterfallRules(models.Model):
-    waterfall_rule_id = models.BigAutoField(primary_key=True)
+class FundWaterfallEnvelopeRules(models.Model):
+    envelope_rule_id = models.BigAutoField(primary_key=True)
 
     envelope = models.ForeignKey(
         "FundWaterfallEnvelopes",
@@ -134,7 +171,7 @@ class FundWaterfallRules(models.Model):
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        db_table = "fund_waterfall_rules"
+        db_table = "fund_waterfall_envelope_rules"
         unique_together = ("envelope", "share_class")
         constraints = [
             models.CheckConstraint(
