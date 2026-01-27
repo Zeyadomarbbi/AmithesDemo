@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app/api';
+const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
 
 export function apiRowToQuarter(row) {
     return {

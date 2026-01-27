@@ -1,35 +1,19 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import QuarterSelector from '../../../../../../components/QuarterSelection/QuarterSelector'; // Import the new component
-import { useTimeframes, apiRowToQuarter } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../../../components/QuarterSelection/useTimeframes';
 import './DashboardHeader.css';
 
 function DashboardHeader({ fundId, fundName, showQuarterSelector, onTimeframeChange }) {
     const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
     const { timeframeId } = useParams();
     const handleSaveNew = async (newTimeframe) => {
-        const payload = {
-            fund: fundId,
-            display_label: newTimeframe.name,
-            full_date: newTimeframe.endDate.toISOString().split('T')[0] 
-        };
-
         try {
-            const response = await fetch(`https://dual-pam-bbi-59551b8d.koyeb.app/api/funds/${fundId}/timeframes/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error("Persistence failed");
-
-            const savedRow = await response.json();
-            const formatted = apiRowToQuarter(savedRow);
-
+            const formatted = await saveNewTimeframe(fundId, newTimeframe);
             setQuarters(prev => [...prev, formatted]);
-            onTimeframeChange(formatted.id); 
+            toggleTimeframe(selectedTimeframeIds, formatted.id);
         } catch (error) {
-            console.error("Persistence error:", error);
+            console.error("Compare Tab: Persistence error:", error);
         }
     };
 

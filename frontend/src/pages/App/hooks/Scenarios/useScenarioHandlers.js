@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from '../useApi';
 
 export function useScenarioHandlers(fundId, author, apiRowToScenario) {
     const [scenarios, setScenarios] = useState([]);
