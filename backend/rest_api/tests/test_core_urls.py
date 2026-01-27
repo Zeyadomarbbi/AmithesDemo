@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse, resolve
+from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_api.views.core import (
     FundViewSet,
@@ -10,7 +11,7 @@ from rest_api.views.core import (
     closing_periods,
     lp_register
 )
-from rest_api.models import Fund, Currency, User
+from rest_api.models import Fund, Currency
 
 
 class CoreURLTests(TestCase):
@@ -52,7 +53,14 @@ class CoreViewIntegrationTests(TestCase):
     
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        
+        # Create test user FIRST
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        # Authenticate client
         self.client.force_authenticate(user=self.user)
         
         # Create test currency
