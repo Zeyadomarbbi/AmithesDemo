@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from './useApi';
+import { API_BASE_URL } from '../useApi';
 
 export function useCurrencies() {
     const [currencies, setCurrencies] = useState([]);

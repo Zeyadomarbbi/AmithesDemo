@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { API_BASE_URL } from './useApi';
+import { API_BASE_URL } from "./useApi";
 
 export function useShareClasses(fundId) {
     const [data, setData] = useState([]);
@@ -13,7 +13,9 @@ export function useShareClasses(fundId) {
         setError(null);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/share-classes/`);
+            const res = await fetch(
+                `${API_BASE_URL}/api/funds/${fundId}/share-classes/`
+            );
             if (!res.ok) throw new Error("Fetch failed");
             setData(await res.json());
         } catch (e) {
@@ -23,54 +25,25 @@ export function useShareClasses(fundId) {
         }
     }, [fundId]);
 
-    const create = async (payload) => { 
-        let body;
-        let headers = {};
-
-        // 1. Check for File
-        if (payload.file) {
-            const formData = new FormData();
-            
-            // Explicitly map keys to match Backend Serializer
-            formData.append("document_file", payload.file); // KEY FIX: 'file' -> 'document_file'
-            
-            // Append other fields
-            formData.append("share_class_name", payload.share_class_name);
-            formData.append("isin_code", payload.isin_code);
-            formData.append("nominal_value", payload.nominal_value);
-            formData.append("issuance_method", payload.issuance_method);
-            formData.append("distribution_method", payload.distribution_method);
-            formData.append("ppm_description", payload.ppm_description);
-            
-            body = formData;
-            // Browser sets Content-Type automatically
-        } else {
-            // 2. Fallback: Standard JSON
-            body = JSON.stringify(payload);
-            headers = { "Content-Type": "application/json" };
-        }
-
+    const create = async (payload) => {
         const res = await fetch(
-            `${BASE_URL}/funds/${fundId}/share-classes/`,
+            `${API_BASE_URL}/api/funds/${fundId}/share-classes/`,
             {
                 method: "POST",
-                headers: headers,
-                body: body,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
             }
         );
 
         if (!res.ok) {
-            // Optional: Try to parse backend error message
-            const errData = await res.json().catch(() => ({})); 
+            const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || "Create failed");
         }
-        
+
         await fetchAll();
     };
 
     const update = async (id, payload) => {
-        // You can apply similar FormData logic here if you plan to support 
-        // updating files in the future. For now, it remains JSON.
         const res = await fetch(
             `${API_BASE_URL}/api/funds/${fundId}/share-classes/${id}/`,
             {

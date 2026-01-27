@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useFundDetails } from "../../../../hooks/useFundDetails.js"; // Fetch Hook
 import { useFundData } from "../../../../hooks/useFundData";       // Action Hook
-import { useCurrencies } from "../../../../hooks/useCurrencies.js";
+import { useCurrencies } from "../../../../hooks/Core/useCurrencies.js";
 import { usePhases } from "../../../../hooks/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 

@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='DimScenarioList',
+            name='ScenarioList',
             fields=[
                 ('scenario_id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('scenario_name', models.TextField()),
@@ -132,7 +132,7 @@ class Migration(migrations.Migration):
             name='MapScenarioSynthesis',
             fields=[
                 ('record_id', models.AutoField(primary_key=True, serialize=False)),
-                ('scenario', models.ForeignKey(db_column='scenario_id', on_delete=django.db.models.deletion.CASCADE, to='rest_api.dimscenariolist')),
+                ('scenario', models.ForeignKey(db_column='scenario_id', on_delete=django.db.models.deletion.CASCADE, to='rest_api.scenariolist')),
                 ('synthesis', models.ForeignKey(db_column='synthesis_id', on_delete=django.db.models.deletion.CASCADE, related_name='scenario_mappings', to='rest_api.dimscenariosynthesis')),
             ],
             options={

@@ -40,7 +40,7 @@ function DashboardPage() {
         <Outlet
           context={{
             fund: currentFund,
-            fundId: currentFund.id,
+            fundId: fundId,
           }}
         />
       </div>
