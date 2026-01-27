@@ -7,7 +7,7 @@ import {
 import { useFundData } from "../../../../../../hooks/useFundData";
 import { ChevronDownIcon } from "../../Icons";
 import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter } from '../../../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../../../../../components/QuarterSelection/useTimeframes';
 import { FX_DEALS_DATA } from "../../../../portfolioData";
 import "./FxChartsView.css";
 
@@ -27,35 +27,18 @@ const FxChartsView = ({ fundId }) => {
 
     const [selectedInvestmentIdx, setSelectedInvestmentIdx] = useState(0); 
     const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
-
+    const { toggleTimeframe } = useTimeframeNavigation(location, navigate);
     const handleSaveNew = async (newTimeframe) => {
-        const payload = {
-            fund: fundId,
-            display_label: newTimeframe.name,
-            full_date: newTimeframe.endDate.toISOString().split('T')[0] 
-        };
-
         try {
-            const response = await fetch(`https://dual-pam-bbi-59551b8d.koyeb.app/api/funds/${fundId}/timeframes/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error("Persistence failed");
-
-            const savedRow = await response.json();
-            const formatted = apiRowToQuarter(savedRow);
-
+            const formatted = await saveNewTimeframe(fundId, newTimeframe);
             setQuarters(prev => [...prev, formatted]);
-            
-            const updatedIds = [...selectedIdsFromUrl, formatted.id];
-            navigate(`${location.pathname}?timeframes=${updatedIds.join(",")}`);
+            toggleTimeframe(selectedTimeframeIds, formatted.id);
         } catch (error) {
-            console.error("Persistence error:", error);
+            console.error("Compare Tab: Persistence error:", error);
         }
     };
 
+    const handleToggleTimeframe = (id) => { toggleTimeframe(selectedTimeframeIds, id)};
     const fundInvestments = FX_DEALS_DATA[fundId] || FX_DEALS_DATA[Number(fundId)] || [];
     const activeInvestment = fundInvestments[selectedInvestmentIdx];
 
@@ -94,16 +77,6 @@ const FxChartsView = ({ fundId }) => {
             value: Number((totalImpact / 1000000).toFixed(2))
             };
     });
-
-    const handleToggleTimeframe = (id) => {
-        let newIds;
-        if (selectedIdsFromUrl.includes(id)) {
-            newIds = selectedIdsFromUrl.filter(item => item !== id);
-        } else {
-            newIds = [...selectedIdsFromUrl, id];
-        }
-        navigate(`${location.pathname}?timeframes=${newIds.join(",")}`);
-    };
 
     return (
         <section className="fx-charts-section">

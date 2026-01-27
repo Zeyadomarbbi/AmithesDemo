@@ -1,7 +1,6 @@
 // frontend/src/hooks/FundManFee/useFundManFeeRules.js
 import { useState, useCallback } from "react";
-
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from '../useApi';
 
 export function useFundManagementFeeRules() {
     const [isLoading, setIsLoading] = useState(false);
@@ -11,7 +10,7 @@ export function useFundManagementFeeRules() {
     const fetchRules = useCallback(async (fundId) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/funds/${fundId}/management-fee-rules/`);
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/management-fee-rules/`);
             if (!response.ok) throw new Error("Failed to fetch fee rules");
             return await response.json();
         } catch (err) {
@@ -26,7 +25,7 @@ export function useFundManagementFeeRules() {
     const createRule = async ({ fundId, phaseId, shareClassId, dateFrom, dateUntil, ratePercentage }) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/funds/${fundId}/management-fee-rules/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/management-fee-rules/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -54,7 +53,7 @@ export function useFundManagementFeeRules() {
         setIsLoading(true);
         try {
             // Hitting your new endpoint: /management-fee-rules/<int:fee_rule_id>/
-            const response = await fetch(`${BASE_URL}/funds/${fundId}/management-fee-rules/${ruleId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/management-fee-rules/${ruleId}/`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

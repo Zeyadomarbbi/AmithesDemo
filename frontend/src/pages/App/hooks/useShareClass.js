@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from './useApi';
 
 export function useShareClasses(fundId) {
     const [data, setData] = useState([]);
@@ -14,7 +13,7 @@ export function useShareClasses(fundId) {
         setError(null);
 
         try {
-            const res = await fetch(`${BASE_URL}/funds/${fundId}/share-classes/`);
+            const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/share-classes/`);
             if (!res.ok) throw new Error("Fetch failed");
             setData(await res.json());
         } catch (e) {
@@ -73,7 +72,7 @@ export function useShareClasses(fundId) {
         // You can apply similar FormData logic here if you plan to support 
         // updating files in the future. For now, it remains JSON.
         const res = await fetch(
-            `${BASE_URL}/funds/${fundId}/share-classes/${id}/`,
+            `${API_BASE_URL}/api/funds/${fundId}/share-classes/${id}/`,
             {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -86,7 +85,7 @@ export function useShareClasses(fundId) {
 
     const remove = async (id) => {
         const res = await fetch(
-            `${BASE_URL}/share-classes/${id}/`,
+            `${API_BASE_URL}/api/share-classes/${id}/`,
             { method: "DELETE" }
         );
         if (!res.ok) throw new Error("Delete failed");

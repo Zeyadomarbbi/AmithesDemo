@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  EditLineIcon,
-  TrashBinIcon,
-  KebabIcon,
-} from "../../../../../components/Icons.jsx";
+import {EditLineIcon,PlusIcon,MinusIcon,TrashBinIcon, KebabIcon,} from "../../../../../components/Icons.jsx";
 import "./PnLExpenses.css";
 
 const PnLExpenses = ({
@@ -88,7 +84,7 @@ const PnLExpenses = ({
           type="button"
           onClick={() => setShowExpenses((v) => !v)}
         >
-          <span className="sign">{showExpenses ? "−" : "+"}</span>
+          {showExpenses ? <MinusIcon /> : <PlusIcon />}
           Expenses
         </button>
 
@@ -97,8 +93,10 @@ const PnLExpenses = ({
 
         <div className="group-action-cell">
           <button className="pill-btn" type="button" onClick={onAddRow}>
-            + Add expenses
-          </button>
+           <PlusIcon />
+          Add expense 
+         </button>
+
         </div>
       </div>
 
@@ -158,7 +156,7 @@ const PnLExpenses = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                  
                   value={expenseValues[index]?.col1 ?? ""}
                   onChange={(e) => {
                     const copy = [...expenseValues];
@@ -175,7 +173,7 @@ const PnLExpenses = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                  
                   value={expenseValues[index]?.col2 ?? ""}
                   onChange={(e) => {
                     const copy = [...expenseValues];

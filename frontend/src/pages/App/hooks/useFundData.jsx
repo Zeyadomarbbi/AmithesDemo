@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from './useApi';
 
 // 1. Create the Context
 const FundContext = createContext(null);
@@ -37,7 +37,7 @@ export function FundProvider({ children }) {
     const fetchFunds = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${BASE_URL}/funds/`);
+        const response = await fetch(`${API_BASE_URL}/api/funds/`);
         
         if (!response.ok) {
           throw new Error(`Error: ${response.status} ${response.statusText}`);
@@ -61,7 +61,7 @@ export function FundProvider({ children }) {
   // --- CREATE FUND ---
   const initializeFund = async (payload) => {
     try {
-      const response = await fetch(`${BASE_URL}/funds/`, {
+      const response = await fetch(`${API_BASE_URL}/api/funds/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export function FundProvider({ children }) {
   // --- UPDATE FUND ---
   const updateFund = async (id, payload) => {
     try {
-      const response = await fetch(`${BASE_URL}/funds/${id}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from '../useApi';
 
 export function useManagementFeePhases() {
     const [phases, setPhases] = useState([]);
@@ -13,7 +12,7 @@ export function useManagementFeePhases() {
             setError(null);
 
             try {
-                const response = await fetch(`${BASE_URL}/management-fee-phases/`);
+                const response = await fetch(`${API_BASE_URL}/api/management-fee-phases/`);
                 if (!response.ok) {
                     throw new Error("Failed to fetch management fee phases");
                 }

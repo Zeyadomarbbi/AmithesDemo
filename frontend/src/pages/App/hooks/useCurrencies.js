@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
+import { API_BASE_URL } from './useApi';
 
 export function useCurrencies() {
     const [currencies, setCurrencies] = useState([]);
@@ -11,7 +10,7 @@ export function useCurrencies() {
         const fetchCurrencies = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`${BASE_URL}/currencies/`);
+                const response = await fetch(`${API_BASE_URL}/api/currencies/`);
                 if (!response.ok) throw new Error("Failed to fetch currencies");
                 
                 const data = await response.json();

@@ -17,24 +17,29 @@
   gap: 8px;
 }
 
-/* upload/download */
-.ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  outline: none;
-  background: #f6f6f6;
-  font-size: 13px;
-  color: #1c1917;
-  cursor: pointer;
+/* ===== FORCE REMOVE BUTTON BOX (override anything else) ===== */
+.right-tools .ghost-btn {
+  background: #FAFAF9!important;
+  border: #CCCDCE80!important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  -webkit-appearance: none;
+  appearance: none;
 }
-.ghost-btn:focus,
-.ghost-btn:focus-visible {
-  outline: none;
+
+.right-tools .ghost-btn:hover,
+.right-tools .ghost-btn:active {
+  background: #FAFAF9 !important;
+  box-shadow: none !important;
 }
+
+.right-tools .ghost-btn:focus,
+.right-tools .ghost-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 
 /* ===== Card wrapper ===== */
 .financials-card {
@@ -69,41 +74,6 @@
 .period-label {
   font-weight: 600;
   color: #111827;
-}
-
-/* ✅ FIX: header icon buttons (removes default browser button box) */
-.col-period .icon-btn-muted {
-  border: none;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-
-  width: 18px;
-  height: 18px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: pointer;
-  color: #7b7d7e;
-  line-height: 0;
-}
-
-.col-period .icon-btn-muted.small {
-  width: 16px;
-  height: 16px;
-}
-
-.col-period .icon-btn-muted svg {
-  display: block;
-  width: 16px;
-  height: 16px;
-}
-
-.col-period .icon-btn-muted:focus,
-.col-period .icon-btn-muted:focus-visible {
-  outline: none;
 }
 
 /* ===== Net Row (bottom) ===== */
@@ -151,4 +121,13 @@
   justify-content: flex-end;
   margin-top: 12px; /* after the card border */
 }
-  
+/* Header icons color */
+.col-period .icon-svg-muted svg {
+  fill: #375a89;   /* 👈 change to whatever color you want */
+  stroke: #375a89;
+}
+/* color for the header icons */
+.col-period .icon-svg-muted {
+  color: #375A89; /* pick your color */
+}
+

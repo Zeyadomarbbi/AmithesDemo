@@ -1,10 +1,6 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLIncome.jsx
 import React, { useEffect, useRef, useState } from "react";
-import {
-  EditLineIcon,
-  TrashBinIcon,
-  KebabIcon,
-} from "../../../../../components/Icons.jsx";
+import {MinusIcon,PlusIcon,EditLineIcon, TrashBinIcon, KebabIcon,} from "../../../../../components/Icons.jsx";
 import "./PnLIncome.css";
 
 const PnLIncome = ({
@@ -89,17 +85,21 @@ const PnLIncome = ({
           type="button"
           onClick={() => setShowIncome((v) => !v)}
         >
-          <span className="sign">{showIncome ? "−" : "+"}</span>
-          Income
+         
+         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+  {showIncome ? <MinusIcon /> : <PlusIcon />}
+</span>
+Income
         </button>
 
         <div className="group-value">{totalIncomeCol1.toLocaleString()}</div>
         <div className="group-value">{totalIncomeCol2.toLocaleString()}</div>
 
         <div className="group-action-cell">
-          <button className="pill-btn" type="button" onClick={onAddRow}>
-            + Add incomes
-          </button>
+         <button className="pill-btn" type="button" onClick={onAddRow}>
+         <PlusIcon /> Add income
+         </button>
+
         </div>
       </div>
 
@@ -162,7 +162,7 @@ const PnLIncome = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                  
                   value={incomeValues[index]?.col1 ?? ""}
                   onChange={(e) => {
                     const copy = [...incomeValues];
@@ -179,7 +179,7 @@ const PnLIncome = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                  
                   value={incomeValues[index]?.col2 ?? ""}
                   onChange={(e) => {
                     const copy = [...incomeValues];

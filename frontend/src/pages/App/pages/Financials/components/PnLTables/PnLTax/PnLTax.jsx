@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  EditLineIcon,
-  TrashBinIcon,
-  KebabIcon,
-} from "../../../../../components/Icons.jsx";
+import { EditLineIcon,MinusIcon,PlusIcon, TrashBinIcon, KebabIcon,} from "../../../../../components/Icons.jsx";
 import "./PnLTax.css";
 
 const PnLTax = ({
@@ -89,8 +85,8 @@ const PnLTax = ({
           type="button"
           onClick={() => setShowTax((v) => !v)}
         >
-          <span className="sign">{showTax ? "−" : "+"}</span>
-          Tax
+         {showTax ? <MinusIcon /> : <PlusIcon />}
+         Tax
         </button>
 
         <div className="group-value">{totalTaxCol1.toLocaleString()}</div>
@@ -98,8 +94,10 @@ const PnLTax = ({
 
         <div className="group-action-cell">
           <button className="pill-btn" type="button" onClick={onAddRow}>
-            + Add tax
-          </button>
+          <PlusIcon />
+          Add tax
+         </button>
+
         </div>
       </div>
 
@@ -160,7 +158,7 @@ const PnLTax = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                  
                   value={taxValues[index]?.col1 ?? ""}
                   onChange={(e) => {
                     const copy = [...taxValues];
@@ -177,7 +175,7 @@ const PnLTax = ({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  placeholder="e.g 100"
+                
                   value={taxValues[index]?.col2 ?? ""}
                   onChange={(e) => {
                     const copy = [...taxValues];
