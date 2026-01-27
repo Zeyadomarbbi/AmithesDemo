@@ -36,7 +36,7 @@ class FundPhase(models.Model):
     
     class Meta:
         managed = False
-        db_table = "fund_phases"
+        db_table = "fund_phase"
 
 class WaterfallStep(models.Model):
     """

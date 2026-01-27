@@ -203,49 +203,16 @@ class FundViewSet(ModelViewSet):
     serializer_class = FundSerializer
     lookup_field = "fund_id"
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
+    def perform_create(self, serializer):
+        """Override to add created_by from request"""
+        serializer.save(created_by=self.request.user)
 
-        fund = Fund.objects.create(
-            legal_name=data["legal_name"],
-            short_name=data["short_name"],
-            formation_date=data.get("formation_date"),
-            currency_id=data["currency_id"],
-            phase_name=data["phase_name"],
-            fund_strategy=data.get("fund_strategy", ""),
-            legal_form=data.get("legal_form", ""),
-            management_company=data.get("management_company", ""),
-            created_by=data.get("created_by"),
-        )
-
-        return Response(
-            self.get_serializer(fund).data,
-            status=status.HTTP_201_CREATED
-        )
-
-    def update(self, request, *args, **kwargs):
-        fund = self.get_object()
-        data = request.data
-
-        for field in [
-            "legal_name",
-            "short_name",
-            "formation_date",
-            "phase_name",
-            "legal_form",
-            "management_company",
-            "fund_strategy",
-            "currency_id",
-        ]:
-            if field in data:
-                setattr(fund, field, data[field])
-
-        fund.updated_at = timezone.now()
-        fund.save()
-
-        return Response(self.get_serializer(fund).data)
+    def perform_update(self, serializer):
+        """Override to set updated_at"""
+        serializer.save(updated_at=timezone.now())
 
     def destroy(self, request, *args, **kwargs):
+        """Soft delete instead of hard delete"""
         fund = self.get_object()
         fund.is_deleted = True
         fund.updated_at = timezone.now()

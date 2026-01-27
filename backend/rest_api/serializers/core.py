@@ -20,7 +20,7 @@ class FundSerializer(serializers.ModelSerializer):
             'formation_date',
             'formation_date_string',
             'phase_name',
-            'currency', # This will expect an ID on write
+            'currency_id',  # Changed from 'currency'
             'currency_name',
             'currency_symbol',
             'created_at',

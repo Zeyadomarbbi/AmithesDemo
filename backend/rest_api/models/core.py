@@ -21,7 +21,6 @@ class Fund(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
         db_table = "fund"
 
 class ShareClass(models.Model):
