@@ -1,116 +1,108 @@
-// components/NewInvestmentModal.jsx
-import React from "react";
-import {
-  DocumentIcon,
-  ChevronDownIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import React, { useState } from "react";
+import "./NewInvestmentModal.css";
 
-const iconStyle = {
-  color: "#111827",
-  stroke: "#111827",
-  strokeWidth: 1.5,
-  width: 20,
-  height: 20,
-};
+const COUNTRIES = ["Egypt", "UAE", "Saudi Arabia", "Qatar", "Bahrain"];
+const SECTORS = ["Healthcare", "Fintech", "Energy", "Industrial", "AI"];
+const CURRENCIES = ["EUR", "USD", "GBP"];
 
-const smallIconStyle = {
-  ...iconStyle,
-  width: 14,
-  height: 14,
-};
+const NewInvestmentModal = ({ onClose, onSave }) => {
+  const [name, setName] = useState("");
+  const [sector, setSector] = useState("");
+  const [country, setCountry] = useState("");
+  const [ownership, setOwnership] = useState("");
+  const [currency, setCurrency] = useState("");
 
-const NewInvestmentModal = ({ onClose }) => {
+  const isValid =
+    name && sector && country && ownership && currency;
+
+  const handleSave = () => {
+    if (!isValid) return;
+
+    onSave({
+      name,
+      country,
+      sector,
+      ownership,
+      currency,
+    });
+
+    onClose();
+  };
+
   return (
-    <div className="investment-modal-overlay" onClick={onClose}>
-      <div
-        className="investment-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="modal-overlay">
+      <div className="modal-card">
         {/* Header */}
-        <div className="investment-modal-header">
-          <div className="investment-modal-icon">
-            <DocumentIcon className="icon-svg" style={iconStyle} />
+        <div className="modal-header">
+          <div className="modal-title">
+            <span className="modal-icon">＋</span>
+            <div>
+              <h2>Create a new investment</h2>
+              <p>Description</p>
+            </div>
           </div>
-          <div className="investment-modal-title-block">
-            <h2 className="investment-modal-title">
-              Create a new investment
-            </h2>
-            <p className="investment-modal-subtitle">Description</p>
-          </div>
-          <button
-            className="investment-modal-close"
-            onClick={onClose}
-          >
-            <XMarkIcon className="icon-svg" style={iconStyle} />
-          </button>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
         {/* Body */}
-        <div className="investment-modal-body">
-          <div className="investment-field">
-            <label className="investment-label">Investment name*</label>
+        <div className="modal-body">
+          <div className="form-group full">
+            <label>Investment name*</label>
             <input
-              className="investment-input"
-              type="text"
               placeholder="Please enter the investment name..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          <div className="investment-row">
-            <div className="investment-field">
-              <label className="investment-label">Sector*</label>
-              <button className="investment-select">
-                <span>Select a sector</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Sector*</label>
+              <select value={sector} onChange={(e) => setSector(e.target.value)}>
+                <option value="">Select a sector</option>
+                {SECTORS.map(s => <option key={s}>{s}</option>)}
+              </select>
             </div>
-            <div className="investment-field">
-              <label className="investment-label">Geography*</label>
-              <button className="investment-select">
-                <span>Select a country</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
-            </div>
-          </div>
 
-          <div className="investment-row">
-            <div className="investment-field">
-              <label className="investment-label">Ownership*</label>
+            <div className="form-group">
+              <label>Geography*</label>
+              <select value={country} onChange={(e) => setCountry(e.target.value)}>
+                <option value="">Select a country</option>
+                {COUNTRIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Ownership*</label>
               <input
-                className="investment-input"
-                type="text"
                 placeholder="Please enter the ownership..."
+                value={ownership}
+                onChange={(e) => setOwnership(e.target.value)}
               />
             </div>
-            <div className="investment-field">
-              <label className="investment-label">Local Currency*</label>
-              <button className="investment-select">
-                <span>Select a currency</span>
-                <ChevronDownIcon
-                  className="icon-svg caret-icon"
-                  style={smallIconStyle}
-                />
-              </button>
+
+            <div className="form-group">
+              <label>Local Currency*</label>
+              <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                <option value="">Select a currency</option>
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="investment-modal-footer">
-          <button
-            className="investment-cancel-btn"
-            onClick={onClose}
-          >
+        <div className="modal-footer">
+          <button className="btn-cancel" onClick={onClose}>
             Cancel
           </button>
-          <button className="investment-save-btn">Save</button>
+          <button
+            className="btn-save"
+            disabled={!isValid}
+            onClick={handleSave}
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>

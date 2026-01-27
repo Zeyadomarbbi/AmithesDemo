@@ -1,99 +1,196 @@
-/* ===== Summary Toolbar ===== */
+/* ===== Overlay ===== */
+.investment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  z-index: 9999;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Modal Card ===== */
+.investment-modal {
+  background: #ffffff;
+  width: 520px;
+  max-width: calc(100% - 32px);
+  border-radius: 14px;
+
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.25),
+    0 10px 20px rgba(0, 0, 0, 0.15);
+
+  display: flex;
+  flex-direction: column;
+  animation: modalFadeIn 0.18s ease-out;
+}
+
+/* ===== Header ===== */
+.investment-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.investment-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #f59e0b;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.investment-modal-title-block h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.investment-modal-title-block p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.investment-modal-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* ===== Body ===== */
+.investment-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.investment-row {
+  display: flex;
+  gap: 12px;
+}
+
+.investment-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.investment-field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.investment-field input,
+.investment-select {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  background: #ffffff;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.investment-field input:focus,
+.investment-select:hover {
+  border-color: #f59e0b;
+  outline: none;
+}
+
+/* ===== Footer ===== */
+.investment-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.investment-cancel-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.investment-save-btn {
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ===== Animation ===== */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 .portfolio-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.toolbar-left,
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
-
-/* ===== Timeframe Button ===== */
-
-.timeframe-dropdown {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.timeframe-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-/* ===== Timeframe Menu ===== */
-
-.timeframe-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-  min-width: 180px;
-
-  border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
-  padding: 4px 0;
-  z-index: 9999;
-}
-
-.timeframe-menu-item,
-.timeframe-menu-add {
-  width: 100%;
-  padding: 6px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-
-  font-size: 13px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.timeframe-menu-item:hover {
-  background: #f3f4f6;
-}
-
-.timeframe-menu-item.active {
-  background: #f9fafb;
-  font-weight: 500;
-}
-
-/* ===== Buttons ===== */
-
 .ghost-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
-  background: #f6f6f6;
-  font-size: 13px;
+  background: #ffffff;
+  font-size: 14px;
+  color: #475569;
   cursor: pointer;
 }
 
+.ghost-btn:hover {
+  background: #f8fafc;
+}
 .primary-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 10px;
   border: none;
   background: #f59e0b;
   color: #ffffff;
@@ -102,26 +199,36 @@
   cursor: pointer;
 }
 
-/* ===== Responsive ===== */
-
-@media (max-width: 900px) {
-  .portfolio-toolbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+.primary-btn:hover {
+  filter: brightness(0.95);
 }
-
-@media (max-width: 700px) {
-  .timeframe-btn,
-  .ghost-btn,
-  .primary-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .toolbar-right {
-    width: 100%;
-    flex-direction: column;
-  }
+/* ===== Subtotal / Total name cell ===== */
+.subtotal-name-cell {
+  font-weight: 600;
+  color: #ffffff;
+  padding-left: 12px;
+}
+.subtotal-name-cell span {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+.subtotal-name-cell {
+  font-weight: 600;
+  padding-left: 16px;
+  white-space: nowrap;
+}
+.portfolio-section-header h2 {
+  font-size: 14px;      
+  font-weight: 500;     
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.portfolio-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
 }
