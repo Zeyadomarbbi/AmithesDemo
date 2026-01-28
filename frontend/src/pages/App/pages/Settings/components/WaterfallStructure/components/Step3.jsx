@@ -1,21 +1,95 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { PercentageIcon } from "../Icons";
 import "./Steps.css";
 
 const Step3 = ({ values, onChange, shareClasses = [] }) => {
 
-  // Top-level fields (step_name, step_rate)
+  // LOGIC: Robust Sync for BOTH Global Rules and Envelope Rules
+  useEffect(() => {
+    if (!values || !shareClasses.length) return;
+
+    let hasChanges = false;
+
+    // 1. Sync Global Rules (Step Level)
+    const currentRules = values.rules || {};
+    const newGlobalRules = { ...currentRules };
+    
+    shareClasses.forEach(sc => {
+      if (!newGlobalRules[sc.share_class_id]) {
+        hasChanges = true;
+        newGlobalRules[sc.share_class_id] = {
+          step_rule_id: null,
+          share_class_name: sc.share_class_name,
+          isSelected: false,
+          isProRata: true,
+          fixedPercentage: null
+        };
+      }
+    });
+
+    // 2. Initialize Envelopes if completely missing (Default to 2: Catch-up & Residual)
+    let currentEnvelopes = values.envelopes && values.envelopes.length > 0 
+      ? values.envelopes 
+      : [1, 2].map(num => ({ 
+          id: null, 
+          number: num, 
+          allocation: "", 
+          rules: {} 
+        }));
+    
+    // If we had to create default envelopes, flag change
+    if (!values.envelopes || values.envelopes.length === 0) hasChanges = true;
+
+    // 3. Deep Sync Rules INSIDE Envelopes
+    const syncedEnvelopes = currentEnvelopes.map(env => {
+      const newEnvRules = { ...env.rules };
+      let envChanged = false;
+
+      shareClasses.forEach(sc => {
+        if (!newEnvRules[sc.share_class_id]) {
+          envChanged = true;
+          hasChanges = true; // Flag main update
+          newEnvRules[sc.share_class_id] = {
+            envelope_rule_id: null,
+            share_class_name: sc.share_class_name,
+            isSelected: false,
+            isProRata: true,
+            fixedPercentage: null
+          };
+        }
+      });
+      return envChanged ? { ...env, rules: newEnvRules } : env;
+    });
+
+    // 4. Apply Updates if needed
+    if (hasChanges) {
+      onChange({
+        ...values,
+        rules: newGlobalRules,
+        envelopes: syncedEnvelopes
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareClasses.length, values.envelopes?.length, Object.keys(values.rules || {}).length]);
+
+  // --- Handlers ---
+
   const handleFieldChange = (field, val) => {
     onChange({ ...values, [field]: val });
   };
 
-  // NEW: Global Checkbox toggle — Updates the root "rules" object
   const handleGlobalCheckboxChange = (shareClassId, checked) => {
+    const existingRule = values.rules?.[shareClassId];
+    // Fallback lookup
+    const scName = existingRule?.share_class_name || shareClasses.find(sc => sc.share_class_id === shareClassId)?.share_class_name;
+    
     onChange({
       ...values,
       rules: {
         ...values.rules,
         [shareClassId]: {
+          ...existingRule,
+          share_class_name: scName,
           isSelected: checked,
           isProRata: true,
           fixedPercentage: null
@@ -24,26 +98,27 @@ const Step3 = ({ values, onChange, shareClasses = [] }) => {
     });
   };
 
-  // Envelope allocation
   const handleEnvelopeAllocationChange = (index, val) => {
     const newEnvelopes = values.envelopes.map((env, i) =>
       i === index ? { ...env, allocation: val } : env
     );
-
     onChange({ ...values, envelopes: newEnvelopes });
   };
 
-  // Checkbox toggle — ENVELOPE ONLY
   const handleCheckboxChange = (envIndex, shareClassId, checked) => {
     const newEnvelopes = values.envelopes.map((env, i) => {
       if (i !== envIndex) return env;
+
+      const existingRule = env.rules?.[shareClassId];
+      const scName = existingRule?.share_class_name || shareClasses.find(sc => sc.share_class_id === shareClassId)?.share_class_name;
 
       return {
         ...env,
         rules: {
           ...env.rules,
           [shareClassId]: {
-            ...env.rules?.[shareClassId],
+            ...existingRule,
+            share_class_name: scName,
             isSelected: checked,
             isProRata: true,
             fixedPercentage: null
@@ -51,10 +126,11 @@ const Step3 = ({ values, onChange, shareClasses = [] }) => {
         }
       };
     });
-
     onChange({ ...values, envelopes: newEnvelopes });
   };
 
+  if (!values) return null;
+  
   return (
     <div className="wf-card">
       <div className="wf-step-title">Step 3</div>
@@ -147,8 +223,7 @@ const Step3 = ({ values, onChange, shareClasses = [] }) => {
 
             <div className="wf-col-classes">
               {shareClasses.map(sc => {
-                const rule =
-                  env.rules?.[sc.share_class_id];
+                const rule = env.rules?.[sc.share_class_id];
 
                 return (
                   <div

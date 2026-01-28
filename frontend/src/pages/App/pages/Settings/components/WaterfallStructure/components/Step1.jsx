@@ -2,33 +2,45 @@ import React, { useEffect } from "react";
 import "./Steps.css"; 
 
 const Step1 = ({ values, onChange, shareClasses = [] }) => {
-
-  // Initialize Step 1: Force Global Rules and Empty Envelopes
+  
+  // LOGIC: Ensure State has "Implicit" Rules for every Share Class
+  // Even though the user can't edit them, the backend needs them to know
+  // that these share classes are participating.
   useEffect(() => {
-    const hasNoRules = !values.rules || Object.keys(values.rules).length === 0;
-    const hasEnvelopes = values.envelopes && values.envelopes.length > 0;
+    if (!values || !shareClasses.length) return;
 
-    if (hasNoRules || hasEnvelopes) {
-      const globalRules = {};
+    const currentRules = values.rules || {};
+    const missingRules = shareClasses.some(sc => !currentRules[sc.share_class_id]);
+    const missingRate = !values.step_rate;
+
+    // Only update if data is missing to prevent infinite loops
+    if (missingRules || missingRate) {
+      const newRules = { ...currentRules };
       
       shareClasses.forEach(sc => {
-        globalRules[sc.share_class_id] = {
-          step_rule_id: null,
-          share_class_name: sc.share_class_name,
-          isSelected: true,
-          isProRata: true,
-          fixedPercentage: 100
-        };
+        // If rule doesn't exist, create the "Fixed Pro Rata" rule
+        if (!newRules[sc.share_class_id]) {
+          newRules[sc.share_class_id] = {
+            step_rule_id: null, // New rule
+            share_class_name: sc.share_class_name,
+            isSelected: true,   // Always selected
+            isProRata: true,    // Always Pro Rata
+            fixedPercentage: null
+          };
+        }
       });
 
       onChange({
         ...values,
-        step_rate: 100,
-        rules: globalRules,
-        envelopes: []
+        step_rate: values.step_rate || 100, // Default to 100% if empty
+        rules: newRules,
       });
     }
-  }, [shareClasses, values, onChange]);
+    // DEPENDENCIES: Only re-run if share class count changes or rules length changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareClasses.length, Object.keys(values?.rules || {}).length]);
+
+  if (!values) return null;
 
   return (
     <div className="wf-card">

@@ -15,9 +15,8 @@ class FundWaterfallView(APIView):
             .filter(fund_id=fund_id)
             .select_related('step_definition')
             .prefetch_related(
-                'step_rules',        # Global rules
-                'envelopes',         # Envelopes
-                'envelopes__rules',  # Local rules
+                'step_rules__share_class',
+                'envelopes__rules__share_class'
             )
             .order_by('step_definition__step_number')
         )
@@ -33,20 +32,36 @@ class FundWaterfallView(APIView):
         return Response(serializer.data)
 
     def post(self, request, fund_id):
-        # Ensure fund_id from URL overrides body data
+        # 1. Prepare data with fund context
         data = {**request.data, 'fund': fund_id}
-        serializer = FundWaterfallStepSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        step_def_id = data.get('step_definition')
+
+        # 2. Check for existing Step Definition for this Fund (Upsert Check)
+        existing_step = FundWaterfallSteps.objects.filter(
+            fund_id=fund_id, 
+            step_definition_id=step_def_id
+        ).first()
+
+        if existing_step:
+            # --- UPDATE MODE ---
+            # Pass the instance to perform an update instead of a create
+            serializer = FundWaterfallStepSerializer(existing_step, data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        else:
+            # --- CREATE MODE ---
+            serializer = FundWaterfallStepSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def put(self, request, fund_id, pk):
         step = get_object_or_404(FundWaterfallSteps, pk=pk, fund_id=fund_id)
         
-        # Inject fund context
         data = {**request.data, 'fund': fund_id}
         
-        # Using partial=True allows updating just name/rate without sending all envelopes
         serializer = FundWaterfallStepSerializer(step, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

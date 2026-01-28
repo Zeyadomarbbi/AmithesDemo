@@ -1,32 +1,74 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { PercentageIcon } from "../Icons";
 import "./Steps.css";
 
-export const Step2 = ({ values, onChange, shareClasses = [] }) => {
+const Step2 = ({ values, onChange, shareClasses = [] }) => {
 
-  // Top-level fields
+  // LOGIC: Sync Share Classes to Rules State
+  // If a share class exists in the fund but not in this step's rules, add it (unselected).
+  useEffect(() => {
+    if (!values || !shareClasses.length) return;
+
+    const currentRules = values.rules || {};
+    let hasChanges = false;
+    const newRules = { ...currentRules };
+
+    // 1. Sync Rules
+    shareClasses.forEach(sc => {
+      if (!newRules[sc.share_class_id]) {
+        hasChanges = true;
+        newRules[sc.share_class_id] = {
+          step_rule_id: null,
+          share_class_name: sc.share_class_name,
+          isSelected: false, // Default to unchecked for Hurdles
+          isProRata: true,   // Hurdles are typically pro-rata among selected
+          fixedPercentage: null
+        };
+      }
+    });
+
+    // 2. Ensure Envelopes are cleared (Step 2 has no envelopes)
+    const hasEnvelopes = values.envelopes && values.envelopes.length > 0;
+
+    if (hasChanges || hasEnvelopes) {
+      onChange({ 
+        ...values, 
+        rules: newRules, 
+        envelopes: [] // Force empty
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareClasses.length, Object.keys(values?.rules || {}).length]);
+
+  // Handle Text/Number Inputs
   const handleFieldChange = (field, val) => {
     onChange({ ...values, [field]: val });
   };
 
-  // Checkbox toggle — OBJECT MAP, NOT ARRAY
+  // Handle Checkbox Toggle
   const handleCheckboxChange = (shareClassId, checked) => {
+    const existingRule = values.rules?.[shareClassId];
+    
     onChange({
       ...values,
-      // Ensure we explicitly clear envelopes since this step doesn't use them
-      envelopes: [], 
       rules: {
         ...values.rules,
         [shareClassId]: {
+          ...existingRule,
+          // Ensure we preserve the ID if it exists, or look it up
+          share_class_name: existingRule?.share_class_name || shareClasses.find(sc => sc.share_class_id === shareClassId)?.share_class_name,
           isSelected: checked,
+          // Force strict validation constraints for Step 2
           isProRata: true,
           fixedPercentage: null
         }
       }
     });
   };
-  
-return (
+
+  if (!values) return null;
+
+  return (
     <div className="wf-card">
       <div className="wf-step-title">Step 2</div>
 
