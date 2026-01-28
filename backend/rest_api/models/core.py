@@ -77,3 +77,32 @@ class ShareClass(models.Model):
             )
         ]
 
+class Timeframe(models.Model):
+    timeframe_id = models.AutoField(primary_key=True)
+    fund = models.ForeignKey(
+        "Fund",
+        db_column="fund_id",
+        on_delete=models.CASCADE
+    )
+
+    name = models.CharField(max_length=20, null=False)
+    date = models.DateField(null=False)
+    quarter = models.IntegerField()
+    year = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "timeframe"
+        constraints = [
+            models.UniqueConstraint(fields=['fund', 'date'], name='uq_fund_date_timeframe')
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.date:
+            self.year = self.date.year
+            self.quarter = (self.date.month - 1) // 3 + 1
+            
+        super().save(*args, **kwargs)
+

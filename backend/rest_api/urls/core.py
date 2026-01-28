@@ -9,12 +9,12 @@ router.register(r'funds', FundViewSet, basename='fund')
 urlpatterns = router.urls + [
     path(
         "funds/<int:fund_id>/timeframes/", 
-        FundTimeframeView.as_view(), 
+        FundTimeframeListView.as_view(), 
         name="timeframe-list-create"
     ),
     path(
         "funds/<int:fund_id>/timeframes/<int:pk>/", 
-        FundTimeframeView.as_view(), 
+        FundTimeframeListView.as_view(), 
         name="timeframe-detail"
     ),
     path(

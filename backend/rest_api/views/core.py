@@ -220,48 +220,31 @@ class FundViewSet(ModelViewSet):
         fund.save(update_fields=['is_deleted', 'updated_at'])
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-class FundTimeframeView(APIView):
+class FundTimeframeListView(APIView):
     def get(self, request, fund_id, pk=None):
+        # 1. Fetch specific timeframe
         if pk:
-            tf = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
-            serializer = TimeframeSerializer(tf)
+            timeframe = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
+            serializer = TimeframeSerializer(timeframe)
             return Response(serializer.data)
         
-        qs = Timeframe.objects.filter(fund_id=fund_id).order_by("date")
-        serializer = TimeframeSerializer(qs, many=True)
+        # 2. Fetch all timeframes for the fund
+        timeframes = Timeframe.objects.filter(fund_id=fund_id).order_by('-date')
+        serializer = TimeframeSerializer(timeframes, many=True)
         return Response(serializer.data)
 
     def post(self, request, fund_id):
-        data = request.data.copy()
-        data["fund"] = fund_id
-        
-        # Calculate quarter/year if not handled by DB triggers
-        if 'date' in data:
-            from datetime import datetime
-            date_obj = datetime.strptime(data['date'], '%Y-%m-%d')
-            data['year'] = date_obj.year
-            data['quarter'] = (date_obj.month - 1) // 3 + 1
+        serializer = TimeframeSerializer(data=request.data)
+        if serializer.is_valid():
+            # Injects fund_id; model.save() handles year/quarter calculation
+            serializer.save(fund_id=fund_id)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = TimeframeSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(created_by="ReactUser") 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def put(self, request, fund_id, pk):
-        tf = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
-        data = request.data.copy()
-        data["fund"] = fund_id
-
-        if 'date' in data:
-            from datetime import datetime
-            date_obj = datetime.strptime(data['date'], '%Y-%m-%d')
-            data['year'] = date_obj.year
-            data['quarter'] = (date_obj.month - 1) // 3 + 1
-
-        serializer = TimeframeSerializer(tf, data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def delete(self, request, fund_id, pk):
+        timeframe = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
+        timeframe.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ShareClassView(APIView):
     """

@@ -18,7 +18,7 @@ import {
 import {
   useTimeframes,
   apiRowToQuarter,
-} from "/src/components/QuarterSelection/useTimeframes";
+} from "../../../../hooks/Core/useTimeframes.jsx";
 
 import PnLIncome from "../PnLTables/PnLIncome/PnLIncome.jsx";
 import PnLExpenses from "../PnLTables/PnLExpenses/PnLExpenses.jsx";

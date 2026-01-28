@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 
 /* ===== Components ===== */
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes } from "../../../../../../components/QuarterSelection/useTimeframes";
+import { useTimeframes } from "../../../../hooks/Core/useTimeframes";
 import NewInvestmentModal from "./components/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
 

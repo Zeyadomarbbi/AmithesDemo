@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import QuarterSelector from '../../../../../../components/QuarterSelection/QuarterSelector'; // Import the new component
-import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../hooks/Core/useTimeframes';
 import './DashboardHeader.css';
 
 function DashboardHeader({ fundId, fundName, showQuarterSelector, onTimeframeChange }) {
@@ -11,7 +11,7 @@ function DashboardHeader({ fundId, fundName, showQuarterSelector, onTimeframeCha
         try {
             const formatted = await saveNewTimeframe(fundId, newTimeframe);
             setQuarters(prev => [...prev, formatted]);
-            toggleTimeframe(selectedTimeframeIds, formatted.id);
+            onTimeframeChange(formatted.id);
         } catch (error) {
             console.error("Compare Tab: Persistence error:", error);
         }

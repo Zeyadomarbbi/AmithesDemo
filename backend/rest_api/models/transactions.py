@@ -4,26 +4,6 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q, F
 
-class Timeframe(models.Model):
-    timeframe_id = models.AutoField(primary_key=True)
-    fund = models.ForeignKey(
-        "Fund",
-        db_column="fund_id",
-        on_delete=models.CASCADE
-    )
-
-    name = models.CharField(max_length=20, null=False)  # User input
-    date = models.DateField(null=False)
-    quarter = models.DecimalField(max_digits=2, decimal_places=0, editable=False)
-    year = models.DecimalField(max_digits=4, decimal_places=0, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.CharField(max_length=100, null=True, blank=True)
-
-    class Meta:
-        managed = False
-        db_table = "timeframe"
-        unique_together = (("fund", "date"),)
-
 class FundWaterfallSteps(models.Model):
     fund_waterfall_step_id = models.BigAutoField(primary_key=True)
 

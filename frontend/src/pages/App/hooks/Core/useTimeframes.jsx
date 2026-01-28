@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from "../useApi";
 
-const API_BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
-
+/**
+ * Maps the Backend Timeframe model to the Frontend display format
+ */
 export function apiRowToQuarter(row) {
     return {
         id: row.timeframe_id,
-        quarter: `Q${row.quarter}`,
-        year: String(row.year),
-        date: new Date(row.full_date).toLocaleDateString(),
-        display_label: row.display_label,
-        rawDate: row.full_date
+        quarter: `Q${row.quarter}`, // Backend returns integer, we add 'Q'
+        year: String(row.year),     // Backend returns integer
+        date: new Date(row.date).toLocaleDateString(), // row.date matches backend
+        display_label: row.name,    // row.name matches backend
+        rawDate: row.date
     };
 }
 
@@ -39,11 +41,17 @@ export function useTimeframes(fundId) {
     return { quarters, isLoading, refresh: fetchQuarters, setQuarters };
 }
 
+/**
+ * Persistence helper for creating new Timeframes
+ */
 export async function saveNewTimeframe(fundId, timeframe) {
     const payload = {
-        fund: fundId,
-        display_label: timeframe.name,
-        full_date: timeframe.endDate.toISOString().split('T')[0]
+        // 'fund' is read_only in serializer but handled by fund_id in view.post
+        // We send name and date to match Serializer.fields
+        name: timeframe.name, 
+        date: timeframe.endDate instanceof Date 
+            ? timeframe.endDate.toISOString().split('T')[0] 
+            : timeframe.endDate
     };
     
     const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/timeframes/`, {
@@ -52,7 +60,11 @@ export async function saveNewTimeframe(fundId, timeframe) {
         body: JSON.stringify(payload)
     });
     
-    if (!response.ok) throw new Error("Persistence failed");
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw errorData; 
+    }
+    
     const savedRow = await response.json();
     return apiRowToQuarter(savedRow);
 }
@@ -63,7 +75,13 @@ export function useTimeframeNavigation(location, navigate) {
             ? selectedIds.filter(id => id !== timeframeId)
             : [...selectedIds, timeframeId];
         
-        navigate(`${location.pathname}?timeframes=${newIds.join(",")}`);
+        const validIds = newIds.filter(id => id > 0); // Clean before writing
+        
+        if (validIds.length > 0) {
+            navigate(`${location.pathname}?timeframes=${validIds.join(",")}`);
+        } else {
+            navigate(location.pathname); // Remove param if empty
+        }
     }, [location.pathname, navigate]);
 
     return { toggleTimeframe };

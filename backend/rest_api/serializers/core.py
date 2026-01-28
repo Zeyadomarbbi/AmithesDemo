@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 
 from ..models.core import *
-from ..models.transactions import Timeframe
+from ..models.core import Timeframe
 from ..models.reference import Currency
 
 class FundSerializer(serializers.ModelSerializer):
@@ -35,7 +35,6 @@ class TimeframeSerializer(serializers.ModelSerializer):
         model = Timeframe
         fields = [
             "timeframe_id",
-            "fund",
             "name",
             "date",
             "quarter",
@@ -43,7 +42,7 @@ class TimeframeSerializer(serializers.ModelSerializer):
             "created_at",
             "created_by",
         ]
-        read_only_fields = ["timeframe_id", "quarter", "year", "created_at"]
+        read_only_fields = ["fund", "timeframe_id", "quarter", "year", "created_at"]
 
 class ShareClassSerializer(serializers.ModelSerializer):
     fund_id = serializers.IntegerField(source="fund.fund_id", read_only=True)

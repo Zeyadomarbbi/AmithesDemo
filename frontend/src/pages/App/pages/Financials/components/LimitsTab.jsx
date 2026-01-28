@@ -7,7 +7,7 @@ import { SortIcon, PlusIcon } from "../../../../../components/Icons.jsx";
 
 // Import Hooks and Utils for QuarterSelector
 import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter } from '../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter } from '../../../hooks/Core/useTimeframes';
 
 const INITIAL_LIMITS = [
   {

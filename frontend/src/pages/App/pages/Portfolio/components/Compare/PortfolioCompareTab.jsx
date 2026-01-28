@@ -4,7 +4,7 @@ import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
 
 // Hooks and Components
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../hooks/Core/useTimeframes';
 import { ChevronDownIcon } from "../../icons.jsx";
 
 // Sub-components

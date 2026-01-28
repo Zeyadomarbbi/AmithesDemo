@@ -5,8 +5,7 @@ import "./Limits.css";
 import NewLimitDrawer from "./NewLimitDrawer.jsx";
 import { SortIcon, PlusIcon } from "/src/pages/App/pages/LPsStatement/components/Icons.jsx";
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
-import { useTimeframes, apiRowToQuarter } from "/src/components/QuarterSelection/useTimeframes";
-
+import { useTimeframes, apiRowToQuarter } from "../../../../hooks/Core/useTimeframes.jsx"
 const INITIAL_LIMITS = {
   "1": [
     {
