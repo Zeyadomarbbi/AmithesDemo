@@ -73,37 +73,39 @@ class FundWaterfallView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class FundManFeeRuleView(APIView):
-    """
-    Unified View for List, Create, Update, and Delete operations.
-    URL patterns should route both list and detail requests here.
-    """
-
     def get(self, request, fund_id, fee_rule_id=None):
         if fee_rule_id:
             rule = get_object_or_404(FundManFeeRules, pk=fee_rule_id, fund_id=fund_id)
             serializer = FundManFeeRuleSerializer(rule)
             return Response(serializer.data)
         
-        qs = FundManFeeRules.objects.filter(fund_id=fund_id).order_by("date_from")
+        # Grouping by phase then date provides better structure for the UI
+        qs = FundManFeeRules.objects.filter(fund_id=fund_id).order_by("phase_id", "date_from")
         serializer = FundManFeeRuleSerializer(qs, many=True)
         return Response(serializer.data)
 
     def post(self, request, fund_id):
-        data = request.data.copy()
-        data["fund"] = fund_id
-
-        serializer = FundManFeeRuleSerializer(data=data)
+        # Handle both single objects and lists (for bulk share class init)
+        is_many = isinstance(request.data, list)
+        serializer = FundManFeeRuleSerializer(data=request.data, many=is_many)
+        
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        # Passing fund_id here is cleaner than copying request.data
+        serializer.save(fund_id=fund_id)
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def put(self, request, fund_id, fee_rule_id):
         rule = get_object_or_404(FundManFeeRules, pk=fee_rule_id, fund_id=fund_id)
         
-        data = request.data.copy()
-        data["fund"] = fund_id 
-
-        serializer = FundManFeeRuleSerializer(rule, data=data, partial=False)
+        # Partial=True is generally safer for React state updates
+        serializer = FundManFeeRuleSerializer(rule, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(fund_id=fund_id)
+        
         return Response(serializer.data)
+
+    def delete(self, request, fund_id, fee_rule_id):
+        rule = get_object_or_404(FundManFeeRules, pk=fee_rule_id, fund_id=fund_id)
+        rule.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

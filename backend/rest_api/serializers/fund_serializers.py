@@ -145,40 +145,34 @@ class FundWaterfallStepSerializer(serializers.ModelSerializer):
         return instance
 
 class FundManFeeRuleSerializer(serializers.ModelSerializer):
+    phase_name = serializers.CharField(source='phase.phase_name', read_only=True)
+    share_class_name = serializers.CharField(source='share_class.share_class_name', read_only=True)
+
     class Meta:
         model = FundManFeeRules
         fields = [
-            "fee_rule_id",
-            "fund",
-            "phase",
-            "share_class",
-            "date_from",
-            "date_until",
-            "rate",
-            "created_at",
-            "created_by",
-            "updated_at",
+            "fee_rule_id", "fund", "phase", "phase_name", 
+            "share_class", "share_class_name", "date_from", 
+            "date_until", "rate", "created_at", "created_by", "updated_at",
         ]
-        read_only_fields = ["fee_rule_id", "created_at", "created_by", "updated_at"]
+        read_only_fields = ["fee_rule_id", "fund", "created_at", "created_by", "updated_at"]
 
     def validate(self, data):
-        """
-        Optional: Client-side validation for the CheckConstraints 
-        to return 400 Bad Request instead of a 500 Database Error.
-        """
-        phase = data.get('phase')
-        share_class = data.get('share_class')
-        date_from = data.get('date_from')
-        date_until = data.get('date_until')
+        # Support both Create and Partial Update (PATCH)
+        phase = data.get('phase', getattr(self.instance, 'phase', None))
+        share_class = data.get('share_class', getattr(self.instance, 'share_class', None))
+        date_from = data.get('date_from', getattr(self.instance, 'date_from', None))
+        date_until = data.get('date_until', getattr(self.instance, 'date_until', None))
 
         # Phase logic validation
-        if phase and phase.pk == 1 and not share_class:
-            raise serializers.ValidationError("Share class is required for Phase 1.")
-        if phase and phase.pk == 2 and share_class:
-            raise serializers.ValidationError("Share class must be null for Phase 2.")
+        if phase:
+            if phase.pk == 1 and not share_class:
+                raise serializers.ValidationError({"share_class": "Share class is required for Phase 1."})
+            if phase.pk == 2 and share_class:
+                raise serializers.ValidationError({"share_class": "Share class must be null for Phase 2."})
 
         # Date range validation
         if date_from and date_until and date_until <= date_from:
-            raise serializers.ValidationError("date_until must be after date_from.")
+            raise serializers.ValidationError({"date_until": "Date until must be after date from."})
             
         return data

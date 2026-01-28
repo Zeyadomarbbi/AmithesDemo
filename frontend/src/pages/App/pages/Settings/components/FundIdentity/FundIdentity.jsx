@@ -25,7 +25,6 @@ const FundIdentity = () => {
   // 4. Sync Server Data to Local State (Initial Load)
   useEffect(() => {
     if (serverData) {
-      console.log("Server Data received:", serverData);
       setFormData(serverData);
     }
   }, [serverData]);

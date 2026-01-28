@@ -58,7 +58,6 @@ class WaterfallStepListView(APIView):
             for s in steps
         ])
 
-
 class ManFeePhaseListView(APIView):
     def get(self, request):
         phases = ManFeePhase.objects.order_by("phase_id")

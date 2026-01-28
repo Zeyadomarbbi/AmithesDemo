@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
-import { useFundWaterfallSteps } from "../../../../hooks/Waterfall/useFundWaterfallSteps.js";
+import { useFundWaterfallSteps } from "../../../../hooks/Fund/useFundWaterfallSteps.js";
 
 import Step1 from "./components/Step1";
 import Step2 from "./components/Step2";

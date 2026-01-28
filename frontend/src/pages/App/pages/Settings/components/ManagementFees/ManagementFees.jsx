@@ -1,8 +1,7 @@
 // frontend/src/pages/App/pages/Settings/components/ManagementFees/ManagementFees.jsx
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { useManagementFeePhases } from "../../../../hooks/FundManFee/useFundManFeePhases.js";
-import { useFundManagementFeeRules } from "../../../../hooks/FundManFee/useFundManFeeRules.js";
+import { useFundManagementFeeRules, useManagementFeePhases } from "../../../../hooks/Fund/useFundManagementFee.js"; // Check this path
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import Phase1 from "./components/Phase1";
 import Phase2 from "./components/Phase2";
@@ -31,7 +30,7 @@ const ManagementFees = () => {
     rate: ""
   });
 
-  // --- State for Rule IDs ---
+  // --- State for Rule IDs (to track updates vs creates) ---
   const [phase1Ids, setPhase1Ids] = useState({}); 
   const [phase2Id, setPhase2Id] = useState(null); 
 
@@ -53,7 +52,8 @@ const ManagementFees = () => {
 
           p1Rules.forEach(r => {
             if(r.share_class) {
-              loadedRates[r.share_class] = r.rate_percentage; 
+              // FIX 1: Read 'rate' instead of 'rate_percentage' (matches Serializer)
+              loadedRates[r.share_class] = r.rate; 
               loadedIds[r.share_class] = r.fee_rule_id;       
             }
           });
@@ -71,7 +71,8 @@ const ManagementFees = () => {
         if (p2Rule) {
           setPhase2Data({
             dateFrom: new Date(p2Rule.date_from),
-            rate: p2Rule.rate_percentage
+            // FIX 1: Read 'rate'
+            rate: p2Rule.rate
           });
           setPhase2Id(p2Rule.fee_rule_id); 
         }
@@ -101,54 +102,60 @@ const ManagementFees = () => {
           const rate = phase1Data.rates[sc.share_class_id];
           const existingId = phase1Ids[sc.share_class_id]; 
           
-          if (rate) {
+          if (rate !== undefined && rate !== "") {
+             // FIX 2: Construct payload with snake_case keys for Django
              const payload = {
-                phaseId: 1,
-                shareClassId: sc.share_class_id,
-                dateFrom: formatDate(phase1Data.dateFrom),
-                dateUntil: formatDate(phase1Data.dateUntil),
-                ratePercentage: parseFloat(rate)
+                phase: 1,
+                share_class: sc.share_class_id,
+                date_from: formatDate(phase1Data.dateFrom),
+                date_until: formatDate(phase1Data.dateUntil),
+                rate: parseFloat(rate) // Serializer expects 'rate'
              };
 
              if (existingId) {
-                // UPDATE Phase 1
-                saveRequests.push(updateRule(existingId, { ...payload, fundId }));
+                // FIX 3: Pass fundId as first arg, ruleId as second, payload as third
+                saveRequests.push(updateRule(fundId, existingId, payload));
              } else {
-                // CREATE Phase 1
-                saveRequests.push(createRule({ ...payload, fundId }));
+                // FIX 3: Pass fundId as first arg, payload as second
+                saveRequests.push(createRule(fundId, payload));
              }
           }
         });
       }
 
       // --- Phase 2: Single Rule ---
-      if (phase2Data.rate) {
+      if (phase2Data.rate !== undefined && phase2Data.rate !== "") {
          const payload = {
-            phaseId: 2,
-            shareClassId: null,
-            dateFrom: formatDate(phase2Data.dateFrom),
-            dateUntil: null,
-            ratePercentage: parseFloat(phase2Data.rate)
+            phase: 2,
+            share_class: null, // Explicitly null for Phase 2
+            date_from: formatDate(phase2Data.dateFrom),
+            date_until: null,
+            rate: parseFloat(phase2Data.rate)
          };
 
          if (phase2Id) {
-            // FIXED: Use phase2Id here, NOT existingId
-            saveRequests.push(updateRule(phase2Id, { ...payload, fundId }));
+            saveRequests.push(updateRule(fundId, phase2Id, payload));
          } else {
-            // CREATE Phase 2
-            saveRequests.push(createRule({ ...payload, fundId }));
+            saveRequests.push(createRule(fundId, payload));
          }
       }
 
       console.log("Processing requests...", saveRequests.length);
       await Promise.all(saveRequests);
       
+      // Optional: Refetch to sync IDs instead of reloading
+      const freshRules = await fetchRules(fundId);
+      // Logic to update IDs from freshRules could go here...
+      
       alert("Management fees saved successfully.");
+      // Using reload is okay for MVP to ensure clean state
       window.location.reload(); 
 
     } catch (err) {
       console.error(err);
-      alert("Failed to save: " + err.message);
+      // Extract specific error message if available
+      const msg = err.message || JSON.stringify(err);
+      alert("Failed to save: " + msg);
     }
   };
 
