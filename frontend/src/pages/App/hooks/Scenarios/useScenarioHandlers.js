@@ -13,12 +13,12 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         
         const fetchData = async () => {
             try {
-                const scResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenarios/`);
+                const scResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/`);
                 if (!scResp.ok) throw new Error("Failed to fetch scenarios");
                 const scData = await scResp.json();
                 setScenarios(scData.map(apiRowToScenario));
 
-                const synResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis/`);
+                const synResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-scenario/`);
                 if (!synResp.ok) throw new Error("Failed to fetch syntheses");
                 const synData = await synResp.json();
                 
@@ -49,7 +49,7 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         };
         
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenarios/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -89,7 +89,7 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario) {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis/`, {
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-scenario/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

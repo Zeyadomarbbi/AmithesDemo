@@ -1,7 +1,8 @@
 from rest_framework import serializers
+from django.db import transaction
 
 from ..models.transactions import *
-from ..models.mappings import MapScenarioSynthesis
+from ..models.mappings import MapSynthesisScenario
 
 class ScenarioSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,14 +39,14 @@ class ScenarioSerializer(serializers.ModelSerializer):
             )
         return attrs
     
-class MapScenarioSynthesisSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MapScenarioSynthesis
-        fields = ['scenario']
-
 class ScenarioSynthesisSerializer(serializers.ModelSerializer):
+    class MapSynthesisScenarioSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = MapSynthesisScenario
+            fields = ['scenario']
+
     # For GET: returns the actual scenario objects via the mapper
-    scenarios = MapScenarioSynthesisSerializer(many=True, source='scenario_mappings', read_only=True)
+    scenarios = MapSynthesisScenarioSerializer(many=True, source='scenario_mappings', read_only=True)
     # For POST/PUT: accepts a list of IDs
     scenario_ids = serializers.ListField(
         child=serializers.IntegerField(), 
@@ -64,30 +65,30 @@ class ScenarioSynthesisSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         scenario_ids = validated_data.pop('scenario_ids', [])
-        synthesis = ScenarioSynthesis.objects.create(**validated_data)
         
-        if scenario_ids:
-            self._set_scenarios(synthesis, scenario_ids)
-        
+        with transaction.atomic():
+            synthesis = ScenarioSynthesis.objects.create(**validated_data)
+            if scenario_ids:
+                self._set_scenarios(synthesis, scenario_ids)
         return synthesis
 
     def update(self, instance, validated_data):
         scenario_ids = validated_data.pop('scenario_ids', None)
         
-        instance.synthesis_name = validated_data.get('synthesis_name', instance.synthesis_name)
-        instance.description = validated_data.get('description', instance.description)
-        instance.save()
+        with transaction.atomic():
+            instance.synthesis_name = validated_data.get('synthesis_name', instance.synthesis_name)
+            instance.description = validated_data.get('description', instance.description)
+            instance.save()
 
-        if scenario_ids is not None:
-            # Clear old and set new
-            MapScenarioSynthesis.objects.filter(synthesis=instance).delete()
-            self._set_scenarios(instance, scenario_ids)
-
+            if scenario_ids is not None:
+                # Clear old and set new atomically
+                MapSynthesisScenario.objects.filter(synthesis=instance).delete()
+                self._set_scenarios(instance, scenario_ids)
         return instance
 
     def _set_scenarios(self, synthesis, scenario_ids):
         mappings = [
-            MapScenarioSynthesis(synthesis=synthesis, scenario_id=sid) 
+            MapSynthesisScenario(synthesis=synthesis, scenario_id=sid) 
             for sid in scenario_ids
         ]
-        MapScenarioSynthesis.objects.bulk_create(mappings)
+        MapSynthesisScenario.objects.bulk_create(mappings)

@@ -16,6 +16,7 @@ function DashboardHeader({ fundId, fundName, showQuarterSelector, onTimeframeCha
             console.error("Compare Tab: Persistence error:", error);
         }
     };
+    console.log('DashboardHeader render:', { fundId, fundName, timeframeId, quarters });
 
     return (
         <div className="dashboard-header-frame">

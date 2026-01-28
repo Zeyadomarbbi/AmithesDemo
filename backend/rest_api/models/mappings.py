@@ -1,6 +1,6 @@
 from django.db import models
 
-class MapScenarioSynthesis(models.Model):
+class MapSynthesisScenario(models.Model):
     record_id = models.BigAutoField(primary_key=True)
     
     synthesis = models.ForeignKey(
@@ -17,6 +17,6 @@ class MapScenarioSynthesis(models.Model):
     )
 
     class Meta:
-        db_table = 'map_scenario_synthesis'
+        db_table = 'map_synthesis_scenario'
         # Prevent duplicate scenarios within the same synthesis
         unique_together = ('synthesis', 'scenario')

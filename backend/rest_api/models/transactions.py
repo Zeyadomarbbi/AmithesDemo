@@ -225,6 +225,10 @@ class FundManFeeRules(models.Model):
         ]
 
 class ScenarioList(models.Model):
+    class ScenarioManager(models.Manager):
+        def get_queryset(self):
+            return super().get_queryset().filter(is_deleted=False)
+        
     scenario_id = models.BigAutoField(primary_key=True)
     
     fund = models.ForeignKey(
@@ -246,10 +250,11 @@ class ScenarioList(models.Model):
     
     # Maps to your "updated_by date" requirement
     updated_at = models.DateTimeField(auto_now=True)
+    objects = ScenarioManager() # Default manager filters out deleted items
+    all_objects = models.Manager()
 
     class Meta:
-        db_table = "scenarios"
-        # Unique constraint for active scenarios only
+        db_table = "scenario_list"
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "scenario_name"],
@@ -257,9 +262,6 @@ class ScenarioList(models.Model):
                 name="uq_active_scenario_fund_name"
             )
         ]
-
-    def __str__(self):
-        return f"{self.fund.fund_id} | {self.scenario_name}"
     
 class ScenarioSynthesis(models.Model):
     synthesis_id = models.BigAutoField(primary_key=True)
