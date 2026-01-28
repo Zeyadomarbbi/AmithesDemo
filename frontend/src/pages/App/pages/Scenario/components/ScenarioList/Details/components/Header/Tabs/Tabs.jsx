@@ -7,39 +7,44 @@ import './Tabs.css';
 
 function Tabs({ activeTab, onTabChange }) {
   
-  // Helper: Case-insensitive check, though keys are now strict lowercase
   const isActive = (key) => activeTab?.toLowerCase() === key.toLowerCase();
 
   return (
-    <div className="tabs-frame">
+    <div className="scenario-tabs-frame">
       
-      {/* 1. PORTFOLIO */}
+      {/* 1. SIMULATION RESULTS */}
       <button 
-        className={`tab-item ${isActive('portfolio') ? 'active' : ''}`}
-        // Pass strictly 'portfolio'
+        className={`scenario-tab-item ${isActive('simulation-results') ? 'active' : ''}`}
+        onClick={() => onTabChange('simulation-results')}
+      >
+        <PlayIcon />
+        Simulation Results
+      </button>
+
+      {/* 2. PORTFOLIO */}
+      <button 
+        className={`scenario-tab-item ${isActive('portfolio') ? 'active' : ''}`}
         onClick={() => onTabChange('portfolio')}
       >
-        <PlayIcon width={16} />
+        <PlayIcon />
         Portfolio
       </button>
       
-      {/* 2. SET FINANCIALS */}
+      {/* 3. SET FINANCIALS */}
       <button 
-        className={`tab-item ${isActive('setfinancials') ? 'active' : ''}`}
-        // Pass strictly 'setfinancials' (matches URL param)
-        onClick={() => onTabChange('setfinancials')}
+        className={`scenario-tab-item ${isActive('set-financials') ? 'active' : ''}`}
+        onClick={() => onTabChange('set-financials')}
       >
-        <GearIcon width={16} />
+        <GearIcon />
         Set financials
       </button>
 
-      {/* 3. FUND FLOWS */}
+      {/* 4. FUND FLOWS */}
       <button 
-        className={`tab-item ${isActive('fundflows') ? 'active' : ''}`}
-        // Pass strictly 'fundflows' (matches URL param)
-        onClick={() => onTabChange('fundflows')}
+        className={`scenario-tab-item ${isActive('fund-flows') ? 'active' : ''}`}
+        onClick={() => onTabChange('fund-flows')}
       >
-        <GearIcon width={16} />
+        <GearIcon />
         Fund flows
       </button>
 

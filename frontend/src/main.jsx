@@ -14,10 +14,6 @@ import AppLayout from './pages/App/components/AppLayout';
 import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
 import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
 import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
-
-import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
-import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
-import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
 import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
 import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
 import AdminsPage from './pages/App/pages/Admins/AdminsPage';
@@ -42,6 +38,14 @@ import PortfolioFxTab from "./pages/App/pages/Portfolio/components/FX/PortfolioF
 import PortfolioLimitsTab from "./pages/App/pages/Portfolio/components/Limits/PortfolioLimitsTab";
 import PortfolioCompareTab from "./pages/App/pages/Portfolio/components/Compare/PortfolioCompareTab";
 import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/CompareDetailPanel";
+
+// --- SCENARIO COMPONENTS ---
+import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
+import ScenarioList from './pages/App/pages/Scenario/components/ScenarioList/ScenarioList.jsx';
+import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
+import SynthesisList from './pages/App/pages/Scenario/components/SynthesisList/SynthesisList.jsx';
+import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
+
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -81,13 +85,18 @@ const router = createBrowserRouter([
               { path: 'limits', element: <LimitsDashboard /> },
             ]
           },
-
           { 
-            path: 'scenarios', 
+            path: 'scenario-dashboard', 
             element: <ScenariosPage />, 
             children: [
-              { path: 'synthesis/:synthesisId', element: <SynthesisDetailsDrawer /> },
-              { path: ':scenarioId/:tab?', element: <ScenarioDetailPage /> }
+              { 
+                path: 'scenario-details/:scenarioId/:tab?', 
+                element: <ScenarioDetailPage /> 
+              },
+              { 
+                path: 'synthesis-details/:synthesisId', 
+                element: <SynthesisDetailsDrawer /> 
+              }
             ], 
           },
           {

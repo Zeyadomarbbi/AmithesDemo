@@ -5,6 +5,7 @@ import Header from './components/Header/Header';
 import Portfolio from './components/Portfolio/Portfolio'; 
 import SetFinancials from './components/SetFinanacials/SetFinancials'; 
 import FundFlows from './components/FundFlows/FundFlows'; 
+import SimulationResults from './components/SimulationResults/SimulationResults';
 import './ScenarioDetailPage.css';
 
 function ScenarioDetailPage() {
@@ -16,12 +17,12 @@ function ScenarioDetailPage() {
   const [scenarioData, setScenarioData] = useState(location.state || null);
   
   const [isClosing, setIsClosing] = useState(false);
-  const currentTab = tab ? tab.toLowerCase() : 'portfolio';
+  const currentTab = tab ? tab.toLowerCase() : 'simulationresults';
 
   const handleBack = () => {
     setIsClosing(true);
     setTimeout(() => {
-      navigate(`/funds/${fundId}/scenarios`);
+      navigate(`/funds/${fundId}/scenario-dashboard`);
     }, 800);
   };
 
@@ -40,10 +41,11 @@ function ScenarioDetailPage() {
           activeTab={currentTab}
           onBack={handleBack}
         />
-        <div className="details-content-area">
+        <div className="scenarios-details-content-area">
+          {currentTab === 'simulation-results' && <SimulationResults scenarioId={scenarioId} />}
           {currentTab === 'portfolio' && <Portfolio scenarioId={scenarioId} />}
-          {currentTab === 'setfinancials' && <SetFinancials scenarioId={scenarioId} />}
-          {currentTab === 'fundflows' && <FundFlows scenarioId={scenarioId} />}
+          {currentTab === 'set-financials' && <SetFinancials scenarioId={scenarioId} />}
+          {currentTab === 'fund-flows' && <FundFlows scenarioId={scenarioId} />}
         </div>
       </div>
     </div>

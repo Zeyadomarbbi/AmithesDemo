@@ -1,5 +1,5 @@
 import React from 'react';
-import './Operations.css';
+import './SRTable.css';
 
 const operationsData = [
   { label: 'Invest #1', nominal: '30 000 000', hurdle: '7 575 758', catchup: '-', special: '12 000 000' },
@@ -24,11 +24,11 @@ const investmentPerformanceData = [
 
 const Operations = () => {
   return (
-    <div className="operations-container">
+    <div className="sr-container">
       
       {/* === TABLE 1: WATERFALL / NOMINAL === */}
-      <div className="operations-table-wrapper">
-        <table className="operations-table">
+      <div className="sr-table-wrapper">
+        <table className="sr-table">
           <thead>
             <tr>
               <th className="th-label"></th> 
@@ -53,8 +53,8 @@ const Operations = () => {
       </div>
 
       {/* === TABLE 2: PERFORMANCE === */}
-      <div className="operations-table-wrapper mt-large">
-        <table className="operations-table performance-table">
+      <div className="sr-table-wrapper mt-large">
+        <table className="sr-table performance-table">
         <thead>
             <tr>
             <th className="th-label"></th>
@@ -73,19 +73,6 @@ const Operations = () => {
         </tbody>
         </table>
       </div>
-
-      {/* === KPI CARDS === */}
-      <div className="operations-kpi-row">
-        <div className="kpi-card">
-          <span className="kpi-title">Break-even Hurdle</span>
-          <span className="kpi-number">1.76x</span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-title">Break-even DPI 1.00x</span>
-          <span className="kpi-number">1.23x</span>
-        </div>
-      </div>
-
     </div>
   );
 };

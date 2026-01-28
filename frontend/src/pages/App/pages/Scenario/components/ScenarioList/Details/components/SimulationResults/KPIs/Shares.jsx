@@ -1,5 +1,5 @@
 import React from 'react';
-import './Shares.css';
+import './SRTable.css';
 
 const sharesData = [
   { label: 'Shares A1', nominal: '30 000 000', hurdle: '7 575 758', catchup: '-', special: '12 000 000' },
@@ -23,11 +23,11 @@ const performanceData = [
 
 const Shares = () => {
   return (
-    <div className="shares-container">
+    <div className="sr-container">
       
       {/* === TABLE 1: WATERFALL / NOMINAL === */}
-      <div className="shares-table-wrapper">
-        <table className="shares-table">
+      <div className="sr-table-wrapper">
+        <table className="sr-table">
           <thead>
             <tr>
               <th className="th-label"></th> 
@@ -52,8 +52,8 @@ const Shares = () => {
       </div>
 
       {/* === TABLE 2: PERFORMANCE === */}
-      <div className="shares-table-wrapper mt-large">
-        <table className="shares-table performance-table">
+      <div className="sr-table-wrapper mt-large">
+        <table className="sr-table performance-table">
         <thead>
             <tr>
             <th className="th-label"></th>
@@ -72,19 +72,6 @@ const Shares = () => {
         </tbody>
         </table>
       </div>
-
-      {/* === KPI CARDS === */}
-      <div className="shares-kpi-row">
-        <div className="kpi-card">
-          <span className="kpi-title">Break-even Hurdle</span>
-          <span className="kpi-number">1.76x</span>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-title">Break-even DPI 1.00x</span>
-          <span className="kpi-number">1.23x</span>
-        </div>
-      </div>
-
     </div>
   );
 };

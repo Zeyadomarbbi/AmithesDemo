@@ -135,7 +135,7 @@ function SidePanel() {
             <NavLink to={`/funds/${activeFundId}/financials`} className="nav-item">
               <FinancialsIcon /> <span>Financials</span>
             </NavLink>
-            <NavLink to={`/funds/${activeFundId}/scenarios`} className="nav-item">
+            <NavLink to={`/funds/${activeFundId}/scenario-dashboard`} className="nav-item">
               <ScenariosIcon /> <span>Scenarios</span>
             </NavLink>
           </nav>

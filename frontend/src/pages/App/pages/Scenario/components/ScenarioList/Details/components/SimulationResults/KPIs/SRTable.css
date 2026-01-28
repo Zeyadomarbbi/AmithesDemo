@@ -1,14 +1,16 @@
+/* SRTable.css - Unified table styles for Shares and Operations */
+
 /* =========================================
    1. CONTAINER
    ========================================= */
-.operations-container {
+.sr-container {
   display: flex;
   flex-direction: column;
   width: 100%;
   color: #FFFFFF;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 0.875rem; /* relative sizing */
+  font-size: 0.875rem;
   line-height: 1.4rem;
   letter-spacing: 0.01em;
   animation: fadeIn 0.4s ease-out;
@@ -17,26 +19,26 @@
 /* =========================================
    2. TABLES
    ========================================= */
-.operations-table-wrapper {
+.sr-table-wrapper {
   width: 100%;
   margin-bottom: 1.5rem;
   overflow-x: auto;
 }
 
-.operations-table-wrapper.mt-large {
+.sr-table-wrapper.mt-large {
   margin-top: 0.5rem;
-  width: 62%; /* relative container width */
+  width: 62%;
 }
 
-.operations-table {
+.sr-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto; /* fluid column sizing */
+  table-layout: auto;
   box-sizing: border-box;
 }
 
-.operations-table th,
-.operations-table td {
+.sr-table th,
+.sr-table td {
   padding: 0.75rem 1rem;
   font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
@@ -49,7 +51,7 @@
 }
 
 /* --- HEADERS --- */
-.operations-table th {
+.sr-table th {
   font-weight: 600;
   color: #E2E8F0;
   white-space: normal;
@@ -57,20 +59,20 @@
 }
 
 /* --- DATA CELLS --- */
-.operations-table td {
+.sr-table td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* --- TABLE 1 (fluid) --- */
-.operations-table:not(.performance-table) .th-label,
-.operations-table:not(.performance-table) .td-label {
+.sr-table:not(.performance-table) .th-label,
+.sr-table:not(.performance-table) .td-label {
   width: 25%;
 }
 
-.operations-table:not(.performance-table) .th-val,
-.operations-table:not(.performance-table) .td-val {
+.sr-table:not(.performance-table) .th-val,
+.sr-table:not(.performance-table) .td-val {
   width: 18.75%;
 }
 
@@ -86,13 +88,14 @@
 }
 
 /* --- STYLING COLORS AND BORDERS --- */
-.operations-table .th-val,
-.operations-table .td-val {
+.sr-table .th-val,
+.sr-table .td-val {
   color: #E2E8F0;
   font-feature-settings: "tnum" on, "lnum" on;
 }
 
-.operations-table th span {
+
+.sr-table th span {
   font-size: 0.6875rem;
   color: #94A3B8;
   font-weight: 400;
@@ -100,18 +103,18 @@
   white-space: nowrap;
 }
 
-.operations-table td.td-label {
+.sr-table td.td-label {
   font-weight: 500;
   color: #FFFFFF;
 }
 
-.operations-table:not(.performance-table) th:nth-child(even),
-.operations-table:not(.performance-table) td:nth-child(even) {
+.sr-table:not(.performance-table) th:nth-child(even),
+.sr-table:not(.performance-table) td:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.03);
 }
 
-.operations-table:not(.performance-table) th:nth-child(odd),
-.operations-table:not(.performance-table) td:nth-child(odd) {
+.sr-table:not(.performance-table) th:nth-child(odd),
+.sr-table:not(.performance-table) td:nth-child(odd) {
   background-color: transparent;
 }
 
@@ -125,7 +128,7 @@
   background-color: transparent;
 }
 
-.operations-table:not(.performance-table) td,
+.sr-table:not(.performance-table) td,
 .performance-table td.td-label,
 .performance-table td:nth-child(2),
 .performance-table td:nth-child(3) {
@@ -137,36 +140,8 @@
   font-weight: 600;
 }
 
-/* =========================================
-   3. KPI CARDS
-   ========================================= */
-.operations-kpi-row {
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  margin: 0.5rem 0 1rem 0;
-  flex-wrap: wrap; /* allows wrapping for tablets */
-}
 
-.kpi-card {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex: 1 1 15rem; /* flexible width, minimum basis for tablets */
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.kpi-title {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #E2E8F0;
-}
-
-.kpi-number {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #FFFFFF;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

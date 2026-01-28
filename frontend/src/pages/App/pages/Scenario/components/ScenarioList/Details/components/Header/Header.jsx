@@ -34,14 +34,21 @@ function Header({
   };
 
   const handleTabChange = (newTab) => {
-    const tabKey = newTab.toLowerCase();
-    const baseUrl = `/funds/${fundId}/scenarios/${scenarioId}`;
-    
-    if (tabKey === 'portfolio') navigate(`${baseUrl}/portfolio`);
-    else if (tabKey === 'setfinancials') navigate(`${baseUrl}/setfinancials`);
-    else if (tabKey === 'fundflows') navigate(`${baseUrl}/fundflows`);
-  };
+      const tabKey = newTab.toLowerCase();
+      
+      // Ensure this matches your new route: /funds/:id/scenario-dashboard/scenario-details/:id
+      const baseUrl = `/funds/${fundId}/scenario-dashboard/scenario-details/${scenarioId}`;
 
+      if (tabKey === 'simulation-results') {
+          navigate(`${baseUrl}/simulation-results`);
+      } else if (tabKey === 'portfolio') {
+          navigate(`${baseUrl}/portfolio`);
+      } else if (tabKey === 'set-financials') {
+          navigate(`${baseUrl}/set-financials`);
+      } else if (tabKey === 'fund-flows') {
+          navigate(`${baseUrl}/fund-flows`);
+      }
+  };
   return (
     <div className="header-container">
       
@@ -52,7 +59,7 @@ function Header({
           {/* Back Button */}
           <div 
             className="back-button-wrapper" 
-            onClick={onBack ? onBack : () => navigate(`/funds/${fundId}/scenarios`)}
+            onClick={onBack ? onBack : () => navigate(`/funds/${fundId}/scenario-dashboard`)}
           >
             <div className="back-icon-box"><BackIcon width={16} /></div>
             <span className="back-text">Back</span>
