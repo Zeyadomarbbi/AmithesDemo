@@ -364,3 +364,65 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* لجعل الاندكس في الجدول غير بولد */
+.flows-table td:first-child {
+  font-weight: 400 !important;
+}
+
+/* تنسيق القيم الثابتة في الـ Fair Value */
+.static-value {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #111827;
+  font-weight: 500;
+  padding: 0 4px;
+}
+/* في ملف InvestmentDetails.css */
+
+/* 1. السماح للعناصر المطلقة (مثل الـ DatePicker) بالخروج من حدود الخلية */
+.invTable td {
+  /* overflow: visible ضروري جداً */
+  overflow: visible !important;
+  /* position: relative يجعل الـ absolute popup يتموضع بالنسبة للخلية */
+  position: relative; 
+}
+
+/* 2. التأكد من أن الحاوية الداخلية أيضاً لا تقص المحتوى */
+.invInputWrapper {
+  overflow: visible !important;
+  /* إذا كانت الخلية ضيقة جداً، يمكنك تحديد عرض أدنى لها */
+  /* min-width: 120px; */ 
+}
+
+/* 3. رفع مستوى ظهور الـ DatePicker ليظهر فوق باقي عناصر الجدول */
+/* هذا الكلاس يخص الـ DatePicker نفسه */
+.dp-container {
+  z-index: 9999 !important; /* قيمة عالية لضمان ظهوره في المقدمة */
+  
+  /* تأكد من أن عرضه ليس مقيداً بعرض الخلية */
+  /* يمكنك إضافة عرض ثابت أو min-width إذا لزم الأمر */
+  /* min-width: 300px; */
+}
+/* ده الستايل الخاص بحاوية الـ DatePicker */
+.dp-container {
+  /* 1. إجبار العرض عشان مايتخنقش جوه الخلية */
+  width: 320px !important;     
+  min-width: 320px !important; 
+
+  /* 2. ضمان ظهوره فوق كل حاجة */
+  z-index: 9999 !important;
+  background-color: white; /* تأكد إن الخلفية بيضاء مش شفافة */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15); /* ضل عشان يفصله عن الجدول */
+  border-radius: 8px;
+  
+  /* 3. تنسيق الخطوط جوا */
+  font-family: sans-serif; /* أو الخط المستخدم عندك */
+}
+
+/* تعديل بسيط للأيام عشان متدخلش في بعض */
+.dp-day-cell {
+  width: 36px;  /* عرض مربع اليوم */
+  height: 36px; /* طول مربع اليوم */
+}

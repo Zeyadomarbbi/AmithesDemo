@@ -9,7 +9,11 @@ import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDe
 
 /* ===== Styles ===== */
 import "./PortfolioSummaryTab.css";
-
+const SortIcon = () => (
+  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', verticalAlign: 'middle' }}>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.5286 0.195262C3.78894 -0.0650874 4.21106 -0.0650874 4.4714 0.195262L7.80474 3.5286C8.06509 3.78894 8.06509 4.21106 7.80474 4.4714C7.54439 4.73175 7.12228 4.73175 6.86193 4.4714L4 1.60948L1.13807 4.4714C0.877722 4.73175 0.455612 4.73175 0.195262 4.4714C-0.0650874 4.21106 -0.0650874 3.78894 0.195262 3.5286L3.5286 0.195262ZM0.195262 7.5286C0.455612 7.26825 0.877722 7.26825 1.13807 7.5286L4 10.3905L6.86193 7.5286C7.12228 7.26825 7.54439 7.26825 7.80474 7.5286C8.06509 7.78895 8.06509 8.21106 7.80474 8.47141L4.4714 11.8047C4.21106 12.0651 3.78894 12.0651 3.5286 11.8047L0.195262 8.47141C-0.0650874 8.21106 -0.0650874 7.78895 0.195262 7.5286Z" fill="#375A89"/>
+  </svg>
+);
 /* ===== Icons ===== */
 import {
   MagnifyingGlassIcon,
@@ -163,12 +167,25 @@ const PortfolioSummaryTab = () => {
               <span className="portfolio-count">{unrealizedRows.length}</span>
             </h2>
             <div className="portfolio-table-tools">
-              <button className="icon-circle-btn">
-                <MagnifyingGlassIcon style={iconStyle} />
-              </button>
-              <button className="icon-circle-btn">
-                <FunnelIcon style={iconStyle} />
-              </button>
+              <button className="icon-circle-btn search-btn">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" clipRule="evenodd"
+                      d="M5.33333 1.33333C3.12419 1.33333 1.33333 3.12419 1.33333 5.33333C1.33333 7.54247 3.12419 9.33333 5.33333 9.33333C7.54247 9.33333 9.33333 7.54247 9.33333 5.33333C9.33333 3.12419 7.54247 1.33333 5.33333 1.33333ZM0 5.33333C0 2.38781 2.38781 0 5.33333 0C8.27885 0 10.6667 2.38781 10.6667 5.33333C10.6667 6.56579 10.2486 7.70061 9.5466 8.60373L13.1381 12.1953C13.3984 12.4556 13.3984 12.8777 13.1381 13.1381C12.8777 13.3984 12.4556 13.3984 12.1953 13.1381L8.60379 9.54655C7.70067 10.2486 6.56582 10.6667 5.33333 10.6667C2.38781 10.6667 0 8.27885 0 5.33333Z"
+                      fill="#375A89"/>
+                  </svg>
+                </button>
+
+              <button className="icon-circle-btn filter-btn">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 9C2 4.58172 5.58172 1 10 1H26C30.4183 1 34 4.58172 34 9V25C34 29.4183 30.4183 33 26 33H10C5.58172 33 2 29.4183 2 25V9Z" fill="white"/>
+                      <path d="M10 1.5H26C30.1421 1.5 33.5 4.85786 33.5 9V25C33.5 29.1421 30.1421 32.5 26 32.5H10C5.85786 32.5 2.5 29.1421 2.5 25V9C2.5 4.85786 5.85786 1.5 10 1.5Z"
+                        stroke="#CCCDCE" strokeOpacity="0.5"/>
+                      <path d="M11.334 13H24.667M13.334 17H22.667M15.334 21H20.667"
+                        stroke="#375A89" strokeWidth="1.333" strokeLinecap="round"/>
+                    </svg>
+                  </button>
             </div>
           </div>
 
@@ -176,15 +193,15 @@ const PortfolioSummaryTab = () => {
             <table className="portfolio-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Geography</th>
-                  <th>Ownership</th>
-                  <th>Cost</th>
-                  <th>Dividends</th>
-                  <th>MOIC</th>
-                  <th>IRR</th>
-                  <th className="col-highlight">Fair Value</th>
-                  <th className="col-highlight">Unrealized Gain</th>
+                  <th>Name <SortIcon /></th>
+                  <th>Geography <SortIcon /></th>
+                  <th>Ownership <SortIcon /></th>
+                  <th>Cost <SortIcon /></th>
+                  <th>Dividends <SortIcon /></th>
+                  <th>MOIC <SortIcon /></th>
+                  <th>IRR <SortIcon /></th>
+                  <th className="col-highlight">Fair Value <SortIcon /></th>
+                  <th className="col-highlight">Unrealized Gain <SortIcon /></th>
                 </tr>
               </thead>
               <tbody>
@@ -243,15 +260,15 @@ const PortfolioSummaryTab = () => {
             <table className="portfolio-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Geography</th>
-                  <th>Ownership</th>
-                  <th>Cost</th>
-                  <th>Dividends</th>
-                  <th>MOIC</th>
-                  <th>IRR</th>
-                  <th className="col-highlight">Exit Value</th>
-                  <th className="col-highlight">Realized</th>
+                  <th>Name <SortIcon /></th>
+                  <th>Geography <SortIcon /></th>
+                  <th>Ownership <SortIcon /></th>
+                  <th>Cost <SortIcon /></th>
+                  <th>Dividends <SortIcon /></th>
+                  <th>MOIC <SortIcon /></th>
+                  <th>IRR <SortIcon /></th>
+                  <th className="col-highlight">Exit Value <SortIcon /></th>
+                  <th className="col-highlight">Realized <SortIcon /></th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +312,71 @@ const PortfolioSummaryTab = () => {
           </div>
         </div>
       </section>
+      <section className="portfolio-section">
+        <div className="portfolio-table-card">
+          <div className="portfolio-section-header">
+            <h2>
+              Projected portfolio
+              <span className="portfolio-count">{realizedRows.length}</span>
+            </h2>
+          </div>
 
+          <div className="portfolio-table-scroll">
+            <table className="portfolio-table">
+              <thead>
+                <tr>
+                  <th>Name <SortIcon /></th>
+                  <th>Geography <SortIcon /></th>
+                  <th>Ownership <SortIcon /></th>
+                  <th>Cost <SortIcon /></th>
+                  <th>Dividends <SortIcon /></th>
+                  <th>MOIC <SortIcon /></th>
+                  <th>IRR <SortIcon /></th>
+                  <th className="col-highlight">Exit Value <SortIcon /></th>
+                  <th className="col-highlight">Realized <SortIcon /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {realizedRows.map((r) => (
+                  <tr key={r.id}>
+                    <td
+                      className="name-cell"
+                      onClick={() => setSelectedInvestment(r)}
+                    >
+                      <div className="name-main">{r.name}</div>
+                      <div className="name-sub">{r.sector}</div>
+                    </td>
+                    <td>{r.country}</td>
+                    <td>{r.ownership}</td>
+                    <td>{r.cost}</td>
+                    <td>{r.dividends}</td>
+                    <td>{r.moic}</td>
+                    <td>{r.irr}</td>
+                    <td className="col-highlight">{r.exitValue}</td>
+                    <td className="col-highlight">{r.realized}</td>
+                  </tr>
+                ))}
+
+                <tr className="portfolio-subtotal-row">
+                  <td className="subtotal-name-cell">Sub Total</td>
+                  <td />
+                  <td />
+                  <td>{realizedSubtotal.cost}</td>
+                  <td>{realizedSubtotal.dividends}</td>
+                  <td>{realizedSubtotal.moic}</td>
+                  <td>{realizedSubtotal.irr}</td>
+                  <td className="col-highlight">
+                    {realizedSubtotal.exitValue}
+                  </td>
+                  <td className="col-highlight">
+                    {realizedSubtotal.realized}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
       {/* ===== TOTAL ===== */}
       <section className="portfolio-total-section">
         <div className="portfolio-table-scroll">
