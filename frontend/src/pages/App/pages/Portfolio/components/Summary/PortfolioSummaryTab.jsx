@@ -328,7 +328,7 @@ const PortfolioSummaryTab = () => {
                   <th>Name <SortIcon /></th>
                   <th>Geography <SortIcon /></th>
                   <th>Ownership <SortIcon /></th>
-                  <th>Cost <SortI con /></th>
+                  <th>Cost <SortIcon /></th>
                   <th>Dividends <SortIcon /></th>
                   <th>MOIC <SortIcon /></th>
                   <th>IRR <SortIcon /></th>
