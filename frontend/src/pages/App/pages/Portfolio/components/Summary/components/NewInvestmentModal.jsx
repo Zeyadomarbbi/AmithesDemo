@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import "./NewInvestmentModal.css";
 
 const COUNTRIES = ["Egypt", "UAE", "Saudi Arabia", "Qatar", "Bahrain"];
-const SECTORS = ["Healthcare", "Fintech", "Energy", "Industrial", "AI"];
 const CURRENCIES = ["EUR", "USD", "GBP"];
 
 const NewInvestmentModal = ({ onClose, onSave }) => {
@@ -57,12 +56,14 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
 
           <div className="form-grid">
             <div className="form-group">
-              <label>Sector*</label>
-              <select value={sector} onChange={(e) => setSector(e.target.value)}>
-                <option value="">Select a sector</option>
-                {SECTORS.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
+  <label>Sector*</label>
+  <input
+    placeholder="Please enter the sector..."
+    value={sector}
+    onChange={(e) => setSector(e.target.value)}
+  />
+</div>
+
 
             <div className="form-group">
               <label>Geography*</label>
