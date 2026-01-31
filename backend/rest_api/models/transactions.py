@@ -249,7 +249,7 @@ class ScenarioList(models.Model):
     created_by = models.CharField(max_length=150, null=True, blank=True)
     
     # Maps to your "updated_by date" requirement
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     objects = ScenarioManager() # Default manager filters out deleted items
     all_objects = models.Manager()
 
