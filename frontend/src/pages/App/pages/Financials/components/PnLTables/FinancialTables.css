@@ -123,6 +123,15 @@
   box-sizing: border-box;
   border-bottom: 1px solid var(--border-soft);
   font-size: 14px;
+  
+  /* Add this */
+  background-color: #ffffff; 
+}
+
+.pnl-income .detail-row:nth-of-type(odd),
+.pnl-expenses .detail-row:nth-of-type(odd),
+.pnl-tax .detail-row:nth-of-type(odd) {
+  background-color: #FAFAF9;
 }
 
 /* LABEL CELL */
