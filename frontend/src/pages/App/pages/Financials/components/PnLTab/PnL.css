@@ -1,11 +1,21 @@
 /* frontend/src/pages/App/pages/Financials/styles/PnL.css */
 
+/* =========================
+   ✅ STOP PAGE HORIZONTAL SCROLL (GLOBAL)
+   ========================= */
+html,
+body,
+#root {
+  overflow-x: hidden;
+}
+
 /* ===== Toolbar ===== */
 .toolbar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16px;
+  padding-top: 6px;
+  align-items: flex-start;
 }
 
 .left-tools,
@@ -15,12 +25,13 @@
 }
 .right-tools {
   gap: 8px;
+  
 }
 
 /* ===== FORCE REMOVE BUTTON BOX (override anything else) ===== */
 .right-tools .ghost-btn {
-  background: #FAFAF9!important;
-  border: #CCCDCE80!important;
+  background: #fafaf9 !important;
+  border: #cccdce80 !important;
   box-shadow: none !important;
   outline: none !important;
 
@@ -30,7 +41,7 @@
 
 .right-tools .ghost-btn:hover,
 .right-tools .ghost-btn:active {
-  background: #FAFAF9 !important;
+  background: #fafaf9 !important;
   box-shadow: none !important;
 }
 
@@ -40,34 +51,57 @@
   box-shadow: none !important;
 }
 
-
 /* ===== Card wrapper ===== */
 .financials-card {
   width: 100%;
   background: var(--card-bg);
   border-radius: 12px;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
+
+  /* ✅ allow dropdowns */
+  overflow: visible;
+
+  /* ✅ but NEVER allow horizontal overflow to create page scroll */
+  overflow-x: hidden;
+
+  /* ✅ critical in flex/grid parents */
+  min-width: 0;
+
+  /* spacing between cards */
+  margin-bottom: 16px;
+}
+
+/* ✅ Per-table horizontal scroll container */
+.pnl-card-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+}
+
+.pnl-grid-scope {
+  min-width: 100%;
+  width: max-content;
 }
 
 /* ===== Header row (periods) ===== */
 .table-header-row {
-  display: grid;
-  grid-template-columns: 0.4fr 0.3fr 0.3fr 1fr;
   align-items: center;
   box-sizing: border-box;
 
+  height: 55px;        /* match band height */
+  padding: 0 16px;     /* ✅ match rows + band (fix alignment) */
   border-bottom: 1px solid var(--border-soft);
-  padding: 20px 50px;
+
   font-size: 13px;
   color: var(--text-muted);
   background: #f9fafb;
 }
 
+/* header cells */
 .col-period {
   display: flex;
   align-items: center;
+  justify-content: center; 
   gap: 6px;
 }
 
@@ -76,13 +110,84 @@
   color: #111827;
 }
 
+/* Header icons color */
+.col-period .icon-svg-muted svg {
+  fill: #375a89;
+  stroke: #375a89;
+}
+.col-period .icon-svg-muted {
+  color: #375a89;
+}
+
+/* ✅ Header-left slot alignment */
+.header-left-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+/* ✅ Add button in header slot (same style you already had) */
+.header-left-slot .pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 8px 16px;
+
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-left-slot .pill-btn:focus,
+.header-left-slot .pill-btn:focus-visible {
+  outline: none;
+}
+
+/* =========================================================
+   ✅ PNL DYNAMIC GRID SHARED
+   ========================================================= */
+.pnl-grid-scope .table-header-row,
+.pnl-grid-scope .group-row,
+.pnl-grid-scope .detail-row,
+.pnl-grid-scope .net-row {
+  display: grid;
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
+  align-items: center;
+}
+
+/* keep last column aligned + always present */
+.pnl-grid-scope .group-action-cell,
+.pnl-grid-scope .pnl-row-actions {
+  justify-self: end;
+  min-width: var(--pnl-actions-col);
+}
+
+/* prevent weird stretching */
+.pnl-grid-scope .col-period,
+.pnl-grid-scope .group-value,
+.pnl-grid-scope .detail-input-wrapper,
+.pnl-grid-scope .net-value {
+  min-width: 0;
+}
+
 /* ===== Net Row (bottom) ===== */
 .net-row {
-  display: grid;
-  grid-template-columns: 0.4fr 0.3fr 0.3fr 1fr;
-  align-items: center;
-  box-sizing: border-box;
-
   background: var(--net-bg);
   color: #ffffff;
   font-size: 14px;
@@ -90,44 +195,67 @@
   padding: 14px 16px;
 }
 
+
 .net-value {
-  text-align: left;
+text-align: center !important;
+justify-self: center; /* grid cell */
 }
 .net-value.positive {
-  color: #c8f5d0;
+  color: #FFFFFF;
 }
 .net-value.negative {
-  color: #ffd1cf;
-}
-
-/* ===== Save button (from drawer style) ===== */
-.btn-primary-wide {
-  flex: 0 0 auto;
-  width: 211px;
-  min-width: 211px;
-  height: 40px;
-  border-radius: 4px;
-  border: none;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  background: #f7a93b;
-  color: #ffffff;
+  color: #FFFFFF;
 }
 
 /* container to place Save under the card, right aligned */
 .pnl-save-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px; /* after the card border */
+  margin-top: 12px;
 }
-/* Header icons color */
-.col-period .icon-svg-muted svg {
-  fill: #375a89;   /* 👈 change to whatever color you want */
-  stroke: #375a89;
-}
-/* color for the header icons */
-.col-period .icon-svg-muted {
-  color: #375A89; /* pick your color */
+/* ✅ space between Tax table and Net Profit row */
+.pnl-grid-scope .net-row {
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
 }
 
+.pnl-footer {
+  margin-top: auto;     /* This will now push successfully to the bottom */
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pnl-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
+}
+
+.pnl-btn-save {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.pnl-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.pnl-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}

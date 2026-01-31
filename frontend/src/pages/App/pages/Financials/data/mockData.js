@@ -29,16 +29,12 @@ export const incomeLines = [
   { id: "realized_gain", label: "Realized gain", isCustom: false },
   { id: "unrealized_gain", label: "Unrealized gain", isCustom: false },
   { id: "fx_gain", label: "FX gain", isCustom: false },
-  { id: "dividends", label: "Dividends & Interests", isCustom: false },
-  { id: "other_income", label: "Other income", isCustom: false },
 ];
 
 export const expenseLines = [
   { id: "management_fees", label: "Management fees", isCustom: false },
   { id: "dd_fees", label: "Due diligence fees", isCustom: false },
   { id: "opex", label: "Opex", isCustom: false },
-  { id: "unrealized_losses", label: "Unrealized losses", isCustom: false },
-  { id: "fx_losses", label: "FX losses", isCustom: false },
 ];
 
 /**

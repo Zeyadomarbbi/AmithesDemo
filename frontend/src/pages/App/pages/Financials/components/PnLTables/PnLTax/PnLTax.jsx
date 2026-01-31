@@ -1,9 +1,18 @@
+// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { EditLineIcon,MinusIcon,PlusIcon, TrashBinIcon, KebabIcon,} from "../../../../../components/Icons.jsx";
-import "./PnLTax.css";
+import {
+  EditLineIcon,
+  MinusIcon,
+  PlusIcon,
+  TrashBinIcon,
+  KebabIcon,
+} from "../../../../../components/Icons.jsx";
+import "../FinancialTables.css";
 
 const PnLTax = ({
   fundId,
+  headerPeriods = [],
+
   showTax,
   setShowTax,
 
@@ -13,17 +22,15 @@ const PnLTax = ({
   taxValues,
   setTaxValues,
 
-  totalTaxCol1,
-  totalTaxCol2,
+  totalTaxByPeriod = {},
 
   onAddRow,
   onRemoveRow,
 }) => {
-  // ✅ which base line label is being edited (by id)
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
 
-  // ✅ kebab dropdown open row id
+  // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuWrapRef = useRef(null);
 
@@ -76,40 +83,29 @@ const PnLTax = ({
     setDraftLabel("");
   };
 
+  const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
+
   return (
-    // ✅ IMPORTANT: wrapper so .pnl-tax ... CSS works
     <div className="pnl-tax">
-      <div className="group-row group-row--band">
-        <button
-          className="group-toggle"
-          type="button"
-          onClick={() => setShowTax((v) => !v)}
-        >
-         {showTax ? <MinusIcon /> : <PlusIcon />}
-         Tax
-        </button>
-
-        <div className="group-value">{totalTaxCol1.toLocaleString()}</div>
-        <div className="group-value">{totalTaxCol2.toLocaleString()}</div>
-
-        <div className="group-action-cell">
-          <button className="pill-btn" type="button" onClick={onAddRow}>
-          <PlusIcon />
-          Add tax
-         </button>
-
-        </div>
-      </div>
-
+      {/* ===== TAX ROWS ===== */}
       {showTax &&
         taxLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
 
+          // ✅ restore zebra striping (match Income/Expenses)
+          const rowClass =
+            index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
+
+          // ✅ ONLY the custom "Type here" row gets this marker class
+          const typeHereClass = line.isCustom ? "detail-row--typehere" : "";
+
           return (
-            <div className="detail-row" key={line.id}>
-              {/* ✅ LABEL CELL (pen must be here) */}
+            <div
+              className={`detail-row ${rowClass} ${typeHereClass}`}
+              key={line.id}
+            >
+              {/* LABEL */}
               <div className="detail-label">
-                {/* custom row: always editable input */}
                 {line.isCustom ? (
                   <input
                     className="pnl-label-input"
@@ -136,8 +132,6 @@ const PnLTax = ({
                 ) : (
                   <>
                     <span className="detail-label-text">{line.label}</span>
-
-                    {/* ✅ clickable pen (NO BOX) */}
                     <button
                       type="button"
                       className="pnl-edit-btn"
@@ -151,41 +145,39 @@ const PnLTax = ({
                 )}
               </div>
 
-              {/* ✅ COL 1 */}
-              <div className="detail-input-wrapper">
-                <input
-                  className="amount-input"
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  
-                  value={taxValues[index]?.col1 ?? ""}
-                  onChange={(e) => {
-                    const copy = [...taxValues];
-                    copy[index] = { ...copy[index], col1: e.target.value };
-                    setTaxValues(copy);
-                  }}
-                />
-              </div>
+              {/* PERIOD INPUTS */}
+              {periods.map((p) => {
+                const pid = String(p.id);
+                const value = taxValues[index]?.byPeriod?.[pid] ?? "";
 
-              {/* ✅ COL 2 */}
-              <div className="detail-input-wrapper">
-                <input
-                  className="amount-input"
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                
-                  value={taxValues[index]?.col2 ?? ""}
-                  onChange={(e) => {
-                    const copy = [...taxValues];
-                    copy[index] = { ...copy[index], col2: e.target.value };
-                    setTaxValues(copy);
-                  }}
-                />
-              </div>
+                return (
+                  <div key={pid} className="detail-input-wrapper">
+                    <input
+                      className="amount-input"
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={value}
+                      onChange={(e) => {
+                        const copy = [...taxValues];
+                        const row = copy[index] || { byPeriod: {} };
 
-              {/* ✅ ACTIONS */}
+                        copy[index] = {
+                          ...row,
+                          byPeriod: {
+                            ...(row.byPeriod || {}),
+                            [pid]: e.target.value,
+                          },
+                        };
+
+                        setTaxValues(copy);
+                      }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* ACTIONS */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
                   <div className="pnl-kebab-wrap" ref={menuWrapRef}>
@@ -204,7 +196,12 @@ const PnLTax = ({
                     </button>
 
                     {openMenuId === line.id && (
-                      <div className="pnl-kebab-menu" role="menu">
+                      <div
+                        className={`pnl-kebab-menu ${
+                          periods.length === 0 ? "pnl-kebab-menu--below" : ""
+                        }`}
+                        role="menu"
+                      >
                         <button
                           type="button"
                           className="pnl-kebab-item pnl-kebab-delete"
@@ -227,6 +224,29 @@ const PnLTax = ({
             </div>
           );
         })}
+
+      {/* ===== TAX HEADER (BLUE BAND) (MOVED TO BOTTOM) ===== */}
+      <div className="group-row group-row--band">
+        <div className="group-left">
+          <button
+            className="group-toggle"
+            type="button"
+            onClick={() => setShowTax((v) => !v)}
+          >
+            {showTax ? <MinusIcon /> : <PlusIcon />}
+            Tax
+          </button>
+        </div>
+
+        {periods.map((p) => (
+          <div key={p.id} className="group-value">
+            {Number(totalTaxByPeriod?.[p.id] || 0).toLocaleString()}
+          </div>
+        ))}
+
+        {/* ✅ keep last column empty (Add button is in header row now) */}
+        <div className="group-action-cell" />
+      </div>
     </div>
   );
 };
