@@ -1,6 +1,6 @@
 import { Outlet, useMatch, useParams, useNavigate } from 'react-router-dom';
 
-import { useFundData } from '../../hooks/useFundData';     // <--- ADD THIS IMPORT
+import { useFundData } from '../../hooks/Core/FundContext';     // <--- ADD THIS IMPORT
 import './DashboardPage.css';
 
 import DashboardHeader from './components/DashboardHeader/DashboardHeader';
@@ -40,7 +40,7 @@ function DashboardPage() {
         <Outlet
           context={{
             fund: currentFund,
-            fundId: currentFund.id,
+            fundId: fundId,
           }}
         />
       </div>

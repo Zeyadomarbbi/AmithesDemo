@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useFundDetails } from "../../../../hooks/useFundDetails.js"; // Fetch Hook
-import { useFundData } from "../../../../hooks/useFundData";       // Action Hook
-import { useCurrencies } from "../../../../hooks/useCurrencies.js";
-import { usePhases } from "../../../../hooks/useFundPhase.js";
+import { useFundData } from "../../../../hooks/Core/FundContext";       // Action Hook
+import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
+import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 
 import "./FundIdentity.css";
@@ -15,7 +15,7 @@ const FundIdentity = () => {
   // 2. Fetch Data Locally
   const { fund: serverData, isFundLoading, error, refetch } = useFundDetails(fundId);
   const { updateFund } = useFundData();
-  const { phases } = usePhases();
+  const { phases, isLoading: phasesLoading } = usePhases();
   const { currencies, isLoading: currenciesLoading } = useCurrencies();
 
   // 3. Local Form State
@@ -30,9 +30,15 @@ const FundIdentity = () => {
   }, [serverData]);
 
   // --- Handlers ---
-
   const handleChange = (field) => (e) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    let value = e.target.value;
+    
+    // Only cast currency_id to Number, keep phase_name as String
+    if (field === "currency_id") {
+      value = parseInt(e.target.value, 10);
+    }
+
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleDateChange = (date) => {
@@ -45,25 +51,20 @@ const FundIdentity = () => {
     // This prevents the "does not match format" error we fixed earlier.
     setFormData((prev) => ({ 
       ...prev, 
-      formation_date_string: `${year}-${month}-${day}` 
+      formation_date: `${year}-${month}-${day}` 
     }));
   };
 
   const getParsedDate = (dateStr) => {
     if (!dateStr) return new Date();
-    // Handle YYYY-MM-DD (Backend/ISO)
-    if (dateStr.includes("-")) {
+    
+    // Standard ISO check (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
       const [y, m, d] = dateStr.split("-");
       return new Date(y, m - 1, d);
     }
-    // Handle DD/MM/YYYY (Legacy/Display)
-    if (dateStr.includes("/")) {
-      const [d, m, y] = dateStr.split("/");
-      return new Date(y, m - 1, d);
-    }
-    return new Date();
+    return new Date(dateStr); 
   };
-
   // --- SAVE ACTION ---
   const handleSave = async () => {
     setIsSaving(true);
@@ -75,9 +76,9 @@ const FundIdentity = () => {
         fund_strategy: formData.fund_strategy,
         legal_form: formData.legal_form,
         management_company: formData.management_company,
-        currency_id: formData.currency,
-        phase_id: formData.phase,
-        formation_date_string: formData.formation_date_string,
+        currency_id: formData.currency_id, 
+        phase_name: formData.phase_name,      
+        formation_date: formData.formation_date,
       };
 
       console.log("Saving Fund Identity:", payload);
@@ -150,9 +151,9 @@ const FundIdentity = () => {
           <label className="field-label">Fund currency<span className="required">*</span></label>
           <div className="field-input">
             <select
-              className={`field-input-inner field-select ${!formData.currency ? "placeholder-active" : ""}`}
-              value={formData.currency || ""}
-              onChange={handleChange("currency")}
+              className="field-input-inner field-select"
+              value={formData.currency_id || ""}
+              onChange={handleChange("currency_id")}
               disabled={currenciesLoading}
             >
               <option value="" disabled>{currenciesLoading ? "Loading..." : "Please select"}</option>
@@ -207,13 +208,17 @@ const FundIdentity = () => {
           <label className="field-label">Fund's phase<span className="required">*</span></label>
           <div className="field-input">
             <select
-              className={`field-input-inner field-select ${!formData.phase ? "placeholder-active" : ""}`}
-              value={formData.phase || ""}
-              onChange={handleChange("phase")}
+              className="field-input-inner field-select"
+              value={formData.phase_name || ""} // Bind to the string name
+              onChange={handleChange("phase_name")} // Update the string name
+              disabled={phasesLoading}
             >
               <option value="" disabled>Please select a phase</option>
               {phases?.map((p) => (
-                <option key={p.phase_id} value={p.phase_id}>{p.phase_name}</option>
+                /* Use p.name as the value so it matches the string in the DB */
+                <option key={p.id} value={p.name}>
+                  {p.name}
+                </option>
               ))}
             </select>
             <span className="nf-select-chevron" />

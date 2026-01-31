@@ -35,17 +35,6 @@
   color: #111827;
 }
 
-.pnl-expenses .group-toggle .sign {
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  line-height: 16px;
-  color: #111827;
-  margin-right: 4px;
-}
 
 .pnl-expenses .group-value {
   text-align: center;
@@ -133,12 +122,6 @@
   flex: 0 0 auto;
 }
 
-.pnl-expenses .pnl-edit-btn svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-}
-
 .pnl-expenses .pnl-edit-btn:focus,
 .pnl-expenses .pnl-edit-btn:focus-visible {
   outline: none;
@@ -152,16 +135,16 @@
   padding: 0 12px;
 }
 .amount-input::-webkit-outer-spin-button, .amount-input::-webkit-inner-spin-button {   -webkit-appearance: none;  margin: 0; }
+
 /* Inputs */
 .pnl-expenses .amount-input,
 .pnl-expenses .pnl-label-input {
   width: 129px;
   height: 40px;
   padding: 8px 12px;
-
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
-
+ background: rgba(55, 90, 137, 0.12);
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
@@ -170,26 +153,10 @@
   box-sizing: border-box;
 }
 
-/* ✅ EMPTY (placeholder visible) -> BLUE */
-.pnl-expenses .amount-input:placeholder-shown,
-.pnl-expenses .pnl-label-input:placeholder-shown {
-  background: rgba(55, 90, 137, 0.2);
-}
-
-/* ✅ FILLED (user typed) -> WHITE */
-.pnl-expenses .amount-input:not(:placeholder-shown),
-.pnl-expenses .pnl-label-input:not(:placeholder-shown) {
-  background: #ffffff;
-}
-
-.pnl-expenses .amount-input::placeholder,
-.pnl-expenses .pnl-label-input::placeholder {
-  color: #7b7d7e;
-}
-
 .pnl-expenses .amount-input:focus,
 .pnl-expenses .pnl-label-input:focus {
   outline: none;
+  background: #ffffff;
 }
 
 /* Actions (kebab) */
@@ -221,10 +188,6 @@
 
   cursor: pointer;
   color: #375a89;
-}
-
-.pnl-expenses .pnl-kebab svg {
-  display: block;
 }
 
 .pnl-expenses .pnl-kebab-menu {

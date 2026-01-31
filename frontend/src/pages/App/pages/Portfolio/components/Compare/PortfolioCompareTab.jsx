@@ -4,7 +4,7 @@ import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
 
 // Hooks and Components
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../hooks/Core/useTimeframes';
 import { ChevronDownIcon } from "../../icons.jsx";
 
 // Sub-components
@@ -40,38 +40,20 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
 
   // --- REMOVED DEFAULT SELECTION EFFECT ---
   // The component now starts with empty selection [] unless URL has params.
-
+  const { toggleTimeframe } = useTimeframeNavigation(location, navigate);
   const handleSaveNew = async (newTimeframe) => {
-    const payload = {
-      fund: fundId,
-      display_label: newTimeframe.name,
-      full_date: newTimeframe.endDate.toISOString().split('T')[0] 
-    };
-    try {
-      const response = await fetch(`https://dual-pam-bbi-59551b8d.koyeb.app/api/funds/${fundId}/timeframes/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error("Persistence failed");
-      const savedRow = await response.json();
-      const formatted = apiRowToQuarter(savedRow);
-      setQuarters(prev => [...prev, formatted]);
-      handleToggleTimeframe(formatted.id);
-    } catch (error) {
-      console.error("Compare Tab: Persistence error:", error);
-    }
+      try {
+          const formatted = await saveNewTimeframe(fundId, newTimeframe);
+          setQuarters(prev => [...prev, formatted]);
+          toggleTimeframe(selectedTimeframeIds, formatted.id);
+      } catch (error) {
+          console.error("Compare Tab: Persistence error:", error);
+      }
   };
 
   const handleToggleTimeframe = (id) => {
-    let newIds;
-    if (selectedTimeframeIds.includes(id)) {
-      newIds = selectedTimeframeIds.filter(item => item !== id);
-    } else {
-      newIds = [...selectedTimeframeIds, id];
-    }
-    navigate(`${location.pathname}?timeframes=${newIds.join(",")}`);
-  };
+    toggleTimeframe(selectedTimeframeIds, id);
+};
 
   // --- DATA PROCESSING ---
 

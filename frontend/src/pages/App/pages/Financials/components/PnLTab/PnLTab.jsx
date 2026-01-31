@@ -1,24 +1,27 @@
+// src/pages/App/pages/Financials/components/PnLTab/PnLTab.jsx
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { useParams, useOutletContext, useSearchParams } from "react-router-dom";
+import {
+  useParams,
+  useOutletContext,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
 import {
-  UploadIcon,
+  RefreshUpIcon,
   DownloadIcon,
   EditLineIcon,
   AddFileIcon,
+  PlusIcon,
 } from "../../../../components/Icons.jsx";
 
 import {
-  pnlPeriods,
   incomeLines as BASE_INCOME,
   expenseLines as BASE_EXPENSES,
 } from "../../data/mockData.js";
 
-import {
-  useTimeframes,
-  apiRowToQuarter,
-} from "/src/components/QuarterSelection/useTimeframes";
+import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 
 import PnLIncome from "../PnLTables/PnLIncome/PnLIncome.jsx";
 import PnLExpenses from "../PnLTables/PnLExpenses/PnLExpenses.jsx";
@@ -28,109 +31,210 @@ import "./PnL.css";
 const makeId = (prefix) =>
   `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
+function getPeriodLabel(p) {
+  return (
+    (p?.label ??
+      p?.name ??
+      p?.display_label ??
+      p?.displayLabel ??
+      p?.period_name ??
+      p?.periodName ??
+      "") + ""
+  ).trim();
+}
+
+const ensureValueShape = (rows, headerPeriods) => {
+  const ids = headerPeriods.map((p) => String(p.id));
+  return rows.map((r) => {
+    const byPeriod = { ...(r?.byPeriod || {}) };
+    ids.forEach((id) => {
+      if (byPeriod[id] === undefined) byPeriod[id] = "";
+    });
+    return { ...r, byPeriod };
+  });
+};
+
+const sumForPeriod = (rows, periodId) => {
+  const pid = String(periodId);
+  return rows.reduce((acc, r) => acc + Number(r?.byPeriod?.[pid] || 0), 0);
+};
+
 const PnLTab = () => {
   const { fundId } = useOutletContext();
   const params = useParams();
   const effectiveFundId = fundId || params?.fundId || params?.id || "";
 
-  // 1. URL Persistence Setup
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // periods source
   const { quarters, isLoading, setQuarters } = useTimeframes(effectiveFundId);
 
-  // 2. Initialize state from URL Search Params
-  const [selectedTimeframeIds, setSelectedTimeframeIds] = useState(() => {
-    const ids = searchParams.get("timeframes");
-    return ids ? ids.split(",").map(Number).filter(id => !isNaN(id)) : [];
-  });
+  // URL selection (NO DEFAULTS)
+  const selectedTimeframeIds = useMemo(() => {
+    const qp = new URLSearchParams(location.search);
+    return (
+      qp
+        .get("timeframes")
+        ?.split(",")
+        .map(Number)
+        .filter((id) => !isNaN(id)) || []
+    );
+  }, [location.search]);
 
+  const setTimeframesInUrl = (ids) => {
+    const qp = new URLSearchParams(location.search);
+    const cleaned = (Array.isArray(ids) ? ids : [])
+      .map(Number)
+      .filter((n) => Number.isFinite(n));
+
+    if (cleaned.length === 0) qp.delete("timeframes");
+    else qp.set("timeframes", cleaned.join(","));
+
+    navigate({ search: qp.toString() }, { replace: true });
+  };
+
+  const handleToggleTimeframe = (id) => {
+    const numId = Number(id);
+    if (!Number.isFinite(numId)) return;
+
+    if (selectedTimeframeIds.includes(numId)) {
+      setTimeframesInUrl(selectedTimeframeIds.filter((x) => x !== numId));
+    } else {
+      setTimeframesInUrl([...selectedTimeframeIds, numId]);
+    }
+  };
+
+  const handleSaveNew = async (newTimeframe) => {
+    try {
+      const formatted = await saveNewTimeframe(effectiveFundId, newTimeframe);
+      setQuarters((prev) => [...(Array.isArray(prev) ? prev : []), formatted]);
+
+      // auto-select newly created timeframe
+      setTimeframesInUrl([...selectedTimeframeIds, Number(formatted.id)]);
+    } catch (error) {
+      console.error("PnLTab: Persistence error:", error);
+    }
+  };
+
+  // UI toggles
   const [showIncome, setShowIncome] = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
   const [showTax, setShowTax] = useState(true);
 
+  // Lines
   const [incomeLines, setIncomeLines] = useState(() => BASE_INCOME);
   const [expenseLines, setExpenseLines] = useState(() => BASE_EXPENSES);
   const [taxLines, setTaxLines] = useState(() => [
     { id: "tax_1", label: "Tax", isCustom: false },
   ]);
 
+  // Values per row per period
   const [incomeValues, setIncomeValues] = useState(() =>
-    BASE_INCOME.map(() => ({ col1: "", col2: "" }))
+    BASE_INCOME.map(() => ({ byPeriod: {} }))
   );
   const [expenseValues, setExpenseValues] = useState(() =>
-    BASE_EXPENSES.map(() => ({ col1: "", col2: "" }))
+    BASE_EXPENSES.map(() => ({ byPeriod: {} }))
   );
-  const [taxValues, setTaxValues] = useState(() => [{ col1: "", col2: "" }]);
+  const [taxValues, setTaxValues] = useState(() => [{ byPeriod: {} }]);
 
-  // 3. Sync State back to URL Address Bar
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (selectedTimeframeIds.length > 0) {
-      params.set("timeframes", selectedTimeframeIds.join(","));
-    } else {
-      params.delete("timeframes");
-    }
-    setSearchParams(params, { replace: true });
-  }, [selectedTimeframeIds, setSearchParams]);
-
-  const headerPeriods = useMemo(() => {
+  // stable sorting
+  const sortedQuarters = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
-    if (list.length === 0) return pnlPeriods;
-
-    const sorted = list
+    return list
       .slice()
-      .sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date));
+      .sort(
+        (a, b) =>
+          new Date(b.full_date || b.date) - new Date(a.full_date || a.date)
+      );
+  }, [quarters]);
 
-    if (selectedTimeframeIds.length === 0) return sorted.slice(0, 2);
+  // selected periods only
+  const headerPeriods = useMemo(() => {
+    if (!sortedQuarters?.length) return [];
+    if (selectedTimeframeIds.length === 0) return [];
+    const selectedSet = new Set(selectedTimeframeIds.map(Number));
+    return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
+  }, [sortedQuarters, selectedTimeframeIds]);
 
-    const selectedSet = new Set(selectedTimeframeIds);
-    return sorted.filter((q) => selectedSet.has(Number(q.id)));
-  }, [quarters, selectedTimeframeIds]);
+  // keep values in sync
+  useEffect(() => {
+    setIncomeValues((prev) => ensureValueShape(prev, headerPeriods));
+    setExpenseValues((prev) => ensureValueShape(prev, headerPeriods));
+    setTaxValues((prev) => ensureValueShape(prev, headerPeriods));
+  }, [headerPeriods]);
 
-  // ---------- add / remove row helpers ----------
+  // totals
+  const totalIncomeByPeriod = useMemo(() => {
+    const out = {};
+    headerPeriods.forEach((p) => (out[p.id] = sumForPeriod(incomeValues, p.id)));
+    return out;
+  }, [incomeValues, headerPeriods]);
+
+  const totalExpensesByPeriod = useMemo(() => {
+    const out = {};
+    headerPeriods.forEach(
+      (p) => (out[p.id] = sumForPeriod(expenseValues, p.id))
+    );
+    return out;
+  }, [expenseValues, headerPeriods]);
+
+  const totalTaxByPeriod = useMemo(() => {
+    const out = {};
+    headerPeriods.forEach((p) => (out[p.id] = sumForPeriod(taxValues, p.id)));
+    return out;
+  }, [taxValues, headerPeriods]);
+
+  const netByPeriod = useMemo(() => {
+    const out = {};
+    headerPeriods.forEach((p) => {
+      const id = p.id;
+      out[id] =
+        Number(totalIncomeByPeriod[id] || 0) -
+        Number(totalExpensesByPeriod[id] || 0) -
+        Number(totalTaxByPeriod[id] || 0);
+    });
+    return out;
+  }, [headerPeriods, totalIncomeByPeriod, totalExpensesByPeriod, totalTaxByPeriod]);
+
+  // add/remove rows
   const addIncomeRow = () => {
-    setIncomeLines((prev) => [...prev, { id: makeId("inc"), label: "", isCustom: true }]);
-    setIncomeValues((prev) => [...prev, { col1: "", col2: "" }]);
+    setIncomeLines((prev) => [
+      ...prev,
+      { id: makeId("inc"), label: "", isCustom: true },
+    ]);
+    setIncomeValues((prev) => [...prev, { byPeriod: {} }]);
   };
-
   const removeIncomeRow = (index) => {
     setIncomeLines((prev) => prev.filter((_, i) => i !== index));
     setIncomeValues((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addExpenseRow = () => {
-    setExpenseLines((prev) => [...prev, { id: makeId("exp"), label: "", isCustom: true }]);
-    setExpenseValues((prev) => [...prev, { col1: "", col2: "" }]);
+    setExpenseLines((prev) => [
+      ...prev,
+      { id: makeId("exp"), label: "", isCustom: true },
+    ]);
+    setExpenseValues((prev) => [...prev, { byPeriod: {} }]);
   };
-
   const removeExpenseRow = (index) => {
     setExpenseLines((prev) => prev.filter((_, i) => i !== index));
     setExpenseValues((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addTaxRow = () => {
-    setTaxLines((prev) => [...prev, { id: makeId("tax"), label: "", isCustom: true }]);
-    setTaxValues((prev) => [...prev, { col1: "", col2: "" }]);
+    setTaxLines((prev) => [
+      ...prev,
+      { id: makeId("tax"), label: "", isCustom: true },
+    ]);
+    setTaxValues((prev) => [...prev, { byPeriod: {} }]);
   };
-
   const removeTaxRow = (index) => {
     setTaxLines((prev) => prev.filter((_, i) => i !== index));
     setTaxValues((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ---------- totals ----------
-  const sumColumn = (arr, col) => arr.reduce((acc, v) => acc + Number(v?.[col] || 0), 0);
-
-  const totalIncomeCol1 = useMemo(() => sumColumn(incomeValues, "col1"), [incomeValues]);
-  const totalIncomeCol2 = useMemo(() => sumColumn(incomeValues, "col2"), [incomeValues]);
-  const totalExpensesCol1 = useMemo(() => sumColumn(expenseValues, "col1"), [expenseValues]);
-  const totalExpensesCol2 = useMemo(() => sumColumn(expenseValues, "col2"), [expenseValues]);
-  const totalTaxCol1 = useMemo(() => sumColumn(taxValues, "col1"), [taxValues]);
-  const totalTaxCol2 = useMemo(() => sumColumn(taxValues, "col2"), [taxValues]);
-
-  const netCol1 = totalIncomeCol1 - totalExpensesCol1 - totalTaxCol1;
-  const netCol2 = totalIncomeCol2 - totalExpensesCol2 - totalTaxCol2;
-
-  // ================= Upload / Save / Download =================
+  // upload/download
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -142,16 +246,19 @@ const PnLTab = () => {
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       setUploading(true);
       const form = new FormData();
       form.append("file", file);
       form.append("quarters", JSON.stringify(selectedTimeframeIds || []));
 
-      const res = await fetch(`/api/funds/${encodeURIComponent(effectiveFundId)}/financials/pnl/upload`, {
-        method: "POST", 
-        body: form 
-      });
+      const res = await fetch(
+        `/api/funds/${encodeURIComponent(
+          effectiveFundId
+        )}/financials/pnl/upload`,
+        { method: "POST", body: form }
+      );
 
       if (!res.ok) throw new Error(`Upload failed (${res.status})`);
       const data = await res.json();
@@ -164,44 +271,52 @@ const PnLTab = () => {
     }
   };
 
-  const handleDownload = () => console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
-  const handleSave = () => console.log("SAVE P&L", { fundId: effectiveFundId, selectedTimeframes: selectedTimeframeIds });
+  const handleDownload = () =>
+    console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
 
-  // 4. Update state (which triggers URL update)
-  const handleToggleTimeframe = (id) => {
-    const numId = Number(id);
-    setSelectedTimeframeIds((prev) => {
-      if (prev.includes(numId)) return prev.filter((x) => x !== numId);
-      return [...prev, numId];
-    });
-  };
+  const handleSave = () =>
+    console.log("SAVE P&L", { fundId: effectiveFundId, selectedTimeframeIds });
 
-  const handleSaveNew = async (newTimeframe) => {
-    const payload = {
-      fund: effectiveFundId,
-      display_label: newTimeframe.name,
-      full_date: newTimeframe.endDate.toISOString().split("T")[0],
-    };
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/funds/${effectiveFundId}/timeframes/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error("Persistence failed");
-      const savedRow = await response.json();
-      const formatted = apiRowToQuarter(savedRow);
-      setQuarters((prev) => [...prev, formatted]);
-      handleToggleTimeframe(formatted.id);
-    } catch (error) {
-      console.error("PnLTab: Persistence error:", error);
-    }
-  };
+  // HeaderRow
+  const HeaderRow = ({ leftSlot = null }) => (
+    <div className="table-header-row">
+      <div className="header-left-slot">{leftSlot}</div>
+
+      {headerPeriods.map((p) => {
+        const label = getPeriodLabel(p);
+        return (
+          <div key={p.id || label} className="col-period">
+            <AddFileIcon />
+            <EditLineIcon />
+            <span className="period-label">
+              {label} <span>(€)</span>
+            </span>
+          </div>
+        );
+      })}
+
+      <div />
+    </div>
+  );
+
+  const scopeVars = useMemo(
+    () => ({
+      "--pnl-cols": String(headerPeriods.length),
+
+      // label and period columns stretch, but never smaller than px
+      "--pnl-label-col": "minmax(260px, 1fr)",
+      "--pnl-period-col": "minmax(160px, 1fr)",
+
+      // actions stays fixed
+      "--pnl-actions-col": "110px",
+    }),
+    [headerPeriods.length]
+  );
 
   return (
     <>
       <div className="toolbar-row">
-        <div className="left-tools" style={{ gap: "12px", alignItems: "center" }}>
+        <div className="left-tools">
           <QuarterSelector
             options={quarters}
             selected={selectedTimeframeIds}
@@ -213,44 +328,149 @@ const PnLTab = () => {
         </div>
 
         <div className="right-tools">
-          <button className="ghost-btn" type="button" onClick={handleUploadClick} disabled={!effectiveFundId || uploading}>
-            <UploadIcon /> {uploading ? "Uploading..." : "Upload"}
+          <button
+            className="ghost-btn"
+            type="button"
+            onClick={handleUploadClick}
+            disabled={!effectiveFundId || uploading}
+          >
+            <RefreshUpIcon /> {uploading ? "Uploading..." : "Upload"}
           </button>
+
           <button className="ghost-btn" type="button" onClick={handleDownload}>
             <DownloadIcon /> Download
           </button>
         </div>
 
-        <input ref={fileInputRef} type="file" accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={handleFileSelected} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          style={{ display: "none" }}
+          onChange={handleFileSelected}
+        />
       </div>
 
+      {/* INCOME */}
       <section className="financials-card">
-        <div className="table-header-row">
-          <div />
-          {headerPeriods.map((p) => (
-            <div key={p.id || p.label || p.name} className="col-period">
-              <span className="icon-svg-muted"><AddFileIcon /></span>
-              <span className="icon-svg-muted small"><EditLineIcon /></span>
-              <span className="period-label">{p.label || p.name}</span>
-            </div>
-          ))}
-          <div />
-        </div>
+        <div className="pnl-card-scroll" style={scopeVars}>
+          <div className="pnl-grid-scope">
+            <HeaderRow
+              leftSlot={
+                <button className="pill-btn" type="button" onClick={addIncomeRow}>
+                  <PlusIcon /> Add income
+                </button>
+              }
+            />
 
-        <PnLIncome fundId={effectiveFundId} showIncome={showIncome} setShowIncome={setShowIncome} incomeLines={incomeLines} setIncomeLines={setIncomeLines} incomeValues={incomeValues} setIncomeValues={setIncomeValues} totalIncomeCol1={totalIncomeCol1} totalIncomeCol2={totalIncomeCol2} onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow} />
-        <PnLExpenses fundId={effectiveFundId} showExpenses={showExpenses} setShowExpenses={setShowExpenses} expenseLines={expenseLines} setExpenseLines={setExpenseLines} expenseValues={expenseValues} setExpenseValues={setExpenseValues} totalExpensesCol1={totalExpensesCol1} totalExpensesCol2={totalExpensesCol2} onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow} />
-        <PnLTax fundId={effectiveFundId} showTax={showTax} setShowTax={setShowTax} taxLines={taxLines} setTaxLines={setTaxLines} taxValues={taxValues} setTaxValues={setTaxValues} totalTaxCol1={totalTaxCol1} totalTaxCol2={totalTaxCol2} onAddRow={addTaxRow} onRemoveRow={removeTaxRow} />
-
-        <div className="net-row">
-          <div>Net Profit / Net loss</div>
-          <div className={`net-value ${netCol1 >= 0 ? "positive" : "negative"}`}>{netCol1.toLocaleString()}</div>
-          <div className={`net-value ${netCol2 >= 0 ? "positive" : "negative"}`}>{netCol2.toLocaleString()}</div>
-          <div />
+            <PnLIncome
+              fundId={effectiveFundId}
+              headerPeriods={headerPeriods}
+              showIncome={showIncome}
+              setShowIncome={setShowIncome}
+              incomeLines={incomeLines}
+              setIncomeLines={setIncomeLines}
+              incomeValues={incomeValues}
+              setIncomeValues={setIncomeValues}
+              totalIncomeByPeriod={totalIncomeByPeriod}
+              onAddRow={addIncomeRow}
+              onRemoveRow={removeIncomeRow}
+            />
+          </div>
         </div>
       </section>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "12px" }}>
-        <button className="btn-primary-wide" type="button" onClick={handleSave}>Save</button>
+      {/* EXPENSES */}
+      <section className="financials-card">
+        <div className="pnl-card-scroll" style={scopeVars}>
+          <div className="pnl-grid-scope">
+            <HeaderRow
+              leftSlot={
+                <button className="pill-btn" type="button" onClick={addExpenseRow}>
+                  <PlusIcon /> Add expense
+                </button>
+              }
+            />
+
+            <PnLExpenses
+              fundId={effectiveFundId}
+              headerPeriods={headerPeriods}
+              showExpenses={showExpenses}
+              setShowExpenses={setShowExpenses}
+              expenseLines={expenseLines}
+              setExpenseLines={setExpenseLines}
+              expenseValues={expenseValues}
+              setExpenseValues={setExpenseValues}
+              totalExpensesByPeriod={totalExpensesByPeriod}
+              onAddRow={addExpenseRow}
+              onRemoveRow={removeExpenseRow}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* TAX */}
+      <section className="financials-card">
+        <div className="pnl-card-scroll" style={scopeVars}>
+          <div className="pnl-grid-scope">
+            <HeaderRow
+              leftSlot={
+                <button className="pill-btn" type="button" onClick={addTaxRow}>
+                  <PlusIcon /> Add tax
+                </button>
+              }
+            />
+
+            <PnLTax
+              fundId={effectiveFundId}
+              headerPeriods={headerPeriods}
+              showTax={showTax}
+              setShowTax={setShowTax}
+              taxLines={taxLines}
+              setTaxLines={setTaxLines}
+              taxValues={taxValues}
+              setTaxValues={setTaxValues}
+              totalTaxByPeriod={totalTaxByPeriod}
+              onAddRow={addTaxRow}
+              onRemoveRow={removeTaxRow}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ✅ NET PROFIT / NET LOSS (SEPARATE CARD) */}
+      <section className="financials-card financials-card--net">
+        <div className="pnl-card-scroll" style={scopeVars}>
+          <div className="pnl-grid-scope">
+            <div className="net-row net-row--standalone">
+              <div>Net Profit / Net loss</div>
+
+              {headerPeriods.map((p) => {
+                const v = Number(netByPeriod[p.id] || 0);
+                return (
+                  <div
+                    key={p.id}
+                    className={`net-value ${v >= 0 ? "positive" : "negative"}`}
+                  >
+                    {v.toLocaleString()}
+                  </div>
+                );
+              })}
+
+              <div />
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <div className="pnl-footer">  
+        <div className="pnl-actions">
+          <button 
+          className="pnl-btn-save" 
+          onClick={handleSave}>
+            Save
+          </button>
+        </div>
       </div>
     </>
   );

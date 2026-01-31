@@ -1,13 +1,18 @@
+// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLExpenses/PnLExpenses.jsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   EditLineIcon,
+  PlusIcon,
+  MinusIcon,
   TrashBinIcon,
   KebabIcon,
 } from "../../../../../components/Icons.jsx";
-import "./PnLExpenses.css";
+import "../FinancialTables.css";
 
 const PnLExpenses = ({
   fundId,
+  headerPeriods = [],
+
   showExpenses,
   setShowExpenses,
 
@@ -17,17 +22,15 @@ const PnLExpenses = ({
   expenseValues,
   setExpenseValues,
 
-  totalExpensesCol1,
-  totalExpensesCol2,
+  totalExpensesByPeriod = {},
 
   onAddRow,
   onRemoveRow,
 }) => {
-  // ✅ same as Income: edit ONLY base line label
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
 
-  // ✅ kebab dropdown open row id
+  // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuWrapRef = useRef(null);
 
@@ -52,6 +55,7 @@ const PnLExpenses = ({
     };
   }, [openMenuId]);
 
+  // keep draft synced when you switch rows
   useEffect(() => {
     if (!editingId) return;
     const line = expenseLines.find((l) => l.id === editingId);
@@ -79,36 +83,28 @@ const PnLExpenses = ({
     setDraftLabel("");
   };
 
+  const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
+
   return (
-    // ✅ IMPORTANT wrapper for scoped .pnl-expenses CSS
     <div className="pnl-expenses">
-      <div className="group-row group-row--band">
-        <button
-          className="group-toggle"
-          type="button"
-          onClick={() => setShowExpenses((v) => !v)}
-        >
-          <span className="sign">{showExpenses ? "−" : "+"}</span>
-          Expenses
-        </button>
-
-        <div className="group-value">{totalExpensesCol1.toLocaleString()}</div>
-        <div className="group-value">{totalExpensesCol2.toLocaleString()}</div>
-
-        <div className="group-action-cell">
-          <button className="pill-btn" type="button" onClick={onAddRow}>
-            + Add expenses
-          </button>
-        </div>
-      </div>
-
+      {/* ===== EXPENSE ROWS ===== */}
       {showExpenses &&
         expenseLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
 
+          // ✅ restore zebra striping (same behavior as Income)
+          const rowClass =
+            index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
+
+          // ✅ ONLY the custom "Type here" row gets this marker class
+          const typeHereClass = line.isCustom ? "detail-row--typehere" : "";
+
           return (
-            <div className="detail-row" key={line.id}>
-              {/* ✅ LABEL CELL (pen here, like Income) */}
+            <div
+              className={`detail-row ${rowClass} ${typeHereClass}`}
+              key={line.id}
+            >
+              {/* LABEL */}
               <div className="detail-label">
                 {line.isCustom ? (
                   <input
@@ -136,8 +132,6 @@ const PnLExpenses = ({
                 ) : (
                   <>
                     <span className="detail-label-text">{line.label}</span>
-
-                    {/* ✅ clickable pen (NO BOX) */}
                     <button
                       type="button"
                       className="pnl-edit-btn"
@@ -151,41 +145,39 @@ const PnLExpenses = ({
                 )}
               </div>
 
-              {/* ✅ COL 1 */}
-              <div className="detail-input-wrapper">
-                <input
-                  className="amount-input"
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="e.g 100"
-                  value={expenseValues[index]?.col1 ?? ""}
-                  onChange={(e) => {
-                    const copy = [...expenseValues];
-                    copy[index] = { ...copy[index], col1: e.target.value };
-                    setExpenseValues(copy);
-                  }}
-                />
-              </div>
+              {/* PERIOD INPUTS */}
+              {periods.map((p) => {
+                const pid = String(p.id);
+                const value = expenseValues[index]?.byPeriod?.[pid] ?? "";
 
-              {/* ✅ COL 2 */}
-              <div className="detail-input-wrapper">
-                <input
-                  className="amount-input"
-                  type="number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="e.g 100"
-                  value={expenseValues[index]?.col2 ?? ""}
-                  onChange={(e) => {
-                    const copy = [...expenseValues];
-                    copy[index] = { ...copy[index], col2: e.target.value };
-                    setExpenseValues(copy);
-                  }}
-                />
-              </div>
+                return (
+                  <div key={pid} className="detail-input-wrapper">
+                    <input
+                      className="amount-input"
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={value}
+                      onChange={(e) => {
+                        const copy = [...expenseValues];
+                        const row = copy[index] || { byPeriod: {} };
 
-              {/* ✅ ACTIONS */}
+                        copy[index] = {
+                          ...row,
+                          byPeriod: {
+                            ...(row.byPeriod || {}),
+                            [pid]: e.target.value,
+                          },
+                        };
+
+                        setExpenseValues(copy);
+                      }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* ACTIONS (kebab always in last column) */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
                   <div className="pnl-kebab-wrap" ref={menuWrapRef}>
@@ -204,7 +196,12 @@ const PnLExpenses = ({
                     </button>
 
                     {openMenuId === line.id && (
-                      <div className="pnl-kebab-menu" role="menu">
+                      <div
+                        className={`pnl-kebab-menu ${
+                          periods.length === 0 ? "pnl-kebab-menu--below" : ""
+                        }`}
+                        role="menu"
+                      >
                         <button
                           type="button"
                           className="pnl-kebab-item pnl-kebab-delete"
@@ -227,6 +224,29 @@ const PnLExpenses = ({
             </div>
           );
         })}
+
+      {/* ===== EXPENSES HEADER (BLUE BAND) (MOVED TO BOTTOM) ===== */}
+      <div className="group-row group-row--band">
+        <div className="group-left">
+          <button
+            className="group-toggle"
+            type="button"
+            onClick={() => setShowExpenses((v) => !v)}
+          >
+            {showExpenses ? <MinusIcon /> : <PlusIcon />}
+            Expenses
+          </button>
+        </div>
+
+        {periods.map((p) => (
+          <div key={p.id} className="group-value">
+            {Number(totalExpensesByPeriod?.[p.id] || 0).toLocaleString()}
+          </div>
+        ))}
+
+        {/* ✅ keep last column empty (Add button is in header row now) */}
+        <div className="group-action-cell" />
+      </div>
     </div>
   );
 };

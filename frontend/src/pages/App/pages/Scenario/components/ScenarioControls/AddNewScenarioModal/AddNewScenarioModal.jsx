@@ -8,7 +8,6 @@ import { CloseIcon } from '../Icons';
 function AddNewScenarioModal({ author, onSave, onClose }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-
     const handleSave = () => {
         if (!name || !description) return;
 
@@ -28,7 +27,7 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
       <div className="modal-content-add-scenario" onClick={e => e.stopPropagation()}>
         
         {/* --- HEADER --- */}
-        <div className="modal-header">
+        <div className="modal-header-add-scenario">
           <h2 className="modal-title-add-scenario">Add A New Scenario</h2>
           <div className="close-btn-wrapper" onClick={onClose}>
             <CloseIcon />
@@ -36,8 +35,8 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
         </div>
 
         {/* --- BODY: Inputs --- */}
-        <div className="modal-body">
-          <div className="input-group">
+        <div className="modal-body-add-scenario">
+          <div className="input-group-add-scenario">
             <label className="input-label">Name *</label>
             <input 
                 type="text" 
@@ -60,12 +59,12 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
         </div>
 
         {/* --- FOOTER: Buttons --- */}
-        <div className="modal-footer">
-          <button className="btn-cancel" onClick={onClose}>
+        <div className="modal-footer-add-scenario">
+          <button className="btn-cancel-add-scenario" onClick={onClose}>
             Cancel
           </button>
           <button 
-                className="btn-save" 
+                className="btn-save-add-scenario" 
                 onClick={handleSave}
                 disabled={!name || !description} // Disable until fields are populated
             >

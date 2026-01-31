@@ -2,7 +2,7 @@ import React from 'react';
 // 1. Remove useParams (we will use the custom hook instead for consistency)
 // import { useParams } from 'react-router-dom'; 
 
-import { useFundData } from '../../hooks/useFundData';     // Import the Data Hook
+import { useFundData } from '../../hooks/Core/FundContext';     // Import the Data Hook
 import { useActiveFund } from '../../hooks/useActiveFund'; // Import the ID Hook
 import './Header.css';
 

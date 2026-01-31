@@ -3,7 +3,7 @@ import { useOutletContext, useNavigate, useLocation, useParams } from 'react-rou
 import { LIMITS_DATA } from "../../portfolioData";
 import NewLimitPanel from "./components/NewLimitPanel";
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter } from '../../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter } from '../../../../hooks/Core/useTimeframes';
 import { PlusIcon, SortIcon } from "../../icons.jsx"; 
 
 const PortfolioLimitsTab = () => {

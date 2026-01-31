@@ -28,7 +28,7 @@
 }
 
 /* --- HEADER (Title + Close Button) --- */
-.modal-header {
+.modal-header-add-scenario {
   display: flex;
   justify-content: space-between;
   align-items: flex-start; /* Aligns top if title wraps */
@@ -55,14 +55,14 @@
 .close-btn-wrapper:hover { background: #F0F0F0; }
 
 /* --- BODY (Inputs) --- */
-.modal-body {
+.modal-body-add-scenario {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
 }
 
-.input-group {
+.input-group-add-scenario {
   display: flex; 
   flex-direction: column; 
   gap: 6px;
@@ -108,14 +108,14 @@
 }
 
 /* --- FOOTER (Buttons) --- */
-.modal-footer {
+.modal-footer-add-scenario {
   display: flex;
   flex-direction: row;
   gap: 12px;
   width: 100%;
 }
 
-.btn-cancel, .btn-save {
+.btn-cancel-add-scenario, .btn-save-add-scenario {
   flex: 1; /* Makes buttons equal width and fills space */
   height: 40px;
   border-radius: 4px; 
@@ -129,12 +129,12 @@
   align-items: center;
 }
 
-.btn-cancel {
+.btn-cancel-add-scenario {
   background: #FAFAF9; 
   color: #7B7D7E;
 }
 
-.btn-save {
+.btn-save-add-scenario {
   background: #F7A93B; 
   color: #FFFFFF;
 }

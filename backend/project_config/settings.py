@@ -38,13 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     "rest_framework",
     "corsheaders",
     'rest_api'
-]
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
 ]
 
 MIDDLEWARE = [
@@ -142,6 +139,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 # This ensures WhiteNoise can serve files from the folder you just defined
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

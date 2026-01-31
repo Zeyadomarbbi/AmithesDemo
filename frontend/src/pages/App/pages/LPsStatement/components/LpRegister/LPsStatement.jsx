@@ -13,6 +13,58 @@ import AddPeriodModal from "./AddPeriodModal.jsx";
 /* ✅ KEEP CONST BUT EMPTY */
 export const INITIAL_LPS = [];
 
+/* ✅ STATIC DEMO DATA (for meeting) */
+const DEMO_LPS = [
+  {
+    id: 1,
+    name: "Alice Right",
+    initials: "AR",
+    sharesRows: [
+      { type: "Class A1", commitment: "2 000 000", classColor: "tag-purple" },
+    ],
+  },
+  {
+    id: 2,
+    name: "AKA Partners",
+    initials: "AA",
+    sharesRows: [
+      { type: "Class A1", commitment: "25 000 000", classColor: "tag-purple" },
+    ],
+  },
+  {
+    id: 3,
+    name: "Vasco Durand",
+    initials: "VD",
+    sharesRows: [
+      { type: "Class B", commitment: "500 000", classColor: "tag-yellow" },
+    ],
+  },
+  {
+    id: 4,
+    name: "AST Feeder",
+    initials: "AF",
+    sharesRows: [
+      { type: "Class B", commitment: "500 000", classColor: "tag-yellow" },
+    ],
+  },
+  {
+    id: 5,
+    name: "CVC Capital",
+    initials: "CV",
+    sharesRows: [
+      { type: "Class A2", commitment: "3 000 000", classColor: "tag-green" },
+    ],
+  },
+  {
+    id: 6,
+    name: "Jean Dupont",
+    initials: "JD",
+    sharesRows: [
+      { type: "Class A2", commitment: "20 000 000", classColor: "tag-green" },
+    ],
+  },
+];
+
 /* -------- helpers -------- */
 function parseAmount(value) {
   if (!value) return 0;
@@ -116,14 +168,20 @@ function getLpCommitmentNumber(lp) {
 
 function initialsFromName(name = "") {
   const parts = String(name).trim().split(" ").filter(Boolean);
-  return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "LP";
+  return (
+    parts
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("") || "LP"
+  );
 }
 
 function normalizeShareClassName(scName) {
   const s = String(scName || "").trim();
   if (!s) return "-";
   // If DB stores "A1" -> show "Class A1"
-  if (/^A\d+$/i.test(s) || /^B$/i.test(s) || /^C$/i.test(s)) return `Class ${s.toUpperCase()}`;
+  if (/^A\d+$/i.test(s) || /^B$/i.test(s) || /^C$/i.test(s))
+    return `Class ${s.toUpperCase()}`;
   // If DB stores already "Class A1" keep it
   if (s.toLowerCase().startsWith("class")) return s;
   return s;
@@ -165,7 +223,7 @@ export default function LPsStatement({
   };
 
   /* ✅ DB Period selector (real periods from Postgres) */
-  const API_BASE = "https://dual-pam-bbi-59551b8d.koyeb.app/api";
+  const API_BASE = "http://127.0.0.1:8000/api";
   const [dbPeriods, setDbPeriods] = React.useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState(null);
 
@@ -181,7 +239,9 @@ export default function LPsStatement({
     (async () => {
       try {
         setDbError(null);
-        const data = await fetchJSON(`${API_BASE}/funds/${fundId}/closing-periods/`);
+        const data = await fetchJSON(
+          `${API_BASE}/funds/${fundId}/closing-periods/`
+        );
         if (!alive) return;
 
         setDbPeriods(Array.isArray(data) ? data : []);
@@ -249,7 +309,10 @@ export default function LPsStatement({
 
         // compute ownership for OperationStep2 (0..1) per LP
         const lpsArr = Array.from(byLp.values());
-        const totalAll = lpsArr.reduce((acc, lp) => acc + (lp._commitmentNumber || 0), 0);
+        const totalAll = lpsArr.reduce(
+          (acc, lp) => acc + (lp._commitmentNumber || 0),
+          0
+        );
 
         const finalLps = lpsArr.map((lp) => {
           const pct = totalAll > 0 ? (lp._commitmentNumber || 0) / totalAll : 0;
@@ -279,8 +342,8 @@ export default function LPsStatement({
     };
   }, [fundId, selectedPeriodId]);
 
-  // ✅ Use DB LPs when fundId exists; otherwise fallback to props
-  const effectiveLps = fundId ? dbLps : lps;
+  // ✅ Use STATIC DEMO data for meeting (keeps DB logic intact for later)
+  const effectiveLps = DEMO_LPS;
 
   /* FILTERED LP LIST */
   const filteredLps = React.useMemo(() => {
@@ -365,7 +428,9 @@ export default function LPsStatement({
       <div className="lp-tabs-wrapper">
         <div className="lp-tabs">
           <button
-            className={`lp-tab ${activeTab === "register" ? "lp-tab-active" : ""}`}
+            className={`lp-tab ${
+              activeTab === "register" ? "lp-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("register")}
           >
             LPs Register
@@ -386,7 +451,9 @@ export default function LPsStatement({
           </button>
 
           <button
-            className={`lp-tab ${activeTab === "limits" ? "lp-tab-active" : ""}`}
+            className={`lp-tab ${
+              activeTab === "limits" ? "lp-tab-active" : ""
+            }`}
             onClick={() => setActiveTab("limits")}
           >
             Limits
@@ -397,31 +464,6 @@ export default function LPsStatement({
       {activeTab === "register" && (
         <>
           {/* ✅ DB period selector (real from Postgres) */}
-          {fundId && (
-            <div style={{ display: "flex", justifyContent: "flex-end", margin: "6px 0 10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "#6b7280" }}>Closing period:</span>
-                <select
-                  value={selectedPeriodId ?? ""}
-                  onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
-                  style={{
-                    height: 32,
-                    borderRadius: 8,
-                    border: "1px solid #e6e9f1",
-                    padding: "0 10px",
-                    fontSize: 13,
-                    background: "#fff",
-                  }}
-                >
-                  {dbPeriods.map((p) => (
-                    <option key={p.period_id} value={p.period_id}>
-                      {p.period_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
 
           {dbError && (
             <div style={{ padding: "8px 0", color: "#b42318", fontSize: 13 }}>
@@ -445,14 +487,21 @@ export default function LPsStatement({
 
               <div className="lp-class-filter">
                 <button
-                  className={`lp-chip ${activeClass === "A1" ? "lp-chip-active" : ""}`}
+                  className={`lp-chip ${
+                    activeClass === "A1" ? "lp-chip-active" : ""
+                  }`}
                   onClick={() => setActiveClass("A1")}
                   type="button"
                 >
                   <span className="lp-chip-label">Class A1</span>
                   {activeClass === "A1" && (
                     <span className="lp-chip-clear" onClick={clearClassFilter}>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 10 10"
+                        fill="none"
+                      >
                         <path
                           d="M8.79981 0.800781L0.799805 8.80078M0.799805 0.800781L8.79981 8.80078"
                           stroke="white"
@@ -466,14 +515,21 @@ export default function LPsStatement({
                 </button>
 
                 <button
-                  className={`lp-chip ${activeClass === "B" ? "lp-chip-active" : ""}`}
+                  className={`lp-chip ${
+                    activeClass === "B" ? "lp-chip-active" : ""
+                  }`}
                   onClick={() => setActiveClass("B")}
                   type="button"
                 >
                   <span className="lp-chip-label">Class B</span>
                   {activeClass === "B" && (
                     <span className="lp-chip-clear" onClick={clearClassFilter}>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 10 10"
+                        fill="none"
+                      >
                         <path
                           d="M8.79981 0.800781L0.799805 8.80078M0.799805 0.800781L8.79981 8.80078"
                           stroke="white"
@@ -487,14 +543,21 @@ export default function LPsStatement({
                 </button>
 
                 <button
-                  className={`lp-chip ${activeClass === "A2" ? "lp-chip-active" : ""}`}
+                  className={`lp-chip ${
+                    activeClass === "A2" ? "lp-chip-active" : ""
+                  }`}
                   onClick={() => setActiveClass("A2")}
                   type="button"
                 >
                   <span className="lp-chip-label">Class A2</span>
                   {activeClass === "A2" && (
                     <span className="lp-chip-clear" onClick={clearClassFilter}>
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 10 10"
+                        fill="none"
+                      >
                         <path
                           d="M8.79981 0.800781L0.799805 8.80078M0.799805 0.800781L8.79981 8.80078"
                           stroke="white"
@@ -510,9 +573,19 @@ export default function LPsStatement({
             </div>
 
             <div className="lp-toolbar-right">
-              <button className="btn-add-transfer" type="button" onClick={onOpenTransfer}>
+              <button
+                className="btn-add-transfer"
+                type="button"
+                onClick={onOpenTransfer}
+              >
                 <span className="icon-transfer">
-                  <svg width="14" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 12 14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path
                       fillRule="evenodd"
                       clipRule="evenodd"
@@ -524,7 +597,10 @@ export default function LPsStatement({
                 Add transfer
               </button>
 
-              <button className="btn-newlp" onClick={() => onOpenNewLp(true, periods)}>
+              <button
+                className="btn-newlp"
+                onClick={() => onOpenNewLp(true, periods)}
+              >
                 <PlusIcon />
                 <span>New LP</span>
               </button>
@@ -592,7 +668,9 @@ export default function LPsStatement({
 
                         {periods.map((p) => (
                           <td key={p.id} className="td-right">
-                            {lp.periodValues?.[p.id] ?? lp.periodValues?.[p.name] ?? ""}
+                            {lp.periodValues?.[p.id] ??
+                              lp.periodValues?.[p.name] ??
+                              ""}
                           </td>
                         ))}
                       </tr>
@@ -617,7 +695,11 @@ export default function LPsStatement({
               </table>
             </div>
 
-            <button className="side-plus-btn" type="button" onClick={openPeriodModal}>
+            <button
+              className="side-plus-btn"
+              type="button"
+              onClick={openPeriodModal}
+            >
               +
             </button>
           </div>

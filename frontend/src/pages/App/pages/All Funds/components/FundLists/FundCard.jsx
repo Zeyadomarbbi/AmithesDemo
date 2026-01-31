@@ -1,13 +1,30 @@
 import React from "react";
 import "./FundCard.css";
 
-export default function FundCard({ fund, clickable = false, onClick }) {
-  const toneClass =
-    fund.badgeTone === "warn"
-      ? "badge-warn"
-      : fund.badgeTone === "success"
-      ? "badge-success"
-      : "badge-info";
+export default function FundCard({ fund, fundKpi, clickable = false, onClick }) {
+    const getToneClass = (phase) => {
+    const phaseLower = phase?.toLowerCase() || "";
+
+    if (
+      phaseLower.includes("marketing") ||
+      phaseLower.includes("fundraising") ||
+      phaseLower.includes("investment")
+    ) {
+      return "badge-investment";
+    }
+
+    if (phaseLower.includes("divestment")) {
+      return "badge-divestment";
+    }
+
+    if (phaseLower.includes("liquidation") || phaseLower.includes("closed")) {
+      return "badge-closed";
+    }
+
+    return "badge-info"; // Fallback
+  };
+
+  const toneClass = getToneClass(fund.phaseName);
 
   const handleKeyDown = (e) => {
     if (!clickable) return;
@@ -16,8 +33,8 @@ export default function FundCard({ fund, clickable = false, onClick }) {
       onClick?.();
     }
   };
-
-  return (
+  const formatKpi = (val) => (val !== undefined && val !== null && val !== "" ? val : "-");
+return (
     <div
       className={`fund-card ${clickable ? "clickable" : ""}`}
       onClick={clickable ? onClick : undefined}
@@ -34,12 +51,11 @@ export default function FundCard({ fund, clickable = false, onClick }) {
 
           <div className="fund-created">{fund.formationDate}</div>
 
-          <div className={`fund-badge ${toneClass}`}>{fund.badgeText}</div>
+          <div className={`fund-badge ${toneClass}`}>{fund.phaseName}</div>
         </div>
 
         <div className="fund-arrow">
           <div className="arrow-circle">
-            {/* 🔹 Inline SVG so it always works */}
             <svg
               className="arrow-icon"
               width="11"
@@ -62,17 +78,17 @@ export default function FundCard({ fund, clickable = false, onClick }) {
       <div className="fund-stats">
         <div className="stat-box">
           <div className="stat-label">Gross IRR</div>
-          <div className="stat-value">{fund.grossIrr}</div>
+          <div className="stat-value">{formatKpi(fundKpi?.grossIrr)}</div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label">Net IRR</div>
-          <div className="stat-value">{fund.netIrr}</div>
+          <div className="stat-value">{formatKpi(fundKpi?.netIrr)}</div>
         </div>
 
         <div className="stat-box">
           <div className="stat-label"># Deals</div>
-          <div className="stat-value">{fund.deals}</div>
+          <div className="stat-value">{formatKpi(fundKpi?.deals)}</div>
         </div>
       </div>
     </div>

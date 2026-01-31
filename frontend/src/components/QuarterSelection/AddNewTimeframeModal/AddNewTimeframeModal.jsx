@@ -7,22 +7,43 @@ import './AddNewTimeframeModal.css';
 const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) => {
     const [endDate, setEndDate] = useState(new Date(new Date().getFullYear() + 1, 2, 31));
     const [name, setName] = useState('');
+    const [isManualName, setIsManualName] = useState(false); // Tracks user interaction
 
+    // Logic: Auto-generate name based on date ONLY if user hasn't typed anything
     useEffect(() => {
-        if (endDate) {
+        if (endDate && !isManualName) {
             const year = endDate.getFullYear();
             const month = endDate.getMonth();
             const quarterNum = Math.floor(month / 3) + 1;
             const autoName = `Q${quarterNum} ${year}`;
             setName(autoName);
         }
-    }, [endDate]);
+    }, [endDate, isManualName]);
+
+    // Reset manual flag when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setIsManualName(false);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
+    const handleNameChange = (e) => {
+        const value = e.target.value;
+        setName(value);
+        
+        // If user clears the input, revert to automatic logic
+        if (value.trim() === "") {
+            setIsManualName(false);
+        } else {
+            setIsManualName(true);
+        }
+    };
+
     const handleSave = () => {
-        // Validate duplicates
         if (endDate && existingDates.length > 0) {
+            // Ensure comparison matches your existingDates format
             const formattedCurrentDate = endDate.toLocaleDateString('en-US', {
                 year: '2-digit',
                 month: '2-digit',
@@ -31,7 +52,7 @@ const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) =
 
             if (existingDates.includes(formattedCurrentDate)) {
                 alert(`The date ${formattedCurrentDate} already exists. Please select a different date.`);
-                return; // Stop execution, do not close modal
+                return;
             }
         }
 
@@ -53,17 +74,15 @@ const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) =
 
                 {/* Body */}
                 <div className="antfm-modal-body">
-                    
-                    {/* Name Field (Read Only) */}
                     <div className="antfm-form-group">
                         <label className="antfm-form-label" htmlFor="antfm-name-input">Name *</label>
                         <input
                             id="antfm-name-input"
-                            className="antfm-form-input antfm-read-only"
+                            className="antfm-form-input"
                             type="text"
                             value={name}
-                            readOnly 
-                            tabIndex="-1" 
+                            onChange={handleNameChange}
+                            placeholder="e.g. Q1 2024"
                         />
                     </div>
                     
@@ -89,7 +108,7 @@ const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) =
                     <button 
                         className="antfm-btn antfm-btn-save" 
                         onClick={handleSave}
-                        disabled={!name}
+                        disabled={!name.trim()}
                     >
                         Save
                     </button>

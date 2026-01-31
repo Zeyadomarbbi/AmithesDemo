@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from './useApi';
 
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
 
 export function useFundDetails(fundId) {
     const [fund, setFund] = useState(null);
@@ -15,7 +15,7 @@ export function useFundDetails(fundId) {
         setError(null);
 
         try {
-            const response = await fetch(`${BASE_URL}/funds/${fundId}/`);
+            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/`);
             
             if (!response.ok) {
                 throw new Error(`Error: ${response.status}`);

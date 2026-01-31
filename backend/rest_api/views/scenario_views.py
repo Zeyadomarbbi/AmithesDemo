@@ -1,0 +1,95 @@
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
+from rest_framework import status
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+
+from ..models.transactions import *
+from ..serializers.scenario_serializers import *
+
+class FundScenarioListView(APIView):
+    def get(self, request, fund_id, pk=None):
+        if pk:
+            scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+            serializer = ScenarioSerializer(scenario)
+            return Response(serializer.data)
+        
+        qs = ScenarioList.objects.filter(fund_id=fund_id, is_deleted=False).order_by("-created_at")
+        serializer = ScenarioSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        serializer = ScenarioSerializer(
+            data=request.data, 
+            context={"fund_id": fund_id}
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        # Handle metadata
+        author = request.data.get("created_by") or (
+            request.user.username if request.user.is_authenticated else "system"
+        )
+        
+        serializer.save(fund_id=fund_id, created_by=author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def put(self, request, fund_id, pk):
+        scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+        serializer = ScenarioSerializer(
+            scenario, 
+            data=request.data, 
+            context={"fund_id": fund_id},
+            partial=False
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_at=timezone.now())
+        return Response(serializer.data)
+
+    def delete(self, request, fund_id, pk):
+        """
+        Implements Soft Delete as per new model schema.
+        """
+        scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id)
+        scenario.is_deleted = True
+        scenario.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class FundScenarioSynthesisView(APIView):
+    def get(self, request, fund_id, pk=None):
+        if pk:
+            synthesis = get_object_or_404(
+                ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False
+            )
+            serializer = ScenarioSynthesisSerializer(synthesis)
+            return Response(serializer.data)
+        
+        qs = ScenarioSynthesis.objects.filter(fund_id=fund_id, is_deleted=False)
+        serializer = ScenarioSynthesisSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, fund_id):
+        data = request.data.copy()
+        data['fund'] = fund_id
+        
+        serializer = ScenarioSynthesisSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        
+        author = data.get("created_by") or (
+            request.user.username if request.user.is_authenticated else "system"
+        )
+        serializer.save(fund_id=fund_id, created_by=author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def put(self, request, fund_id, pk):
+        synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False)
+        serializer = ScenarioSynthesisSerializer(synthesis, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, fund_id, pk):
+        synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id)
+        synthesis.is_deleted = True
+        synthesis.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

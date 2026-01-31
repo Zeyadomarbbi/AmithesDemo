@@ -232,3 +232,126 @@
   font-weight: 400;
   color: #64748b;
 }
+.portfolio-section .portfolio-table-card {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.filter-btn {
+  padding: 0;
+  background: transparent;
+}
+/* ===== Remove circle background from table icons ===== */
+.icon-circle-btn {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-circle-btn:hover {
+  background: transparent;
+}
+/* ===== Table header background ===== */
+.portfolio-table thead {
+  background: #ffffff;
+}
+.portfolio-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #ffffff;
+}
+.portfolio-table th {
+  background: #ffffff;
+}
+/* ===== FORCE white header background ===== */
+.portfolio-table thead,
+.portfolio-table thead tr,
+.portfolio-table thead th {
+  background-color: #ffffff !important;
+}
+
+.portfolio-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+/* ===== Remove top line / border above table headers ===== */
+.portfolio-table thead,
+.portfolio-table thead tr,
+.portfolio-table thead th {
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+/* لو الخط جاي من الجدول نفسه */
+.portfolio-table {
+  border-top: none !important;
+}
+
+/* لو الخط جاي من الكارد الحاوي للجدول */
+.portfolio-table-card {
+  border-top: none !important;
+}
+.portfolio-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+/* =====================================
+   FORCE REMOVE ANY LINE ABOVE HEADERS
+   ===================================== */
+
+/* table + header */
+.portfolio-table,
+.portfolio-table thead,
+.portfolio-table thead tr,
+.portfolio-table thead th {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* card / wrapper */
+.portfolio-table-card,
+.portfolio-section,
+.portfolio-section-header {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* kill pseudo elements (VERY IMPORTANT) */
+.portfolio-table-card::before,
+.portfolio-table-card::after,
+.portfolio-section::before,
+.portfolio-section::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* sticky header safety */
+.portfolio-table thead th {
+  background: #ffffff !important;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.portfolio-section-header {
+  border-bottom: 0px solid #e5e7eb; /* line خفيف */
+  padding-bottom: 12px;
+  margin-bottom: 0; /* مهم */
+}
+.portfolio-table th {
+  white-space: nowrap;
+  text-align: left;
+  vertical-align: middle;
+  cursor: pointer; /* عشان يبين إنه قابل للضغط للترتيب مستقبلاً */
+}

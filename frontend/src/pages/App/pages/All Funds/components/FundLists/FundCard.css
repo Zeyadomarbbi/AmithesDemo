@@ -68,8 +68,6 @@
 /* badge between date + stats */
 .fund-badge {
   height: 20px;
-  width: 90.5px;
-  gap: 2px;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -79,20 +77,30 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  width: fit-content; /* Changed from fixed width to accommodate longer text */
 }
 
-.badge-info {
-  background: #d3f2ff;
+.badge-investment {
+  background-color: #d3f2ff;
   color: #4c6977;
 }
-.badge-warn {
-  background: #fef1bf;
+
+/* Divestment Related: Divestment period */
+.badge-divestment {
+  background-color: #fef1bf;
   color: #854c0a;
 }
-.badge-success {
-  background: #daf8e3;
+
+/* Closed Related: Liquidation period */
+.badge-closed {
+  background-color: #daf8e3;
   color: #1a6433;
-  
+}
+
+/* Fallback/Default */
+.badge-info {
+  background-color: #f3f4f6;
+  color: #374151;
 }
 
 /* arrow on the right */
@@ -140,11 +148,25 @@
 }
 
 .stat-label {
-  font-size: 12px;
-  line-height: 16px;
+  font-family: 'Inter';
+  font-style: normal;
   font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  display: flex;
+  align-items: center;
   letter-spacing: 0.01em;
-  color: #375A89;           
+
+  color: #375A89;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+  
 }
 
 .stat-value {

@@ -1,5 +1,5 @@
 /* Container */
-.tabs-frame {
+.scenario-tabs-frame {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
@@ -17,7 +17,7 @@
 }
 
 /* Tab Button Default (Inactive) */
-.tab-item {
+.scenario-tab-item {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -49,21 +49,21 @@
 }
 
 /* Icon Default Color */
-.tab-item svg {
+.scenario-tab-item svg {
   color: #6B7280;
   transition: color 0.2s ease;
 }
 
 /* Hover State */
-.tab-item:hover {
+.scenario-tab-item:hover {
   color: #375A89;
 }
-.tab-item:hover svg {
+.scenario-tab-item:hover svg {
   color: #375A89;
 }
 
 /* === ACTIVE STATE (Flat with Orange Line) === */
-.tab-item.active {
+.scenario-tab-item.active {
   background: transparent; /* CRITICAL: Removes the white card background */
   color: #375A89; /* Blue Text */
   
@@ -79,6 +79,6 @@
 }
 
 /* Active Icon Color */
-.tab-item.active svg {
+.scenario-tab-item.active svg {
   color: #375A89; /* Blue Icon */
 }

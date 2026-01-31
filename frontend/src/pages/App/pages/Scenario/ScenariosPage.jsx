@@ -1,12 +1,11 @@
 import React from 'react';
-import { useParams, Outlet } from 'react-router-dom'; 
-import { useScenarioHandlers } from './useScenarioHandlers';
+import { Outlet, useMatch, useParams, useNavigate } from 'react-router-dom';
+import { useScenarioHandlers } from '../../hooks/Scenarios/useScenarioHandlers';
 import AddNewScenarioModal from './components/ScenarioControls/AddNewScenarioModal/AddNewScenarioModal';
 import CreateSynthesisModal from './components/ScenarioControls/CreateSynthesisModal/CreateSynthesisModal';
 import ScenarioList from './components/ScenarioList/ScenarioList';
 import SynthesisList from './components/SynthesisList/SynthesisList';
 import ScenarioControls from './components/ScenarioControls/ScenarioControls';
-
 import './ScenariosPage.css'; 
 
 // Move outside component to prevent re-creation
@@ -26,9 +25,7 @@ function apiRowToScenario(row) {
 function ScenariosPage() {
     const { fundId } = useParams();
     const author = "Abdelrahman Rabah";
-    
     const { state, actions } = useScenarioHandlers(fundId, author, apiRowToScenario);
-
     return (
         <div className="scenarios-page-container">
             <div className="scenarios-frame-1">
@@ -76,7 +73,11 @@ function ScenariosPage() {
                  />
             )}
             
-            <Outlet />
+            <Outlet
+            context={{
+                fundId: fundId
+            }}
+            />
         </div>
     );
 }

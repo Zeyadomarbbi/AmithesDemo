@@ -1,145 +1,133 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { API_BASE_URL } from "./useApi";
 
-const BASE_URL = 'https://dual-pam-bbi-59551b8d.koyeb.app';
-
-// 1. Create the Context
 const FundContext = createContext(null);
 
-// 2. The Provider Component (Holds the "Single Source of Truth")
 export function FundProvider({ children }) {
   const [funds, setFunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // --- HELPER: FORMAT BACKEND DATA TO FRONTEND STRUCTURE ---
-  // Defined outside or inside (if inside, it doesn't need deps here as it's pure)
   const formatFund = (f) => ({
     id: f.fund_id,
-    created_at: f.created_at,
-    updated_at: f.updated_at,
     name: f.legal_name,
     shortName: f.short_name,
-    legalForm: f.legal_form || "",
-    manCo: f.management_company || "",
-    strategy: f.fund_strategy || "",
-    formationDate: f.formation_date_string,
-    formationDateId: f.formation_date,
-    currencyId: f.currency,
-    currencyName: f.currency_name,
-    currencySymbol: f.currency_symbol,
-    phaseId: f.phase,
-    badgeText: f.phase_name || "–",
-    grossIrr: "–", netIrr: "–", dpi: "–", rvpi: "–", tvpi: "–", deals: "–"
+    formationDate: f.formation_date, 
+    currencyId: f.currency_id,
+    legalForm: f.legal_form ?? "",
+    manCo: f.management_company ?? "",
+    strategy: f.fund_strategy ?? "",
+    phaseName: f.phase_name,
+    createdAt: f.created_at,
+    updatedAt: f.updated_at ?? null,
+    isDeleted: f.is_deleted,
   });
 
-  // --- FETCH FUNDS ---
   useEffect(() => {
     const fetchFunds = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${BASE_URL}/funds/`);
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const formattedFunds = data.map(f => formatFund(f));
-
-        setFunds(formattedFunds);
-      } catch (err) {
-        console.error("Fund fetch failed:", err);
-        setError(err.message);
+        const res = await fetch(`${API_BASE_URL}/api/funds/`);
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const data = await res.json();
+        // Only display records where is_deleted is false
+        setFunds(data.filter(f => !f.is_deleted).map(formatFund));
+      } catch (e) {
+        setError(e.message);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchFunds();
   }, []);
 
-  // --- CREATE FUND ---
   const initializeFund = async (payload) => {
     try {
-      const response = await fetch(`${BASE_URL}/funds/`, {
+      const res = await fetch(`${API_BASE_URL}/api/funds/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          legal_name: payload.legalName,
+          legal_name: payload.name,
           short_name: payload.shortName,
-          formation_date_string: payload.formationDate,
-          currency_id: payload.currency_id,
+          formation_date: payload.formationDate,
+          currency_id: payload.currencyId,
+          phase_name: payload.phaseName,
+          legal_form: payload.legalForm,
+          management_company: payload.manCo,
+          fund_strategy: payload.strategy,
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to initialize fund");
-      }
-
-      const savedFund = await response.json();
-      const formatted = formatFund(savedFund);
-
-      setFunds((prev) => [formatted, ...prev]);
+      if (!res.ok) throw new Error("Fund creation failed");
+      const saved = await res.json();
+      setFunds((prev) => [formatFund(saved), ...prev]);
       return { success: true };
-    } catch (err) {
-      console.error("Fund creation failed:", err);
-      return { success: false, error: err.message };
+    } catch (e) {
+      return { success: false, error: e.message };
     }
   };
 
-  // --- UPDATE FUND ---
   const updateFund = async (id, payload) => {
     try {
-      const response = await fetch(`${BASE_URL}/funds/${id}/`, {
+      const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          legal_name: payload.name,
+          short_name: payload.shortName,
+          formation_date: payload.formationDate,
+          currency_id: payload.currencyId,
+          phase_name: payload.phaseName,
+          legal_form: payload.legalForm,
+          management_company: payload.manCo,
+          fund_strategy: payload.strategy,
+        }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to update fund");
-      }
-
-      const updatedBackendFund = await response.json();
-      const formatted = formatFund(updatedBackendFund);
-
-      // Update local state by replacing the specific fund in the array
-      setFunds((prev) => 
-        prev.map((fund) => (fund.id === id ? formatted : fund))
-      );
-
-      return { success: true, data: formatted };
-    } catch (err) {
-      console.error("Fund update failed:", err);
-      return { success: false, error: err.message };
+      if (!res.ok) throw new Error("Fund update failed");
+      const updated = await res.json();
+      setFunds((prev) => prev.map((f) => (f.id === id ? formatFund(updated) : f)));
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
     }
   };
 
-  // The value object that will be shared across the app
-  const value = {
-    funds,
-    setFunds,
-    isLoading,
-    error,
-    initializeFund,
-    updateFund
+  const deleteFund = async (id) => {
+    try {
+      // Endpoint handles is_deleted = TRUE logic
+      const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.detail || "Delete operation failed");
+      }
+
+      // Remove from local state immediately
+      setFunds((prev) => prev.filter((f) => f.id !== id));
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   };
 
   return (
-    <FundContext.Provider value={value}>
+    <FundContext.Provider 
+      value={{ 
+        funds, 
+        isLoading, 
+        error, 
+        initializeFund, 
+        updateFund, 
+        deleteFund 
+      }}
+    >
       {children}
     </FundContext.Provider>
   );
 }
 
-// 3. The Hook (Consumer)
-// By keeping the name 'useFundData', you don't have to rename imports in your components!
 export function useFundData() {
-  const context = useContext(FundContext);
-  if (!context) {
-    throw new Error('useFundData must be used within a FundProvider');
-  }
-  return context;
+  const ctx = useContext(FundContext);
+  if (!ctx) throw new Error("useFundData must be used within FundProvider");
+  return ctx;
 }

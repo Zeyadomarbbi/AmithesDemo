@@ -1,8 +1,8 @@
 // frontend/src/pages/App/pages/Settings/components/NewFundModal/NewFundModal.jsx
 import React, { useState, useEffect } from "react";
-import { useCurrencies } from "../../../../hooks/useCurrencies.js"; 
+import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
-
+import { ChevronDown } from "../Icons";
 import "./NewFundModal.css";
 
 // Helper to get ISO format "YYYY-MM-DD" for backend compatibility
@@ -21,7 +21,7 @@ export default function NewFundModal({ open, onClose, onCreate }) {
   const [shortName, setShortName] = useState("");
   const [formationDate, setFormationDate] = useState(null);
   const [currency, setCurrency] = useState("");
-
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
   useEffect(() => {
     if (open) {
       setLegalName("");
@@ -69,7 +69,7 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             </label>
             <input
               className="nf-input"
-              placeholder="Asterium Fund I"
+              placeholder="Ex. Amethis Fund I"
               value={legalName}
               onChange={(e) => setLegalName(e.target.value)}
             />
@@ -112,24 +112,26 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             <label className="nf-label">
               Fund currency<span className="nf-required">*</span>
             </label>
-            <div className="nf-select-wrapper">
-              <select
-                className="nf-input nf-select"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                disabled={isLoading}
-              >
-                <option value="">
-                  {isLoading ? "Loading..." : "Please select a currency"}
-                </option>
-                {currencies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.symbol})
+              <div className={`nf-select-wrapper ${isSelectOpen ? "is-open" : ""}`}>
+                <select
+                  className="nf-input nf-select"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  onFocus={() => setIsSelectOpen(true)}
+                  onBlur={() => setIsSelectOpen(false)}
+                  disabled={isLoading}
+                >
+                  <option value="">
+                    {isLoading ? "Loading..." : "Please select a currency"}
                   </option>
-                ))}
-              </select>
-              <span className="nf-select-chevron" />
-            </div>
+                  {currencies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.symbol})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown />
+              </div>
           </div>
         </div>
 

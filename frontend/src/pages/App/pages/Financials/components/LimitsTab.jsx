@@ -7,7 +7,7 @@ import { SortIcon, PlusIcon } from "../../../../../components/Icons.jsx";
 
 // Import Hooks and Utils for QuarterSelector
 import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter } from '../../../../../components/QuarterSelection/useTimeframes';
+import { useTimeframes, apiRowToQuarter } from '../../../hooks/Core/useTimeframes';
 
 const INITIAL_LIMITS = [
   {
@@ -80,7 +80,7 @@ export default function LimitsTab() {
     };
 
     try {
-      const response = await fetch(`https://dual-pam-bbi-59551b8d.koyeb.app/api/funds/${fundId}/timeframes/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

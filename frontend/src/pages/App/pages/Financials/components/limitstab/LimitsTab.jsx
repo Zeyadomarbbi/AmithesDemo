@@ -5,8 +5,7 @@ import "./Limits.css";
 import NewLimitDrawer from "./NewLimitDrawer.jsx";
 import { SortIcon, PlusIcon } from "/src/pages/App/pages/LPsStatement/components/Icons.jsx";
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
-import { useTimeframes, apiRowToQuarter } from "/src/components/QuarterSelection/useTimeframes";
-
+import { useTimeframes, apiRowToQuarter } from "../../../../hooks/Core/useTimeframes.jsx"
 const INITIAL_LIMITS = {
   "1": [
     {
@@ -89,7 +88,7 @@ export default function LimitsTab() {
     };
 
     try {
-      const response = await fetch(`https://dual-pam-bbi-59551b8d.koyeb.app/api/funds/${fundId}/timeframes/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/funds/${fundId}/timeframes/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

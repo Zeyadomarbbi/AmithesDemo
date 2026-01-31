@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
-import { useFundData } from '../../hooks/useFundData'; 
+import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
@@ -135,7 +135,7 @@ function SidePanel() {
             <NavLink to={`/funds/${activeFundId}/financials`} className="nav-item">
               <FinancialsIcon /> <span>Financials</span>
             </NavLink>
-            <NavLink to={`/funds/${activeFundId}/scenarios`} className="nav-item">
+            <NavLink to={`/funds/${activeFundId}/scenario-dashboard`} className="nav-item">
               <ScenariosIcon /> <span>Scenarios</span>
             </NavLink>
           </nav>

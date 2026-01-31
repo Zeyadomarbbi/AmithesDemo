@@ -5,7 +5,7 @@ import { SearchIcon, PlusIcon } from "./icons";
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";
 // IMPORT THE HOOK HERE DIRECTLY
-import { useShareClasses } from "../../../../hooks/useShareClass.js"; 
+import { useShareClasses } from "../../../../hooks/useShareClass"; 
 
 import "./ShareClasses.css";
 

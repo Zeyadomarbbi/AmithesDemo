@@ -1,58 +1,119 @@
-// frontend/src/pages/App/pages/Settings/components/WaterfallStructure/components/Step4.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { PercentageIcon } from "../Icons";
-import "./Steps.css"; 
+import "./Steps.css";
 
 const Step4 = ({ values, onChange, shareClasses = [] }) => {
   
-  // 1. Handle Top-Level Input (Name)
+  // LOGIC: Deep Sync for Envelopes
+  useEffect(() => {
+    if (!values || !shareClasses.length) return;
+
+    // 1. Initialize Envelopes if missing (Default to 2 splits for Special Return)
+    let currentEnvelopes = values.envelopes && values.envelopes.length > 0 
+      ? values.envelopes 
+      : [1, 2].map(num => ({ 
+          id: null, 
+          number: num, 
+          allocation: "", 
+          rules: {} 
+        }));
+
+    let hasChanges = false;
+
+    // 2. Sync Rules INSIDE each Envelope
+    const syncedEnvelopes = currentEnvelopes.map(env => {
+      const newRules = { ...env.rules };
+      let envChanged = false;
+
+      shareClasses.forEach(sc => {
+        if (!newRules[sc.share_class_id]) {
+          envChanged = true;
+          hasChanges = true;
+          newRules[sc.share_class_id] = {
+            envelope_rule_id: null,
+            share_class_name: sc.share_class_name,
+            isSelected: false,
+            isProRata: true,
+            fixedPercentage: null
+          };
+        }
+      });
+      return envChanged ? { ...env, rules: newRules } : env;
+    });
+
+    // 3. Check for invalid Top-Level data (Step 4 must NOT have rate or global rules)
+    const hasGlobalRules = values.rules && Object.keys(values.rules).length > 0;
+    const hasRate = values.step_rate !== null && values.step_rate !== "";
+
+    if (hasChanges || !values.envelopes || values.envelopes.length === 0 || hasGlobalRules || hasRate) {
+      onChange({
+        ...values,
+        envelopes: syncedEnvelopes,
+        rules: {},        // Force Empty Global Rules
+        step_rate: null   // Force Null Rate
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareClasses.length, values.envelopes?.length]); // Re-run if SC count or Envelope count changes
+
   const handleFieldChange = (field, val) => {
     onChange({ ...values, [field]: val });
   };
 
-  // 2. Handle Envelope Allocation Change
   const handleEnvelopeAllocationChange = (index, val) => {
-    const newEnvelopes = [...values.envelopes];
-    newEnvelopes[index] = { ...newEnvelopes[index], allocation: val };
+    const newEnvelopes = values.envelopes.map((env, i) =>
+      i === index ? { ...env, allocation: val } : env
+    );
     onChange({ ...values, envelopes: newEnvelopes });
   };
 
-  // 3. Handle Checkbox Toggle
   const handleCheckboxChange = (envIndex, shareClassId, checked) => {
-    const newEnvelopes = values.envelopes.map(e => ({...e, rules: {...e.rules}}));
-    const targetEnv = newEnvelopes[envIndex];
-    
-    targetEnv.rules[shareClassId] = {
-      ...targetEnv.rules[shareClassId],
-      isSelected: checked,
-      isProRata: true
-    };
+    const newEnvelopes = values.envelopes.map((env, i) => {
+      if (i !== envIndex) return env;
+      
+      const existingRule = env.rules?.[shareClassId];
+      // Fallback lookup if rule didn't exist in state yet
+      const scName = existingRule?.share_class_name || shareClasses.find(s => s.share_class_id === shareClassId)?.share_class_name;
 
+      return {
+        ...env,
+        rules: {
+          ...env.rules,
+          [shareClassId]: {
+            ...existingRule,
+            share_class_name: scName,
+            isSelected: checked,
+            isProRata: true,
+            fixedPercentage: null
+          }
+        }
+      };
+    });
     onChange({ ...values, envelopes: newEnvelopes });
   };
+
+  if (!values || !values.envelopes) return null;
 
   return (
     <div className="wf-card">
       <div className="wf-step-title">Step 4</div>
 
       <div className="wf-step-body">
-        
         {values.envelopes.map((env, index) => (
           <React.Fragment key={index}>
             
-            {/* Divider: Only show BEFORE Envelope 2 (index 1) */}
-            {index === 1 && <div className="wf-divider" />}
+            {index > 0 && <div className="wf-divider" />}
 
-            {/* COLUMN 1: Name (Only show for Envelope 1, index 0) */}
+            {/* COLUMN 1: Name (Only rendered for the first row) */}
             <div className="wf-col-name">
               {index === 0 && (
                 <>
                   <label className="wf-label">Name*</label>
                   <div className="wf-field-input">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="wf-text-input-inner"
-                      value={values.step_name} 
+                      value={values.step_name || ""}
                       onChange={(e) => handleFieldChange("step_name", e.target.value)}
                       placeholder="Special return"
                     />
@@ -63,48 +124,45 @@ const Step4 = ({ values, onChange, shareClasses = [] }) => {
 
             {/* COLUMN 2: Envelope Allocation */}
             <div className="wf-col-rate">
-              <label className="wf-label">Enveloppe {index + 1}</label>
+              <label className="wf-label">
+                Envelope {index + 1} %
+              </label>
               <div className="wf-field-input wf-input-with-unit">
-                <input 
-                    type="number" 
-                    className="wf-text-input-inner"
-                    value={env.allocation} 
-                    onChange={(e) => handleEnvelopeAllocationChange(index, e.target.value)}
-                    placeholder="Ex: 80"
+                <input
+                  type="number"
+                  className="wf-text-input-inner"
+                  value={env.allocation || ""}
+                  onChange={(e) => handleEnvelopeAllocationChange(index, e.target.value)}
+                  placeholder="Ex: 80"
                 />
                 <PercentageIcon />
               </div>
             </div>
 
-            {/* COLUMN 3: Share Class Checkboxes */}
+            {/* COLUMN 3: Share Classes (Envelope-Specific Rules) */}
             <div className="wf-col-classes">
-              {shareClasses.map((sc) => {
-                const isChecked = env.rules?.[sc.share_class_id]?.isSelected || false;
+              {shareClasses.map(sc => {
+                const rule = env.rules?.[sc.share_class_id];
+
                 return (
                   <div key={sc.share_class_id} className="wf-sc-group">
-                    {/* Header Label: Only show for the first row to avoid repetition */}
-                    <label 
-                      className="wf-label" 
-                    >
-                      {sc.share_class_name}
-                    </label>
-
+                    <label className="wf-label">{sc.share_class_name}</label>
                     <div className="wf-checkbox-container">
-                      <input 
+                      <input
                         type="checkbox"
                         className="wf-checkbox-custom"
-                        checked={isChecked}
-                        onChange={(e) => handleCheckboxChange(index, sc.share_class_id, e.target.checked)}
+                        checked={!!rule?.isSelected}
+                        onChange={(e) =>
+                          handleCheckboxChange(index, sc.share_class_id, e.target.checked)
+                        }
                       />
                     </div>
                   </div>
                 );
               })}
             </div>
-            
           </React.Fragment>
         ))}
-
       </div>
     </div>
   );
