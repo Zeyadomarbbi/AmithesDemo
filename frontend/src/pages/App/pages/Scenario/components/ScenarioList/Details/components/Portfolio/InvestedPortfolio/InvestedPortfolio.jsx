@@ -129,10 +129,10 @@ function InvestedPortfolio({ activeMode, investedData }) { 
     const COL_SPAN = 9; 
 
     return (
-        <div className="portfolio-section">
-            <h3 className="section-title">
+        <div className="portfolio-scenario-section">
+            <h3 className="pf-section-title">
                 Invested portfolio
-                <span className="section-count">{localData.length}</span>
+                <span className="pf-section-count">{localData.length}</span>
             </h3>
             
             <div className="inv-table-container no-borders">

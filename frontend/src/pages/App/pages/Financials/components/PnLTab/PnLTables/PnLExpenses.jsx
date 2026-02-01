@@ -1,28 +1,29 @@
-// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
+// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLExpenses/PnLExpenses.jsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   EditLineIcon,
-  MinusIcon,
   PlusIcon,
+  MinusIcon,
   TrashBinIcon,
   KebabIcon,
+  PlusIconWhite
 } from "../../../../../components/Icons.jsx";
-import "../FinancialTables.css";
+import "./FinancialTables.css";
 
-const PnLTax = ({
+const PnLExpenses = ({
   fundId,
   headerPeriods = [],
 
-  showTax,
-  setShowTax,
+  showExpenses,
+  setShowExpenses,
 
-  taxLines,
-  setTaxLines,
+  expenseLines,
+  setExpenseLines,
 
-  taxValues,
-  setTaxValues,
+  expenseValues,
+  setExpenseValues,
 
-  totalTaxByPeriod = {},
+  totalExpensesByPeriod = {},
 
   onAddRow,
   onRemoveRow,
@@ -58,9 +59,9 @@ const PnLTax = ({
   // keep draft synced when you switch rows
   useEffect(() => {
     if (!editingId) return;
-    const line = taxLines.find((l) => l.id === editingId);
+    const line = expenseLines.find((l) => l.id === editingId);
     setDraftLabel(line?.label ?? "");
-  }, [editingId, taxLines]);
+  }, [editingId, expenseLines]);
 
   const startEditLabel = (line) => {
     setEditingId(line.id);
@@ -70,7 +71,7 @@ const PnLTax = ({
   const commitLabel = () => {
     if (!editingId) return;
 
-    setTaxLines((prev) =>
+    setExpenseLines((prev) =>
       prev.map((l) => (l.id === editingId ? { ...l, label: draftLabel } : l))
     );
 
@@ -86,13 +87,13 @@ const PnLTax = ({
   const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
 
   return (
-    <div className="pnl-tax">
-      {/* ===== TAX ROWS ===== */}
-      {showTax &&
-        taxLines.map((line, index) => {
+    <div className="pnl-expenses">
+      {/* ===== EXPENSE ROWS ===== */}
+      {showExpenses &&
+        expenseLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
 
-          // ✅ restore zebra striping (match Income/Expenses)
+          // ✅ restore zebra striping (same behavior as Income)
           const rowClass =
             index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
 
@@ -112,9 +113,9 @@ const PnLTax = ({
                     placeholder="Type here"
                     value={line.label}
                     onChange={(e) => {
-                      const next = [...taxLines];
+                      const next = [...expenseLines];
                       next[index] = { ...next[index], label: e.target.value };
-                      setTaxLines(next);
+                      setExpenseLines(next);
                     }}
                   />
                 ) : isEditingThis ? (
@@ -148,7 +149,7 @@ const PnLTax = ({
               {/* PERIOD INPUTS */}
               {periods.map((p) => {
                 const pid = String(p.id);
-                const value = taxValues[index]?.byPeriod?.[pid] ?? "";
+                const value = expenseValues[index]?.byPeriod?.[pid] ?? "";
 
                 return (
                   <div key={pid} className="detail-input-wrapper">
@@ -159,7 +160,7 @@ const PnLTax = ({
                       pattern="[0-9]*"
                       value={value}
                       onChange={(e) => {
-                        const copy = [...taxValues];
+                        const copy = [...expenseValues];
                         const row = copy[index] || { byPeriod: {} };
 
                         copy[index] = {
@@ -170,14 +171,14 @@ const PnLTax = ({
                           },
                         };
 
-                        setTaxValues(copy);
+                        setExpenseValues(copy);
                       }}
                     />
                   </div>
                 );
               })}
 
-              {/* ACTIONS */}
+              {/* ACTIONS (kebab always in last column) */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
                   <div className="pnl-kebab-wrap" ref={menuWrapRef}>
@@ -225,22 +226,22 @@ const PnLTax = ({
           );
         })}
 
-      {/* ===== TAX HEADER (BLUE BAND) (MOVED TO BOTTOM) ===== */}
+      {/* ===== EXPENSES HEADER (BLUE BAND) (MOVED TO BOTTOM) ===== */}
       <div className="group-row group-row--band">
         <div className="group-left">
           <button
             className="group-toggle"
             type="button"
-            onClick={() => setShowTax((v) => !v)}
+            onClick={() => setShowExpenses((v) => !v)}
           >
-            {showTax ? <MinusIcon /> : <PlusIcon />}
-            Tax
+            {showExpenses ? <MinusIcon /> : <PlusIconWhite />}
+            Expenses
           </button>
         </div>
 
         {periods.map((p) => (
           <div key={p.id} className="group-value">
-            {Number(totalTaxByPeriod?.[p.id] || 0).toLocaleString()}
+            {Number(totalExpensesByPeriod?.[p.id] || 0).toLocaleString()}
           </div>
         ))}
 
@@ -251,4 +252,4 @@ const PnLTax = ({
   );
 };
 
-export default PnLTax;
+export default PnLExpenses;

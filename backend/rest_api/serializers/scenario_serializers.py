@@ -5,6 +5,11 @@ from ..models.transactions import *
 from ..models.mappings import MapSynthesisScenario
 
 class ScenarioSerializer(serializers.ModelSerializer):
+    # Explicitly define as DateTimeField to ensure DRF handles the conversion
+    # Or change to DateField if your DB column only stores dates
+    created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z", read_only=True)
+    updated_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z", read_only=True, allow_null=True)
+
     class Meta:
         model = ScenarioList
         fields = [
@@ -19,25 +24,21 @@ class ScenarioSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["scenario_id", "created_at", "created_by", "updated_at", "fund"]
 
-    def validate(self, attrs):
-        fund_id = self.context.get("fund_id")
-        name = attrs.get("scenario_name")
-        
-        # Uniqueness check: ignore scenarios marked as deleted
-        qs = ScenarioList.objects.filter(
-            fund_id=fund_id, 
-            scenario_name=name, 
-            is_deleted=False
-        )
-        
-        if self.instance:
-            qs = qs.exclude(pk=self.instance.pk)
+    def to_representation(self, instance):
+        """
+        Coerce date objects to datetime to prevent 'utcoffset' errors
+        if the database returns a date object for a DateTimeField.
+        """
+        from datetime import date, datetime
+        import django.utils.timezone as tz
 
-        if qs.exists():
-            raise serializers.ValidationError(
-                {"scenario_name": "Active scenario name must be unique per fund."}
-            )
-        return attrs
+        for field in ['created_at', 'updated_at']:
+            val = getattr(instance, field)
+            if isinstance(val, date) and not isinstance(val, datetime):
+                # Convert date to datetime at midnight
+                setattr(instance, field, datetime.combine(val, datetime.min.time()).replace(tzinfo=tz.get_current_timezone()))
+        
+        return super().to_representation(instance)
     
 class ScenarioSynthesisSerializer(serializers.ModelSerializer):
     class MapSynthesisScenarioSerializer(serializers.ModelSerializer):

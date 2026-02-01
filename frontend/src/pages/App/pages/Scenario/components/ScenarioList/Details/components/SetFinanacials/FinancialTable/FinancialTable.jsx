@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FinancialTable.css';
 import { SortIcon } from './Icons'; 
 
@@ -28,32 +28,32 @@ const initialRows = [
     { label: 'Total Taxes', type: 'total-band' }
 ];
 
-const years = [
-    { year: '2024', type: 'realized' },
-    { year: '2025', type: 'realized' },
-    { year: '2026', type: 'projected' },
-    { year: '2027', type: 'projected' },
-    { year: '2028', type: 'projected' },
-    { year: '2029', type: 'projected' },
-    { year: '2030', type: 'projected' },
-    { year: '2031', type: 'projected' },
-];
-
-const FinancialTable = ({ scenarioId }) => {
+const FinancialTable = ({ scenarioId, years }) => {
     const [financialRows, setFinancialRows] = useState(() => {
         return initialRows.map(row => {
             const newRow = { ...row };
             if (row.type === 'data' || row.type === 'total-band') {
-                for (let year = 2024; year <= 2031; year++) {
+                years.forEach(({ year }) => {
                     const key = `v${year}`;
                     newRow[key] = row[key] || ''; 
-                }
+                });
             }
             return newRow;
         });
     });
 
-    // --- Logic Helpers ---
+    useEffect(() => {
+        setFinancialRows(prev => prev.map(row => {
+            const newRow = { ...row };
+            years.forEach(({ year }) => {
+                const key = `v${year}`;
+                if (!newRow.hasOwnProperty(key)) {
+                    newRow[key] = '';
+                }
+            });
+            return newRow;
+        }));
+    }, [years]);
 
     const calculateRowTotal = (row) => {
         let sum = 0;
@@ -96,24 +96,21 @@ const FinancialTable = ({ scenarioId }) => {
         return row[key] || '';
     };
 
-    // --- Interaction Handlers ---
-
     const handleProjectedChange = (e, rowIndex, year) => {
-        if (e.key === 'Enter') {
-            const newValue = e.target.value;
-            setFinancialRows(prev => prev.map((row, i) => 
-                i === rowIndex ? { ...row, [`v${year}`]: newValue } : row
-            ));
-            e.target.blur();
-        }
+        const newValue = e.target.value;
+        setFinancialRows(prev => prev.map((row, i) => 
+            i === rowIndex ? { ...row, [`v${year}`]: newValue } : row
+        ));
     };
 
     const handleExpandClick = (rowIndex, label) => {
         console.log(`Triggering auto-fill for ${label} (Row ${rowIndex})`);
-        const mockFetchedData = {
-            v2026: '120 000', v2027: '130 000', v2028: '140 000',
-            v2029: '150 000', v2030: '160 000', v2031: '170 000'
-        };
+        const mockFetchedData = {};
+        years.forEach(({ year, type }) => {
+            if (type === 'projected') {
+                mockFetchedData[`v${year}`] = `${100000 + parseInt(year) * 10000}`;
+            }
+        });
         setFinancialRows(prevRows => prevRows.map((row, i) => {
             if (i === rowIndex) return { ...row, ...mockFetchedData };
             return row;
@@ -125,7 +122,6 @@ const FinancialTable = ({ scenarioId }) => {
             <table className="fin-table">
                 <thead>
                     <tr>
-                        {/* PnL Column: Wrapper gets 'pnl-wrapper' */}
                         <th className="th-label col-pnl">
                             <div className="th-wrapper pnl-wrapper">
                                 <span>PnL</span>
@@ -133,25 +129,24 @@ const FinancialTable = ({ scenarioId }) => {
                             </div>
                         </th>
                         
-                        {/* Years Columns: Wrapper gets 'year-wrapper' */}
-                            {years.map((y) => (
+                        {years.map((y) => (
                             <th key={y.year} className={`col-year ${y.type}`}>
                                 <div className="th-wrapper year-wrapper">
-                                <div className="th-group">
-                                    <span className="year">{y.year}</span>
-                                    <span className="currency-indicator">(€)</span>
-                                    <SortIcon className="sort-icon" />
-                                </div>
+                                    <div className="th-group">
+                                        <span className="year">{y.year}</span>
+                                        <span className="currency-indicator">(€)</span>
+                                        <SortIcon className="sort-icon" />
+                                    </div>
                                 </div>
                             </th>
-                            ))}
-                        {/* Total Column: Wrapper gets 'total-wrapper' */}
+                        ))}
+                        
                         <th className="col-total">
                             <div className="th-wrapper total-wrapper">
                                 <div className="th-group">
-                                <span>Total cumulated</span>
-                                <span className="currency-indicator">(€)</span>
-                                <SortIcon className="sort-icon" />
+                                    <span>Total cumulated</span>
+                                    <span className="currency-indicator">(€)</span>
+                                    <SortIcon className="sort-icon" />
                                 </div>
                             </div>
                         </th>
@@ -187,17 +182,18 @@ const FinancialTable = ({ scenarioId }) => {
                                         return (
                                             <td key={y.year} className="cell-projected">
                                                 <input 
-                                                    key={`${index}-${y.year}-${value}`} 
+                                                    key={`${index}-${y.year}`} 
                                                     className={`proj-input ${isReadOnly ? 'input-disabled' : ''}`} 
                                                     placeholder={isReadOnly ? '-' : "ex : 100"} 
-                                                    defaultValue={value} 
+                                                    value={value} 
                                                     disabled={isReadOnly}
-                                                    onKeyDown={(e) => handleProjectedChange(e, index, y.year)}
+                                                    onChange={(e) => handleProjectedChange(e, index, y.year)}
                                                 />
                                             </td>
                                         );
                                     }
                                 })}
+                                
                                 <td className="cell-total-final">{rowTotal}</td>
                             </tr>
                         );

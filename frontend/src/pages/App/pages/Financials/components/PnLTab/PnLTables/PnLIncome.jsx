@@ -6,8 +6,9 @@ import {
   EditLineIcon,
   TrashBinIcon,
   KebabIcon,
+  PlusIconWhite
 } from "../../../../../components/Icons.jsx";
-import "../FinancialTables.css";
+import "./FinancialTables.css";
 
 const PnLIncome = ({
   fundId,
@@ -238,7 +239,7 @@ const PnLIncome = ({
                 justifyContent: "center",
               }}
             >
-              {showIncome ? <MinusIcon /> : <PlusIcon />}
+              {showIncome ? <MinusIcon /> : <PlusIconWhite />}
             </span>
             Income
           </button>
