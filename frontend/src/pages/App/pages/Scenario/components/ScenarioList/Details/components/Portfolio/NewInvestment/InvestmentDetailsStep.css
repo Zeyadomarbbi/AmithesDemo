@@ -1,0 +1,42 @@
+.investment-details-step {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 420px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.08);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.investment-preview {
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.details-form {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}

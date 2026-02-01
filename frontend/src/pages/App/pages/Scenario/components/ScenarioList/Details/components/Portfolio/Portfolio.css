@@ -1,10 +1,14 @@
-/* --- 1. Layout --- */
+/* =========================================================
+   1. Layout (ثابت – من غير كتم Overlays)
+========================================================= */
 .portfolio-tab-container {
   display: flex;
   flex-direction: column;
   padding: 24px 40px;
   background-color: #FFFFFF;
   min-height: 100%;
+  position: relative;
+  overflow: visible; /* ⬅️ مهم جدًا */
 }
 
 .portfolio-section {
@@ -23,102 +27,119 @@
   align-items: center;
 }
 
-/* --- 2. Controls & Toggles --- */
+/* =========================================================
+   2. Controls & Toggles
+========================================================= */
 .portfolio-controls-header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 24px;
-    width: 100%;
-    margin-bottom: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  margin-bottom: 12px;
 }
 
 .control-toggles-group {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
 }
 
 .toggle-group {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 16px; 
-    cursor: pointer;
-    user-select: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .toggle-track {
-    width: 32px;
-    height: 18px;
-    background: rgba(204, 205, 206, 0.4);
-    border-radius: 7272px;
-    position: relative;
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    padding: 0 2px;
+  width: 32px;
+  height: 18px;
+  background: rgba(204, 205, 206, 0.4);
+  border-radius: 999px;
+  position: relative;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
 }
 
-
 .toggle-track.active {
-    background-color: #F59E0B;
+  background-color: #F59E0B;
 }
 
 .toggle-knob {
-    width: 14.55px;
-    height: 14.55px;
-    background: #FFFFFF;
-    box-shadow: 0px 0.72px 1.45px rgba(0, 0, 0, 0.05);
-    border-radius: 50%;
-    position: absolute;
-    left: 2px;
-    transition: transform 0.2s ease;
+  width: 14.5px;
+  height: 14.5px;
+  background: #FFFFFF;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  position: absolute;
+  left: 2px;
+  transition: transform 0.2s ease;
 }
 
-/* Move Knob when Active */
 .toggle-track.active .toggle-knob {
-    transform: translateX(14px);
+  transform: translateX(14px);
 }
 
-/* --- The Label Text --- */
 .toggle-label {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.01em;
-    color: #375A89;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* =========================================================
+   3. Header Actions (New Deal / Target)
+========================================================= */
+.portfolio-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portfolio-new-deal-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #111827;
+  color: #FFFFFF;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.portfolio-new-deal-btn:hover {
+  opacity: 0.9;
 }
 
 .destructive-btn-md {
-    /* Auto layout */
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    padding: 10px 16px;
-    gap: 6px;
-
-    background: #FFF1F2;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    user-select: none;
-
-    /* Text */
-    font-family: 'Inter', sans-serif;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.01em;
-    color: #E11D48;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  background: #FFF1F2;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #E11D48;
 }
 
-/* --- 3. Tables --- */
+/* =========================================================
+   4. Tables (زي ما كانت)
+========================================================= */
 .std-table {
   width: 100%;
   border-collapse: collapse;
@@ -139,10 +160,62 @@
   background-color: #FFFFFF;
 }
 
-.row-banded-gray td { background-color: #F9FAFB; }
+.row-banded-gray td {
+  background-color: #F9FAFB;
+}
 
 .row-summary td {
   background-color: #375A89 !important;
   color: #FFFFFF;
   font-weight: 600;
 }
+
+/* =========================================================
+   5. Overlay & Card (ده اللي كان ناقص)
+========================================================= */
+.portfolio-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.35);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio-card {
+  width: 640px;
+  max-width: 90%;
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.proj-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(55, 90, 137, 0.2);
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    width: fit-content;
+    margin-top: 16px;
+    transition: background 0.2s;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+}
+
+.proj-add-btn:hover {
+    background: rgba(55, 90, 137, 0.2);
+}
+
+.proj-plus-icon {
+    width: 14px;
+    height: 14px;
+    color: #6B7280;
+}
+
