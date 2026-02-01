@@ -5,12 +5,14 @@
   width: 100%;
   overflow-x: auto;
   background: #fff;
+  overflow-x: auto; /* Enables horizontal scroll */
 }
 
 .fin-table {
   width: 100%;
   border-collapse: collapse;
   width: 100%; /* Ensures table doesn't crush on small screens */
+  table-layout: fixed; /* Ensures column widths are respected */
   font-family: 'Inter', sans-serif;
   font-size: 13px;
 }
@@ -26,6 +28,17 @@
   vertical-align: middle;
 }
 
+.col-pnl {
+  width: 250px; 
+}
+
+.col-year {
+  width: 150px;
+}
+
+.col-total {
+  width: 180px;
+}
 /* --- Flex Wrappers for Alignment --- */
 /* This controls the relationship between Text and Icon */
 .th-wrapper {
