@@ -22,10 +22,10 @@ import {
 } from "../../data/mockData.js";
 
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
-
-import PnLIncome from "../PnLTables/PnLIncome/PnLIncome.jsx";
-import PnLExpenses from "../PnLTables/PnLExpenses/PnLExpenses.jsx";
-import PnLTax from "../PnLTables/PnLTax/PnLTax.jsx";
+import { useFinancialCategories } from "../../../../hooks/Reference/useFinancialCategories.js";
+import PnLIncome from "./PnLTables/PnLIncome.jsx";
+import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
+import PnLTax from "./PnLTables/PnLTax.jsx";
 import "./PnL.css";
 
 const makeId = (prefix) =>
@@ -365,6 +365,7 @@ const PnLTab = () => {
 
             <PnLIncome
               fundId={effectiveFundId}
+              categoryId={null}
               headerPeriods={headerPeriods}
               showIncome={showIncome}
               setShowIncome={setShowIncome}

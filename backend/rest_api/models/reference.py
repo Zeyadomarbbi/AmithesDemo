@@ -64,3 +64,16 @@ class ManFeePhase(models.Model):
     class Meta:
         db_table = "man_fee_phase"
         managed = False
+
+class FinancialCategory(models.Model):
+    category_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50, unique=True)
+    sign_multiplier = models.IntegerField()
+
+    class Meta:
+        db_table = 'financial_category'
+        managed = False
+        ordering = ['category_id']
+
+    def __str__(self):
+        return self.name

@@ -139,10 +139,10 @@ function ProjectedPortfolio({
   ========================== */
 
   return (
-    <div className="portfolio-section">
-      <h3 className="section-title">
+    <div className="portfolio-scenario-section">
+      <h3 className="pf-section-title">
         Projected portfolio
-        <span className="section-count">{rows.length}</span>
+        <span className="pf-section-count">{rows.length}</span>
       </h3>
 
       <div className="proj-table-container no-borders">

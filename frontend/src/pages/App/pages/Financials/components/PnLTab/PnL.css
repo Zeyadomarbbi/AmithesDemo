@@ -94,7 +94,7 @@ body,
 
   font-size: 13px;
   color: var(--text-muted);
-  background: #FAFAF9;
+  background: #FFFFFF;
 }
 
 /* header cells */
@@ -211,7 +211,7 @@ body,
 
 /* ===== Net Row (bottom) ===== */
 .net-row {
-  background: var(--net-bg);
+  background: #375A89;
   color: #ffffff;
   font-size: 14px;
   font-weight: 500;

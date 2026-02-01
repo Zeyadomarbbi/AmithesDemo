@@ -75,10 +75,10 @@ function RealizedPortfolio({ realizedData }) {
     };
 
     return (
-        <div className="portfolio-section">
-            <h3 className="section-title">
+        <div className="portfolio-scenario-section">
+            <h3 className="pf-section-title">
                 Realized portfolio 
-                <span className="section-count">{data.length}</span>
+                <span className="pf-section-count">{data.length}</span>
             </h3>
             
             <div className="realized-table-container no-borders"> 

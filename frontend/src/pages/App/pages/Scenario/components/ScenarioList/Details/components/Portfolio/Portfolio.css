@@ -11,20 +11,39 @@
   overflow: visible; /* ⬅️ مهم جدًا */
 }
 
-.portfolio-section {
+.portfolio-scenario-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
 }
 
-.section-title {
+.pf-section-title {
   font-family: 'Inter', sans-serif;
   font-size: 18px;
   font-weight: 600;
   color: #111827;
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.pf-section-count {
+  /* 2 */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+
+  color: #375A89;
+
+
+  flex: none;
+  order: 1;
+  flex-grow: 0;
 }
 
 /* =========================================================
