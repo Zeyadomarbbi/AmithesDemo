@@ -6,7 +6,7 @@ import {
   EditLineIcon,
   TrashBinIcon,
   KebabIcon,
-  PlusIconWhite
+  PlusIconWhite,
 } from "../../../../../components/Icons.jsx";
 import "./FinancialTables.css";
 
@@ -33,6 +33,8 @@ const PnLIncome = ({
 
   // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // IMPORTANT: single ref, but we bind it to the currently-open row only (fixes map/ref bug)
   const menuWrapRef = useRef(null);
 
   // close menu on outside click / Esc
@@ -179,7 +181,13 @@ const PnLIncome = ({
               {/* ACTIONS (ALWAYS LAST COLUMN) */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
-                  <div className="pnl-kebab-wrap" ref={menuWrapRef}>
+                  <div
+                    className="pnl-kebab-wrap"
+                    ref={(el) => {
+                      // ✅ bind ref ONLY to the currently-open row
+                      if (openMenuId === line.id) menuWrapRef.current = el;
+                    }}
+                  >
                     <button
                       className="pnl-kebab"
                       type="button"
