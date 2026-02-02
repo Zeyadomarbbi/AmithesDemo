@@ -105,4 +105,3 @@ class Timeframe(models.Model):
             self.quarter = (self.date.month - 1) // 3 + 1
             
         super().save(*args, **kwargs)
-
