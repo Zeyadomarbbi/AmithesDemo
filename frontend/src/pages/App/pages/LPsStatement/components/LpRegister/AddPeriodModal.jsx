@@ -1,32 +1,19 @@
-// src/pages/App/pages/LPsStatement/components/AddPeriodModal.jsx
-import React, { useState, useEffect } from "react"; // ✅ added useEffect
-import "./addPeriodModal.css";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom"; // 1. Import useParams
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
+import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods"; 
+import "./addPeriodModal.css";
 
-/* ✅ same helper we used for NewFundModal / NewLPDrawer */
+// Helper to convert DD/MM/YYYY to Date object
 function parseDateString(value) {
   if (!value) return null;
   const str = String(value).trim();
-
-  // supports DD/MM/YYYY
   const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return null;
-
-  const day = Number(m[1]);
-  const month = Number(m[2]);
-  const year = Number(m[3]);
-
-  const d = new Date(year, month - 1, day);
-  if (
-    d.getFullYear() !== year ||
-    d.getMonth() !== month - 1 ||
-    d.getDate() !== day
-  )
-    return null;
-
-  return d;
+  return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
 }
 
+// Helper to convert Date object to DD/MM/YYYY
 function formatDDMMYYYY(date) {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return "";
@@ -37,57 +24,89 @@ function formatDDMMYYYY(date) {
 }
 
 const AddPeriodModal = ({ open, onClose, onSave }) => {
-  const [name, setName] = useState("");
-  const [endDate, setEndDate] = useState(""); // "DD/MM/YYYY"
+  const { fundId } = useParams();
+  const [selectedClosingId, setSelectedClosingId] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
+  const { 
+    closingPeriods, 
+    fetchClosingPeriods, 
+    createFundClosing, 
+    loading,
+    error 
+  } = useFundClosings(fundId);
 
-  // ✅ ONLY FIX: when modal opens, set a default date so Save works without clicking calendar
+  // Initialize data on modal open
   useEffect(() => {
-    if (!open) return;
-    setName("");
-    setEndDate(formatDDMMYYYY(new Date()));
-  }, [open]);
+    if (open) {
+      fetchClosingPeriods();
+      setSelectedClosingId("");
+      setEndDate(formatDDMMYYYY(new Date()));
+    }
+  }, [open, fetchClosingPeriods]);
 
   if (!open) return null;
 
-  const stopClick = (e) => e.stopPropagation();
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !endDate.trim()) return;
+    if (!selectedClosingId || !endDate.trim()) return;
 
-    onSave?.({
-      name: name.trim(),
-      end: endDate,
-    });
-    onClose?.();
+    const parsedDate = parseDateString(endDate);
+    if (!parsedDate) return;
+
+    // Django expects YYYY-MM-DD
+    const isoDate = parsedDate.toISOString().split('T')[0];
+
+    try {
+      const payload = {
+        closing_period: parseInt(selectedClosingId, 10),
+        date: isoDate,
+        fund: parseInt(fundId, 10)
+      };
+      console.log("Submitting payload:", payload);
+      const newRecord = await createFundClosing(payload);
+      
+      // Notify parent and close
+      if (onSave) onSave(newRecord);
+      onClose();
+    } catch (err) {
+      console.error("Submission failed:", err);
+    }
   };
 
   return (
     <div className="period-modal-backdrop" onClick={onClose}>
-      <div className="period-modal" onClick={stopClick}>
+      <div className="period-modal" onClick={(e) => e.stopPropagation()}>
         <div className="period-modal-header">
           <h2 className="period-modal-title">Add new period</h2>
-          <button type="button" className="period-close-btn" onClick={onClose}>
-            ✕
-          </button>
+          <button type="button" className="period-close-btn" onClick={onClose}>✕</button>
         </div>
 
         <form className="period-modal-body" onSubmit={handleSubmit}>
-          {/* Name */}
+          {error && <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
+          
+          {/* Closing Period Dropdown */}
           <div className="period-field">
-            <label className="period-label">Name *</label>
-            <input
+            <label className="period-label">Closing Period *</label>
+            <select
               className="period-input"
-              placeholder="Please enter the period name..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+              value={selectedClosingId}
+              onChange={(e) => setSelectedClosingId(e.target.value)}
+              required
+              disabled={loading}
+            >
+              <option value="" disabled>Select a closing period...</option>
+              {closingPeriods.map((period) => (
+                <option key={period.closing_id} value={period.closing_id}>
+                  {period.closing_name} ({period.closing_code})
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* End (DateInputWithPicker) */}
+          {/* End Date Picker */}
           <div className="period-field period-field-end">
-            <label className="period-label">End*</label>
-
+            <label className="period-label">End Date*</label>
             <div className="period-input-with-icon">
               <DateInputWithPicker
                 initialDate={parseDateString(endDate) || new Date()}
@@ -98,17 +117,21 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="period-modal-footer">
             <button
               type="button"
               className="btn-secondary-wide"
               onClick={onClose}
+              disabled={loading}
             >
               Cancel
             </button>
-            <button type="submit" className="btn-primary-wide">
-              Save
+            <button 
+              type="submit" 
+              className="btn-primary-wide" 
+              disabled={loading || !selectedClosingId}
+            >
+              {loading ? "Saving..." : "Save"}
             </button>
           </div>
         </form>

@@ -75,11 +75,10 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  
+  /* Horizontal padding (12px) handles the side spacing for any text size */
   padding: 4px 12px;
-  gap: 2px;
-
-  width: 73px;
-  height: 24px;
+  gap: 6px; /* Increased gap for better icon/text separation */
 
   background: transparent;
   border-radius: 6px;
@@ -94,7 +93,12 @@
 
   color: #7b7d7e;
   cursor: pointer;
-  white-space: nowrap;
+  
+  /* Critical for flexibility */
+  white-space: nowrap; 
+  width: auto;         /* Ensures it only takes the space it needs */
+  min-width: min-content; 
+  transition: all 0.2s ease; /* Smooth transition for hover/active states */
 }
 
 .lp-chip:hover {

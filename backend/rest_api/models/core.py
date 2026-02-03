@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Fund(models.Model):
     fund_id = models.AutoField(primary_key=True)
@@ -105,3 +106,27 @@ class Timeframe(models.Model):
             self.quarter = (self.date.month - 1) // 3 + 1
             
         super().save(*args, **kwargs)
+
+class LimitedPartner(models.Model):
+    lp_id = models.AutoField(primary_key=True)
+    country = models.ForeignKey(
+        'Country',
+        on_delete=models.PROTECT,
+        db_column='country_id',
+        related_name='limited_partners'
+    )
+    name = models.CharField(max_length=255, unique=True)
+    address = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=20)
+    iban = models.CharField(max_length=34)
+    bank_name = models.CharField(max_length=255)
+    swift = models.CharField(max_length=11)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'lps_limited_partner'
+        managed = False

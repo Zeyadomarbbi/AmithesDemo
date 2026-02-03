@@ -314,3 +314,23 @@ class FinancialEntry(models.Model):
         managed = False
         db_table = "financial_entries"
         unique_together = ("timeframe_id", "line_item")
+
+class FundClosing(models.Model):
+    lps_fund_closing_period_id = models.AutoField(primary_key=True)
+    fund = models.ForeignKey(
+        "Fund", 
+        on_delete=models.CASCADE, 
+        db_column="fund_id",
+    )
+    closing_period = models.ForeignKey(
+        'ClosingPeriod', 
+        on_delete=models.CASCADE,
+        db_column="closing_id"  # Explicitly map to the DB column name
+    )
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'lps_fund_closings'
+        unique_together = ('fund', 'closing_period')
