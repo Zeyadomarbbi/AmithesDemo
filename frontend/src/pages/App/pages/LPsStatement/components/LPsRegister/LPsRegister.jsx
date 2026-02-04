@@ -8,8 +8,6 @@ import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
 import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
 import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
-import LPsDetailsDrawer from "./components/LPsDashboard/LPsDetailsDrawer/LPsDetailsDrawer.jsx"
-import NewLPDrawer from "./components/NewLPDrawer/NewLPDrawer.jsx";
 import LPDrawer from "./components/LPDrawer/LPDrawer.jsx"
 
 /* Hooks */

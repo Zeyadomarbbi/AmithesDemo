@@ -1,18 +1,18 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { 
   CloseIcon, 
   ChevronDoubleLeftIcon, 
   ChevronDownIcon,
   LocationIcon 
-} from "../../../../../Icons.jsx";
+} from "../../../../Icons.jsx";
 
 /* Hooks */
-import { useCountries } from "../../../../../../../hooks/Reference/useCountries.js";
-import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
-import { useCurrencies } from "../../../../../../../hooks/Reference/useCurrencies.js";
-import { useLimitedPartners } from "../../../../../../../hooks/LPsStatement/useLimitedPartners.jsx";
-import { useLimitedPartnerFundCommitment } from "../../../../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import { useCountries } from "../../../../../../hooks/Reference/useCountries.js";
+import { useShareClasses } from "../../../../../../hooks/useShareClass.js";
+import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies.js";
+import { useLimitedPartners } from "../../../../../../hooks/LPsStatement/useLimitedPartners.jsx";
+import { useLimitedPartnerFundCommitment } from "../../../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
 
 /* Components */
 import TranchCard from "./components/TranchCard.jsx";
@@ -50,15 +50,15 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
   const { createLimitedPartner, updateLimitedPartner } = useLimitedPartners();
   const { createCommitment, updateCommitment } = useLimitedPartnerFundCommitment(fundId);
 
-  /* --- Local State --- */
+  /* --- Form State --- */
   const [form, setForm] = useState(EMPTY_FORM);
   const [tranches, setTranches] = useState([]);
+  
+  /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);
 
-  /**
-   * Sync prop to state when drawer opens.
-   */
+  /* --- Reset Form on Open --- */
   useEffect(() => {
     if (!open) return;
 
@@ -80,13 +80,14 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
         currencyId: c.currency || "",
         commitment: c.commitment_amount ? parseFloat(c.commitment_amount) : "",
         closingId: c.closing_period || "",
-        collapsed: true, // Collapse existing ones by default in Edit mode
+        collapsed: true,
         originalIndex: idx
       }));
       setTranches(mappedTranches);
     } else {
       setForm(EMPTY_FORM);
-      setTranches([{ ...EMPTY_TRANCHE }]);
+      setTranches([]);
+      setIsSubmitting(false);
     }
   }, [lp, existingCommitments, open, isEdit]);
 
@@ -113,11 +114,19 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
     setTranches(prev => [...prev, { ...EMPTY_TRANCHE, originalIndex: prev.length }]);
   };
 
+  /* --- SAVE LOGIC (Commits to Database) --- */
   const handleFinalSave = async () => {
+    // 1. Basic Validation
+    if (!form.lpName) {
+      alert("Please fill in the required fields (LP Name).");
+      return;
+    }
+
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
+      // 2. Construct LP Payload
       const lpPayload = {
         name: form.lpName,
         address: form.address,
@@ -131,7 +140,8 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
 
       let currentLpId = lp?.lp_id;
 
-      // 1. Create or Update the LP Meta
+      // 3. Create or Update the LP Meta
+      console.log("Committing LP to DB...", lpPayload);
       if (isEdit) {
         await updateLimitedPartner(currentLpId, lpPayload);
       } else {
@@ -139,7 +149,7 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
         currentLpId = lpResponse.lp_id;
       }
 
-      // 2. Process all Tranches
+      // 4. Process all Tranches
       const commitmentPromises = tranches.map(t => {
         if (!t.shareClassId || !t.currencyId || !t.closingId) return Promise.resolve();
 
@@ -159,11 +169,13 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
 
       await Promise.all(commitmentPromises);
       
+      // 5. Close Drawer on Success
       onSave?.(); 
       onClose();
-    } catch (err) {
-      console.error("Save failed:", err);
-      alert("Failed to save: " + err.message);
+      
+    } catch (error) {
+      console.error("Failed to save LP:", error);
+      alert("An error occurred while saving.");
     } finally {
       setIsSubmitting(false);
     }
@@ -172,49 +184,84 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
   if (!open) return null;
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <aside className="drawer lp-drawer" onClick={(e) => e.stopPropagation()}>
-        <header className="drawer-header">
-          <button className="drawer-back-btn" type="button" onClick={onClose}>
-            <ChevronDoubleLeftIcon />
-          </button>
+    <div className="lp-drawer-backdrop" onClick={onClose}>
+      <aside className="lp-drawer" onClick={(e) => e.stopPropagation()}>
+        
+        {/* HEADER */}
+        <header className="lp-drawer-header">
+          <div className="lp-drawer-header-actions">
+            <button 
+              type="button" 
+              className="lp-drawer-back-btn" 
+              onClick={onClose}
+            >
+              <ChevronDoubleLeftIcon />
+            </button>
+            
+            <button 
+              type="button" 
+              className="lp-drawer-close-btn" 
+              onClick={onClose}
+            >
+              <CloseIcon />
+            </button>
+          </div>
+          
           <div className="lp-drawer-title-group">
-            <h2 className="drawer-title">{isEdit ? lp.name : "Adding a new LP"}</h2>
+            <h2 className="lp-drawer-title">{isEdit ? lp.name : "Adding a new LP"}</h2>
             {isEdit && <div className="lp-drawer-sub">Editing Limited Partner Details</div>}
           </div>
-          <button className="drawer-close-btn" type="button" onClick={onClose}>
-            <CloseIcon />
-          </button>
         </header>
 
-        <div className="drawer-content">
-          <section className="drawer-section">
-            <h3 className="drawer-section-title">LP informations</h3>
-            <div className="field">
-              <label className="field-label">LP name*</label>
-              <input className="field-input" value={form.lpName} onChange={updateField("lpName")} disabled={isSubmitting} />
+        {/* BODY */}
+        <div className="lp-drawer-content">
+          <section className="lp-drawer-section">
+            <h3 className="lp-drawer-section-title">LP informations</h3>
+            <div className="lp-drawer-field">
+              <label className="lp-drawer-field-label">LP name<span className="lp-drawer-required">*</span></label>
+              <input 
+                className="lp-drawer-field-input" 
+                value={form.lpName} 
+                onChange={updateField("lpName")} 
+                disabled={isSubmitting} 
+              />
             </div>
-            <div className="field">
-              <label className="field-label">Adress*</label>
-              <div className="field-input-with-icon">
-                <input className="field-input" value={form.address} onChange={updateField("address")} disabled={isSubmitting} />
-                <span className="field-icon"><LocationIcon /></span>
+            <div className="lp-drawer-field">
+              <label className="lp-drawer-field-label">Adress<span className="lp-drawer-required">*</span></label>
+              <div className="lp-drawer-field-input-with-icon">
+                <input 
+                  className="lp-drawer-field-input" 
+                  value={form.address} 
+                  onChange={updateField("address")} 
+                  disabled={isSubmitting} 
+                />
+                <span className="lp-drawer-field-icon"><LocationIcon /></span>
               </div>
             </div>
-            <div className="drawer-grid-3">
-              <div className="field">
-                <label className="field-label">City*</label>
-                <input className="field-input" value={form.city} onChange={updateField("city")} disabled={isSubmitting} />
+            <div className="lp-drawer-grid-3">
+              <div className="lp-drawer-field">
+                <label className="lp-drawer-field-label">City<span className="lp-drawer-required">*</span></label>
+                <input 
+                  className="lp-drawer-field-input" 
+                  value={form.city} 
+                  onChange={updateField("city")} 
+                  disabled={isSubmitting} 
+                />
               </div>
-              <div className="field">
-                <label className="field-label">Zip code*</label>
-                <input className="field-input" value={form.zip} onChange={updateField("zip")} disabled={isSubmitting} />
+              <div className="lp-drawer-field">
+                <label className="lp-drawer-field-label">Zip code<span className="lp-drawer-required">*</span></label>
+                <input 
+                  className="lp-drawer-field-input" 
+                  value={form.zip} 
+                  onChange={updateField("zip")} 
+                  disabled={isSubmitting} 
+                />
               </div>
-              <div className="field">
-                <label className="field-label">Country*</label>
-                <div className="field-input-with-icon">
+              <div className="lp-drawer-field">
+                <label className="lp-drawer-field-label">Country<span className="lp-drawer-required">*</span></label>
+                <div className="lp-drawer-field-input-with-icon">
                   <select 
-                    className="field-input select-input" 
+                    className="lp-drawer-field-input lp-drawer-select-input" 
                     value={form.countryId} 
                     onChange={updateField("countryId")}
                     disabled={isSubmitting || countriesLoading}
@@ -222,65 +269,98 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
                     <option value="" disabled hidden>Select Country</option>
                     {countries?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <span className="field-icon field-icon-chevron"><ChevronDownIcon /></span>
+                  <span className="lp-drawer-field-icon lp-drawer-field-icon-chevron"><ChevronDownIcon /></span>
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="drawer-section">
-            <h3 className="drawer-section-title">Bank details</h3>
-            <div className="field">
-              <label className="field-label">IBAN*</label>
-              <input className="field-input" value={form.iban} onChange={updateField("iban")} disabled={isSubmitting} />
+          <section className="lp-drawer-section">
+            <h3 className="lp-drawer-section-title">Bank details</h3>
+            <div className="lp-drawer-field">
+              <label className="lp-drawer-field-label">IBAN<span className="lp-drawer-required">*</span></label>
+              <input 
+                className="lp-drawer-field-input" 
+                value={form.iban} 
+                onChange={updateField("iban")} 
+                disabled={isSubmitting} 
+              />
             </div>
-            <div className="drawer-grid-2">
-              <div className="field">
-                <label className="field-label">Bank name*</label>
-                <input className="field-input" value={form.bankName} onChange={updateField("bankName")} disabled={isSubmitting} />
+            <div className="lp-drawer-grid-2">
+              <div className="lp-drawer-field">
+                <label className="lp-drawer-field-label">Bank name<span className="lp-drawer-required">*</span></label>
+                <input 
+                  className="lp-drawer-field-input" 
+                  value={form.bankName} 
+                  onChange={updateField("bankName")} 
+                  disabled={isSubmitting} 
+                />
               </div>
-              <div className="field">
-                <label className="field-label">SWIFT / BIC*</label>
-                <input className="field-input" value={form.swift} onChange={updateField("swift")} disabled={isSubmitting} />
+              <div className="lp-drawer-field">
+                <label className="lp-drawer-field-label">SWIFT / BIC<span className="lp-drawer-required">*</span></label>
+                <input 
+                  className="lp-drawer-field-input" 
+                  value={form.swift} 
+                  onChange={updateField("swift")} 
+                  disabled={isSubmitting} 
+                />
               </div>
             </div>
           </section>
-
-          <section className="drawer-section">
-            <h3 className="drawer-section-title">Shares & Tranches</h3>
-            <div className="tranches-list">
-              {tranches.map((t, idx) => (
-                <TranchCard 
-                  key={t.commitment_id || `tranch-${idx}`}
-                  tranch={t}
-                  index={idx}
-                  realIndex={idx}
-                  isLast={idx === tranches.length - 1}
-                  lastTrancheRef={lastTrancheRef}
-                  classesLoading={classesLoading}
-                  dbShareClasses={dbShareClasses}
-                  currencies={currencies}
-                  currenciesLoading={currenciesLoading}
-                  periods={periods}
-                  isSubmitting={isSubmitting}
-                  onUpdateField={updateTrancheField}
-                  onSaveTranche={handleSaveTranche}
-                  totalTranches={tranches.length}
-                />
-              ))}
-            </div>
-            <button type="button" className="new-tranch-btn" onClick={addNewTranche} disabled={isSubmitting}>
-              <span className="new-tranch-plus">+</span>
-              <span className="new-tranch-text">New Tranche</span>
+            
+          <section className="lp-drawer-tranches-section">
+            <h3 className="lp-drawer-section-title">Shares & Tranches</h3>
+            {tranches.length > 0 && (
+              <div className="lp-drawer-tranches-list">
+                {tranches.map((t, idx) => (
+                  <TranchCard 
+                    key={t.commitment_id || `tranch-${idx}`}
+                    tranch={t}
+                    index={idx}
+                    realIndex={idx}
+                    isLast={idx === tranches.length - 1}
+                    lastTrancheRef={lastTrancheRef}
+                    classesLoading={classesLoading}
+                    dbShareClasses={dbShareClasses}
+                    currencies={currencies}
+                    currenciesLoading={currenciesLoading}
+                    periods={periods}
+                    isSubmitting={isSubmitting}
+                    onUpdateField={updateTrancheField}
+                    onSaveTranche={handleSaveTranche}
+                    totalTranches={tranches.length}
+                  />
+                ))}
+              </div>
+            )}
+            <button 
+              type="button" 
+              className="lp-drawer-new-tranch-btn" 
+              onClick={addNewTranche} 
+              disabled={isSubmitting}
+            >
+              <span className="lp-drawer-new-tranch-plus">+</span>
+              <span className="lp-drawer-new-tranch-text">New Tranche</span>
             </button>
           </section>
         </div>
 
-        <footer className="drawer-footer">
-          <button className="btn-secondary-wide" type="button" onClick={onClose} disabled={isSubmitting}>
+        {/* FOOTER */}
+        <footer className="lp-drawer-footer">
+          <button 
+            className="lp-drawer-btn-secondary-wide" 
+            type="button" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+          >
             Cancel
           </button>
-          <button className="btn-primary-wide" type="button" onClick={handleFinalSave} disabled={isSubmitting || !form.lpName}>
+          <button 
+            className="lp-drawer-btn-primary-wide" 
+            type="button" 
+            onClick={handleFinalSave} 
+            disabled={isSubmitting || !form.lpName}
+          >
             {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Create LP"}
           </button>
         </footer>
