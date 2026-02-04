@@ -1,13 +1,13 @@
-from rest_framework import generics, mixins
+from rest_framework import generics, mixins, viewsets
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
+from django.utils import timezone
 
 from ..serializers.lps_statement_serializers import ClosingPeriodSerializer
 from ..models.reference import ClosingPeriod
 from ..serializers.lps_statement_serializers import FundClosingSerializer
-from ..models.transactions import FundClosing
+from ..models.transactions import FundClosing, LPsFundCommitment
 from ..models.core import LimitedPartner
-from ..serializers.lps_statement_serializers import LimitedPartnerSerializer
+from ..serializers.lps_statement_serializers import LimitedPartnerSerializer, LPsFundCommitmentSerializer
 
 class ClosingPeriodList(generics.ListAPIView):
     queryset = ClosingPeriod.objects.all()
@@ -62,3 +62,12 @@ class LimitedPartnerViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted'])
+
+class LPsFundCommitmentViewSet(viewsets.ModelViewSet):
+    serializer_class = LPsFundCommitmentSerializer
+
+    def get_queryset(self):
+        return LPsFundCommitment.objects.filter(is_deleted=False)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_at=timezone.now())

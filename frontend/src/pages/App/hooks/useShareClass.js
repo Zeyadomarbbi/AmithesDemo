@@ -34,6 +34,7 @@ export function useShareClasses(fundId) {
             }
         });
 
+        console.log("payload", payload)
         const res = await fetch(
             `${API_BASE_URL}/api/funds/${fundId}/share-classes/`,
             {
@@ -46,7 +47,15 @@ export function useShareClasses(fundId) {
 
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || "Create failed");
+            console.error("Server 400 Validation Error:", errData);
+            const errorMessage = Object.entries(errData)
+                .map(([field, errors]) => {
+                    const msg = Array.isArray(errors) ? errors.join(' ') : errors;
+                    return `${field}: ${msg}`;
+                })
+                .join(' | ') || "Check your input and try again.";
+
+            throw new Error(errorMessage);
         }
 
         await fetchAll();

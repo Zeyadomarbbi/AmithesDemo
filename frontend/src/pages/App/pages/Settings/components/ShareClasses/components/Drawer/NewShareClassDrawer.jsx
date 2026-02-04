@@ -72,11 +72,11 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
       const newShareClassData = {
         share_class_name: name,
         isin_code: isin,
-        nominal_value: parseFloat(shareValue), // Ensure it's a number/decimal
+        nominal_value: shareValue ? parseFloat(shareValue) : 0, // Ensure it's a number/decimal
         issuance_method: dbIssuanceMethod,
         distribution_method: dbDistributionMethod,
         ppm_description: description,
-        document_file: uploadedFile // Changed from 'file' to 'document_file'
+        document_file: (uploadedFile instanceof File) ? uploadedFile : null // Changed from 'file' to 'document_file'
       };
 
       // 4. Call Parent API Function (Commits to DB)
@@ -150,7 +150,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
             <div className="share-class-drawer-field-label">
               Share value<span className="required">*</span>
             </div>
-            <div className="field-input field-input--with-icon">
+            <div className="share-class-field-input share-class-field-input--with-icon">
               <input
                 type="number"
                 className="field-input-inner"

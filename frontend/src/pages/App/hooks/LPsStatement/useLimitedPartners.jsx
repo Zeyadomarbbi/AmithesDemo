@@ -11,11 +11,11 @@ export function useLimitedPartners() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/limited-partners/`, {
+            const res = await fetch(`${API_BASE_URL}/api/limited-partners/`, {
             });
             if (!res.ok) throw new Error('Fetch failed');
             const data = await res.json();
-            setLimitedPartners(data);
+            setLimitedPartners([...data]);
         } catch (err) {
             setError(err);
         } finally {
@@ -25,7 +25,7 @@ export function useLimitedPartners() {
 
     const createLimitedPartner = useCallback(async (payload) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/limited-partners/`, {
+        const res = await fetch(`${API_BASE_URL}/api/limited-partners/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -38,7 +38,7 @@ export function useLimitedPartners() {
 
     const updateLimitedPartner = useCallback(async (id, payload) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/limited-partners/${id}/`, {
+        const res = await fetch(`${API_BASE_URL}/api/limited-partners/${id}/`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -46,14 +46,14 @@ export function useLimitedPartners() {
         if (!res.ok) throw new Error('Update failed');
         const data = await res.json();
         setLimitedPartners(prev =>
-            prev.map(lp => (lp.lp_id === id ? data : lp))
+            prev.map(lp => (lp.lp_id === id ? { ...data } : lp)) // Spread to create new object
         );
         return data;
     }, []);
 
     const deleteLimitedPartner = useCallback(async (id) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/limited-partners/${id}/`, {
+        const res = await fetch(`${API_BASE_URL}/api/limited-partners/${id}/`, {
             method: 'DELETE',
         });
         if (!res.ok) throw new Error('Delete failed');

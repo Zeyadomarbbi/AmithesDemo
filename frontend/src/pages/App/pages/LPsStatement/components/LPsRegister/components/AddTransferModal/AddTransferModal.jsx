@@ -1,8 +1,8 @@
 // src/pages/App/pages/LPsStatement/components/AddTransferModal.jsx
 import React, { useEffect, useState } from "react";
-import "./addTransferModal.css";
-import {EuroCurrencyIcon, ChevronDownIcon } from "../Icons.jsx";
-import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
+import {EuroCurrencyIcon, ChevronDownIcon } from "../../../../Icons.jsx";
+import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput.jsx";
+import "./AddTransferModal.css";
 
 
 

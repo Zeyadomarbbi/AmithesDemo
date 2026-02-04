@@ -1,12 +1,10 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalAccount/CapitalAccountStatement.jsx
 import React, { useMemo, useState } from "react";
-import NoticesModal from "./NoticesModal.jsx";
-import "./capitalAccountStatement.css";
-import { SortIcon, PlusIcon, MinusIcon } from "../Icons.jsx";
-import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
-import SearchBox from "/src/components/SearchBox/SearchBox.jsx";
-
-
+import NoticesModal from "./components/NoticesModal.jsx";
+import "./CapitalAccountStatement.css";
+import { SortIcon, PlusIcon, MinusIcon } from "../../Icons.jsx";
+import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector.jsx";
+import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
 
 /* ---------- simple down chevron for the filter box ---------- */
 const DownChevronIcon = () => (

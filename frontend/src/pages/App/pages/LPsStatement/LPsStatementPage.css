@@ -1,7 +1,28 @@
 /* ============= PAGE & TITLE ============= */
+:root {
+  --lp-tabs-underline: #f7a93b;
+  --lp-text-blue: #375a89;
+  --lp-border-light: rgba(204, 205, 206, 0.5);
+}
 
 .lp-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
   width: 100%;
+  background-color: #ffffff;
+}
+
+.lp-page-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* HEADER */
+.lp-page-header {
+  flex-shrink: 0;
 }
 
 .lp-page-title {
@@ -10,72 +31,55 @@
   font-size: 30px;
   line-height: 100%;
   color: #1c1917;
-  margin: 0 0 16px 0;
+  padding-bottom: 24px;
 }
 
-/* ============= TABS ============= */
-
-.lp-tabs-wrapper {
-  margin-bottom: 18px;
-}
-
-.lp-tabs {
+/* TABS */
+.lp-page-tabs {
   display: flex;
-  gap: 22px;
-  border-bottom: 1px solid #e6e9f1;
-  padding-bottom: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  width: 100%;
+  border-bottom: 1px solid var(--lp-border-light);
+  margin-bottom: 24px;
 }
 
-.lp-tab {
-  position: relative;
+.lp-page-tab {
+  background: none;
   border: none;
-  background: transparent;
   cursor: pointer;
-  padding: 0 4px 12px;
-
-  font-family: "Inter", sans-serif;
+  text-decoration: none;
+  padding: 0 4px 12px; 
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #375a89;
+  color: var(--lp-text-blue);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; 
+  transition: border-color 0.2s, color 0.2s;
 }
 
-.lp-tab:hover {
-  color: #2f4f7a;
+.lp-page-tab:hover {
+  color: var(--lp-text-blue);
 }
 
-.lp-tab-active {
-  color: #172b57;
-  font-weight: 600;
+.lp-page-tab--active {
+  color: var(--lp-text-blue);
+  border-bottom: 2px solid var(--lp-tabs-underline);
 }
 
-.lp-tab-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 2px;
-  background: #f7a93b;
+/* CONTENT AREA */
+.lp-page-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ============= TOOLBAR ============= */
 
-.lp-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-top: 14px;
-  margin-bottom: 18px;
-  gap: 16px;
-}
 
-.lp-toolbar-left {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+
 
 /* SEARCH */
 .search-input-wrapper {
@@ -124,49 +128,6 @@
   color: #9ca3af;
 }
 
-/* CLASS FILTER CHIPS */
-.lp-class-filter {
-  display: flex;
-  gap: 8px;
-}
-
-/* Badge-style chips (from Figma) */
-.lp-chip {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  gap: 2px;
-
-  width: 92px;
-  height: 24px;
-
-  background: transparent;
-  border-radius: 6px;
-  border: 1px solid rgba(55, 90, 137, 0.2);
-
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: center;
-
-  color: #375a89;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.lp-chip:hover {
-  background: rgba(55, 90, 137, 0.08);
-}
-
-.lp-chip-active {
-  background: rgba(55, 90, 137, 0.2); /* #375A8933 */
-  border-color: rgba(55, 90, 137, 0.2);
-  color: #7b7d7e;
-}
 
 /* RIGHT BUTTONS */
 .lp-toolbar-right {
@@ -389,71 +350,4 @@
   .side-plus-btn {
     align-self: flex-end;
   }
-}
-
-/* ================================
-   CHIP OVERRIDES FOR LP TOOLBAR
-   ================================ */
-
-/* keep Figma badge shape: 73x24, radius 6, but grey + active blue + X support */
-.lp-toolbar-left .lp-class-filter .lp-chip {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  gap: 4px;
-
-  width: 73px;
-  height: 24px;
-
-  background: rgba(55, 90, 137, 0.2);          /* grey default */
-  border-radius: 6px;           /* NOT pill, badge shape */
-  border: 1px solid #dde3f2;    /* light grey border */
-
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: center;
-
-  color: #7b7d7e;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.lp-toolbar-left .lp-class-filter .lp-chip:hover {
-  background: #e7ebf5;          /* slightly darker grey on hover */
-}
-
-/* label text inside chip */
-.lp-toolbar-left .lp-class-filter .lp-chip .lp-chip-label {
-  flex: 0 1 auto;
-}
-
-/* small X icon container inside active chip */
-.lp-toolbar-left .lp-class-filter .lp-chip .lp-chip-clear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  margin-left: 4px;
-  cursor: pointer;
-}
-
-/* ACTIVE chip: theme blue with white text */
-.lp-toolbar-left .lp-class-filter .lp-chip.lp-chip-active {
-  background: #375a89;          /* theme blue */
-  border-color: #375a89;
-  color: #ffffff;               /* white text */
-}
-
-/* keep the X white inside active chip (SVG stroke is white already) */
-.lp-toolbar-left
-  .lp-class-filter
-  .lp-chip.lp-chip-active
-  .lp-chip-clear {
-  color: #ffffff;
 }

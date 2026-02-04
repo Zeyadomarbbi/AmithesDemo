@@ -6,7 +6,7 @@ import "./OperationStep1.css";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 
 // ✅ your icons file (for dropdown chevron)
-import { ChevronDownIcon } from "../../Icons.jsx";
+import { ChevronDownIcon } from "../../../Icons.jsx";
 
 export default function OperationStep1({
   operationName = "",

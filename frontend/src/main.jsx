@@ -11,13 +11,21 @@ import LoginPage from './pages/Auth/Login/LoginPage';
 import AppLayout from './pages/App/components/AppLayout'; 
 
 // --- PAGES ---
-import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
-import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
-import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
-import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
 import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
 import AdminsPage from './pages/App/pages/Admins/AdminsPage';
 import HelpPage from './pages/App/pages/Help/HelpPage';
+
+// --- DASHBOARD COMPONENTS ---
+import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
+import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
+import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
+
+// --- LPs STATEMENT COMPONENT ---
+import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage.jsx';
+import CapitalAccountStatement from './pages/App/pages/LPsStatement/components/CapitalAccountStatement/CapitalAccountStatement';
+import CapitalFlows from './pages/App/pages/LPsStatement/components/CapitalFlows/CapitalFlows.jsx';
+import Limits from './pages/App/pages/LPsStatement/components/Limits/Limits.jsx';
+import LPsRegister from './pages/App/pages/LPsStatement/components/LPsRegister/LPsRegister.jsx';
 
 // --- FINANCIALS COMPONENTS ---
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
@@ -75,6 +83,16 @@ const router = createBrowserRouter([
                 { path: 'management-fees', element: <ManagementFees /> },
             ]
           },
+          { path: 'lps-statement', 
+            element: <LPsStatementPage />,
+            children: [
+              { index: true, element: <Navigate to="lps-register" replace /> },
+              { path: 'lps-register', element: <LPsRegister /> },
+              { path: 'capital-flows', element: <CapitalFlows /> },
+              { path: 'capital-account-statement', element: <CapitalAccountStatement /> },
+              { path: 'lps-limits', element: <Limits /> },
+            ]
+          },
           {
             path: 'dashboard',
             element: <DashboardPage />,
@@ -111,7 +129,7 @@ const router = createBrowserRouter([
               { path: 'compare/:positionId', element: <CompareDetailPanel /> },
             ],
           },
-          { path: 'lps-statement', element: <LPsStatementPage /> },
+          
           { 
             path: "financials",
             element: <FinancialsPage />,

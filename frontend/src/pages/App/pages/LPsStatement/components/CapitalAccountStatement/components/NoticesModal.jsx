@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
-import "./noticesModal.css";
-import SearchBox from "/src/components/SearchBox/SearchBox.jsx";
-
+import SearchBox from "../../../../../../../components/SearchBox/SearchBox.jsx";
+import "./NoticesModal.css";
 
 
 

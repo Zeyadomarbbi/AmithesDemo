@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ..models.reference import ClosingPeriod
-from ..models.transactions import FundClosing
+from ..models.transactions import FundClosing, LPsFundCommitment
 from ..models.core import LimitedPartner
 
 class ClosingPeriodSerializer(serializers.ModelSerializer):
@@ -43,3 +43,14 @@ class LimitedPartnerSerializer(serializers.ModelSerializer):
             'is_deleted',
         ]
         read_only_fields = ['lp_id', 'created_at', 'updated_at']
+
+
+class LPsFundCommitmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LPsFundCommitment
+        fields = '__all__'
+        read_only_fields = ['commitment_id', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        validated_data['created_by'] = None
+        return super().create(validated_data)

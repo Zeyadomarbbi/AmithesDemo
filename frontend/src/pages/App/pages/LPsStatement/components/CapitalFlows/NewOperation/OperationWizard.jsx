@@ -7,7 +7,7 @@ import OperationStep2 from "./OperationStep2.jsx";
 import OperationStep3Breakdown from "./OperationStep3Breakdown.jsx";
 import OperationStep4 from "./OperationStep4.jsx";
 
-import { CloseIcon } from "../../Icons.jsx";
+import { CloseIcon } from "../../../Icons.jsx";
 
 export default function OperationWizard({ onClose, lps = [] }) {
   const [step, setStep] = useState(1);

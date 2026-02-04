@@ -1,5 +1,16 @@
 /* ====== LP DETAILS DRAWER SPECIFIC STYLES ====== */
 /* base .drawer & .drawer-backdrop already come from NewLPDrawer.css */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+
+  /* optional: soft fade-in */
+  animation: backdrop-fade-in 0.2s ease-out forwards;
+}
 
 .lp-details-drawer {
   width: 560px;

@@ -334,3 +334,59 @@ class FundClosing(models.Model):
     class Meta:
         db_table = 'lps_fund_closings'
         unique_together = ('fund', 'closing_period')
+
+class LPsFundCommitment(models.Model):
+    commitment_id = models.AutoField(primary_key=True)
+
+    lp = models.ForeignKey(
+        'LimitedPartner',
+        on_delete=models.RESTRICT,
+        db_column='lp_id',
+        related_name='fund_commitments'
+    )
+
+    fund = models.ForeignKey(
+        "Fund", 
+        on_delete=models.CASCADE, 
+        db_column="fund_id",
+    )
+
+    share_class = models.ForeignKey(
+        "ShareClass",
+        on_delete=models.PROTECT,
+        db_column="share_class_id",
+
+    )
+    currency = models.ForeignKey(
+        'Currency',
+        on_delete=models.RESTRICT,
+        db_column='currency_id'
+    )
+
+    closing_period = models.ForeignKey(
+        'FundClosing',
+        on_delete=models.RESTRICT,
+        db_column='lps_fund_closing_period_id',
+        related_name='commitments'
+    )
+
+    commitment_amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=2
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    created_by = models.IntegerField(null=True, blank=True)
+
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'lps_fund_commitments'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['lp', 'closing_period'],
+                name='uq_lp_closing_commitment'
+            )
+        ]

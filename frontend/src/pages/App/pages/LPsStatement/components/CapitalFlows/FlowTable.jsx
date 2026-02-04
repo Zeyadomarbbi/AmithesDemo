@@ -1,7 +1,7 @@
 // frontend/src/pages/App/pages/LPsStatement/components/FlowTable.jsx
 import React, { useMemo, useState } from "react";
 import "./FlowTable.css";
-import { SortIcon } from "../Icons.jsx";
+import { SortIcon } from "../../Icons.jsx";
 
 
 /* ===================== DATASETS (same as before) ===================== */
