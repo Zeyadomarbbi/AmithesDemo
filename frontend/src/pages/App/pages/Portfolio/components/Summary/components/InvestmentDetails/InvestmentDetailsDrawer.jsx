@@ -71,7 +71,6 @@ const round6 = (n) => {
 
 const safeXirr = (cashflows) => {
   try {
-    console.log("cashflows", cashflows)
     if (!cashflows || cashflows.length < 2) return null;
     const hasPos = cashflows.some((c) => c.amount > 0);
     const hasNeg = cashflows.some((c) => c.amount < 0);
@@ -303,6 +302,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
           Array.isArray(flowsData) && flowsData.length
             ? flowsData.map(mapFlowFromApi)
             : [];
+        console.log("flowsData", flowsData)
         setFlows(mapped);
       } else {
         setFlows([]);
@@ -327,6 +327,8 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
       const fairData = await fairRes.json();
       const fairRows = Array.isArray(fairData) ? fairData : [];
+      
+      console.log("fairRows", fairRows)
       const match = fairRows.find(
         (fv) => String(fv.date) === String(fairValueDateLabel)
       );
