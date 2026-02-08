@@ -114,13 +114,13 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 0;
   min-height: 80px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
-
-.invCardTitle { font-size: 13px; font-weight: 500; color: #64748b; margin-bottom: 8px; }
-.invCardValue { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+.invCardTitle { font-size: 14px; font-weight: 500; color: #375A89; line-height: 20px; letter-spacing: 0.01em; margin-bottom: 0; }
+.invCardValue { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; margin-top: 0; }
 
 /* =========================================
    Fair Value Box
@@ -133,10 +133,11 @@
   margin-bottom: 40px;
   display: flex;
   align-items: flex-end;
+  flex-wrap: wrap;
   gap: 20px;
 }
 
-.invFairCol { padding: 8px;display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.invFairCol { padding: 8px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 .invFairLabel { font-size: 12px; font-weight: 600; color: #334155; }
 
 .invInputBase {
@@ -269,20 +270,26 @@
 
 .invAddFlowBtn {
   margin-top: 20px;
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(55, 90, 137, 0.2);
+  color: #375A89;
   border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.2s;
+  width: 121px;
+  height: 32px;
+  justify-content: center;
 }
-.invAddFlowBtn:hover { background: #bfdbfe; }
+.invAddFlowBtn:hover { background: rgba(55, 90, 137, 0.28); }
+
+.invAddFlowIcon { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; }
+.invAddFlowText { line-height: 20px; }
+
 
 .invDrawerFooter {
   padding: 20px 30px;
@@ -308,11 +315,45 @@
 .invBtnSave { background: #f59e0b; color: #ffffff; }
 .invBtnSave:hover { background: #d97706; }
 
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 9999;
+  background: #1f2937;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  max-width: 420px;
+}
+
+.toast-error {
+  background: #b91c1c;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toast-inv {
+  top: 20px;
+  right: 20px;
+}
 
 
 /* ===== Performance ===== */
 .inv-performance {
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .inv-performance-title {
@@ -426,3 +467,13 @@
   width: 36px;  /* عرض مربع اليوم */
   height: 36px; /* طول مربع اليوم */
 }
+.invEmptyCell { height: 44px; }
+.badge-Investment { background: #FEF3C7; color: #B45309; }
+.badge-Dividend, .badge-Dividends { background: #DCFCE7; color: #15803D; }
+.badge-Interest, .badge-Interests { background: #E0F2FE; color: #0369A1; }
+.badge-Other { background: #EDE9FE; color: #6D28D9; }
+.badge-Divestment { background: #FEE2E2; color: #B91C1C; }
+.badge-Partial-divestment { background: #FFE4E6; color: #BE123C; }
+
+
+  

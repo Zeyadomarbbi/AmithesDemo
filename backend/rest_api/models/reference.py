@@ -126,3 +126,12 @@ class ClosingPeriod(models.Model):
     class Meta:
         db_table = 'closing_period'
         managed = False
+
+class PortfolioTransactionType(models.Model):
+    transaction_id = models.AutoField(primary_key=True)
+    transaction_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "portfolio_transaction_type"

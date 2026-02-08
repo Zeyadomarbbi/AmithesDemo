@@ -169,6 +169,19 @@
   align-items: center;
   gap: 12px;
 }
+.portfolio-filter-indicator {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #c7d2fe;
+  white-space: nowrap;
+}
 .ghost-btn {
   display: inline-flex;
   align-items: center;
@@ -237,6 +250,30 @@
   box-shadow: none !important;
   background: transparent !important;
 }
+.portfolio-section .portfolio-table-scroll {
+  width: 100%;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  padding-bottom: 4px;
+}
+.portfolio-section .portfolio-table {
+  width: max-content;
+  min-width: 1400px;
+}
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar {
+  height: 8px !important;
+}
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track {
+  background: #e5e7eb !important;
+}
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8 !important;
+  border-radius: 8px !important;
+}
+.portfolio-section .portfolio-table-scroll {
+  scrollbar-width: auto !important;
+}
 .filter-btn {
   padding: 0;
   background: transparent;
@@ -296,7 +333,6 @@
   border-top: none !important;
 }
 
-/* لو الخط جاي من الكارد الحاوي للجدول */
 .portfolio-table-card {
   border-top: none !important;
 }
@@ -355,3 +391,139 @@
   vertical-align: middle;
   cursor: pointer; /* عشان يبين إنه قابل للضغط للترتيب مستقبلاً */
 }
+/* ===== Portfolio Summary (Typography + Footer) ===== */
+.portfolio-section-header h2 {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #1c1917;
+}
+
+.portfolio-count {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #375a89;
+}
+
+.portfolio-table thead th {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}
+
+.name-main {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}
+
+.name-sub {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.portfolio-table tbody td {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}
+
+.portfolio-subtotal-row,
+.portfolio-subtotal-row.total-row {
+  background: #375a89;
+}
+
+.portfolio-subtotal-row .subtotal-name-cell {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+}
+
+/* Ensure subtotal/total numbers are white and aligned */
+.portfolio-subtotal-row td {
+  color: #ffffff;
+}
+
+/* Force footer numbers white in all three tables */
+.portfolio-table tbody .portfolio-subtotal-row td {
+  color: #ffffff !important;
+}
+
+.portfolio-table tbody .portfolio-subtotal-row td.col-highlight {
+  color: #ffffff !important;
+}
+
+.portfolio-total-section .portfolio-table {
+  width: 100%;
+  min-width: 100%;
+}
+
+.portfolio-total-section .portfolio-subtotal-row td,
+.portfolio-total-section .subtotal-name-cell {
+  padding-left: 10px;
+}
+
+.portfolio-total-section .portfolio-subtotal-row td {
+  color: #ffffff !important;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 9999;
+  background: #1f2937;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  max-width: 420px;
+}
+
+.toast-error {
+  background: #b91c1c;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+

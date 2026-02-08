@@ -42,23 +42,27 @@ const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) =
     };
 
     const handleSave = () => {
-        if (endDate && existingDates.length > 0) {
-            // Ensure comparison matches your existingDates format
-            const formattedCurrentDate = endDate.toLocaleDateString('en-US', {
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit'
-            });
+    if (endDate && existingDates.length > 0) {
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        const year = String(endDate.getFullYear()).slice(-2);
+        const formattedCurrentDate = `${month}/${day}/${year}`;
 
-            if (existingDates.includes(formattedCurrentDate)) {
-                alert(`The date ${formattedCurrentDate} already exists. Please select a different date.`);
-                return;
-            }
+        if (existingDates.includes(formattedCurrentDate)) {
+            alert(`The date ${formattedCurrentDate} already exists. Please select a different date.`);
+            return;
         }
+    }
 
-        onSave({ name, endDate });
-        onClose();
-    };
+    // Format date as YYYY-MM-DD string to prevent timezone conversion
+    const year = endDate.getFullYear();
+    const month = String(endDate.getMonth() + 1).padStart(2, '0');
+    const day = String(endDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+
+    onSave({ name, endDate: dateString });
+    onClose();
+};
     
     return ReactDOM.createPortal(
         <div className="antfm-modal-overlay">

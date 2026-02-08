@@ -390,3 +390,96 @@ class LPsFundCommitment(models.Model):
                 name='uq_lp_closing_commitment'
             )
         ]
+
+class PortfolioInvestment(models.Model):
+    investment_id = models.AutoField(primary_key=True)
+
+    fund = models.ForeignKey(
+        "Fund",
+        on_delete=models.CASCADE,
+        db_column="fund_id",
+        related_name="portfolio_investments",
+    )
+
+    country = models.ForeignKey(
+        "Country",
+        on_delete=models.PROTECT,
+        db_column="country_id",
+        related_name="portfolio_investments",
+    )
+
+    currency = models.ForeignKey(
+        "Currency",
+        on_delete=models.PROTECT,
+        db_column="currency_id",
+        related_name="portfolio_investments",
+    )
+
+    name = models.CharField(max_length=255)
+    sector = models.CharField(max_length=255)
+    ownership = models.DecimalField(max_digits=18, decimal_places=6)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=150, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "portfolio_investment"
+
+class PortfolioTransactionFlow(models.Model):
+    flow_id = models.AutoField(primary_key=True)
+
+    portfolio_investment = models.ForeignKey(
+        "PortfolioInvestment",
+        on_delete=models.CASCADE,
+        db_column="investment_id",
+        related_name="transaction_flows",
+    )
+
+    transaction_type = models.ForeignKey(
+        "PortfolioTransactionType",
+        on_delete=models.PROTECT,
+        db_column="transaction_id",
+        related_name="flows",
+    )
+
+    date = models.DateField()
+    flow_name = models.CharField(max_length=100)
+    amount_lc = models.DecimalField(max_digits=18, decimal_places=6)
+    fx_rate = models.DecimalField(max_digits=18, decimal_places=6)
+    amount = models.DecimalField(max_digits=18, decimal_places=6)
+    divestment_percentage = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=150, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "portfolio_transaction_flows"
+
+class PortfolioFairValueFlow(models.Model):
+    fair_value_id = models.AutoField(primary_key=True)
+
+    portfolio_investment = models.ForeignKey(
+        "PortfolioInvestment",
+        on_delete=models.CASCADE,
+        db_column="investment_id",
+        related_name="fair_value_flows",
+    )
+
+    date = models.DateField()
+    amount_lc = models.DecimalField(max_digits=18, decimal_places=6)
+    fx_rate = models.DecimalField(max_digits=18, decimal_places=6)
+    amount = models.DecimalField(max_digits=18, decimal_places=6)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=150, null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "portfolio_fair_values_flows"

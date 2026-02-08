@@ -69,3 +69,14 @@ class ManFeePhaseListView(APIView):
             }
             for p in phases
         ])
+    
+class PortfolioTransactionTypeListView(APIView):
+    def get(self, request):
+        types = PortfolioTransactionType.objects.order_by("transaction_id")
+        return Response([
+            {
+                "id": t.transaction_id,
+                "name": t.transaction_name,
+            }
+            for t in types
+        ])
