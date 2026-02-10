@@ -12,219 +12,193 @@ import Step4 from "./components/Step4";
 import "./WaterfallStructure.css";
 
 const WaterfallStructure = () => {
-    const { fundId } = useOutletContext();
+  const { fundId } = useOutletContext();
+  const [internalSaving, setInternalSaving] = useState(false);
 
-    const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
-    const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
+  const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
+  const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
 
-    const isSaving = wfLoading;
-  /* =======================
-     1. Canonical State Shape
-     ======================= */
+  // Combined saving state to ensure UI reflects database activity and local processing
+  const isSaving = wfLoading || internalSaving;
 
-    const createDefaultStepState = (step_name, step_rate = "") => ({
-      id: null,
-      step_name,
-      step_rate,
-      rules: {}, // Initialize Global Rules container
-      envelopes: []
-    });
+  const createDefaultStepState = (step_name, step_rate = "") => ({
+    id: null,
+    step_name,
+    step_rate,
+    rules: {},
+    envelopes: []
+  });
 
-    const [step1Data, setStep1Data] = useState({
-      id: null,
-      step_name: "Nominal Repayment",
-      step_rate: "",
-      rules: {}
-      // No rules, no envelopes
-    });
-    const [step2Data, setStep2Data] = useState({
-      id: null,
-      step_name: "Hurdle",
-      step_rate: "",
-      rules: {}
-      // No envelopes
-    });
-    const [step3Data, setStep3Data] = useState(
-      createDefaultStepState("Catch-up")
-    );
-    const [step4Data, setStep4Data] = useState({
-      id: null,
-      step_name: "Special Return",
-      step_rate: "",
-      envelopes: []
-      // No step-level rules
-    });
+  const [step1Data, setStep1Data] = useState({
+    id: null,
+    step_name: "Nominal Repayment",
+    step_rate: "",
+    rules: {}
+  });
+  const [step2Data, setStep2Data] = useState({
+    id: null,
+    step_name: "Hurdle",
+    step_rate: "",
+    rules: {}
+  });
+  const [step3Data, setStep3Data] = useState(createDefaultStepState("Catch-up"));
+  const [step4Data, setStep4Data] = useState({
+    id: null,
+    step_name: "Special Return",
+    step_rate: "",
+    envelopes: []
+  });
 
-    /* =======================
-      2. Backend → Frontend
-      ======================= */
-
-    const mapBackendToState = useCallback((backendStep, stepNumber) => {
-  const base = {
-    id: backendStep.fund_waterfall_step_id,
-    step_name: backendStep.step_name,
-    step_rate: backendStep.step_rate ?? "",
-  };
-
-  // Helper to convert backend array of rules to a state dictionary
-  const rulesToDict = (rulesArray) => {
-    const dict = {};
-    (rulesArray || []).forEach(r => {
-      dict[r.share_class] = {
-        step_rule_id: r.step_rule_id || r.envelope_rule_id,
-        isSelected: r.isSelected,
-        isProRata: r.isProRata,
-        fixedPercentage: r.fixedPercentage,
-      };
-    });
-    return dict;
-  };
-
-  if (stepNumber === 1 || stepNumber === 2) {
-    return { ...base, rules: rulesToDict(backendStep.step_rules) };
-  }
-
-  if (stepNumber === 3 || stepNumber === 4) {
-    const envs = (backendStep.envelopes || []).map(env => ({
-      id: env.waterfall_envelope_id,
-      number: env.envelope_number,
-      allocation: env.allocation_percentage ?? "",
-      rules: rulesToDict(env.rules)
-    })).sort((a, b) => a.number - b.number);
-
-    const result = { ...base, envelopes: envs };
-    if (stepNumber === 3) result.rules = rulesToDict(backendStep.step_rules);
-    return result;
-  }
-}, []);
-    /* =======================
-      3. Load Existing Data
-      ======================= */
-
-    useEffect(() => {
-      if (!fundId || scLoading) return;
-
-      const loadData = async () => {
-        const dbSteps = await fetchFundSteps(fundId);
-        const s1 = dbSteps.find((s) => s.step_number === 1);
-        if (s1) setStep1Data(mapBackendToState(s1, 1));
-        const s2 = dbSteps.find((s) => s.step_number === 2);
-        if (s2) setStep2Data(mapBackendToState(s2, 2));
-        const s3 = dbSteps.find((s) => s.step_number === 3);
-        if (s3) setStep3Data(mapBackendToState(s3, 3));
-        const s4 = dbSteps.find((s) => s.step_number === 4);
-        if (s4) setStep4Data(mapBackendToState(s4, 4));
-      };
-
-      loadData();
-    }, [fundId, scLoading, fetchFundSteps, mapBackendToState]);
-
-    /* =======================
-      4. Save / Upsert Logic
-      ======================= */
-
-    const handleSave = async () => {
-      try {
-const formatPayload = (stepDefinitionId, stateData, stepNumber) => {
-  const base = {
-    fund: fundId,
-    step_definition: stepDefinitionId,
-    step_name: stateData.step_name,
-    step_rate: stateData.step_rate === "" ? null : Number(stateData.step_rate),
-  };
-
-  // Extract valid IDs to filter out placeholder keys (like 0, 1, 2)
-  const validShareClassIds = shareClasses.map(sc => sc.share_class_id);
-
-  const mapRule = (shareClassId, rule) => {
-    const id = parseInt(shareClassId);
-    
-    // CRITICAL FIX: Only map the rule if the ID exists in the shareClasses data
-    if (!validShareClassIds.includes(id)) return null;
-
-    return {
-      share_class: id,
-      isSelected: !!rule.isSelected,
-      isProRata: !!rule.isProRata,
-      fixedPercentage: rule.fixedPercentage === "" ? null : rule.fixedPercentage
+  const mapBackendToState = useCallback((backendStep, stepNumber) => {
+    const base = {
+      id: backendStep.fund_waterfall_step_id,
+      step_name: backendStep.step_name,
+      step_rate: backendStep.step_rate ?? "",
     };
+
+    const rulesToDict = (rulesArray) => {
+      const dict = {};
+      (rulesArray || []).forEach(r => {
+        dict[r.share_class] = {
+          step_rule_id: r.step_rule_id || r.envelope_rule_id,
+          isSelected: r.isSelected,
+          isProRata: r.isProRata,
+          fixedPercentage: r.fixedPercentage,
+        };
+      });
+      return dict;
+    };
+
+    if (stepNumber === 1 || stepNumber === 2) {
+      return { ...base, rules: rulesToDict(backendStep.step_rules) };
+    }
+
+    if (stepNumber === 3 || stepNumber === 4) {
+      const envs = (backendStep.envelopes || []).map(env => ({
+        id: env.waterfall_envelope_id,
+        number: env.envelope_number,
+        allocation: env.allocation_percentage ?? "",
+        rules: rulesToDict(env.rules)
+      })).sort((a, b) => a.number - b.number);
+
+      const result = { ...base, envelopes: envs };
+      if (stepNumber === 3) result.rules = rulesToDict(backendStep.step_rules);
+      return result;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!fundId || scLoading) return;
+
+    const loadData = async () => {
+      const dbSteps = await fetchFundSteps(fundId);
+      const s1 = dbSteps.find((s) => s.step_number === 1);
+      if (s1) setStep1Data(mapBackendToState(s1, 1));
+      const s2 = dbSteps.find((s) => s.step_number === 2);
+      if (s2) setStep2Data(mapBackendToState(s2, 2));
+      const s3 = dbSteps.find((s) => s.step_number === 3);
+      if (s3) setStep3Data(mapBackendToState(s3, 3));
+      const s4 = dbSteps.find((s) => s.step_number === 4);
+      if (s4) setStep4Data(mapBackendToState(s4, 4));
+    };
+
+    loadData();
+  }, [fundId, scLoading, fetchFundSteps, mapBackendToState]);
+
+  const handleSave = async () => {
+    setInternalSaving(true);
+    try {
+      const formatPayload = (stepDefinitionId, stateData, stepNumber) => {
+        const base = {
+          fund: fundId,
+          step_definition: stepDefinitionId,
+          step_name: stateData.step_name,
+          step_rate: stateData.step_rate === "" ? null : Number(stateData.step_rate),
+        };
+
+        const validShareClassIds = shareClasses.map(sc => sc.share_class_id);
+
+        const mapRule = (shareClassId, rule) => {
+          const id = parseInt(shareClassId);
+          if (!validShareClassIds.includes(id)) return null;
+
+          return {
+            share_class: id,
+            isSelected: !!rule.isSelected,
+            isProRata: !!rule.isProRata,
+            fixedPercentage: rule.fixedPercentage === "" ? null : rule.fixedPercentage
+          };
+        };
+
+        const processRules = (rulesObj) =>
+          Object.entries(rulesObj || {})
+            .map(([id, r]) => mapRule(id, r))
+            .filter(r => r !== null);
+
+        if (stepNumber === 1 || stepNumber === 2) {
+          const rulesArray = processRules(stateData.rules);
+          return { ...base, step_rules: rulesArray };
+        }
+
+        if (stepNumber === 3) {
+          const rulesArray = processRules(stateData.rules);
+          const envelopesArray = (stateData.envelopes || []).map((env) => ({
+            envelope_number: env.number,
+            allocation_percentage: env.allocation === "" ? 0 : Number(env.allocation),
+            rules: processRules(env.rules)
+          }));
+          return { ...base, step_rules: rulesArray, envelopes: envelopesArray };
+        }
+
+        if (stepNumber === 4) {
+          const envelopesArray = (stateData.envelopes || []).map((env) => ({
+            envelope_number: env.number,
+            allocation_percentage: env.allocation === "" ? 0 : Number(env.allocation),
+            rules: processRules(env.rules)
+          }));
+          return { ...base, envelopes: envelopesArray };
+        }
+      };
+
+      const p1 = formatPayload(1, step1Data, 1);
+      const p2 = formatPayload(2, step2Data, 2);
+      const p3 = formatPayload(3, step3Data, 3);
+      const p4 = formatPayload(4, step4Data, 4);
+      console.log("p1", p1)
+      console.log("p2", p2)
+      console.log("p3", p3)
+      console.log("p4", p4)
+      // Execute all updates/creates and wait for full resolution
+      await Promise.all([
+        step1Data.id ? updateStep(fundId, step1Data.id, p1) : createStep(fundId, p1),
+        step2Data.id ? updateStep(fundId, step2Data.id, p2) : createStep(fundId, p2),
+        step3Data.id ? updateStep(fundId, step3Data.id, p3) : createStep(fundId, p3),
+        step4Data.id ? updateStep(fundId, step4Data.id, p4) : createStep(fundId, p4),
+      ]);
+
+      // Refresh from source of truth after database transaction completes
+      const freshData = await fetchFundSteps(fundId);
+
+      const s1 = freshData.find((s) => s.step_number === 1);
+      if (s1) setStep1Data(mapBackendToState(s1, 1));
+      const s2 = freshData.find((s) => s.step_number === 2);
+      if (s2) setStep2Data(mapBackendToState(s2, 2));
+      const s3 = freshData.find((s) => s.step_number === 3);
+      if (s3) setStep3Data(mapBackendToState(s3, 3));
+      const s4 = freshData.find((s) => s.step_number === 4);
+      if (s4) setStep4Data(mapBackendToState(s4, 4));
+      console.log("s1", s1)
+      console.log("s2", s2)
+      console.log("s3", s3)
+      console.log("s4", s4)
+    } catch (err) {
+      console.error("Save Error:", err);
+    } finally {
+      setInternalSaving(false);
+    }
   };
 
-  // Helper to filter and map a rules object
-  const processRules = (rulesObj) => 
-    Object.entries(rulesObj || {})
-      .map(([id, r]) => mapRule(id, r))
-      .filter(r => r !== null);
-
-  // Step 1 & 2: rules only
-  if (stepNumber === 1 || stepNumber === 2) {
-    const rulesArray = processRules(stateData.rules);
-    return { ...base, step_rules: rulesArray };
-  }
-
-  // Step 3: rules + envelopes
-  if (stepNumber === 3) {
-    const rulesArray = processRules(stateData.rules);
-    const envelopesArray = (stateData.envelopes || []).map((env) => ({
-      envelope_number: env.number,
-      allocation_percentage: env.allocation === "" ? 0 : Number(env.allocation),
-      rules: processRules(env.rules)
-    }));
-    return { ...base, step_rules: rulesArray, envelopes: envelopesArray };
-  }
-
-  // Step 4: envelopes only
-  if (stepNumber === 4) {
-    const envelopesArray = (stateData.envelopes || []).map((env) => ({
-      envelope_number: env.number,
-      allocation_percentage: env.allocation === "" ? 0 : Number(env.allocation),
-      rules: processRules(env.rules)
-    }));
-    return { ...base, envelopes: envelopesArray };
-  }
-};
-        const p1 = formatPayload(1, step1Data, 1);    
-        const p2 = formatPayload(2, step2Data, 2);
-        const p3 = formatPayload(3, step3Data, 3);
-        const p4 = formatPayload(4, step4Data, 4);
-        console.log("Saving Payloads:", { p1, p2, p3, p4 });
-        const results = await Promise.all([
-          step1Data.id ? updateStep(fundId, step1Data.id, p1) : createStep(fundId, p1),
-          step2Data.id ? updateStep(fundId, step2Data.id, p2) : createStep(fundId, p2),
-          step3Data.id ? updateStep(fundId, step3Data.id, p3) : createStep(fundId, p3),
-          step4Data.id ? updateStep(fundId, step4Data.id, p4) : createStep(fundId, p4),
-        ]);
-
-        // 1. Immediately update local state with returned results (optimistic)
-        if (results[0]) setStep1Data(mapBackendToState(results[0], 1));
-        if (results[1]) setStep2Data(mapBackendToState(results[1], 2));
-        if (results[2]) setStep3Data(mapBackendToState(results[2], 3));
-        if (results[3]) setStep4Data(mapBackendToState(results[3], 4));
-
-        // 2. REFRESH: Re-fetch the entire waterfall from the source of truth
-        // This ensures IDs and relationships are perfectly synced.
-        const freshData = await fetchFundSteps(fundId);
-        
-        // 3. Map the fresh data to states
-        const s1 = freshData.find((s) => s.step_number === 1);
-        if (s1) setStep1Data(mapBackendToState(s1, 1));
-        
-        const s2 = freshData.find((s) => s.step_number === 2);
-        if (s2) setStep2Data(mapBackendToState(s2, 2));
-        
-        const s3 = freshData.find((s) => s.step_number === 3);
-        if (s3) setStep3Data(mapBackendToState(s3, 3));
-        
-        const s4 = freshData.find((s) => s.step_number === 4);
-        if (s4) setStep4Data(mapBackendToState(s4, 4));
-
-        console.log("Waterfall synced and refreshed.");
-    } catch (err) {
-        console.error("Save Error:", err);
-    }
-};
-
-    if (scLoading) return <div>Loading Share Classes...</div>;
+  if (scLoading) return <div>Loading Share Classes...</div>;
 
   return (
     <div className="wf-wrapper">
@@ -237,8 +211,8 @@ const formatPayload = (stepDefinitionId, stateData, stepNumber) => {
 
       <div className="wf-footer">
         <div className="wf-actions">
-          <button 
-            className="wf-btn-save" 
+          <button
+            className="wf-btn-save"
             onClick={handleSave}
             disabled={isSaving}
           >

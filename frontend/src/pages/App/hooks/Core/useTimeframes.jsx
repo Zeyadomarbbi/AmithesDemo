@@ -25,8 +25,15 @@ export function useTimeframes(fundId) {
             setIsLoading(true);
             const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/timeframes/`);
             if (!response.ok) throw new Error("Failed to fetch");
+            
             const rows = await response.json();
-            setQuarters(rows.map(apiRowToQuarter));
+            
+            // Sort Ascending: Oldest (Top) -> Newest (Bottom)
+            const sortedQuarters = rows
+                .map(apiRowToQuarter)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            setQuarters(sortedQuarters);
         } catch (error) {
             console.error("Fetch error:", error);
         } finally {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useFundDetails } from "../../../../hooks/useFundDetails.js"; 
-import { useFundData } from "../../../../hooks/Core/FundContext";       
+import { useFundData } from "../../../../hooks/Core/FundContext";        
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
@@ -25,6 +25,18 @@ const FundIdentity = () => {
     }
   }, [serverData]);
 
+  // Logic to determine if the mandatory fields are populated
+  const isFormValid = useMemo(() => {
+    return (
+      formData.legal_name?.trim() &&
+      formData.short_name?.trim() &&
+      formData.formation_date &&
+      formData.currency_id &&
+      formData.fund_strategy?.trim() &&
+      formData.phase_name
+    );
+  }, [formData]);
+
   const handleChange = (field) => (e) => {
     let value = e.target.value;
     if (field === "currency_id") {
@@ -38,12 +50,11 @@ const FundIdentity = () => {
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
-    
     const isoDate = `${year}-${month}-${day}`;
 
     setFormData((prev) => ({ 
       ...prev, 
-      formation_date: isoDate, // For backend payload
+      formation_date: isoDate, 
     }));
   };
 
@@ -57,6 +68,7 @@ const FundIdentity = () => {
   };
 
   const handleSave = async () => {
+    if (!isFormValid) return;
     setIsSaving(true);
     try {
       const payload = {
@@ -70,7 +82,6 @@ const FundIdentity = () => {
         formation_date: formData.formation_date,
       };
 
-      console.log("Saving Fund Identity with payload:", payload);
       const result = await updateFund(fundId, payload);
       await refetch();
 
@@ -91,6 +102,7 @@ const FundIdentity = () => {
     <div className="fund-identity-wrapper">
       <form className="fund-identity-form" onSubmit={(e) => e.preventDefault()}>
         
+        {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Legal name<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
@@ -104,6 +116,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Short name<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
@@ -117,6 +130,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Formation date<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-date-wrapper">
@@ -129,6 +143,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund currency<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
@@ -147,6 +162,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* OPTIONAL */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Legal form</label>
           <div className="fund-identity-input">
@@ -160,6 +176,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* OPTIONAL */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Management company</label>
           <div className="fund-identity-input">
@@ -173,6 +190,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* REQUIRED */}
         <div className="fund-identity-field fund-identity-field--full">
           <label className="fund-identity-label">Fund strategy<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
@@ -186,6 +204,7 @@ const FundIdentity = () => {
           </div>
         </div>
 
+        {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund's phase<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
@@ -212,7 +231,7 @@ const FundIdentity = () => {
           <button 
             className="fund-identity-btn-save" 
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !isFormValid}
           >
             {isSaving ? "Saving..." : "Save"}
           </button>

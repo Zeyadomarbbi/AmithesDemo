@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
+import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard'; // <--- Import your Guard
 import './index.css';
 
 // --- AUTH ---
@@ -71,6 +72,8 @@ const router = createBrowserRouter([
       // 2. FUND SPECIFIC PAGES
       {
         path: 'funds/:fundId',
+        // Wrap children in the Guard so it applies to ALL fund-specific modules
+        element: <FundSetupGuard><Outlet /></FundSetupGuard>, 
         children: [
           { 
             path: 'settings', 

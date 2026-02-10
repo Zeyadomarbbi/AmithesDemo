@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFundData } from "../../hooks/Core/FundContext"; 
 import FundList from "./components/FundLists/FundList";
@@ -13,16 +13,25 @@ export default function AllFundsPage() {
   const navigate = useNavigate();
   
   // Access state and actions from the Context
-  const { funds, isLoading, error, initializeFund } = useFundData();
+  const { funds, isLoading, error, initializeFund, setActiveFundId } = useFundData();
 
   const [activeTab, setActiveTab] = useState("funds");
   const [query, setQuery] = useState("");
   const [isNewFundOpen, setIsNewFundOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
+  /**
+   * Effect: Ensure no fund is globally active when visiting this page.
+   * This clears the active context so the SidePanel hides fund-specific links.
+   */
+  useEffect(() => {
+    if (setActiveFundId) {
+      setActiveFundId(null);
+    }
+  }, [setActiveFundId]);
+
   const normalizedQuery = (query || "").toLowerCase().trim();
 
-  // Filter logic remains the same, but 'f.name' is now guaranteed by the formatFund normalizer
   const filteredFunds = useMemo(() => {
     return funds.filter((f) =>
       (f.name || "").toLowerCase().includes(normalizedQuery)
@@ -30,21 +39,30 @@ export default function AllFundsPage() {
   }, [funds, normalizedQuery]);
 
   const handleCardClick = (fundId) => {
+    // Existing funds go to Dashboard
+    // The Guard will only stop them if they never finished the identity save
     navigate(`/funds/${fundId}/dashboard`);
   };
 
   const handleCreateFund = async (payload) => {
     const result = await initializeFund(payload);
-    if (result.success) {
+    
+    if (result.success && result.id) {
+      // 1. Close the modal
+      setIsNewFundOpen(false);
+      
+      // 2. Redirect to the specific settings tab for the new fund
+      navigate(`/funds/${result.id}/settings/fund-identity`);
+      
+      // 3. Optional: show toast on the new page
       setToast({
         title: "Fund Initialized",
         message: "The new fund has been created successfully.",
       });
-      setIsNewFundOpen(false); // Close modal on success
     } else {
       setToast({
         title: "Error",
-        message: result.error || "Could not initialize fund 123.",
+        message: result.error || "Could not initialize fund.",
       });
     }
   };
@@ -67,7 +85,6 @@ export default function AllFundsPage() {
 
   return (
     <div className="allfunds-page">
-      {/* ===== Header ===== */}
       <header className="allfunds-header">
         <h1 className="allfunds-title">All funds</h1>
 
@@ -88,7 +105,6 @@ export default function AllFundsPage() {
         <div className="tabs-underline" />
       </header>
 
-      {/* ===== Toolbar ===== */}
       <div className="allfunds-toolbar">
         <div className="search-box">
           <span className="search-icon" aria-hidden="true">
@@ -111,21 +127,18 @@ export default function AllFundsPage() {
         </button>
       </div>
 
-      {/* ===== Content ===== */}
       {activeTab === "funds" ? (
         <FundList funds={filteredFunds} onCardClick={handleCardClick} />
       ) : (
         <KPIsTable funds={filteredFunds} onFundClick={handleCardClick} />
       )}
 
-      {/* ===== Modal ===== */}
       <NewFundModal
         open={isNewFundOpen}
         onClose={() => setIsNewFundOpen(false)}
         onCreate={handleCreateFund}
       />
 
-      {/* ===== Toast ===== */}
       {toast && (
         <Toast
           title={toast.title}

@@ -51,6 +51,9 @@ export function FundProvider({ children }) {
   const [funds, setFunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // State for sticky active fund selection
+  const [activeFundId, setActiveFundId] = useState(() => localStorage.getItem('lastActiveFundId'));
 
   // --- DATA NORMALIZER ---
   const formatFund = useCallback((f) => ({
@@ -66,6 +69,8 @@ export function FundProvider({ children }) {
     createdAt: f.created_at,
     updatedAt: f.updated_at ?? null,
     isDeleted: f.is_deleted,
+    // The Guard Condition Field
+    isSetupComplete: f.is_setup_complete ?? false, 
   }), []);
 
   // --- ACTIONS ---
@@ -85,18 +90,20 @@ export function FundProvider({ children }) {
   const initializeFund = async (payload) => {
     try {
       const data = await api.post({
-        // Use the keys sent by the NewFundModal
-        legal_name: payload.legalName,     // Adjusted from payload.name
+        legal_name: payload.legalName,
         short_name: payload.shortName,
         formation_date: payload.formationDate,
-        currency_id: payload.currency_id,  // Adjusted from payload.currencyId
+        currency_id: payload.currency_id,
         phase_name: payload.phaseName || "Marketing", 
         legal_form: payload.legalForm || "",
         management_company: payload.manCo || "",
         fund_strategy: payload.strategy || "",
       });
-      setFunds((prev) => [formatFund(data), ...prev]);
-      return { success: true };
+      
+      const newFund = formatFund(data);
+      setFunds((prev) => [newFund, ...prev]);
+      
+      return { success: true, id: newFund.id }; 
     } catch (e) {
       return { success: false, error: e.message };
     }
@@ -142,12 +149,14 @@ export function FundProvider({ children }) {
         funds, 
         isLoading, 
         error, 
+        activeFundId,
+        setActiveFundId,
         refreshFunds, 
         initializeFund, 
         updateFund, 
         deleteFund, 
         formatFund,
-        api // Exposed for specialized hooks like useFundDetails
+        api 
       }}
     >
       {children}
