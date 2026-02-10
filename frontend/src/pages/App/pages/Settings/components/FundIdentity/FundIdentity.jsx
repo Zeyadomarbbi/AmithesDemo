@@ -5,12 +5,13 @@ import { useFundData } from "../../../../hooks/Core/FundContext";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
+import Toast from '../../../../components/Toast/Toast.jsx';
 
 import "./FundIdentity.css";
 
 const FundIdentity = () => {
   const { fundId } = useOutletContext();
-
+  const [toast, setToast] = useState(null);
   const { fund: serverData, isFundLoading, error, refetch } = useFundDetails(fundId);
   const { updateFund } = useFundData();
   const { phases, isLoading: phasesLoading } = usePhases();
@@ -85,12 +86,23 @@ const FundIdentity = () => {
       const result = await updateFund(fundId, payload);
       await refetch();
 
-      if (!result.success) throw new Error(result.error || "Save failed");
-      alert("Saved successfully!");
-      
+      if (result.success) {
+        setToast({
+          type: "success",
+          title: "Saved Successfully",
+          message: "Fund identity has been updated."
+        });
+      } else {
+        throw new Error(result.error);
+      }
     } catch (err) {
-      alert(`Error: ${err.message}`);
-    } finally {
+      setToast({
+        type: "error",
+        title: "Save Failed",
+        message: err.message
+      });
+      } finally {
+      // Guaranteed reset of the button state
       setIsSaving(false);
     }
   };
@@ -235,6 +247,14 @@ const FundIdentity = () => {
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
+          {toast && (
+            <Toast
+              type={toast.type}
+              title={toast.title}
+              message={toast.message}
+              onClose={() => setToast(null)}
+            />
+          )}
         </div>
       </div>
     </div>

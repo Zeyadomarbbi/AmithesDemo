@@ -1,16 +1,16 @@
 /* dim background behind toast */
-.toast-backdrop {
+.pop-up-toast-backdrop {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.35); /* same style as your screenshot */
-  z-index: 999; /* above main layout + modals */
+  background: rgba(15, 23, 42, 0.35); 
+  z-index: 999; 
 }
 
 /* main card */
-.toast {
+.pop-up-toast {
   box-sizing: border-box;
   display: flex;
   align-items: flex-start;
@@ -28,33 +28,33 @@
 }
 
 /* left side: icon + text */
-.toast-main {
+.pop-up-toast-main {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: 8px;
 }
 
-.toast-icon {
+.pop-up-toast-icon {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
 }
 
-.toast-text {
+.pop-up-toast-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.toast-title {
+.pop-up-toast-title {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
   color: #000000;
 }
 
-.toast-message {
+.pop-up-toast-message {
   font-size: 14px;
   line-height: 20px;
   font-weight: 400;
@@ -63,7 +63,7 @@
 }
 
 /* close button (X) */
-.toast-close {
+.pop-up-toast-close {
   width: 24px;
   height: 24px;
   border-radius: 999px;
@@ -78,9 +78,11 @@
   cursor: pointer;
 }
 
+
+
 /* responsive: smaller width on phones */
 @media (max-width: 480px) {
-  .toast {
+  .pop-up-toast {
     width: calc(100% - 32px);
   }
 }

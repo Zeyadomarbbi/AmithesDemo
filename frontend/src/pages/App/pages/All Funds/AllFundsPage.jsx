@@ -4,7 +4,7 @@ import { useFundData } from "../../hooks/Core/FundContext";
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
-import Toast from "./components/NewFund/Toast";
+import Toast from "../../components/Toast/Toast";
 import { PlusIcon, SearchIcon} from "../../../../components/Icons";
 
 import "./AllFundsPage.css";

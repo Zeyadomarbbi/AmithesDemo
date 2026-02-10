@@ -8,17 +8,18 @@ import Step1 from "./components/Step1";
 import Step2 from "./components/Step2";
 import Step3 from "./components/Step3";
 import Step4 from "./components/Step4";
+import Toast from "../../../../components/Toast/Toast.jsx"; 
 
 import "./WaterfallStructure.css";
 
 const WaterfallStructure = () => {
   const { fundId } = useOutletContext();
   const [internalSaving, setInternalSaving] = useState(false);
+  const [toast, setToast] = useState(null); // Toast state
 
   const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
   const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
 
-  // Combined saving state to ensure UI reflects database activity and local processing
   const isSaving = wfLoading || internalSaving;
 
   const createDefaultStepState = (step_name, step_rate = "") => ({
@@ -164,11 +165,7 @@ const WaterfallStructure = () => {
       const p2 = formatPayload(2, step2Data, 2);
       const p3 = formatPayload(3, step3Data, 3);
       const p4 = formatPayload(4, step4Data, 4);
-      console.log("p1", p1)
-      console.log("p2", p2)
-      console.log("p3", p3)
-      console.log("p4", p4)
-      // Execute all updates/creates and wait for full resolution
+
       await Promise.all([
         step1Data.id ? updateStep(fundId, step1Data.id, p1) : createStep(fundId, p1),
         step2Data.id ? updateStep(fundId, step2Data.id, p2) : createStep(fundId, p2),
@@ -176,7 +173,6 @@ const WaterfallStructure = () => {
         step4Data.id ? updateStep(fundId, step4Data.id, p4) : createStep(fundId, p4),
       ]);
 
-      // Refresh from source of truth after database transaction completes
       const freshData = await fetchFundSteps(fundId);
 
       const s1 = freshData.find((s) => s.step_number === 1);
@@ -187,12 +183,21 @@ const WaterfallStructure = () => {
       if (s3) setStep3Data(mapBackendToState(s3, 3));
       const s4 = freshData.find((s) => s.step_number === 4);
       if (s4) setStep4Data(mapBackendToState(s4, 4));
-      console.log("s1", s1)
-      console.log("s2", s2)
-      console.log("s3", s3)
-      console.log("s4", s4)
+
+      // Success Toast
+      setToast({
+        type: "success",
+        title: "Waterfall Saved",
+        message: "Waterfall structure has been updated successfully."
+      });
+
     } catch (err) {
       console.error("Save Error:", err);
+      setToast({
+        type: "error",
+        title: "Save Error",
+        message: err.message || "Failed to save waterfall structure."
+      });
     } finally {
       setInternalSaving(false);
     }
@@ -220,6 +225,15 @@ const WaterfallStructure = () => {
           </button>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
