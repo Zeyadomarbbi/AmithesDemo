@@ -486,6 +486,8 @@
 .portfolio-total-section .portfolio-table {
   width: 100%;
   min-width: 100%;
+  margin-top: 16px;
+  table-layout: fixed
 }
 
 .portfolio-total-section .portfolio-subtotal-row td,
@@ -527,3 +529,13 @@
   cursor: pointer;
 }
 
+.is-hidden {
+  visibility: collapse;
+  line-height: 0;
+}
+
+.is-hidden th {
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 0;
+}
