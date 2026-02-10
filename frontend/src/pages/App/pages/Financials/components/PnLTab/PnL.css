@@ -282,3 +282,24 @@ justify-self: center; /* grid cell */
   background-color: #D0D5DD;
   cursor: not-allowed;
 }
+
+.financials-section-title {
+  /* Unrealized portfolio style */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  
+  display: flex;
+  align-items: center;
+  color: #1C1917;
+
+  /* Layout */
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+
+  /* Optional: Spacing to separate from the table above */
+  padding: 24px 0 16px 0; 
+}

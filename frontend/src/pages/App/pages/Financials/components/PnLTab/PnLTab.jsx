@@ -10,7 +10,7 @@ import {
   AddFileIcon,
   PlusIcon,
 } from "../../../../components/Icons.jsx";
-
+import Toast from "../../../../components/Toast/Toast.jsx"; // ✅ Import Toast
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
@@ -137,7 +137,7 @@ const PnLTab = () => {
   const location = useLocation();
 
   const { quarters, isLoading, setQuarters } = useTimeframes(effectiveFundId);
-
+  const [toast, setToast] = useState(null);
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
     return (
@@ -455,17 +455,24 @@ const PnLTab = () => {
   };
 
   const handleSave = async () => {
-    if (!effectiveFundId) return alert("Missing fundId.");
-    if (headerPeriods.length === 0) return alert("Select at least one timeframe first.");
+    if (!effectiveFundId) return;
+    if (headerPeriods.length === 0) {
+        setToast({
+            type: "error",
+            title: "Selection Required",
+            message: "Select at least one timeframe first."
+        });
+        return;
+    }
 
     try {
       setSavingAll(true);
       setPnlError("");
 
-      // ✅ Step 1: make sure custom rows exist in DB (Income/Expense/Tax)
+      // ✅ Step 1: Persist custom rows
       const updated = await persistCustomRows();
 
-      // ✅ Step 2: build jobs for ALL 3 sections (now includes the new IDs)
+      // ✅ Step 2: Build jobs
       const jobs = [
         ...buildJobs(updated.incomeLines, updated.incomeValues),
         ...buildJobs(updated.expenseLines, updated.expenseValues),
@@ -473,14 +480,19 @@ const PnLTab = () => {
       ];
 
       if (jobs.length === 0) {
-        alert("Nothing to save (fill some values first).");
+        setToast({
+            type: "info",
+            title: "No Changes",
+            message: "Nothing to save. Please fill some values first."
+        });
+        setSavingAll(false);
         return;
       }
 
-      // ✅ Step 3: write all values
+      // ✅ Step 3: Write values in batches
       await runInBatches(jobs, 10, (payload) => apiUpsertPnLValue(effectiveFundId, payload));
 
-      // ✅ Step 4: reload from backend so UI matches DB exactly
+      // ✅ Step 4: Reload from backend
       const data = await apiFetchPnL(effectiveFundId, selectedTimeframeIds);
 
       const normalizeLines = (arr) =>
@@ -503,11 +515,23 @@ const PnLTab = () => {
       setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
       setTaxValues(valuesMapToRows(taxLs, data.taxValues));
 
-      alert("Saved ✅ (Income + Expenses + Tax)");
+      // ✅ Success Toast
+      setToast({
+        type: "success",
+        title: "Financials Saved",
+        message: "Income, Expenses, and Tax data updated successfully."
+      });
+
     } catch (e) {
       console.error(e);
       setPnlError(e?.message || "Save failed");
-      alert(e?.message || "Save failed");
+      
+      // ✅ Error Toast
+      setToast({
+        type: "error",
+        title: "Save Failed",
+        message: e?.message || "An error occurred while saving financials."
+      });
     } finally {
       setSavingAll(false);
     }
@@ -590,6 +614,7 @@ const PnLTab = () => {
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
+            <div className="financials-section-title">Income</div>
             <HeaderRow
               leftSlot={
                 <button className="pill-btn" type="button" onClick={addIncomeRow}>
@@ -619,6 +644,7 @@ const PnLTab = () => {
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
+            <div className="financials-section-title">Expense</div>
             <HeaderRow
               leftSlot={
                 <button className="pill-btn" type="button" onClick={addExpenseRow}>
@@ -648,6 +674,7 @@ const PnLTab = () => {
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
+            <div className="financials-section-title">Tax</div>
             <HeaderRow
               leftSlot={
                 <button className="pill-btn" type="button" onClick={addTaxRow}>
@@ -702,6 +729,14 @@ const PnLTab = () => {
           </button>
         </div>
       </div>
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };

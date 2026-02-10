@@ -42,9 +42,9 @@ function getClassColor(name) {
 
 /**
  * Main Data Transformer
- * Groups Commitments by LP + Share Class and maps them to dynamic Closing columns
+ * Filters by fundId and groups Commitments by LP + Share Class
  */
-function buildCommitmentSummary(commitments, closings, limitedPartners, shareClasses) {
+function buildCommitmentSummary(commitments, closings, limitedPartners, shareClasses, currentFundId) {
   if (!commitments?.length || !limitedPartners?.length) {
     return { summaryRows: [], grandTotal: "0", grandTotalNumeric: 0, closingTotals: {} };
   }
@@ -52,17 +52,23 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
   const lpMap = {};
   let grandTotal = 0;
 
-  commitments.forEach(c => {
-    // Mapping keys based on your raw JSON: 
-    // lp -> lp_id, share_class -> share_class_id, closing_period -> lps_fund_closing_period_id
-    const key = `${c.lp}_${c.share_class}`;
-    console.log(`Checking commitment: LP ${c.lp} | Class ${c.share_class} | Amount ${c.commitment_amount}`);
+  // Filter commitments strictly for the current fund
+  const activeCommitments = commitments.filter(c => 
+    String(c.fund_id || c.fund) === String(currentFundId)
+  );
+
+  activeCommitments.forEach(c => {
+    // Keys based on provided schema: lp_id, share_class_id, lps_fund_closing_period_id
+    const lpId = c.lp_id || c.lp;
+    const scId = c.share_class_id || c.share_class;
+    const closingId = c.lps_fund_closing_period_id || c.closing_period;
+    
+    const key = `${lpId}_${scId}`;
     const amount = parseFloat(c.commitment_amount || 0);
 
     if (!lpMap[key]) {
-      // Lookup using the keys provided in your log
-      const lpInfo = limitedPartners.find(p => String(p.lp_id) === String(c.lp)) || {};
-      const scInfo = shareClasses.find(sc => String(sc.share_class_id) === String(c.share_class)) || {};
+      const lpInfo = limitedPartners.find(p => String(p.lp_id) === String(lpId)) || {};
+      const scInfo = shareClasses.find(sc => String(sc.share_class_id) === String(scId)) || {};
       
       lpMap[key] = {
         lp: lpInfo,
@@ -72,7 +78,7 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
       };
     }
 
-    lpMap[key].closings[c.closing_period] = amount;
+    lpMap[key].closings[closingId] = (lpMap[key].closings[closingId] || 0) + amount;
     lpMap[key].total_commitment += amount;
     grandTotal += amount;
   });
@@ -98,12 +104,11 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
 
   const closingTotals = {};
   closings.forEach(closing => {
-    const sum = commitments
-      .filter(c => String(c.closing_period) === String(closing.lps_fund_closing_period_id))
+    const sum = activeCommitments
+      .filter(c => String(c.lps_fund_closing_period_id || c.closing_period) === String(closing.lps_fund_closing_period_id))
       .reduce((acc, curr) => acc + parseFloat(curr.commitment_amount || 0), 0);
     closingTotals[closing.lps_fund_closing_period_id] = formatAmount(sum);
   });
-  
 
   return {
     summaryRows,
@@ -157,7 +162,15 @@ export default function LPsRegister() {
 
   /* --- Transformation Logic --- */
   /* --- Transformation Logic with Logging --- */
-  const summaryData = buildCommitmentSummary(commitments, fundClosings, limitedPartners, shareClasses);
+  const summaryData = useMemo(() => {
+    return buildCommitmentSummary(
+      commitments, 
+      fundClosings, 
+      limitedPartners, 
+      shareClasses, 
+      fundId
+    );
+  }, [commitments, fundClosings, limitedPartners, shareClasses, fundId]);
   const filteredRows = useMemo(() => {
     return summaryData.summaryRows.filter(row => {
       const name = row.lp?.name || "";
