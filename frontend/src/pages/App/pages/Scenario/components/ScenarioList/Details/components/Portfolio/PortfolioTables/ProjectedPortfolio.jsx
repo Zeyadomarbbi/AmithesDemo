@@ -13,6 +13,7 @@ function ProjectedPortfolio({
   rows = [],
   activeMode,
   onChangeRow,
+  onRowClick // Prop to trigger drawer
 }) {
   const [localRows, setLocalRows] = useState(rows);
   const [lockedRows, setLockedRows] = useState([]);
@@ -39,13 +40,20 @@ function ProjectedPortfolio({
   };
 
   /**
-   * NEW: Frontend calculation for Exit Value
+   * Frontend calculation for Exit Value
    * Exit Value = Cost * MOIC
    */
+  const cleanNumber = (v) => {
+      if (typeof v === "number") return v;
+      const str = String(v ?? "").replace(/[^0-9.-]/g, "");
+      const n = parseFloat(str);
+      return Number.isFinite(n) ? n : 0;
+  };
+  
   const calculateExitValue = (cost, moic) => {
-    const c = parseFloat(cost) || 0;
-    const m = parseFloat(moic) || 0;
-    return (c * m).toFixed(2);
+      const c = cleanNumber(cost);
+      const m = cleanNumber(moic);
+      return (c * m).toFixed(2);
   };
 
   /* ===== HANDLERS ===== */
@@ -83,7 +91,6 @@ function ProjectedPortfolio({
     let sum = { duration: 0, cost: 0, exit: 0, dividends: 0, irr: 0, moic: 0 };
 
     localRows.forEach((r) => {
-      // Use local moic to calculate local exit for the summary
       const currentExitVal = parseVal(r.cost) * parseVal(r.input_moic);
       
       sum.duration += parseVal(r.input_duration);
@@ -179,14 +186,17 @@ function ProjectedPortfolio({
           <tbody>
             {sortedRows.map((r) => {
               const calculatedDate = calculateExitDate(r.first_investment_date, r.input_duration);
-              // Calculate local exit value based on current typed MOIC
               const localExitValue = calculateExitValue(r.cost, r.input_moic);
 
               return (
                 <React.Fragment key={r.id}>
                   <tr>
                     <td className="scenario-pf-left">
-                      <div className="scenario-pf-name-block">
+                      <div 
+                        className="scenario-pf-name-block"
+                        onClick={() => onRowClick?.(r)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <span className="label">{r.name}</span>
                         <span className="sub">{r.first_investment_date || '-'}</span>
                       </div>
@@ -205,12 +215,11 @@ function ProjectedPortfolio({
                     </td>
 
                     <td className="scenario-pf-center">
-                      {/* BIND TO LOCAL CALCULATION */}
                       <input className="scenario-pf-input" value={localExitValue} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">
-                      <input className="scenario-pf-input" value={r.dividends_interests || 0} readOnly />
+                      <input className="scenario-pf-input" value={r.dividends_interests ? r.dividends_interests : "0.00 €"} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">

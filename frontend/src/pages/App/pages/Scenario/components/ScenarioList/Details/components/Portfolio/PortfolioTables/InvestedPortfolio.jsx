@@ -9,7 +9,7 @@ import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../..
 import Sensitivity from '../Sensitivity/Sensitivity'; 
 import './PortfolioTables.css'; 
 
-function InvestedPortfolio({ activeMode, investedData, onChangeRow }) {
+function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }) {
     const [localData, setLocalData] = useState(investedData || []);
     const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
@@ -179,7 +179,12 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow }) {
                                 <React.Fragment key={r.id}>
                                     <tr>
                                         <td className="scenario-pf-left">
-                                            <div className="scenario-pf-name-block">
+                                            {/* ADDED ONCLICK TO TRIGGER DRAWER */}
+                                            <div 
+                                                className="scenario-pf-name-block" 
+                                                onClick={() => onRowClick?.(r)}
+                                                style={{ cursor: 'pointer' }}
+                                            >
                                                 <span className="label">{r.name}</span>
                                                 <span className="sub">{r.first_investment_date || '-'}</span>
                                             </div>

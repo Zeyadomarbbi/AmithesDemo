@@ -764,7 +764,6 @@ const PortfolioSummaryTab = () => {
           </div>
         </div>
       </section>
-
       <section className="portfolio-section">
         <div className="portfolio-table-card">
           <div className="portfolio-section-header">
@@ -827,8 +826,12 @@ const PortfolioSummaryTab = () => {
                   <td>{format2(unallocatedSubtotal.moicLcIncl)}</td>
                   <td>{format2(unallocatedSubtotal.moicExcl)}</td>
                   <td>{formatPercent(unallocatedSubtotal.irr)}</td>
-                  <td className="col-highlight">{format2(unallocatedSubtotal.value)}</td>
-                  <td className="col-highlight">{format2(unallocatedSubtotal.gain)}</td>
+                  <td className="col-highlight">
+                    {format2(unallocatedSubtotal.value)}
+                  </td>
+                  <td className="col-highlight">
+                    {format2(unallocatedSubtotal.gain)}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -836,27 +839,48 @@ const PortfolioSummaryTab = () => {
         </div>
       </section>
       {/* ===== TOTAL ===== */}
-      <section className="portfolio-section">
+      <section className="portfolio-total-section">
         <div className="portfolio-table-scroll">
-          <table className="portfolio-table">
-              <thead className="is-hidden">
-                <tr>
-                  <th>Name <SortIcon /></th>
-                  <th>Geography <SortIcon /></th>
-                  <th>Cost <SortIcon /></th>
-                  <th>Dividends / Interests <SortIcon /></th>
-                  <th>MOIC LC (incl. dividends) <SortIcon /></th>
-                  <th>MOIC € (excl. dividends) <SortIcon /></th>
-                  <th>Gross IRR € <SortIcon /></th>
-                  <th className="col-highlight">Fair Value <SortIcon /></th>
-                  <th className="col-highlight">Unallocated Gain <SortIcon /></th>
-                </tr>
-              </thead>
+          <table className="portfolio-table total-table">
+            <colgroup>
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>---------</th>
+                <th>---------</th>
+                <th>Total Cost</th>
+                <th>Total Dividends / Interests</th>
+                <th>Total MOIC LC (incl. dividends)</th>
+                <th>Total MOIC € (excl. dividends)</th>
+                <th>Total Gross IRR €</th>
+                <th className="col-highlight">Total Fair Value</th>
+                <th className="col-highlight">Total Gain</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr className="portfolio-subtotal-row">
+              <tr>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td>---------</td>
+                <td >---------</td>
+              </tr>
+              <tr className="portfolio-subtotal-row total-row">
                 <td className="subtotal-name-cell">Total</td>
                 <td />
-                
                 <td>{format2(total.cost)}</td>
                 <td>{format2(total.dividends)}</td>
                 <td>{format2(total.moicLcIncl)}</td>

@@ -15,14 +15,19 @@ export const usePortfolioFlows = (fundId, investmentId) => {
     if (!investmentId) return;
     setLoading(true);
     try {
+      // We always hit the scenario endpoint if scenarioId exists.
+      // This endpoint SHOULD return: [Flows with scenario_id=null] + [Flows with scenario_id=scenarioId]
       const url = scenarioId
         ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
         : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
       
       const response = await axios.get(url);
-      setFlows(response.data);
+      
+      // Ensure we sort them by date so real and scenario flows mix chronologically
+      const sortedData = response.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+      setFlows(sortedData);
     } catch (err) {
-      console.error("Failed to fetch flows:", err);
+      console.error("Failed to fetch combined flows:", err);
     } finally {
       setLoading(false);
     }

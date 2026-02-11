@@ -62,9 +62,6 @@ class PortfolioTransactionFlowSerializer(serializers.ModelSerializer):
 
         if transaction_type and transaction_type.transaction_name == "Divestment":
             data['divestment_percentage'] = 100.00
-        elif div_perc is None:
-            # Default to 0 if not provided and not a full divestment
-            data['divestment_percentage'] = 0.00
             
         return data
 

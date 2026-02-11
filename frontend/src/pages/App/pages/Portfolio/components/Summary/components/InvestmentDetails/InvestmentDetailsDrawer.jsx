@@ -3,8 +3,6 @@ import { xirr as xirrLib } from "@webcarrot/xirr";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import "./InvestmentDetails.css";
 import { API_BASE_URL } from "../../../../../../hooks/useApi";
-
-
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M9.75527 5.24408C10.0807 5.56951 10.0807 6.09715 9.75527 6.42259L6.17786 10L9.75527 13.5774C10.0807 13.9028 10.0807 14.4305 9.75527 14.7559C9.42983 15.0814 8.9022 15.0814 8.57676 14.7559L4.41009 10.5893C4.08466 10.2638 4.08466 9.73618 4.41009 9.41074L8.57676 5.24408C8.9022 4.91864 9.42983 4.91864 9.75527 5.24408ZM15.5886 5.24408C15.914 5.56951 15.914 6.09715 15.5886 6.42259L12.0112 10L15.5886 13.5774C15.914 13.9028 15.914 14.4305 15.5886 14.7559C15.2632 15.0814 14.7355 15.0814 14.4101 14.7559L10.2434 10.5893C9.91799 10.2638 9.91799 9.73618 10.2434 9.41074L14.4101 5.24408C14.7355 4.91864 15.2632 4.91864 15.5886 5.24408Z" fill="#375A89"/>
@@ -80,117 +78,6 @@ const safeXirr = (cashflows) => {
     console.error("XIRR calculation failed:", err);
     return null;
   }
-};
-
-const normalizeAmountLC = (flow) => {
-  const lc = toNumber(flow.amountLC);
-  const type = canonicalType(flow.type);
-  if (type === "Investment") return -Math.abs(lc);
-  if (type === "Dividend" || type === "Interest" || type === "Other" || type === "Divestment" || type === "Partial divestment") {
-    return Math.abs(lc);
-  }
-  // Fallback: keep original sign from backend for unknown transaction names.
-  return lc;
-};
-
-// Consolidated KPI calculation function
-const calculateKPIs = (flows, fairValueAmount, fairValueAmountLC, fairValueDateLabel) => {
-  // Sum by type (€)
-  const sumsByTypeEuro = flows.reduce((acc, f) => {
-    const t = canonicalType(f.type);
-    const lc = Math.abs(toNumber(f.amountLC));
-    const fx = toNumber(f.fxRate);
-    const eur = fx ? lc / fx : 0;
-    if (acc[t] !== undefined) acc[t] += eur;
-    return acc;
-  }, { Investment: 0, Dividend: 0, Interest: 0, Other: 0, Divestment: 0 });
-
-  // Sum by type (LC)
-  const sumsByTypeLC = flows.reduce((acc, f) => {
-    const t = canonicalType(f.type);
-    const lc = Math.abs(toNumber(f.amountLC));
-    if (acc[t] !== undefined) acc[t] += lc;
-    return acc;
-  }, { Investment: 0, Dividend: 0, Interest: 0, Other: 0, Divestment: 0 });
-
-  // First investment flow
-  const firstInvestmentFlow = flows
-    .filter((f) => canonicalType(f.type) === "Investment")
-    .sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(a.date) - new Date(b.date);
-    })[0] || null;
-
-  const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
-
-  // IRR €
-  const cashflowsEuro = flows
-    .filter((f) => f.date && toNumber(f.fxRate) > 0)
-    .map((f) => {
-      const lc = normalizeAmountLC(f);
-      const fx = toNumber(f.fxRate);
-      return { date: new Date(f.date), amount: fx ? lc / fx : 0 };
-    })
-    .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
-    .sort((a, b) => a.date - b.date);
-
-  if (fairValueDateLabel) {
-    const fvDate = new Date(fairValueDateLabel);
-    if (!Number.isNaN(fvDate.getTime()) && Number.isFinite(toNumber(fairValueAmount)) && toNumber(fairValueAmount) !== 0) {
-      cashflowsEuro.push({ date: fvDate, amount: toNumber(fairValueAmount) });
-    }
-  }
-
-  const irrEuro = safeXirr(cashflowsEuro);
-
-  // IRR LC
-  const cashflowsLC = flows
-    .filter((f) => f.date)
-    .map((f) => ({ date: new Date(f.date), amount: normalizeAmountLC(f) }))
-    .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
-    .sort((a, b) => a.date - b.date);
-
-  if (fairValueDateLabel) {
-    const fvDate = new Date(fairValueDateLabel);
-    if (!Number.isNaN(fvDate.getTime()) && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0) {
-      cashflowsLC.push({ date: fvDate, amount: toNumber(fairValueAmountLC) });
-    }
-  }
-
-  const irrLC = safeXirr(cashflowsLC);
-
-  // MOIC calculations
-  const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
-  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
-
-  const moicInclEuro = investmentEuro > 0
-    ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment) / investmentEuro
-    : 0;
-
-  const moicInclLC = firstInvestmentAmountLC > 0
-    ? toNumber(fairValueAmountLC) / firstInvestmentAmountLC
-    : 0;
-
-  const moicExclEuro = toNumber(fairValueAmount) > 0
-    ? (sumsByTypeEuro.Divestment + investmentEuro) / toNumber(fairValueAmount)
-    : 0;
-
-  const moicExclLC = toNumber(fairValueAmountLC) > 0
-    ? (sumsByTypeLC.Divestment + investmentLC) / toNumber(fairValueAmountLC)
-    : 0;
-
-  return {
-    irrEuro,
-    irrLC,
-    moicInclEuro,
-    moicInclLC,
-    moicExclEuro,
-    moicExclLC,
-    sumsByTypeEuro,
-    sumsByTypeLC,
-  };
 };
 
 export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved }) {
@@ -302,7 +189,6 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
           Array.isArray(flowsData) && flowsData.length
             ? flowsData.map(mapFlowFromApi)
             : [];
-        console.log("flowsData", flowsData)
         setFlows(mapped);
       } else {
         setFlows([]);
@@ -327,8 +213,6 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
       const fairData = await fairRes.json();
       const fairRows = Array.isArray(fairData) ? fairData : [];
-      
-      console.log("fairRows", fairRows)
       const match = fairRows.find(
         (fv) => String(fv.date) === String(fairValueDateLabel)
       );
@@ -361,17 +245,135 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
     return toNumber(fairValueFxRate) * toNumber(fairValueAmountLC);
   }, [fairValueFxRate, fairValueAmountLC]);
 
-  // 4. Calculate all KPIs using consolidated function
-  const kpis = useMemo(() => {
-    return calculateKPIs(flows, fairValueAmount, fairValueAmountLC, fairValueDateLabel);
-  }, [flows, fairValueAmount, fairValueAmountLC, fairValueDateLabel]);
+  const normalizeAmountLC = (flow) => {
+    const lc = toNumber(flow.amountLC);
+    const type = canonicalType(flow.type);
+    if (type === "Investment") return -Math.abs(lc);
+    if (type === "Dividend" || type === "Interest" || type === "Other" || type === "Divestment" || type === "Partial divestment") {
+      return Math.abs(lc);
+    }
+    // Fallback: keep original sign from backend for unknown transaction names.
+    return lc;
+  };
 
-  // Extract sumsByType for the summary cards
+  // 4. Dynamic Calculations: Summary Cards (Sums by Type)
   const sumsByType = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(kpis.sumsByTypeEuro).map(([type, value]) => [type, value])
-    );
-  }, [kpis.sumsByTypeEuro]);
+    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      if (sums[t] !== undefined) {
+        sums[t] += lc;
+      }
+    });
+    return sums;
+  }, [flows]);
+
+  const sumsByTypeEuro = useMemo(() => {
+    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      const fx = toNumber(f.fxRate);
+      const eur = fx ? lc / fx : 0;
+      if (sums[t] !== undefined) {
+        sums[t] += eur;
+      }
+    });
+    return sums;
+  }, [flows]);
+
+  const sumsByTypeLC = useMemo(() => {
+    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      if (sums[t] !== undefined) {
+        sums[t] += lc;
+      }
+    });
+    return sums;
+  }, [flows]);
+
+  const irrEuro = useMemo(() => {
+    const cashflows = flows
+      .filter((f) => f.date && toNumber(f.fxRate) > 0)
+      .map((f) => {
+        const lc = normalizeAmountLC(f);
+        const fx = toNumber(f.fxRate);
+        const eur = fx ? lc / fx : 0;
+        return { date: new Date(f.date), amount: eur };
+      })
+      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
+      .sort((a, b) => a.date - b.date);
+    if (fairValueDateLabel) {
+      const fvDate = new Date(fairValueDateLabel);
+      if (!Number.isNaN(fvDate.getTime())) {
+        const fvAmount = toNumber(fairValueAmount);
+        if (Number.isFinite(fvAmount) && fvAmount !== 0) {
+          cashflows.push({ date: fvDate, amount: fvAmount });
+        }
+      }
+    }
+    return safeXirr(cashflows);
+  }, [flows, fairValueDateLabel, fairValueAmount]);
+
+  const irrLC = useMemo(() => {
+    const cashflows = flows
+      .filter((f) => f.date)
+      .map((f) => ({
+        date: new Date(f.date),
+        amount: normalizeAmountLC(f),
+      }))
+      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
+      .sort((a, b) => a.date - b.date);
+    if (fairValueDateLabel) {
+      const fvDate = new Date(fairValueDateLabel);
+      if (!Number.isNaN(fvDate.getTime())) {
+        const fvAmount = toNumber(fairValueAmountLC);
+        if (Number.isFinite(fvAmount) && fvAmount !== 0) {
+          cashflows.push({ date: fvDate, amount: fvAmount });
+        }
+      }
+    }
+    return safeXirr(cashflows);
+  }, [flows, fairValueDateLabel, fairValueAmountLC]);
+
+  const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
+  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
+  const moicInclEuro =
+    investmentEuro > 0
+      ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment) /
+        investmentEuro
+      : 0;
+  const firstInvestmentFlow = useMemo(() => {
+    const investmentFlows = flows.filter((f) => canonicalType(f.type) === "Investment");
+    if (!investmentFlows.length) return null;
+    return [...investmentFlows].sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    })[0];
+  }, [flows]);
+
+  const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
+
+  // Requested: MOIC LC (incl. dividends) = Fair Value Amount LC / first investment Amount LC
+  const moicInclLC =
+    firstInvestmentAmountLC > 0 ? toNumber(fairValueAmountLC) / firstInvestmentAmountLC : 0;
+
+  // Requested: MOIC € (excl. dividends) = (Divestment + Investment) / Amount
+  const moicExclEuro =
+    toNumber(fairValueAmount) > 0
+      ? (sumsByTypeEuro.Divestment + investmentEuro) / toNumber(fairValueAmount)
+      : 0;
+
+  // Requested: MOIC LC (excl. dividends) = (Divestment + Investment) / Amount LC
+  const moicExclLC =
+    toNumber(fairValueAmountLC) > 0
+      ? (sumsByTypeLC.Divestment + investmentLC) / toNumber(fairValueAmountLC)
+      : 0;
 
   // Handlers
   const handleAddFlow = () => {
@@ -643,32 +645,32 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   <div className="inv-performance-grid">
     <div className="perf-card">
       <span>Gross IRR €</span>
-      <strong>{kpis.irrEuro !== null ? formatPercent(kpis.irrEuro) : "-"}</strong>
+      <strong>{irrEuro !== null ? formatPercent(irrEuro) : "-"}</strong>
     </div>
 
     <div className="perf-card">
       <span>Gross IRR LC</span>
-      <strong>{kpis.irrLC !== null ? formatPercent(kpis.irrLC) : "-"}</strong>
+      <strong>{irrLC !== null ? formatPercent(irrLC) : "-"}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC € (incl. dividends)</span>
-      <strong>{`${formatRatio(kpis.moicInclEuro)}x`}</strong>
+      <strong>{`${formatRatio(moicInclEuro)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC LC (incl. dividends)</span>
-      <strong>{`${formatRatio(kpis.moicInclLC)}x`}</strong>
+      <strong>{`${formatRatio(moicInclLC)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC € (excl. dividends)</span>
-      <strong>{`${formatRatio(kpis.moicExclEuro)}x`}</strong>
+      <strong>{`${formatRatio(moicExclEuro)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC LC (excl. dividends)</span>
-      <strong>{`${formatRatio(kpis.moicExclLC)}x`}</strong>
+      <strong>{`${formatRatio(moicExclLC)}x`}</strong>
     </div>
   </div>
 </section>
@@ -698,3 +700,4 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
     </div>
   );
 }
+
