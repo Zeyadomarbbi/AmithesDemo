@@ -2,6 +2,7 @@ from django.urls import path
 from ..views.scenario_views import *
 
 urlpatterns = [
+    # Scenario List
     path(
         "funds/<int:fund_id>/scenario_list/", 
         FundScenarioListView.as_view(), 
@@ -11,6 +12,32 @@ urlpatterns = [
         "funds/<int:fund_id>/scenario_list/<int:pk>/", 
         FundScenarioListView.as_view(), 
         name="scenario-detail"
+    ),
+    
+    # Scenario Portfolio Investments (New)
+    path(
+        "funds/<int:fund_id>/portfolio-investments/",
+        ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list'}),
+        name="fund-all-investments"
+    ),
+
+    # ------------------------------------------------------------
+    # LEVEL 2: Sub-filter by Scenario ID
+    # ------------------------------------------------------------
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/",
+        ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-investment-list-create"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:pk>/",
+        ScenarioPortfolioInvestmentViewSet.as_view({
+            'get': 'retrieve', 
+            'put': 'update', 
+            'patch': 'partial_update', 
+            'delete': 'destroy'
+        }),
+        name="scenario-investment-detail"
     ),
     # Scenario Synthesis
     path(

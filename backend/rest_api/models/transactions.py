@@ -483,3 +483,35 @@ class PortfolioFairValueFlow(models.Model):
     class Meta:
         managed = False
         db_table = "portfolio_fair_values_flows"
+
+
+class ScenarioPortfolioInvestment(models.Model):
+    investment_id = models.AutoField(primary_key=True)
+    fund = models.ForeignKey('Fund', on_delete=models.CASCADE, db_column='fund_id')
+    country = models.ForeignKey('Country', on_delete=models.PROTECT, db_column='country_id')
+    currency = models.ForeignKey('Currency', on_delete=models.PROTECT, db_column='currency_id')
+    scenario = models.ForeignKey(
+        'ScenarioList', 
+        on_delete=models.SET_NULL, # Recommended if nullable
+        db_column='scenario_id', 
+        null=True, 
+        blank=True
+    )
+    
+    name = models.CharField(max_length=255)
+    sector = models.CharField(max_length=255)
+    ownership = models.DecimalField(max_digits=10, decimal_places=4)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=150, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'portfolio_investment'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['fund', 'name'], 
+                name='unique_scenario_investment_name_per_fund'
+            )
+        ]

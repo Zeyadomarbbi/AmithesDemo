@@ -93,3 +93,29 @@ class FundScenarioSynthesisView(APIView):
         synthesis.is_deleted = True
         synthesis.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
+    serializer_class = ScenarioPortfolioInvestmentSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_pk = self.kwargs.get('scenario_pk')
+        
+        # Base filter: Always restricted to the fund
+        queryset = ScenarioPortfolioInvestment.objects.filter(
+            fund_id=fund_id, 
+            is_deleted=False
+        )
+        
+        # Sub-filter: If scenario_pk is in the URL, filter by it
+        if scenario_pk:
+            queryset = queryset.filter(scenario_id=scenario_pk)
+            
+        return queryset
+
+    def perform_create(self, serializer):
+        # Ensure new items are always linked to the URL parameters
+        serializer.save(
+            fund_id=self.kwargs.get('fund_id'),
+            scenario_id=self.kwargs.get('scenario_pk')
+        )
