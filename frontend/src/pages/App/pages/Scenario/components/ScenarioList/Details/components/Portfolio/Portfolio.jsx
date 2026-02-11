@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { usePortfolio } from "../../../../../../../hooks/Portfolio/usePortfolio.js";
 import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
+import { executeDeferredUpdates } from "./ScenarioPortfolioHelpers.js";
 
-// Portfolios
+// Components
 import { PlusIcon } from "./Icons";
 import { InvestmentDetailsStep } from "./NewInvestment";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
@@ -14,21 +15,17 @@ import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import "./Portfolio.css";
 
-
 export const processPortfolioData = (investments, projections, targetDate, activeScenarioId) => {
   const results = { realized: [], unrealized: [], projected: [] };
 
   investments.forEach((inv) => {
-    // Match investment with its calculated projection row
     const proj = projections.find(p => p.investment === inv.investment_id) || {};
     
-    // 1. PROJECTED CATEGORY (Synthetic investments)
     if (inv.scenario_id !== null) {
       results.projected.push({ ...inv, ...proj, id: inv.investment_id, current_status: "Projected" });
       return;
     }
 
-    // 2. FILTER FLOWS BY TIMEFRAME (For Status Logic)
     const flows = (inv.transaction_flows || []).filter(f => 
       !f.is_deleted && new Date(f.date) <= new Date(targetDate) &&
       (f.scenario_id === null || f.scenario_id === activeScenarioId)
@@ -42,7 +39,6 @@ export const processPortfolioData = (investments, projections, targetDate, activ
     let totalExitPct = flows.reduce((sum, f) => sum + parseFloat(f.divestment_percentage || 0), 0);
     const enrichedData = { ...inv, ...proj, id: inv.investment_id, total_exit_pct: totalExitPct };
 
-    // 3. THE SPLITTER
     if (totalExitPct >= 100) {
       results.realized.push(enrichedData);
     } else if (totalExitPct > 0 && totalExitPct < 100) {
@@ -63,7 +59,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // DEFERRED UPDATE STATES (Edits & Flows only)
+  // DEFERRED UPDATE STATES
   const [pendingFlows, setPendingFlows] = useState([]);
   const [localEditedProjections, setLocalEditedProjections] = useState({});
 
@@ -75,7 +71,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     fetchProjections();
   }, [fundId, scenarioId, fetchInvestments, fetchProjections]);
 
-  // Combine original projections with pending edits for UI display
+  // Merge server data with frontend "unsaved" edits
   const mergedProjections = useMemo(() => {
     return projections.map(proj => ({
       ...proj,
@@ -85,7 +81,6 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
 
   const { realizedData, investedData, projectedData } = useMemo(() => {
     const targetDate = timeframeDate || new Date().toISOString().split('T')[0];
-    // processPortfolioData handles the splitting based on temporal logic
     const processed = processPortfolioData(investments, mergedProjections, targetDate, scenarioId);
     
     return { 
@@ -97,44 +92,61 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
 
   /* ===== HANDLERS ===== */
 
-  // Operation #1: Handle success from immediate creation story
   const handleCreationSuccess = () => {
     fetchInvestments();
     fetchProjections();
     setToast({ type: "success", title: "Created", message: "New investment added successfully." });
   };
 
-  // Operation #3: Accumulate local edits for projection table
   const handleUpdateInput = (investmentId, field, value) => {
     const proj = projections.find(p => p.investment === investmentId);
     if (!proj) return;
 
     setLocalEditedProjections(prev => ({
       ...prev,
-      [proj.projection_id]: { ...(prev[proj.projection_id] || {}), [field]: value }
+      [proj.projection_id]: { 
+        ...(prev[proj.projection_id] || {}), 
+        [field]: value 
+      }
     }));
   };
 
-  // The Big Save: Commit deferred flows and edits
+  /**
+   * The Final Save Operation
+   * Commits all deferred changes to the database.
+   */
   const handleSave = async () => {
+    const editCount = Object.keys(localEditedProjections).length;
+    const flowCount = pendingFlows.length;
+
+    if (editCount === 0 && flowCount === 0) return;
+
     setIsSaving(true);
     try {
+      // This will now execute one API call at a time
       await executeDeferredUpdates(
         pendingFlows,
         localEditedProjections,
         { createFlow, updateProjection }
       );
 
-      // Reset local buffers
       setPendingFlows([]);
       setLocalEditedProjections({});
       
-      setToast({ type: "success", title: "Saved", message: "Portfolio refinements committed." });
+      setToast({ 
+        type: "success", 
+        title: "Portfolio Saved", 
+        message: "Refinements committed sequentially to prevent conflicts." 
+      });
       
-      // Refresh to sync calculated fields from triggers
       fetchProjections();
     } catch (err) {
-      setToast({ type: "error", title: "Error", message: "Failed to save refinements." });
+      setToast({ 
+        type: "error", 
+        title: "Save Error", 
+        message: "A database conflict occurred. Please try again." 
+      });
+      console.error("Deadlock transition error:", err);
     } finally {
       setIsSaving(false);
     }
@@ -167,8 +179,18 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
       </div>
 
       <RealizedPortfolio realizedData={realizedData} />
-      <InvestedPortfolio activeMode={activeMode} investedData={investedData} onChangeRow={handleUpdateInput} />
-      <ProjectedPortfolio activeMode={activeMode} rows={projectedData} onChangeRow={handleUpdateInput} />
+      
+      <InvestedPortfolio 
+        activeMode={activeMode} 
+        investedData={investedData} 
+        onChangeRow={handleUpdateInput} 
+      />
+      
+      <ProjectedPortfolio 
+        activeMode={activeMode} 
+        rows={projectedData} 
+        onChangeRow={handleUpdateInput} 
+      />
 
       <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
         <PlusIcon /> <span>New deal</span>

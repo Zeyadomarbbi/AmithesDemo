@@ -1,25 +1,28 @@
 /**
  * Handles the deferred saving for Edits and Flows.
- * Creation is excluded as it is handled separately.
+ * SEQUENTIAL EXECUTION to prevent DB Deadlocks from Triggers.
  */
 export const executeDeferredUpdates = async (
-  pendingFlows,          // Array of { investmentId, scenarioId, data }
-  editedProjections,     // Object { projectionId: { payload } }
-  actions                // { createFlow, updateProjection }
+  pendingFlows,          
+  editedProjections,     
+  actions                
 ) => {
-  // 1. Save Pending Flows (Investments/Divestments)
-  const flowResults = await Promise.all(
-    pendingFlows.map(flow => 
-      actions.createFlow(flow.investmentId, flow.scenarioId, flow.data)
-    )
-  );
+  const flowResults = [];
+  const updateResults = [];
 
-  // 2. Save Projection Edits (Duration/MOIC)
-  const updateResults = await Promise.all(
-    Object.entries(editedProjections).map(([id, payload]) => 
-      actions.updateProjection(id, payload)
-    )
-  );
+  // 1. Save Pending Flows one by one
+  for (const flow of pendingFlows) {
+    const res = await actions.createFlow(flow.investmentId, flow.scenarioId, flow.data);
+    flowResults.push(res);
+  }
+
+  // 2. Save Projection Edits one by one
+  // Converting Object to Array and iterating sequentially
+  const edits = Object.entries(editedProjections);
+  for (const [id, payload] of edits) {
+    const res = await actions.updateProjection(id, payload);
+    updateResults.push(res);
+  }
 
   return { flowResults, updateResults };
 };

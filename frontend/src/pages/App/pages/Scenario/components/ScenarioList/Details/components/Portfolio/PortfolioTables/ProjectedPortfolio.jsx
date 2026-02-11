@@ -22,10 +22,11 @@ function ProjectedPortfolio({
     setLocalRows(rows);
   }, [rows]);
 
-  // Integrated sorting hook
   const { sorted: sortedRows, sortKey, sortDir, toggleSort } = useTableSort(localRows, "name");
 
   const COL_SPAN = (activeMode === "target" || activeMode === "sensitivity") ? 9 : 8;
+
+  /* ===== HELPERS ===== */
 
   const calculateExitDate = (firstInvestDate, duration) => {
     if (!firstInvestDate) return null;
@@ -36,6 +37,18 @@ function ProjectedPortfolio({
     date.setMonth(date.getMonth() + extraMonths);
     return date;
   };
+
+  /**
+   * NEW: Frontend calculation for Exit Value
+   * Exit Value = Cost * MOIC
+   */
+  const calculateExitValue = (cost, moic) => {
+    const c = parseFloat(cost) || 0;
+    const m = parseFloat(moic) || 0;
+    return (c * m).toFixed(2);
+  };
+
+  /* ===== HANDLERS ===== */
 
   const toggleLock = (rowId) => {
     setLockedRows((prev) =>
@@ -54,6 +67,8 @@ function ProjectedPortfolio({
     onChangeRow?.(id, field, value);
   };
 
+  /* ===== CALCULATIONS ===== */
+
   const summary = useMemo(() => {
     const defaults = {
       avgDuration: "0 yrs", totalCost: "0", totalExitVal: "0",
@@ -63,14 +78,17 @@ function ProjectedPortfolio({
     if (!localRows || localRows.length === 0) return defaults;
 
     const parseVal = (v) => parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0;
-    const formatNum = (n) => n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    const formatNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, ' ');
 
     let sum = { duration: 0, cost: 0, exit: 0, dividends: 0, irr: 0, moic: 0 };
 
     localRows.forEach((r) => {
+      // Use local moic to calculate local exit for the summary
+      const currentExitVal = parseVal(r.cost) * parseVal(r.input_moic);
+      
       sum.duration += parseVal(r.input_duration);
       sum.cost += parseVal(r.cost);
-      sum.exit += parseVal(r.exit_value);
+      sum.exit += currentExitVal;
       sum.dividends += parseVal(r.dividends_interests);
       sum.irr += parseVal(r.irr);
       sum.moic += parseVal(r.input_moic);
@@ -99,72 +117,74 @@ function ProjectedPortfolio({
         <table className="scenario-pf-table content-fit">
           <thead>
             <tr>
-              <th>
+              <th className="scenario-pf-left">
                 <SortableHeaderRenderer 
                     label="Deal Name" columnKey="name"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Duration" columnKey="input_duration"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Cost" columnKey="cost"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                     right={false} showCurrency={true}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Exit Value" columnKey="exit_value"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                     right={false} showCurrency={true}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Dividends/Interests" columnKey="dividends_interests"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                     right={false} showCurrency={true}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="IRR" columnKey="irr"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                     right={false}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="MOIC" columnKey="input_moic"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                     right={false}
                 />
               </th>
-              <th>
+              <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Exit Date" columnKey="exit_date"
                     currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
                 />
               </th>
               {(activeMode === "target" || activeMode === "sensitivity") && (
-                <th className="scenario-pf-col-action"></th>
+                <th className="scenario-pf-center">Actions</th>
               )}
             </tr>
           </thead>
 
           <tbody>
-            {sortedRows.map((r, index) => {
+            {sortedRows.map((r) => {
               const calculatedDate = calculateExitDate(r.first_investment_date, r.input_duration);
+              // Calculate local exit value based on current typed MOIC
+              const localExitValue = calculateExitValue(r.cost, r.input_moic);
 
               return (
                 <React.Fragment key={r.id}>
-                  <tr className={index % 2 === 0 ? "scenario-pf-gray" : ""}>
+                  <tr>
                     <td className="scenario-pf-left">
                       <div className="scenario-pf-name-block">
                         <span className="label">{r.name}</span>
@@ -172,7 +192,7 @@ function ProjectedPortfolio({
                       </div>
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <input
                         className="scenario-pf-input"
                         value={r.input_duration ?? ""}
@@ -180,23 +200,24 @@ function ProjectedPortfolio({
                       />
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <input className="scenario-pf-input" value={r.cost || 0} readOnly />
                     </td>
 
-                    <td className="scenario-pf-left">
-                      <input className="scenario-pf-input" value={r.exit_value || 0} readOnly />
+                    <td className="scenario-pf-center">
+                      {/* BIND TO LOCAL CALCULATION */}
+                      <input className="scenario-pf-input" value={localExitValue} readOnly />
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <input className="scenario-pf-input" value={r.dividends_interests || 0} readOnly />
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <input className="scenario-pf-input" value={r.irr || "0.00%"} readOnly />
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <input
                         className="scenario-pf-input"
                         value={r.input_moic ?? ""}
@@ -204,7 +225,7 @@ function ProjectedPortfolio({
                       />
                     </td>
 
-                    <td className="scenario-pf-left">
+                    <td className="scenario-pf-center">
                       <DateInputWithPicker 
                         initialDate={calculatedDate || new Date()}
                         onDateChange={() => {}} 
@@ -214,32 +235,34 @@ function ProjectedPortfolio({
                       />
                     </td>
 
-                    {activeMode === "target" && (
+                    {(activeMode === "target" || activeMode === "sensitivity") && (
                       <td className="scenario-pf-center">
-                        <button
-                          className={`scenario-pf-action-btn ${lockedRows.includes(r.id) ? "locked" : ""}`}
-                          onClick={() => toggleLock(r.id)}
-                        >
-                          {lockedRows.includes(r.id) ? <LockClosedIcon /> : <LockOpenIcon />}
-                        </button>
-                      </td>
-                    )}
+                        <div className="scenario-pf-th-group" style={{justifyContent: 'center'}}>
+                          {activeMode === "target" && (
+                            <button
+                              className={`scenario-pf-action-btn ${lockedRows.includes(r.id) ? "locked" : ""}`}
+                              onClick={() => toggleLock(r.id)}
+                            >
+                              {lockedRows.includes(r.id) ? <LockClosedIcon /> : <LockOpenIcon />}
+                            </button>
+                          )}
 
-                    {activeMode === "sensitivity" && (
-                      <td className="scenario-pf-center">
-                        <button
-                          className="scenario-pf-action-btn sensitivity"
-                          onClick={() => handleSensitivityClick(r.id)}
-                        >
-                          <SensitivityIcon />
-                        </button>
+                          {activeMode === "sensitivity" && (
+                            <button
+                              className="scenario-pf-action-btn sensitivity"
+                              onClick={() => handleSensitivityClick(r.id)}
+                            >
+                              <SensitivityIcon />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
 
                   {activeMode === "sensitivity" && activeSensitivityRowId === r.id && (
                     <tr className="scenario-pf-sensitivity-expanded-row">
-                      <td colSpan={COL_SPAN} className="scenario-pf-left">
+                      <td colSpan={COL_SPAN} className="scenario-pf-center">
                         <Sensitivity rowData={r} />
                       </td>
                     </tr>
@@ -250,13 +273,13 @@ function ProjectedPortfolio({
 
             <tr className="scenario-pf-summary-row">
               <td className="scenario-pf-left">Total</td>
-              <td className="scenario-pf-left">{summary.avgDuration}</td>
-              <td className="scenario-pf-left">{summary.totalCost}</td>
-              <td className="scenario-pf-left">{summary.totalExitVal}</td>
-              <td className="scenario-pf-left">{summary.totalDividends}</td>
-              <td className="scenario-pf-left">{summary.avgIrr}</td>
-              <td className="scenario-pf-left">{summary.avgMoic}</td>
-              <td className="scenario-pf-left">-</td>
+              <td className="scenario-pf-center">{summary.avgDuration}</td>
+              <td className="scenario-pf-center">{summary.totalCost}</td>
+              <td className="scenario-pf-center">{summary.totalExitVal}</td>
+              <td className="scenario-pf-center">{summary.totalDividends}</td>
+              <td className="scenario-pf-center">{summary.avgIrr}</td>
+              <td className="scenario-pf-center">{summary.avgMoic}</td>
+              <td className="scenario-pf-center">-</td>
               {(activeMode === "target" || activeMode === "sensitivity") && <td />}
             </tr>
           </tbody>
