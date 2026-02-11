@@ -13,17 +13,6 @@ urlpatterns = [
         FundScenarioListView.as_view(), 
         name="scenario-detail"
     ),
-    
-    # Scenario Portfolio Investments (New)
-    path(
-        "funds/<int:fund_id>/portfolio-investments/",
-        ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list'}),
-        name="fund-all-investments"
-    ),
-
-    # ------------------------------------------------------------
-    # LEVEL 2: Sub-filter by Scenario ID
-    # ------------------------------------------------------------
     path(
         "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/",
         ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list', 'post': 'create'}),

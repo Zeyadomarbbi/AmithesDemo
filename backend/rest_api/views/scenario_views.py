@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 
 from ..models.transactions import *
 from ..serializers.scenario_serializers import *
+from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -95,27 +96,24 @@ class FundScenarioSynthesisView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
-    serializer_class = ScenarioPortfolioInvestmentSerializer
+    serializer_class = PortfolioInvestmentSerializer
 
     def get_queryset(self):
-        fund_id = self.kwargs.get('fund_id')
-        scenario_pk = self.kwargs.get('scenario_pk')
-        
-        # Base filter: Always restricted to the fund
-        queryset = ScenarioPortfolioInvestment.objects.filter(
-            fund_id=fund_id, 
+        # Only returns investments for the specific scenario in the URL
+        return PortfolioInvestment.objects.filter(
+            fund_id=self.kwargs.get('fund_id'),
+            scenario_id=self.kwargs.get('scenario_pk'),
             is_deleted=False
-        )
-        
-        # Sub-filter: If scenario_pk is in the URL, filter by it
-        if scenario_pk:
-            queryset = queryset.filter(scenario_id=scenario_pk)
-            
-        return queryset
+        ).order_by("-created_at")
 
     def perform_create(self, serializer):
-        # Ensure new items are always linked to the URL parameters
+        # Automatically injects the scenario_id from the URL
+        created_by = None
+        if self.request.user and self.request.user.is_authenticated:
+            created_by = self.request.user.username
+
         serializer.save(
             fund_id=self.kwargs.get('fund_id'),
-            scenario_id=self.kwargs.get('scenario_pk')
+            scenario_id=self.kwargs.get('scenario_pk'),
+            created_by=created_by
         )

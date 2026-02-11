@@ -10,6 +10,7 @@ from ..serializers.portfolio_serializers import *
 
 class PortfolioInvestmentView(APIView):
     def get(self, request, fund_id):
+        # Returns absolutely everything for this fund (Master + Scenarios)
         qs = PortfolioInvestment.objects.filter(
             fund_id=fund_id,
             is_deleted=False
@@ -26,7 +27,14 @@ class PortfolioInvestmentView(APIView):
         if user is not None and getattr(user, "is_authenticated", False):
             created_by = getattr(user, "username", None)
 
-        serializer.save(fund_id=fund_id, created_by=created_by)
+        # Added scenario_id from request data to the save method
+        scenario_id = request.data.get("scenario_id")
+
+        serializer.save(
+            fund_id=fund_id, 
+            created_by=created_by,
+            scenario_id=scenario_id
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class PortfolioTransactionFlowView(APIView):

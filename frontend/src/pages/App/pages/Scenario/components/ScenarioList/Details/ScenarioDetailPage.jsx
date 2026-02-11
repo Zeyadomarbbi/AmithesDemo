@@ -43,7 +43,11 @@ function ScenarioDetailPage() {
         />
         <div className="scenarios-details-content-area">
           {currentTab === 'simulation-results' && <SimulationResults scenarioId={scenarioId} />}
-          {currentTab === 'portfolio' && <Portfolio scenarioId={scenarioId} />}
+          {currentTab === 'portfolio' && 
+            <Portfolio 
+              fundId={fundId} 
+              scenarioId={scenarioId} 
+            />}
           {currentTab === 'set-financials' && <SetFinancials scenarioId={scenarioId} />}
           {currentTab === 'fund-flows' && <FundFlows scenarioId={scenarioId} />}
         </div>

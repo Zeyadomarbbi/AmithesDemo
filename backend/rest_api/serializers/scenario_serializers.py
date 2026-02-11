@@ -93,13 +93,3 @@ class ScenarioSynthesisSerializer(serializers.ModelSerializer):
             for sid in scenario_ids
         ]
         MapSynthesisScenario.objects.bulk_create(mappings)
-
-class ScenarioPortfolioInvestmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ScenarioPortfolioInvestment
-        fields = '__all__'
-        read_only_fields = ('investment_id', 'created_at', 'updated_at', 'created_by')
-
-    def create(self, validated_data):
-        validated_data['created_by'] = "test"
-        return super().create(validated_data)

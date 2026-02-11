@@ -5,31 +5,12 @@ import "./Portfolio.css";
 import RealizedPortfolio from "./RealizedPortfolio/RealizedPortfolio";
 import InvestedPortfolio from "./InvestedPortfolio/InvestedPortfolio";
 import ProjectedPortfolio from "./ProjectedPortfolio/ProjectedPortfolio";
-
+import { PlusIcon } from "./Icons"
 // New Investment Flow
 import {
   NewInvestmentStep,
   InvestmentDetailsStep,
 } from "./NewInvestment";
-
-const PlusIcon = ({ className }) => (
-  <svg
-    className={className}
-    width="14"
-    height="14"
-    viewBox="0 0 20 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M10 4V16M4 10H16"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 
 // Modals
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
@@ -72,7 +53,7 @@ const MOCK_INVESTED_DATA = [
    Component
 ========================== */
 
-function Portfolio() {
+function Portfolio(fundId, scenarioId) {
   const [activeMode, setActiveMode] = useState(null);
 
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);

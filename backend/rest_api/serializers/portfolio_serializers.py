@@ -6,6 +6,14 @@ from ..models.reference import Country, Currency, PortfolioTransactionType
 
 class PortfolioInvestmentSerializer(serializers.ModelSerializer):
     fund_id = serializers.IntegerField(source="fund.fund_id", read_only=True)
+    
+    scenario_id = serializers.PrimaryKeyRelatedField(
+        queryset=ScenarioList.objects.all(),
+        source="scenario",
+        allow_null=True,
+        required=False
+    )
+    
     country_id = serializers.PrimaryKeyRelatedField(
         queryset=Country.objects.all(),
         source="country"
@@ -14,6 +22,7 @@ class PortfolioInvestmentSerializer(serializers.ModelSerializer):
         queryset=Currency.objects.all(),
         source="currency"
     )
+    
     country_name = serializers.CharField(source="country.country_name", read_only=True)
     currency_code = serializers.CharField(source="currency.currency_code", read_only=True)
 
@@ -22,6 +31,7 @@ class PortfolioInvestmentSerializer(serializers.ModelSerializer):
         fields = [
             "investment_id",
             "fund_id",
+            "scenario_id",  # Added to fields
             "country_id",
             "currency_id",
             "country_name",
