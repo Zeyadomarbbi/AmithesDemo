@@ -1,5 +1,5 @@
 /* ================= Overlay ================= */
-.modal-overlay {
+.portfolio-new-investment-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
@@ -10,245 +10,240 @@
 }
 
 /* ================= Card ================= */
-.modal-card {
+.portfolio-new-investment-card {
   background: #ffffff;
   border-radius: 8px;
   width: 500px;
-  height: 640px;
   max-width: calc(100vw - 40px);
   border: 1px solid rgba(204, 205, 206, 0.5);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  opacity: 1;
   overflow: hidden;
   box-sizing: border-box;
 }
 
 /* ================= Header ================= */
-.modal-header {
+.portfolio-new-investment-header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start;
-  padding: 24px 32px 16px 48px;
-  gap: 0px;
+  padding: 24px 32px 24px 32px;
   width: 100%;
   box-sizing: border-box;
-   margin-top: 40px;
 }
 
-.modal-title {
+.portfolio-new-investment-header-top {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
+  margin-bottom: 10px;
 }
 
-.modal-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+.portfolio-new-investment-header-text h2 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+  margin: 0;
+}
+
+.portfolio-new-investment-header-text p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  margin: 4px 0 0;
+}
+
+.portfolio-new-investment-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.12);
-  color: #375a89;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.modal-title h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1c1917;
-}
-
-.modal-title p {
-  margin: 2px 0 0;
-  font-size: 15px;
-  color: #375a89;
-  letter-spacing: 0.01em;
-}
-
-.modal-close {
+.portfolio-new-investment-close {
   border: none;
-  background: #fafaf9;
-  width: 32px;
-  height: 32px;
-  border-radius: 128px;
-  font-size: 16px;
+  background: #f5f5f4;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  color: #375a89;
-  align-self: flex-end;
-  margin-top: -32px;
-  margin-right: 8px;
+  color: #7b7d7e;
 }
 
 /* ================= Body ================= */
-.modal-body {
-  padding: 0 56px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* ================= Form ================= */
-.form-group {
+.portfolio-new-investment-body {
+  padding: 0 32px 32px 32px; /* Bottom padding creates the 32px gap before footer line */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 24px; 
   width: 100%;
   box-sizing: border-box;
 }
 
-.form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #375a89;
-  letter-spacing: 0.01em;
-}
-
-.form-group input,
-.form-group select {
+.portfolio-new-investment-form-group {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: 40px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  font-size: 14px;
-  background: #ffffff;
-  box-sizing: border-box;
-  appearance: none;
-  color: #7b7d7e;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: rgba(204, 205, 206, 0.8);
-  box-shadow: none;
-}
-
-/* ================= Grid ================= */
-.form-grid {
+.portfolio-new-investment-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+  row-gap: 24px;
   width: 100%;
-  box-sizing: border-box;
 }
 
-/* ================= Footer ================= */
-.modal-footer {
-  padding: 32px 24px;
+.portfolio-new-investment-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #375a89;
+  margin-bottom: 8px;
+}
+
+/* ================= Inputs & Selects ================= */
+.portfolio-new-investment-input,
+.portfolio-new-investment-select {
+  height: 44px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+/* Fix for width jumps: Ensure select has a defined width and box-sizing */
+.portfolio-new-investment-select-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.portfolio-new-investment-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 40px;
+  /* Prevent width expansion when options are long */
+  max-width: 100%; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ================= Footer with Divider ================= */
+
+.portfolio-new-investment-footer {
+  padding: 24px 32px 32px;
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 12px;
   box-sizing: border-box;
-  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  border-top: 1px solid #E2E8F0; /* The gray separation line */
 }
 
-.btn-cancel {
-  background: #fafaf9;
-  border: none;
-  padding: 10px 64px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #7b7d7e;
-  cursor: pointer;
-  height: 40px;
-}
 
-.btn-save {
+.portfolio-new-investment-btn-save {
   background: #f7a93b;
   color: #ffffff;
   border: none;
-  padding: 10px 64px;
+  padding: 0 48px;
   border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  height: 40px;
+  height: 44px;
+  box-shadow: 0 2px 4px rgba(247, 169, 59, 0.2);
+
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #FFFFFF;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+
 }
 
-.btn-save:disabled {
+.portfolio-new-investment-btn-cancel {
+  background: #FAFAF9;
+  border: none;
+  padding: 0 48px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 44px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #7B7D7E;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+
+}
+
+
+.portfolio-new-investment-btn-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 
-.react-datepicker-wrapper {
-  display: inline-block;
+/* Icon positioning */
+.portfolio-new-investment-select-icon,
+.portfolio-new-investment-input-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: #7B7D7E;
+}
+
+.portfolio-new-investment-input-wrapper {
+  position: relative;
   width: 100%;
+  display: flex;
+  align-items: center;
 }
 
-.react-datepicker {
-  font-family: inherit;
-  border-radius: 12px !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-}
-
-
-.react-datepicker-popper {
-  z-index: 10000 !important;
-}
-
-
-.invTableInput {
-  width: 100%;
-  height: 38px;
-  border: 1px solid transparent; 
-  background: transparent;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #0f172a;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.invTableInput:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.invTableInput:focus {
-  background: #fff;
-  border-color: #2563eb;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-}
-
-.readOnlyInput {
-  background-color: #f1f5f9;
-  color: #64748b;
-  cursor: not-allowed;
-}
-
-.invCheckIcon {
-  display: none;
-}
-.react-datepicker-popper {
-    display: block; 
-    z-index: 9999 !important;
-}
-
-.invTableInput:focus {
-    outline: none !important;
-}
-.react-datepicker-popper {
-  z-index: 9999 !important;
-}
-
-.invTableInput:focus {
-  outline: none !important;
-  border-color: #cbd5e1 !important;
+.portfolio-new-investment-input-wrapper .portfolio-new-investment-input {
+  padding-right: 40px;
 }

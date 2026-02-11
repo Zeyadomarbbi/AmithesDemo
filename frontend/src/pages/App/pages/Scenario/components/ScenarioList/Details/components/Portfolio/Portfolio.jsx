@@ -4,8 +4,8 @@ import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scen
 
 // Portfolios
 import { PlusIcon } from "./Icons";
-import { NewInvestmentStep, InvestmentDetailsStep } from "./NewInvestment";
-import { NewInvestmentModal } from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal";
+import { InvestmentDetailsStep } from "./NewInvestment";
+import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
 
 import RealizedPortfolio from "./PortfolioTables/RealizedPortfolio.jsx";
@@ -14,9 +14,7 @@ import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import "./Portfolio.css";
 
-/**
- * AUTHORITATIVE SPLITTER LOGIC
- */
+
 export const processPortfolioData = (investments, projections, targetDate, activeScenarioId) => {
   const results = { realized: [], unrealized: [], projected: [] };
 
@@ -61,15 +59,15 @@ export const processPortfolioData = (investments, projections, targetDate, activ
 function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [activeMode, setActiveMode] = useState(null);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
-  const [showNewInvestment, setShowNewInvestment] = useState(false);
-  const [showInvestmentDetails, setShowInvestmentDetails] = useState(false);
+  const [showNewInvestmentModal, setShowNewInvestmentModal] = useState(false);
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // localEditedProjections stores the changes until 'Save' is clicked
+  // DEFERRED UPDATE STATES (Edits & Flows only)
+  const [pendingFlows, setPendingFlows] = useState([]);
   const [localEditedProjections, setLocalEditedProjections] = useState({});
 
-  const { investments, fetchInvestments, loading: loadInv } = usePortfolio(fundId);
+  const { investments, fetchInvestments, createFlow, loading: loadInv } = usePortfolio(fundId);
   const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
 
   useEffect(() => {
@@ -77,7 +75,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     fetchProjections();
   }, [fundId, scenarioId, fetchInvestments, fetchProjections]);
 
-  // Merge original projections with local edits for UI rendering
+  // Combine original projections with pending edits for UI display
   const mergedProjections = useMemo(() => {
     return projections.map(proj => ({
       ...proj,
@@ -87,6 +85,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
 
   const { realizedData, investedData, projectedData } = useMemo(() => {
     const targetDate = timeframeDate || new Date().toISOString().split('T')[0];
+    // processPortfolioData handles the splitting based on temporal logic
     const processed = processPortfolioData(investments, mergedProjections, targetDate, scenarioId);
     
     return { 
@@ -96,77 +95,54 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     };
   }, [investments, mergedProjections, scenarioId, timeframeDate]);
 
-  /**
-   * Updates only the frontend state. No API call here.
-   */
+  /* ===== HANDLERS ===== */
+
+  // Operation #1: Handle success from immediate creation story
+  const handleCreationSuccess = () => {
+    fetchInvestments();
+    fetchProjections();
+    setToast({ type: "success", title: "Created", message: "New investment added successfully." });
+  };
+
+  // Operation #3: Accumulate local edits for projection table
   const handleUpdateInput = (investmentId, field, value) => {
     const proj = projections.find(p => p.investment === investmentId);
     if (!proj) return;
 
     setLocalEditedProjections(prev => ({
       ...prev,
-      [proj.projection_id]: {
-        ...(prev[proj.projection_id] || {}),
-        [field]: value
-      }
+      [proj.projection_id]: { ...(prev[proj.projection_id] || {}), [field]: value }
     }));
   };
 
-  const handleToggle = (mode) => {
-    setActiveMode((prev) => (prev === mode ? null : mode));
-  };
-
-  const handleNewDeal = () => setShowNewInvestment(true);
-
-  const handleNextFromNewInvestment = () => {
-    setShowNewInvestment(false);
-    setShowInvestmentDetails(true);
-  };
-
-  const handleCloseDetails = () => {
-    setShowInvestmentDetails(false);
-    fetchInvestments(); 
-  };
-
-  /**
-   * Handles the actual Database Save operation
-   */
+  // The Big Save: Commit deferred flows and edits
   const handleSave = async () => {
-    const editCount = Object.keys(localEditedProjections).length;
-    if (editCount === 0) return;
-
     setIsSaving(true);
     try {
-      // Loop through all edited projections and save them
-      const savePromises = Object.entries(localEditedProjections).map(([id, payload]) => 
-        updateProjection(id, payload)
+      await executeDeferredUpdates(
+        pendingFlows,
+        localEditedProjections,
+        { createFlow, updateProjection }
       );
 
-      await Promise.all(savePromises);
-      
-      // Clear local edits after successful save
+      // Reset local buffers
+      setPendingFlows([]);
       setLocalEditedProjections({});
       
-      setToast({
-        type: "success",
-        title: "Portfolio Saved",
-        message: `${editCount} investment(s) updated successfully.`,
-      });
+      setToast({ type: "success", title: "Saved", message: "Portfolio refinements committed." });
       
-      // Refresh data to get calculated fields (exit_value, exit_date) from backend
+      // Refresh to sync calculated fields from triggers
       fetchProjections();
     } catch (err) {
-      setToast({
-        type: "error",
-        title: "Save Failed",
-        message: "An unexpected error occurred while saving the changes.",
-      });
+      setToast({ type: "error", title: "Error", message: "Failed to save refinements." });
     } finally {
       setIsSaving(false);
     }
   };
 
-  if ((loadInv || loadProj) && investments.length === 0) return <div>Loading Data...</div>;
+  const handleToggle = (mode) => setActiveMode((prev) => (prev === mode ? null : mode));
+
+  if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
 
   return (
     <div className="portfolio-tab-container">
@@ -178,7 +154,6 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
             </div>
             <span className="toggle-label">Sensitivity table</span>
           </div>
-
           <div className="toggle-group" onClick={() => handleToggle("target")}>
             <div className={`toggle-track ${activeMode === "target" ? "active" : ""}`}>
               <div className="toggle-knob" />
@@ -186,74 +161,40 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
             <span className="toggle-label">Target mode</span>
           </div>
         </div>
-
         {activeMode === "target" && (
-          <button className="destructive-btn-md" onClick={() => setIsTargetModalOpen(true)}>
-            Choose a Target
-          </button>
+          <button className="destructive-btn-md" onClick={() => setIsTargetModalOpen(true)}>Choose a Target</button>
         )}
       </div>
 
       <RealizedPortfolio realizedData={realizedData} />
+      <InvestedPortfolio activeMode={activeMode} investedData={investedData} onChangeRow={handleUpdateInput} />
+      <ProjectedPortfolio activeMode={activeMode} rows={projectedData} onChangeRow={handleUpdateInput} />
 
-      <InvestedPortfolio 
-        activeMode={activeMode} 
-        investedData={investedData} 
-        onChangeRow={handleUpdateInput} 
-      />
-
-      <ProjectedPortfolio 
-        activeMode={activeMode} 
-        rows={projectedData} 
-        onChangeRow={handleUpdateInput}
-      />
-
-      <button className="proj-add-btn" onClick={handleNewDeal}>
-        <PlusIcon />
-        <span>New deal</span>
+      <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
+        <PlusIcon /> <span>New deal</span>
       </button>
 
-      {showNewInvestment && (
-        <NewInvestmentStep
+      {showNewInvestmentModal && (
+        <NewInvestmentModal 
           fundId={fundId}
           scenarioId={scenarioId}
-          onClose={() => setShowNewInvestment(false)}
-          onNext={handleNextFromNewInvestment}
+          onClose={() => setShowNewInvestmentModal(false)} 
+          onSuccess={handleCreationSuccess} 
         />
       )}
 
-      {showInvestmentDetails && (
-        <InvestmentDetailsStep 
-          fundId={fundId}
-          scenarioId={scenarioId}
-          onClose={handleCloseDetails} 
-        />
-      )}
-
-      <TargetSelectionModal
-        isOpen={isTargetModalOpen}
-        onClose={() => setIsTargetModalOpen(false)}
-        onSave={() => {}}
-      />
+      <TargetSelectionModal isOpen={isTargetModalOpen} onClose={() => setIsTargetModalOpen(false)} onSave={() => {}} />
       
       <div className="scenario-portfolio-footer">
         <div className="scenario-portfolio-actions">
-          {/* Save button now handles all local state commit to DB */}
           <button 
             className="scenario-portfolio-btn-save" 
             onClick={handleSave}
-            disabled={isSaving || Object.keys(localEditedProjections).length === 0}
+            disabled={isSaving || (Object.keys(localEditedProjections).length === 0 && pendingFlows.length === 0)}
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
-          {toast && (
-            <Toast
-              type={toast.type}
-              title={toast.title}
-              message={toast.message}
-              onClose={() => setToast(null)}
-            />
-          )}
+          {toast && <Toast {...toast} onClose={() => setToast(null)} />}
         </div>
       </div>
     </div>

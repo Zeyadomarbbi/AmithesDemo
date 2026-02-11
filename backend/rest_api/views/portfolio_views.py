@@ -29,14 +29,6 @@ class PortfolioInvestmentView(APIView):
         
         serializer = PortfolioInvestmentSerializer(qs, many=True)
         return Response(serializer.data)
-            
-        # Bulk Fetch Logic (Master + Scenarios)
-        qs = PortfolioInvestment.objects.filter(
-            fund_id=fund_id,
-            is_deleted=False
-        ).order_by("-created_at")
-        serializer = PortfolioInvestmentSerializer(qs, many=True)
-        return Response(serializer.data)
 
     def post(self, request, fund_id):
         serializer = PortfolioInvestmentSerializer(data=request.data)
