@@ -509,3 +509,34 @@ class PortfolioFairValueFlow(models.Model):
     class Meta:
         managed = False
         db_table = "portfolio_fair_values_flows"
+
+class ScenarioPortfolioProjection(models.Model):
+    projection_id = models.AutoField(primary_key=True)
+    
+    fund = models.ForeignKey('Fund', on_delete=models.CASCADE, db_column='fund_id')
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.CASCADE, db_column='scenario_id')
+    investment = models.ForeignKey('PortfolioInvestment', on_delete=models.CASCADE, db_column='investment_id')
+
+    # Calculated Fields (Read-Only in UI)
+    first_investment_date = models.DateField(null=True, blank=True)
+    cost = models.DecimalField(max_digits=18, decimal_places=6, default=0)
+    dividends_interests = models.DecimalField(max_digits=18, decimal_places=6, default=0, db_column='dividends_interests')
+    
+    # Input Fields (Writable in UI)
+    input_duration = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    input_moic = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
+
+    # Calculated Result Fields (Read-Only in UI)
+    exit_date = models.DateField(null=True, blank=True)
+    exit_value = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'scenario_portfolio_projections'
+        managed = True 
+        unique_together = (('investment', 'scenario'),)
+
+    def __str__(self):
+        return f"Proj: {self.investment.name} - Scenario: {self.scenario_id}"

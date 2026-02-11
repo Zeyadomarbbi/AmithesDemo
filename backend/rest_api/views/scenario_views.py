@@ -5,8 +5,8 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
-from ..models.transactions import *
-from ..serializers.scenario_serializers import *
+from ..models.transactions import ScenarioList, ScenarioSynthesis, PortfolioInvestment, PortfolioTransactionFlow, ScenarioPortfolioProjection
+from ..serializers.scenario_serializers import ScenarioSerializer, ScenarioSynthesisSerializer, ScenarioPortfolioProjectionSerializer
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
 class FundScenarioListView(APIView):
@@ -154,3 +154,15 @@ class ScenarioTransactionFlowViewSet(ModelViewSet):
             flow_name=flow_name,
             created_by=created_by
         )
+
+class ScenarioPortfolioProjectionViewSet(ModelViewSet):
+    serializer_class = ScenarioPortfolioProjectionSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        return ScenarioPortfolioProjection.objects.filter(
+            fund_id=fund_id,
+            scenario_id=scenario_id
+        ).select_related('investment')

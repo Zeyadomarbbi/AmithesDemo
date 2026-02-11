@@ -1,0 +1,232 @@
+/* =========================================
+   1. CONTAINER & TABLE RESET
+   ========================================= */
+.scenario-pf-table-container {
+    width: 100%;
+    background: #fff;
+    box-sizing: border-box;
+    overflow-x: auto;
+    border-radius: 6px;
+}
+
+.scenario-pf-table-container.no-borders {
+    border: none;
+}
+
+.scenario-pf-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+.scenario-pf-section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.scenario-pf-section-count {
+    font-weight: 500;
+    font-size: 16px;
+    color: #375A89;
+}
+
+/* =========================================
+   2. HEADERS (THEAD)
+   ========================================= */
+.scenario-pf-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    vertical-align: middle;
+    padding: 12px;
+    text-align: left; /* Primary Alignment */
+    white-space: nowrap;
+}
+
+/* =========================================
+   3. FLEX WRAPPERS (Alignment)
+   ========================================= */
+.scenario-pf-th-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 20px;
+    justify-content: flex-start; /* Primary Alignment */
+}
+
+.scenario-pf-th-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.scenario-pf-sort {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: #9CA3AF;
+}
+
+.scenario-pf-currency-indicator {
+    color: #9CA3AF;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+/* =========================================
+   4. BODY ROWS (TBODY)
+   ========================================= */
+.scenario-pf-table td {
+    padding: 8px 12px; 
+    vertical-align: middle;
+    border-bottom: 1px solid #F3F4F6;
+    color: #111827;
+    text-align: left; /* Global data alignment */
+    
+}
+
+.scenario-pf-table tbody tr:nth-child(odd) {
+    background-color: #FAFAF9 !important;
+}
+
+.scenario-pf-table tbody tr:nth-child(even) {
+    background-color: #FFFFFF;
+}
+
+.scenario-pf-name-block {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    /* Inside auto layout */
+    flex: none;
+    order: 0;
+    flex-grow: 1;
+}
+
+.scenario-pf-name-block .label {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    /* Inside auto layout */
+    flex: none;
+    order: 0;
+    align-self: stretch;
+    flex-grow: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scenario-pf-name-block .sub {
+    max-height: 40px;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+    /* Inside auto layout */
+    flex: none;
+    order: 1;
+    align-self: stretch;
+    flex-grow: 0;
+}
+
+/* =========================================
+   5. CELL CONTENT & ALIGNMENT
+   ========================================= */
+.scenario-pf-left {
+    text-align: left !important;
+}
+
+.scenario-pf-center {
+    text-align: center !important;
+}
+
+.scenario-pf-input {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  width: 100%; /* Changed from 519px for responsiveness within drawer */
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  position: relative;
+
+  
+  /* Typography */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917; /* Darker for readability */
+}
+
+
+.scenario-pf-input:focus {
+    border-color: #375A89;
+    outline: none;
+}
+
+.scenario-pf-input[readonly] {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: default;
+    padding-left: 0;
+}
+
+/* =========================================
+   6. SUMMARY & ACTIONS
+   ========================================= */
+.scenario-pf-summary-row td {
+    background-color: #375A89 !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-bottom: none;
+    padding: 12px;
+}
+
+.scenario-pf-action-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+}
+
+.scenario-pf-action-btn.locked {
+    background: #F3E8FF;
+    border: 1px solid #A855F7;
+    color: #A855F7;
+}
+
+.scenario-pf-sensitivity-expanded-row td {
+    background-color: #FAFAF9;
+    padding: 0;
+}

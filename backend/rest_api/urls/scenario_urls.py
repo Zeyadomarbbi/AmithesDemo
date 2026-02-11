@@ -44,6 +44,16 @@ urlpatterns = [
         }),
         name="scenario-flow-detail"
     ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/projections/",
+        ScenarioPortfolioProjectionViewSet.as_view({'get': 'list'}),
+        name="scenario-projections-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/projections/<int:pk>/",
+        ScenarioPortfolioProjectionViewSet.as_view({'patch': 'partial_update', 'get': 'retrieve'}),
+        name="scenario-projections-detail"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

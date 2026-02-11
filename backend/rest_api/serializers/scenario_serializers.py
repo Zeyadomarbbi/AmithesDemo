@@ -93,3 +93,40 @@ class ScenarioSynthesisSerializer(serializers.ModelSerializer):
             for sid in scenario_ids
         ]
         MapSynthesisScenario.objects.bulk_create(mappings)
+
+class ScenarioPortfolioProjectionSerializer(serializers.ModelSerializer):
+    investment_name = serializers.CharField(source='investment.name', read_only=True)
+    
+    class Meta:
+        model = ScenarioPortfolioProjection
+        fields = [
+            'projection_id', 'fund', 'scenario', 'investment', 'investment_name',
+            'first_investment_date', 'cost', 'dividends_interests',
+            'input_duration', 'input_moic', 
+            'exit_date', 'exit_value',
+            'updated_at'
+        ]
+        read_only_fields = [
+            'projection_id', 'first_investment_date', 'cost', 
+            'dividends_interests', 'exit_date', 'exit_value', 'updated_at'
+        ]
+
+    def update(self, instance, validated_data):
+        # When user updates input_duration or input_moic, 
+        # the DB trigger 'trg_rebuild_scenario_projection_flows' doesn't fire 
+        # (because it's on transaction_flows). 
+        # However, the SQL 'fn_rebuild_scenario_projection' uses values from THIS table.
+        
+        instance = super().update(instance, validated_data)
+        
+        # Explicitly call the rebuild function so the exit_date/value recalculate immediately
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT fn_rebuild_scenario_projection(%s, %s, %s)",
+                [instance.fund_id, instance.investment_id, instance.scenario_id]
+            )
+        
+        # Refresh from DB to get the new exit_date and exit_value calculated by SQL
+        instance.refresh_from_db()
+        return instance

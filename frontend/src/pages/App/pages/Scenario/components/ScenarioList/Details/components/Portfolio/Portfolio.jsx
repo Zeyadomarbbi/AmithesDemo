@@ -1,76 +1,117 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { usePortfolio } from "../../../../../../../hooks/Portfolio/usePortfolio.js";
+import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
 
 // Portfolios
-import RealizedPortfolio from "./RealizedPortfolio/RealizedPortfolio";
-import InvestedPortfolio from "./InvestedPortfolio/InvestedPortfolio";
-import ProjectedPortfolio from "./ProjectedPortfolio/ProjectedPortfolio";
 import { PlusIcon } from "./Icons";
 import { NewInvestmentStep, InvestmentDetailsStep } from "./NewInvestment";
+import { NewInvestmentModal } from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal";
+import Toast from '../../../../../../../components/Toast/Toast.jsx';
+
+import RealizedPortfolio from "./PortfolioTables/RealizedPortfolio.jsx";
+import InvestedPortfolio from "./PortfolioTables/InvestedPortfolio.jsx";
+import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import "./Portfolio.css";
 
-function Portfolio({ fundId, scenarioId }) {
+/**
+ * AUTHORITATIVE SPLITTER LOGIC
+ */
+export const processPortfolioData = (investments, projections, targetDate, activeScenarioId) => {
+  const results = { realized: [], unrealized: [], projected: [] };
+
+  investments.forEach((inv) => {
+    // Match investment with its calculated projection row
+    const proj = projections.find(p => p.investment === inv.investment_id) || {};
+    
+    // 1. PROJECTED CATEGORY (Synthetic investments)
+    if (inv.scenario_id !== null) {
+      results.projected.push({ ...inv, ...proj, id: inv.investment_id, current_status: "Projected" });
+      return;
+    }
+
+    // 2. FILTER FLOWS BY TIMEFRAME (For Status Logic)
+    const flows = (inv.transaction_flows || []).filter(f => 
+      !f.is_deleted && new Date(f.date) <= new Date(targetDate) &&
+      (f.scenario_id === null || f.scenario_id === activeScenarioId)
+    );
+
+    if (flows.length === 0) {
+      results.unrealized.push({ ...inv, ...proj, id: inv.investment_id, current_status: "Unallocated" });
+      return;
+    }
+
+    let totalExitPct = flows.reduce((sum, f) => sum + parseFloat(f.divestment_percentage || 0), 0);
+    const enrichedData = { ...inv, ...proj, id: inv.investment_id, total_exit_pct: totalExitPct };
+
+    // 3. THE SPLITTER
+    if (totalExitPct >= 100) {
+      results.realized.push(enrichedData);
+    } else if (totalExitPct > 0 && totalExitPct < 100) {
+      results.realized.push({ ...enrichedData, is_partial: true });
+      results.unrealized.push({ ...enrichedData, is_partial: true });
+    } else {
+      results.unrealized.push(enrichedData);
+    }
+  });
+
+  return results;
+};
+
+function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [activeMode, setActiveMode] = useState(null);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
   const [showNewInvestment, setShowNewInvestment] = useState(false);
   const [showInvestmentDetails, setShowInvestmentDetails] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Hook now returns enriched investments (including transaction_flows)
-  const { investments, fetchInvestments, loading } = usePortfolio(fundId);
+  // localEditedProjections stores the changes until 'Save' is clicked
+  const [localEditedProjections, setLocalEditedProjections] = useState({});
 
-  /* ===== 1. DATA FETCHING ===== */
+  const { investments, fetchInvestments, loading: loadInv } = usePortfolio(fundId);
+  const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
+
   useEffect(() => {
-    fetchInvestments(); 
-  }, [fundId, fetchInvestments]);
+    fetchInvestments();
+    fetchProjections();
+  }, [fundId, scenarioId, fetchInvestments, fetchProjections]);
 
-  /* ===== 2. AGGREGATE CLASSIFICATION LOGIC ===== */
+  // Merge original projections with local edits for UI rendering
+  const mergedProjections = useMemo(() => {
+    return projections.map(proj => ({
+      ...proj,
+      ...(localEditedProjections[proj.projection_id] || {})
+    }));
+  }, [projections, localEditedProjections]);
+
   const { realizedData, investedData, projectedData } = useMemo(() => {
-    const realized = [];
-    const invested = [];
-    const projected = [];
+    const targetDate = timeframeDate || new Date().toISOString().split('T')[0];
+    const processed = processPortfolioData(investments, mergedProjections, targetDate, scenarioId);
+    
+    return { 
+        realizedData: processed.realized, 
+        investedData: processed.unrealized, 
+        projectedData: processed.projected 
+    };
+  }, [investments, mergedProjections, scenarioId, timeframeDate]);
 
-    investments.forEach((inv) => {
-      // Extract nested flows
-      const flows = inv.transaction_flows || [];
-      
-      // Calculate Total Cost dynamically from nested flows
-      // Assuming 'amount' is the field we sum
-      const totalCost = flows
-        .filter(f => !f.is_deleted)
-        .reduce((sum, f) => sum + parseFloat(f.amount || 0), 0);
+  /**
+   * Updates only the frontend state. No API call here.
+   */
+  const handleUpdateInput = (investmentId, field, value) => {
+    const proj = projections.find(p => p.investment === investmentId);
+    if (!proj) return;
 
-      // Enrich the object for table consumption
-      const enrichedInv = {
-        ...inv,
-        id: inv.investment_id,
-        cost: totalCost,
-        flows: flows,
-      };
-
-      // Classification
-      if (inv.scenario_id !== null) {
-        // Any item linked to a scenario goes to Projected
-        projected.push(enrichedInv);
-      } else {
-        // Master logic: Split by exit status or existence of a Divestment flow
-        const hasDivestment = flows.some(f => f.transaction_name === "Divestment");
-        
-        if (inv.is_realized || inv.exit_date || hasDivestment) {
-          realized.push(enrichedInv);
-        } else {
-          invested.push(enrichedInv);
-        }
+    setLocalEditedProjections(prev => ({
+      ...prev,
+      [proj.projection_id]: {
+        ...(prev[proj.projection_id] || {}),
+        [field]: value
       }
-    });
+    }));
+  };
 
-    return { realizedData: realized, investedData: invested, projectedData: projected };
-  }, [investments]);
-
-  console.log(realizedData)
-  console.log(investedData)
-  console.log(projectedData)
-  /* ===== HANDLERS ===== */
   const handleToggle = (mode) => {
     setActiveMode((prev) => (prev === mode ? null : mode));
   };
@@ -87,11 +128,48 @@ function Portfolio({ fundId, scenarioId }) {
     fetchInvestments(); 
   };
 
-  if (loading && investments.length === 0) return <div>Loading Portfolio...</div>;
+  /**
+   * Handles the actual Database Save operation
+   */
+  const handleSave = async () => {
+    const editCount = Object.keys(localEditedProjections).length;
+    if (editCount === 0) return;
+
+    setIsSaving(true);
+    try {
+      // Loop through all edited projections and save them
+      const savePromises = Object.entries(localEditedProjections).map(([id, payload]) => 
+        updateProjection(id, payload)
+      );
+
+      await Promise.all(savePromises);
+      
+      // Clear local edits after successful save
+      setLocalEditedProjections({});
+      
+      setToast({
+        type: "success",
+        title: "Portfolio Saved",
+        message: `${editCount} investment(s) updated successfully.`,
+      });
+      
+      // Refresh data to get calculated fields (exit_value, exit_date) from backend
+      fetchProjections();
+    } catch (err) {
+      setToast({
+        type: "error",
+        title: "Save Failed",
+        message: "An unexpected error occurred while saving the changes.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if ((loadInv || loadProj) && investments.length === 0) return <div>Loading Data...</div>;
 
   return (
     <div className="portfolio-tab-container">
-      {/* ===== HEADER ===== */}
       <div className="portfolio-controls-header">
         <div className="control-toggles-group">
           <div className="toggle-group" onClick={() => handleToggle("sensitivity")}>
@@ -116,26 +194,25 @@ function Portfolio({ fundId, scenarioId }) {
         )}
       </div>
 
-      {/* ===== TABLES ===== */}
       <RealizedPortfolio realizedData={realizedData} />
 
       <InvestedPortfolio 
         activeMode={activeMode} 
         investedData={investedData} 
+        onChangeRow={handleUpdateInput} 
       />
 
       <ProjectedPortfolio 
         activeMode={activeMode} 
         rows={projectedData} 
+        onChangeRow={handleUpdateInput}
       />
 
-      {/* NEW DEAL BUTTON */}
       <button className="proj-add-btn" onClick={handleNewDeal}>
-        <PlusIcon className="proj-plus-icon" />
+        <PlusIcon />
         <span>New deal</span>
       </button>
 
-      {/* MODALS & STEPS */}
       {showNewInvestment && (
         <NewInvestmentStep
           fundId={fundId}
@@ -158,6 +235,27 @@ function Portfolio({ fundId, scenarioId }) {
         onClose={() => setIsTargetModalOpen(false)}
         onSave={() => {}}
       />
+      
+      <div className="scenario-portfolio-footer">
+        <div className="scenario-portfolio-actions">
+          {/* Save button now handles all local state commit to DB */}
+          <button 
+            className="scenario-portfolio-btn-save" 
+            onClick={handleSave}
+            disabled={isSaving || Object.keys(localEditedProjections).length === 0}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+          {toast && (
+            <Toast
+              type={toast.type}
+              title={toast.title}
+              message={toast.message}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
