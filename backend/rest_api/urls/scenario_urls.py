@@ -28,6 +28,22 @@ urlpatterns = [
         }),
         name="scenario-investment-detail"
     ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:investment_id>/flows/",
+        ScenarioTransactionFlowViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-flow-list-create"
+    ),
+    # Scenario-Specific Flows: Detail (Retrieve, Update, Delete)
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:investment_id>/flows/<int:pk>/",
+        ScenarioTransactionFlowViewSet.as_view({
+            'get': 'retrieve', 
+            'put': 'update', 
+            'patch': 'partial_update', 
+            'delete': 'destroy'
+        }),
+        name="scenario-flow-detail"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

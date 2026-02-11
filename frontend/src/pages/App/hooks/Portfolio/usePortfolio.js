@@ -5,23 +5,24 @@ import { API_BASE_URL } from '../useApi';
 export const usePortfolio = (fundId) => {
   const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
-  const [flows, setFlows] = useState([]);
 
-  // --- PORTFOLIO INVESTMENTS ---
+  // --- PORTFOLIO INVESTMENTS (With Nested Flows) ---
 
   /**
    * Fetching Logic:
-   * No scenarioId: Hits the Global APIView (Returns everything)
-   * With scenarioId: Hits the Scenario ViewSet (Returns only scenario items)
+   * Returns investments with their nested transaction_flows.
+   * No scenarioId: Global view (Master + all Scenarios)
+   * With scenarioId: Specific Scenario view
    */
   const fetchInvestments = useCallback(async (scenarioId = null) => {
     setLoading(true);
     try {
       const url = scenarioId
-        ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
-        : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/`;
+        ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
+        : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`;
       
       const response = await axios.get(url);
+      // response.data contains [ { ..., transaction_flows: [...] }, ... ]
       setInvestments(response.data);
     } catch (err) {
       console.error("Failed to fetch investments", err);
@@ -31,13 +32,13 @@ export const usePortfolio = (fundId) => {
   }, [fundId]);
 
   const createInvestment = async (scenarioId, data) => {
-    // If scenarioId is provided, we use the nested scenario URL
     const url = scenarioId
-      ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
-      : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/`;
+      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
+      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`;
     
     try {
       const response = await axios.post(url, { ...data, scenario_id: scenarioId });
+      // Re-fetch to get the newly created investment along with its empty flow array
       fetchInvestments(scenarioId);
       return response.data;
     } catch (err) {
@@ -47,8 +48,9 @@ export const usePortfolio = (fundId) => {
   };
 
   const deleteInvestment = async (scenarioId, investmentId) => {
-    // Transactional deletes always use the scenario-specific ViewSet path
-    const url = `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`;
+    const url = scenarioId
+      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
+      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/`;
     try {
       await axios.delete(url);
       fetchInvestments(scenarioId);
@@ -57,32 +59,19 @@ export const usePortfolio = (fundId) => {
     }
   };
 
-  // --- TRANSACTION FLOWS ---
-
-  const fetchFlows = useCallback(async (investmentId, scenarioId = null) => {
-    setLoading(true);
-    try {
-      const url = scenarioId
-        ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
-        : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
-      
-      const response = await axios.get(url);
-      setFlows(response.data);
-    } catch (err) {
-      console.error("Failed to fetch flows", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [fundId]);
+  // --- TRANSACTION FLOWS (Individual Actions) ---
+  // We keep the mutations (Create/Delete) but they refresh the whole investment list 
+  // to keep the nested data in sync.
 
   const createFlow = async (investmentId, scenarioId, data) => {
     const url = scenarioId
-      ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
-      : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
+      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
+      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
     
     try {
       const response = await axios.post(url, data);
-      fetchFlows(investmentId, scenarioId);
+      // Refresh investments to update the nested flows array for this investment
+      fetchInvestments(scenarioId);
       return response.data;
     } catch (err) {
       console.error("Flow creation failed", err);
@@ -92,24 +81,22 @@ export const usePortfolio = (fundId) => {
 
   const deleteFlow = async (investmentId, scenarioId, flowId) => {
     const url = scenarioId
-      ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
-      : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
+      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
+      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
     try {
       await axios.delete(url);
-      fetchFlows(investmentId, scenarioId);
+      fetchInvestments(scenarioId);
     } catch (err) {
       console.error("Flow deletion failed", err);
     }
   };
 
   return {
-    investments,
-    flows,
+    investments, // Now contains nested flows
     loading,
     fetchInvestments,
     createInvestment,
     deleteInvestment,
-    fetchFlows,
     createFlow,
     deleteFlow
   };

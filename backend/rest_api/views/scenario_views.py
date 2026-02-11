@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 
 from ..models.transactions import *
 from ..serializers.scenario_serializers import *
-from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer
+from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -115,5 +115,42 @@ class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
         serializer.save(
             fund_id=self.kwargs.get('fund_id'),
             scenario_id=self.kwargs.get('scenario_pk'),
+            created_by=created_by
+        )
+
+class ScenarioTransactionFlowViewSet(ModelViewSet):
+    serializer_class = PortfolioTransactionFlowSerializer
+
+    def get_queryset(self):
+        # Filters flows by the specific Investment AND Scenario provided in the URL
+        return PortfolioTransactionFlow.objects.filter(
+            portfolio_investment_id=self.kwargs.get('investment_id'),
+            portfolio_investment__fund_id=self.kwargs.get('fund_id'),
+            scenario_id=self.kwargs.get('scenario_pk'),
+            is_deleted=False
+        ).order_by("date", "flow_id")
+
+    def perform_create(self, serializer):
+        # Ensure the investment exists within the specified fund
+        investment = get_object_or_404(
+            PortfolioInvestment, 
+            investment_id=self.kwargs.get('investment_id'), 
+            fund_id=self.kwargs.get('fund_id')
+        )
+
+        created_by = None
+        if self.request.user and self.request.user.is_authenticated:
+            created_by = self.request.user.username
+
+        # Auto-generate the next flow index for this investment
+        next_index = (
+            PortfolioTransactionFlow.objects.filter(portfolio_investment=investment).count() + 1
+        )
+        flow_name = f"#flow {next_index}"
+
+        serializer.save(
+            portfolio_investment=investment,
+            scenario_id=self.kwargs.get('scenario_pk'),
+            flow_name=flow_name,
             created_by=created_by
         )

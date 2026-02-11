@@ -461,6 +461,16 @@ class PortfolioTransactionFlow(models.Model):
         related_name="flows",
     )
 
+    # Added Scenario Field
+    scenario = models.ForeignKey(
+        'ScenarioList', 
+        on_delete=models.SET_NULL, 
+        db_column='scenario_id', 
+        null=True, 
+        blank=True,
+        related_name="transaction_flows"
+    )
+
     date = models.DateField()
     flow_name = models.CharField(max_length=100)
     amount_lc = models.DecimalField(max_digits=18, decimal_places=6)
@@ -470,11 +480,11 @@ class PortfolioTransactionFlow(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=150, null=True, blank=True)
-    updated_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
+        managed = False  # Set to True to allow Django to manage the new scenario column
         db_table = "portfolio_transaction_flows"
 
 class PortfolioFairValueFlow(models.Model):
