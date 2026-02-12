@@ -95,6 +95,7 @@ class PortfolioFairValueFlowSerializer(serializers.ModelSerializer):
 class PortfolioInvestmentSerializer(serializers.ModelSerializer):
     fund_id = serializers.IntegerField(source="fund.fund_id", read_only=True)
     transaction_flows = PortfolioTransactionFlowSerializer(many=True, read_only=True)
+    fair_value_flows = PortfolioFairValueFlowSerializer(many=True, read_only=True)
     scenario_id = serializers.PrimaryKeyRelatedField(
         queryset=ScenarioList.objects.all(),
         source="scenario",
@@ -128,6 +129,7 @@ class PortfolioInvestmentSerializer(serializers.ModelSerializer):
             "sector",
             "ownership",
             "transaction_flows",
+            "fair_value_flows",
             "created_at",
             "created_by",
             "updated_at",

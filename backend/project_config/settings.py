@@ -32,17 +32,23 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
-    
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django_filters',
     "rest_framework",
     "corsheaders",
     'rest_api'
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',  # Keep this at the top

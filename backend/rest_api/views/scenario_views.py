@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 
-from ..models.transactions import ScenarioList, ScenarioSynthesis, PortfolioInvestment, PortfolioTransactionFlow, ScenarioPortfolioProjection
-from ..serializers.scenario_serializers import ScenarioSerializer, ScenarioSynthesisSerializer, ScenarioPortfolioProjectionSerializer
+from ..models.transactions import ScenarioList, ScenarioSynthesis, PortfolioInvestment, PortfolioTransactionFlow, ScenarioPortfolioProjection, ScenarioDueDiligenceFee
+from ..serializers.scenario_serializers import ScenarioSerializer, ScenarioSynthesisSerializer, ScenarioPortfolioProjectionSerializer, ScenarioDueDiligenceFeeSerializer
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
 class FundScenarioListView(APIView):
@@ -166,3 +167,30 @@ class ScenarioPortfolioProjectionViewSet(ModelViewSet):
             fund_id=fund_id,
             scenario_id=scenario_id
         ).select_related('investment')
+    
+class ScenarioDueDiligenceFeeViewSet(ModelViewSet):
+    queryset = ScenarioDueDiligenceFee.objects.all().select_related('investment', 'scenario')
+    serializer_class = ScenarioDueDiligenceFeeSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['scenario_id', 'fund_id']
+
+    def get_queryset(self):
+        # Captures the scenario_pk from your URL path:
+        # funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/
+        scenario_pk = self.kwargs.get('scenario_pk')
+        fund_id = self.kwargs.get('fund_id')
+        
+        return ScenarioDueDiligenceFee.objects.filter(
+            scenario_id=scenario_pk, 
+            fund_id=fund_id
+        ).select_related('investment_id')
+
+    def perform_create(self, serializer):
+        # The trigger will handle amount calculations automatically
+        # upon insertion of the record.
+        serializer.save()
+
+    def perform_update(self, serializer):
+        # Updating entry_fee_pct or exit_fee_pct triggers the 
+        # BEFORE UPDATE trigger (fn_recalc_dd_on_input)
+        serializer.save()

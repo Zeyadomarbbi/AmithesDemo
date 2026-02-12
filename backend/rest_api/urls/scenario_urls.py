@@ -54,6 +54,21 @@ urlpatterns = [
         ScenarioPortfolioProjectionViewSet.as_view({'patch': 'partial_update', 'get': 'retrieve'}),
         name="scenario-projections-detail"
     ),
+    # --- DUE DILIGENCE FEES ---
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/",
+        ScenarioDueDiligenceFeeViewSet.as_view({'get': 'list'}),
+        name="scenario-dd-fees-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/<int:pk>/",
+        ScenarioDueDiligenceFeeViewSet.as_view({
+            'get': 'retrieve',
+            'patch': 'partial_update',
+            'put': 'update'
+        }),
+        name="scenario-dd-fees-detail"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

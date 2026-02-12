@@ -308,11 +308,10 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     // 1. Calculate Exit Date
     let computedExitDate = inv.exit_date;
     if (inv.first_investment_date && inv.input_duration) {
-       const d = new Date(inv.first_investment_date);
-       const dur = parseFloat(inv.input_duration) || 0;
-       d.setFullYear(d.getFullYear() + Math.floor(dur));
-       d.setMonth(d.getMonth() + Math.round((dur % 1) * 12));
-       computedExitDate = d.toISOString().split('T')[0];
+      const d = new Date(inv.first_investment_date);
+      const totalMonths = Math.round(parseFloat(inv.input_duration) * 12);
+      d.setMonth(d.getMonth() + totalMonths);
+      computedExitDate = d.toISOString().split('T')[0];
     }
 
     // 2. Calculate Exit Value

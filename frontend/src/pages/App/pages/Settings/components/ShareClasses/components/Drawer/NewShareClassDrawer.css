@@ -177,10 +177,6 @@
   margin: 0;
 }
 
-/* Remove Arrows from Number Input (Firefox) */
-.field-input-inner[type=number] {
-  -moz-appearance: textfield;
-}
 
 .share-drawer-back,
 .share-drawer-close {

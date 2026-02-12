@@ -5,7 +5,7 @@ import DDFees from './DDFees/DDFees';
 import { CloseIcon, DownloadIcon, PlusIcon } from './Icons';
 import './SetFinancials.css';
 
-function SetFinancials({ scenarioId, realizedYears = [2024, 2025] }) {
+function SetFinancials({ fundId, scenarioId, realizedYears = [2024, 2025] }) {
   const [activeTab, setActiveTab] = useState(null);
   const [years, setYears] = useState(() => {
     const realized = realizedYears.map(y => ({ year: String(y), type: 'realized' }));
@@ -107,9 +107,11 @@ function SetFinancials({ scenarioId, realizedYears = [2024, 2025] }) {
 
       {activeTab === 'diligence' && (
         <div className="sf-overlay modal">
-          <div className="sf-modal-content">
-            <DDFees onClose={handleClose} />
-          </div>
+          <DDFees 
+            fundId={fundId} 
+            scenarioId={scenarioId} 
+            onClose={handleClose} 
+          />
         </div>
       )}
     </div>

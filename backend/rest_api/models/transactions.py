@@ -540,3 +540,27 @@ class ScenarioPortfolioProjection(models.Model):
 
     def __str__(self):
         return f"Proj: {self.investment.name} - Scenario: {self.scenario_id}"
+    
+class ScenarioDueDiligenceFee(models.Model):
+    dd_fee_id = models.BigAutoField(primary_key=True)
+    # Using db_column to match your SQL and renaming the field for Python/DRF
+    fund_id = models.ForeignKey('Fund', on_delete=models.CASCADE, db_column='fund_id')
+    scenario_id = models.ForeignKey('ScenarioList', on_delete=models.CASCADE, db_column='scenario_id')
+    investment_id = models.ForeignKey('PortfolioInvestment', on_delete=models.CASCADE, db_column='investment_id')
+
+    entry_fee_pct = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    exit_fee_pct = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    is_entry_sunk = models.BooleanField(default=False)
+    is_exit_sunk = models.BooleanField(default=False)
+    entry_date = models.DateField(null=True, blank=True)
+    entry_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    exit_date = models.DateField(null=True, blank=True)
+    exit_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'scenario_due_diligence_fees'
+        unique_together = ('investment_id', 'scenario_id')
+
+    def __str__(self):
+        return f"DD Fee - {self.investment.name} ({self.scenario.name})"

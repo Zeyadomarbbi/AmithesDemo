@@ -48,8 +48,16 @@ function ScenarioDetailPage() {
               fundId={fundId} 
               scenarioId={scenarioId} 
             />}
-          {currentTab === 'set-financials' && <SetFinancials scenarioId={scenarioId} />}
-          {currentTab === 'fund-flows' && <FundFlows scenarioId={scenarioId} />}
+          {currentTab === 'set-financials' && 
+            <SetFinancials 
+              fundId={fundId}
+              scenarioId={scenarioId} 
+            />}
+          {currentTab === 'fund-flows' && 
+            <FundFlows 
+              fundId={fundId}
+              scenarioId={scenarioId} 
+            />}
         </div>
       </div>
     </div>

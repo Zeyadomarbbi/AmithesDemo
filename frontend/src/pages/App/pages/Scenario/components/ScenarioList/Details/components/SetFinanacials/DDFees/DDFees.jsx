@@ -1,162 +1,188 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useScenarioDDFees } from '../../../../../../../../hooks/Scenarios/useScenarioDDFees'; 
 import { CloseIcon } from '../Icons'; 
+import Toast from '../../../../../../../../components/Toast/Toast'; 
 import './DDFees.css';
 
-const initialData = [
-  { 
-    id: 1, 
-    name: 'Investment #1', 
-    period: '2020 - 2024', 
-    entryPct: 'In portfolio', 
-    exitPct: 'Exited', 
-    entryVal: 'In portfolio', 
-    exitVal: 'Exited', 
-    entryType: 'text', 
-    exitType: 'text' 
-  },
-  { 
-    id: 2, 
-    name: 'Investment #2', 
-    period: '2021 - 2026', 
-    entryPct: 'In portfolio', 
-    exitPct: '0.20%', 
-    entryVal: 'In portfolio', 
-    exitVal: '20 000', 
-    entryType: 'text', 
-    exitType: 'input' 
-  },
-  { 
-    id: 3, 
-    name: 'Investment #3', 
-    period: '2022 - 2026', 
-    entryPct: '1.50%', 
-    exitPct: '0.80%', 
-    entryVal: '150 000', 
-    exitVal: '80 000', 
-    entryType: 'input', 
-    exitType: 'input' 
-  },
-  { 
-    id: 4, 
-    name: 'Investment #4', 
-    period: '2023 - 2027', 
-    entryPct: '0.75%', 
-    exitPct: '0.50%', 
-    entryVal: '750 000', 
-    exitVal: '50 000', 
-    entryType: 'input', 
-    exitType: 'input' 
-  },
-  { 
-    id: 5, 
-    name: 'Investment #5', 
-    period: '2024 - 2027', 
-    entryPct: '1.25%', 
-    exitPct: '0.00%', 
-    entryVal: '125 000', 
-    exitVal: '-', 
-    entryType: 'input', 
-    exitType: 'input' 
-  },
-  { 
-    id: 6, 
-    name: 'Investment #6', 
-    period: '2025 - 2028', 
-    entryPct: '1.00%', 
-    exitPct: '0.75%', 
-    entryVal: '100 000', 
-    exitVal: '75 000', 
-    entryType: 'input', 
-    exitType: 'input' 
-  },
-];
+const DDFees = ({ fundId, scenarioId, onClose }) => {
+  const { ddFees, updateFeeRate, loading } = useScenarioDDFees(fundId, scenarioId);
+  const [localRows, setLocalRows] = useState([]);
+  const [scenarioDDFeesIsSaving, setScenarioDDFeesIsSaving] = useState(false);
+  const [scenarioDDFeesToast, setScenarioDDFeesToast] = useState(null);
 
-const DDFees = ({ onClose }) => {
-  const [rows, setRows] = useState(initialData);
+  useEffect(() => {
+    if (ddFees && ddFees.length > 0) {
+      setLocalRows(ddFees);
+    }
+  }, [ddFees]);
 
-  const handleInputChange = (e, id, field) => {
+  const handleLocalChange = (e, id, field) => {
     const newVal = e.target.value;
-    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: newVal } : r));
+    setLocalRows(prev => prev.map(r => 
+      r.dd_fee_id === id ? { ...r, [field]: newVal } : r
+    ));
   };
 
-  return (
-    <div className="dd-container">
-      {/* Header with Close Button */}
-      <div className="dd-header">
-        <h2>Due diligences fees</h2>
-        <button className="dd-close-btn" onClick={onClose}>
-            <CloseIcon className="close-icon-svg" />
+  const handleSave = async () => {
+    setScenarioDDFeesIsSaving(true);
+    try {
+      const updatePromises = localRows.map(row => {
+        const original = ddFees.find(d => d.dd_fee_id === row.dd_fee_id);
+        if (original.entry_fee_pct !== row.entry_fee_pct || original.exit_fee_pct !== row.exit_fee_pct) {
+           return updateFeeRate(row.dd_fee_id, {
+             entry_fee_pct: row.entry_fee_pct,
+             exit_fee_pct: row.exit_fee_pct
+           });
+        }
+        return null;
+      }).filter(Boolean);
+
+      await Promise.all(updatePromises);
+
+      setScenarioDDFeesToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Fees updated successfully.'
+      });
+      
+      setTimeout(onClose, 1500);
+    } catch (error) {
+      setScenarioDDFeesToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to update fees.'
+      });
+    } finally {
+      setScenarioDDFeesIsSaving(false);
+    }
+  };
+
+  const getYear = (dateStr) => {
+    if (!dateStr) return '...';
+    return dateStr.split('-')[0];
+  };
+
+  const formatMoney = (amount) => {
+    if (!amount) return '-';
+    return parseFloat(amount).toLocaleString('en-US', {
+        useGrouping: true, 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).replace(/,/g, ' '); 
+  };
+
+    return (
+    <div className="scenario-dd-fees-container">
+      <div className="scenario-dd-fees-header-wrapper">
+        <button className="scenario-dd-fees-close-btn" onClick={onClose}>
+          <CloseIcon />
         </button>
+        <div className="scenario-dd-fees-title">
+          Due diligences fees
+        </div>
       </div>
 
-      {/* Table Area */}
-      <div className="dd-table-wrapper">
-        <table className="dd-table">
-          <thead>
-            <tr>
-              <th className="th-inv"></th>
-              <th className="th-center">Entry (% Cost)</th>
-              <th className="th-center">Exit (% Cost)</th>
-              <th className="th-right">Entry</th>
-              <th className="th-right">Exit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                {/* Investment Name Column (Will be white via CSS) */}
-                <td className="td-name">
-                  <div className="inv-name-group">
-                    <span className="inv-title">{row.name}</span>
-                    <span className="inv-period">{row.period}</span>
-                  </div>
-                </td>
+      <div className="scenario-dd-fees-table-wrapper">
+        {loading && localRows.length === 0 ? (
+            <div className="scenario-dd-fees-no-data">Loading...</div>
+        ) : localRows.length === 0 ? (
+            <div className="scenario-dd-fees-no-data-box">No Portfolios Found</div>
+        ) : (
+            <table className="scenario-dd-fees-table">
+            <thead>
+                <tr>
+                <th className="scenario-dd-fees-th-inv"></th>
+                <th className="scenario-dd-fees-th-center">Entry (% Cost)</th>
+                <th className="scenario-dd-fees-th-center">Exit (% Cost)</th>
+                <th className="scenario-dd-fees-th-right">Entry</th>
+                <th className="scenario-dd-fees-th-right">Exit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {localRows.map((row) => (
+                <tr key={row.dd_fee_id}>
+                    <td className="scenario-dd-fees-td-name">
+                    <div className="scenario-dd-fees-inv-name-group">
+                        <span className="scenario-dd-fees-inv-title">{row.investment_name}</span>
+                        <span className="scenario-dd-fees-inv-period">
+                            {getYear(row.entry_date)} - {row.exit_date ? getYear(row.exit_date) : 'N/A'}
+                        </span>
+                    </div>
+                    </td>
 
-                {/* Entry % Column */}
-                <td className="td-center">
-                  {row.entryType === 'input' ? (
-                    <input 
-                      className="dd-input" 
-                      value={row.entryPct} 
-                      onChange={(e) => handleInputChange(e, row.id, 'entryPct')}
-                    />
-                  ) : (
-                    <span className="status-text">{row.entryPct}</span>
-                  )}
-                </td>
+                    <td className="scenario-dd-fees-td-center">
+                    {row.is_entry_sunk ? (
+                        <span className="scenario-dd-fees-status-text-sunk">In portfolio</span>
+                    ) : (
+                        <input 
+                            className="scenario-dd-fees-input" 
+                            type="number"
+                            value={row.entry_fee_pct} 
+                            onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'entry_fee_pct')}
+                        />
+                    )}
+                    </td>
 
-                {/* Exit % Column */}
-                <td className="td-center">
-                  {row.exitType === 'input' ? (
-                    <input 
-                      className="dd-input" 
-                      value={row.exitPct}
-                      onChange={(e) => handleInputChange(e, row.id, 'exitPct')}
-                    />
-                  ) : (
-                    <span className="status-text">{row.exitPct}</span>
-                  )}
-                </td>
+                    <td className="scenario-dd-fees-td-center">
+                    {row.is_exit_sunk ? (
+                        <span className="scenario-dd-fees-status-text-sunk">Exited</span>
+                    ) : (
+                        <input 
+                            className="scenario-dd-fees-input" 
+                            type="number"
+                            step="0.01"
+                            value={row.exit_fee_pct}
+                            onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'exit_fee_pct')}
+                        />
+                    )}
+                    </td>
 
-                {/* Entry Value Column */}
-                <td className="td-right">
-                  <span className="val-text">{row.entryVal}</span>
-                </td>
+                    <td className="scenario-dd-fees-td-center">
+                        {row.is_entry_sunk ? (
+                            <span className="scenario-dd-fees-status-text-sunk-small">In portfolio</span>
+                        ) : (
+                            <span className="scenario-dd-fees-val-text">{formatMoney(row.entry_amount)}</span>
+                        )}
+                    </td>
 
-                {/* Exit Value Column */}
-                <td className="td-right">
-                  <span className="val-text">{row.exitVal}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <td className="scenario-dd-fees-td-center">
+                        {row.is_exit_sunk ? (
+                            <span className="scenario-dd-fees-status-text-sunk-small">Exited</span>
+                        ) : (
+                            <span className="scenario-dd-fees-val-text">{formatMoney(row.exit_amount)}</span>
+                        )}
+                    </td>
+                </tr>
+                ))}
+            </tbody>
+            </table>
+        )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="dd-footer">
-        <button className="btn-dd-cancel" onClick={onClose}>Cancel</button>
-        <button className="btn-dd-save" onClick={onClose}>Save</button>
+      <div className="scenario-dd-fees-footer">
+        <div className="scenario-dd-fees-actions">
+          <button 
+            className="scenario-dd-fees-btn-cancel" 
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button 
+            className="scenario-dd-fees-btn-save" 
+            onClick={handleSave}
+            disabled={scenarioDDFeesIsSaving}
+          >
+            {scenarioDDFeesIsSaving ? "Saving..." : "Save"}
+          </button>
+          {scenarioDDFeesToast && (
+            <Toast
+              type={scenarioDDFeesToast.type}
+              title={scenarioDDFeesToast.title}
+              message={scenarioDDFeesToast.message}
+              onClose={() => setScenarioDDFeesToast(null)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
