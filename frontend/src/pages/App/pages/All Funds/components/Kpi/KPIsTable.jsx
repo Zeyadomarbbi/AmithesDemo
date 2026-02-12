@@ -80,6 +80,7 @@ const fmtNum = (x) => new Intl.NumberFormat("fr-FR").format(x);
 
 export default function KPIsTable() {
   // 2. Use the custom hook to handle state and sorting
+  /** Call calculatefundportfolioKPI.js */
   const { sorted, sortKey, sortDir, toggleSort } = useTableSort(FUNDS);
 
   return (

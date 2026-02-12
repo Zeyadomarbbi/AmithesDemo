@@ -10,7 +10,7 @@ import { PlusIcon, SearchIcon} from "../../../../components/Icons";
 import "./AllFundsPage.css";
 
 export default function AllFundsPage() {
-  /** Call calculatefundportfolioKPI.js */
+  
   const navigate = useNavigate();
   
   // Access state and actions from the Context

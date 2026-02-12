@@ -2,6 +2,7 @@ import React from "react";
 import "./FundCard.css";
 
 export default function FundCard({ fund, fundKpi, clickable = false, onClick }) {
+  /** Call calculatefundportfolioKPI.js */
     const getToneClass = (phase) => {
     const phaseLower = phase?.toLowerCase() || "";
 
