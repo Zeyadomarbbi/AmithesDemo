@@ -6,8 +6,22 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from ..models.transactions import ScenarioList, ScenarioSynthesis, PortfolioInvestment, PortfolioTransactionFlow, ScenarioPortfolioProjection, ScenarioDueDiligenceFee
-from ..serializers.scenario_serializers import ScenarioSerializer, ScenarioSynthesisSerializer, ScenarioPortfolioProjectionSerializer, ScenarioDueDiligenceFeeSerializer
+from ..models.transactions import (
+    ScenarioList, 
+    ScenarioSynthesis, 
+    PortfolioInvestment, 
+    PortfolioTransactionFlow, 
+    ScenarioPortfolioProjection, 
+    ScenarioDueDiligenceFee, 
+    ManFeeTranche
+    )
+from ..serializers.scenario_serializers import (
+    ScenarioSerializer, 
+    ScenarioSynthesisSerializer, 
+    ScenarioPortfolioProjectionSerializer, 
+    ScenarioDueDiligenceFeeSerializer, 
+    ManFeeTrancheSerializer
+    )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
 class FundScenarioListView(APIView):
@@ -167,6 +181,17 @@ class ScenarioPortfolioProjectionViewSet(ModelViewSet):
             fund_id=fund_id,
             scenario_id=scenario_id
         ).select_related('investment')
+    
+class ManFeeTrancheViewSet(ModelViewSet):
+    serializer_class = ManFeeTrancheSerializer
+
+    def get_queryset(self):
+        scenario_pk = self.kwargs.get('scenario_pk')
+        return ManFeeTranche.objects.filter(scenario_id=scenario_pk).select_related('share_class')
+
+    def perform_create(self, serializer):
+        # Optional: You can force the scenario_id from the URL here if needed
+        serializer.save()
     
 class ScenarioDueDiligenceFeeViewSet(ModelViewSet):
     queryset = ScenarioDueDiligenceFee.objects.all().select_related('investment', 'scenario')

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FinancialTable from './FinancialTable/FinancialTable';
 import ManagementFees from './ManagementFees/ManagementFees';
 import DDFees from './DDFees/DDFees';
-import { CloseIcon, DownloadIcon, PlusIcon } from './Icons';
+import { DownloadIcon, PlusIcon } from './Icons';
 import './SetFinancials.css';
 
 function SetFinancials({ fundId, scenarioId, realizedYears = [2024, 2025] }) {
@@ -27,16 +27,12 @@ function SetFinancials({ fundId, scenarioId, realizedYears = [2024, 2025] }) {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Implement handleSave
   const handleSave = async () => {
     setIsSaving(true);
-    
     // Placeholder for future API integration
     console.log('Saving financials for scenario:', scenarioId, 'Years:', years);
-    
     // Simulate network latency
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
     setIsSaving(false);
   };
 
@@ -71,10 +67,10 @@ function SetFinancials({ fundId, scenarioId, realizedYears = [2024, 2025] }) {
             <span className="sf-legend-text sf-realized">Realized</span>
             <span className="sf-legend-text sf-projected">Projected</span>
           </div>
-            <button className="sf-view-badge" onClick={addProjectedYear}>
-              <PlusIcon />
-              <span>Add Projected Year</span>
-            </button>
+          <button className="sf-view-badge" onClick={addProjectedYear}>
+            <PlusIcon />
+            <span>Add Projected Year</span>
+          </button>
         </div>
 
         <div className="sf-fin-content-wrapper">
@@ -96,11 +92,13 @@ function SetFinancials({ fundId, scenarioId, realizedYears = [2024, 2025] }) {
 
       {activeTab === 'management' && (
         <div className="sf-overlay fullscreen">
-          <button className="sf-overlay-floating-close" onClick={handleClose}>
-            <CloseIcon />
-          </button>
+          {/* Close button removed from here */}
           <div className="sf-overlay-content">
-            <ManagementFees />
+            <ManagementFees 
+              fundId={fundId} 
+              scenarioId={scenarioId}
+              onClose={handleClose} 
+            />
           </div>
         </div>
       )}

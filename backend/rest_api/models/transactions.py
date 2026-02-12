@@ -541,6 +541,22 @@ class ScenarioPortfolioProjection(models.Model):
     def __str__(self):
         return f"Proj: {self.investment.name} - Scenario: {self.scenario_id}"
     
+class ManFeeTranche(models.Model):
+    tranche_id = models.BigAutoField(primary_key=True)
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.CASCADE, db_column='scenario_id')
+    share_class = models.ForeignKey('ShareClass', on_delete=models.CASCADE, db_column='share_class_id')
+    
+    tranche_name = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    start_date = models.DateField()
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'man_fee_tranches'
+        managed = True
+    
 class ScenarioDueDiligenceFee(models.Model):
     dd_fee_id = models.BigAutoField(primary_key=True)
     # Using db_column to match your SQL and renaming the field for Python/DRF

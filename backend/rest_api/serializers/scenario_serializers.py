@@ -1,7 +1,13 @@
 from rest_framework import serializers
 from django.db import transaction
-
-from ..models.transactions import ScenarioList, ScenarioDueDiligenceFee, ScenarioSynthesis, ScenarioPortfolioProjection
+from ..models.core import ShareClass
+from ..models.transactions import (
+    ScenarioList, 
+    ScenarioDueDiligenceFee, 
+    ScenarioSynthesis, 
+    ScenarioPortfolioProjection, 
+    ManFeeTranche,
+    )
 from ..models.mappings import MapSynthesisScenario
 
 class ScenarioSerializer(serializers.ModelSerializer):
@@ -130,6 +136,31 @@ class ScenarioPortfolioProjectionSerializer(serializers.ModelSerializer):
         # Refresh from DB to get the new exit_date and exit_value calculated by SQL
         instance.refresh_from_db()
         return instance
+    
+class ManFeeTrancheSerializer(serializers.ModelSerializer):
+    share_class_name = serializers.ReadOnlyField(source='share_class.share_class_name')
+    scenario_id = serializers.PrimaryKeyRelatedField(
+        source='scenario',
+        queryset=ScenarioList.objects.all()
+    )
+    share_class_id = serializers.PrimaryKeyRelatedField(
+        source='share_class',
+        queryset=ShareClass.objects.all()
+    )
+    
+    class Meta:
+        model = ManFeeTranche
+        fields = [
+            'tranche_id', 
+            'scenario_id', 
+            'share_class_id', 
+            'share_class_name', 
+            'tranche_name', 
+            'amount', 
+            'start_date', 
+            'created_at', 
+            'updated_at'
+        ]
     
 class ScenarioDueDiligenceFeeSerializer(serializers.ModelSerializer):
     investment_name = serializers.ReadOnlyField(source='investment_id.name')

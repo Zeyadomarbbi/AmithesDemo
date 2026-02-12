@@ -171,25 +171,7 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.sf-overlay-floating-close {
-  position: absolute;
-  top: 32px;
-  right: 32px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background 0.2s ease;
-  z-index: 10000;
-  font-size: 20px;
-  font-weight: bold;
-  color: #374151;
-}
 
-.sf-overlay-floating-close:hover {
-  background: #F3F4F6;
-}
 
 .sf-overlay-content {
   width: 100%;

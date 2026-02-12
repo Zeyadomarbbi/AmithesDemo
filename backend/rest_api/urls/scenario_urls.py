@@ -69,6 +69,22 @@ urlpatterns = [
         }),
         name="scenario-dd-fees-detail"
     ),
+    # Management Fee Tranches
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/man-fee-tranches/",
+        ManFeeTrancheViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-man-fee-tranche-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/man-fee-tranches/<int:pk>/",
+        ManFeeTrancheViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name="scenario-man-fee-tranche-detail"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

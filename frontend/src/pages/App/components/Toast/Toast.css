@@ -78,7 +78,54 @@
   cursor: pointer;
 }
 
+/* Layout adjustment for Prompt */
+.prompt-variant {
+    flex-direction: row;
+    align-items: flex-start;
+    width: 420px;
+}
 
+.pop-up-toast-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.prompt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.prompt-btn-cancel {
+    background: #FAFAF9;
+    border: none;
+    color: #7B7D7E;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 6px 16px;
+}
+
+.prompt-btn-confirm {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: white;
+}
+
+.prompt-btn-error {
+    background-color: #ef4444; /* Red for deletion */
+}
+
+.prompt-btn-success {
+    background-color: #F7A93B; /* Orange for generic actions */
+}
 
 /* responsive: smaller width on phones */
 @media (max-width: 480px) {
