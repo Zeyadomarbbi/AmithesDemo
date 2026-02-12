@@ -1,54 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useMasterManFees } from './utils/useScenarioMasterManFee.js'; // Adjust path
 import { PlusIcon, CloseIcon } from '../Icons'; 
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
 import './ManagementFees.css';
 
-const parseValue = (value) => {
-    if (!value) return 0;
-    const cleanValue = String(value).replace(/\s/g, ''); 
-    if (cleanValue === '-' || cleanValue === '' || isNaN(cleanValue)) return 0;
-    return parseFloat(cleanValue);
-};
-
-const initialShares = [
-    { label: 'Shares A1', v2024: '300 000', v2025: '500 000', v2026: '500 000', v2027: '300 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Shares A2', v2024: '1 500 000', v2025: '2 000 000', v2026: '2 000 000', v2027: '1 500 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Shares B', v2024: '50 000', v2025: '250 000', v2026: '250 000', v2027: '50 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-];
-
-const initialInvestments = [
-    { label: 'Investment #1', v2024: '-', v2025: '-', v2026: '-', v2027: '150 000', v2028: '150 000', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Investment #2', v2024: '-', v2025: '-', v2026: '-', v2027: '120 000', v2028: '120 000', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Investment #3', v2024: '-', v2025: '-', v2026: '-', v2027: '130 000', v2028: '130 000', v2029: '130 000', v2030: '-', v2031: '-' },
-    { label: 'Investment #4', v2024: '-', v2025: '-', v2026: '-', v2027: '150 000', v2028: '150 000', v2029: '150 000', v2030: '150 000', v2031: '-' },
-    { label: 'Investment #5', v2024: '-', v2025: '-', v2026: '-', v2027: '100 000', v2028: '100 000', v2029: '100 000', v2030: '100 000', v2031: '-' },
-    { label: 'Investment #6', v2024: '-', v2025: '-', v2026: '-', v2027: '50 000', v2028: '50 000', v2029: '50 000', v2030: '50 000', v2031: '50 000' },
-];
-
-const years = ['2024', '2025', '2026', '2027', '2028', '2029', '2030', '2031'];
-
 const ManagementFees = ({ fundId, scenarioId, onClose }) => {
+    // 1. Hook Integration (No more hardcoded 2024/15)
+    const { pivotedData, columns, loading, refresh } = useMasterManFees(fundId, scenarioId);
+    // ------------------
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    const formatNumber = (num) => (num === 0 ? '-' : num.toLocaleString('en-US').replace(/,/g, ' '));
+    // 2. Data Processing (Transpose Logic remains the same)
+    const { years, commitmentRows, costRows, dataByYear } = useMemo(() => {
+        if (!pivotedData.length) return { years: [], commitmentRows: [], costRows: [], dataByYear: {} };
 
-    const calculateTotal = (yearKey, dataSet) => {
-        return dataSet.reduce((acc, row) => acc + parseValue(row[yearKey]), 0);
+        const yearsList = pivotedData.map(d => d.year);
+        
+        const yearMap = {};
+        pivotedData.forEach(row => { yearMap[row.year] = row; });
+
+        const commCols = columns.filter(c => c.type === 'Share Class' || c.type === 'Tranche');
+        const portCols = columns.filter(c => c.type === 'Portfolio');
+
+        return {
+            years: yearsList,
+            commitmentRows: commCols,
+            costRows: portCols,
+            dataByYear: yearMap
+        };
+    }, [pivotedData, columns]);
+
+    // Helper: Format Number ("-" for 0)
+    const formatNumber = (num) => {
+        if (!num || num === 0 || isNaN(num)) return '-';
+        return num.toLocaleString('en-US', { maximumFractionDigits: 0 }).replace(/,/g, ' ');
     };
 
-    const renderRows = (dataSet) => dataSet.map((row, idx) => (
-        <tr key={idx} className="row-standard">
-            <td className="cell-label">{row.label}</td>
-            {years.map((year) => (
-                <td key={year} className="cell-data-readonly">
-                    {row[`v${year}`] || '-'}
-                </td>
-            ))}
-            <td className="cell-total-final"></td>
-        </tr>
-    ));
+    // Helper: Calculate Totals
+    const getColumnTotal = (year, rowDefinitions) => {
+        if (!dataByYear[year]) return 0;
+        return rowDefinitions.reduce((sum, colDef) => {
+            const val = dataByYear[year][colDef.key] || 0;
+            return sum + val;
+        }, 0);
+    };
+
+    const handleModalClose = () => {
+        setIsAddModalOpen(false);
+        setIsViewModalOpen(false);
+        refresh(); 
+    };
+
+    if (loading && years.length === 0) {
+        return <div className="mf-table-container"><div className="p-10 text-center">Loading Financials...</div></div>;
+    }
 
     return (
         <div className="mf-table-container">
@@ -86,44 +93,65 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                     </tr>
                 </thead>
                 
+                {/* SECTION 1: COMMITMENT BASIS */}
                 <tbody>
-                    {renderRows(initialShares)}
+                    {commitmentRows.map((colDef) => (
+                        <tr key={colDef.key} className="row-standard">
+                            <td className="cell-label">{colDef.label}</td>
+                            {years.map((year) => (
+                                <td key={year} className="cell-data-readonly">
+                                    {formatNumber(dataByYear[year]?.[colDef.key])}
+                                </td>
+                            ))}
+                            <td className="cell-total-final"></td>
+                        </tr>
+                    ))}
                     <tr className="row-total">
                         <td className="cell-label">Total on commitment</td>
                         {years.map((year) => (
                             <td key={year} className="cell-total-val">
-                                {formatNumber(calculateTotal(`v${year}`, initialShares))}
+                                {formatNumber(getColumnTotal(year, commitmentRows))}
                             </td>
                         ))}
                         <td className="cell-total-final"></td>
                     </tr>
                 </tbody>
 
+                {/* SECTION 2: COST BASIS */}
                 <tbody>
-                    {renderRows(initialInvestments)}
+                    {costRows.map((colDef) => (
+                        <tr key={colDef.key} className="row-standard">
+                            <td className="cell-label">{colDef.label}</td>
+                            {years.map((year) => (
+                                <td key={year} className="cell-data-readonly">
+                                    {formatNumber(dataByYear[year]?.[colDef.key])}
+                                </td>
+                            ))}
+                            <td className="cell-total-final"></td>
+                        </tr>
+                    ))}
                     <tr className="row-total">
                         <td className="cell-label">Total on cost</td>
                         {years.map((year) => (
                             <td key={year} className="cell-total-val">
-                                {formatNumber(calculateTotal(`v${year}`, initialInvestments))}
+                                {formatNumber(getColumnTotal(year, costRows))}
                             </td>
                         ))}
                         <td className="cell-total-final"></td>
                     </tr>
                 </tbody>
 
+                {/* FOOTER */}
                 <tfoot>
                     <tr className="row-total grand-total">
                         <td className="cell-label">Total</td>
-                        {years.map((year) => {
-                            const subtotalShares = calculateTotal(`v${year}`, initialShares);
-                            const subtotalInvest = calculateTotal(`v${year}`, initialInvestments);
-                            return (
-                                <td key={year} className="cell-total-val">
-                                    {formatNumber(subtotalShares + subtotalInvest)}
-                                </td>
-                            );
-                        })}
+                        {years.map((year) => (
+                            <td key={year} className="cell-total-val">
+                                {formatNumber(
+                                    getColumnTotal(year, commitmentRows) + getColumnTotal(year, costRows)
+                                )}
+                            </td>
+                        ))}
                         <td className="cell-total-final"></td>
                     </tr>
                 </tfoot>
@@ -133,13 +161,13 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                 fundId={fundId} 
                 scenarioId={scenarioId} 
                 isOpen={isViewModalOpen} 
-                onClose={() => setIsViewModalOpen(false)} 
+                onClose={handleModalClose} 
             />
             <AddTranchModal 
                 fundId={fundId} 
                 scenarioId={scenarioId} 
                 isOpen={isAddModalOpen} 
-                onClose={() => setIsAddModalOpen(false)} 
+                onClose={handleModalClose} 
             />
         </div>
     );

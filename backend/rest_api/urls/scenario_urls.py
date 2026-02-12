@@ -85,6 +85,11 @@ urlpatterns = [
         }),
         name="scenario-man-fee-tranche-detail"
     ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/master-man-fees/",
+        ViewMasterManFeesViewSet.as_view({'get': 'list'}),
+        name="scenario-master-man-fees"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

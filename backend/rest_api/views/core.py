@@ -295,3 +295,8 @@ class ShareClassView(APIView):
         obj.updated_at = timezone.now()
         obj.save(update_fields=['is_deleted', 'updated_at'])
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class FundManFeeCommitmentYearRetrieveView(generics.RetrieveAPIView):
+    queryset = FundManFeeCommitmentYear.objects.all()
+    serializer_class = FundManFeeCommitmentYearSerializer
+    lookup_field = 'fund' # We look up by fund_id

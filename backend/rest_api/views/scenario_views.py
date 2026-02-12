@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework import viewsets
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,6 +7,7 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
+from ..models.views import ViewMasterManFees
 from ..models.transactions import (
     ScenarioList, 
     ScenarioSynthesis, 
@@ -20,7 +22,8 @@ from ..serializers.scenario_serializers import (
     ScenarioSynthesisSerializer, 
     ScenarioPortfolioProjectionSerializer, 
     ScenarioDueDiligenceFeeSerializer, 
-    ManFeeTrancheSerializer
+    ManFeeTrancheSerializer,
+    ViewMasterManFeesSerializer
     )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
@@ -219,3 +222,15 @@ class ScenarioDueDiligenceFeeViewSet(ModelViewSet):
         # Updating entry_fee_pct or exit_fee_pct triggers the 
         # BEFORE UPDATE trigger (fn_recalc_dd_on_input)
         serializer.save()
+
+class ViewMasterManFeesViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ViewMasterManFeesSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_pk = self.kwargs.get('scenario_pk')
+        
+        return ViewMasterManFees.objects.filter(
+            fund_id=fund_id,
+            scenario_id=scenario_pk
+        )

@@ -130,3 +130,23 @@ class LimitedPartner(models.Model):
     class Meta:
         db_table = 'lps_limited_partner'
         managed = False
+
+class FundManFeeCommitmentYear(models.Model):
+    # Primary Key
+    fund = models.OneToOneField('Fund', on_delete=models.DO_NOTHING, primary_key=True, db_column='fund_id')
+    
+    # Commitment FROM
+    commitment_from = models.DateField()
+    commitment_from_year = models.IntegerField()
+    commitment_from_year_start = models.DateField() # <--- Added
+    commitment_from_year_end = models.DateField()   # <--- Added
+    
+    # Commitment UNTIL
+    commitment_until = models.DateField()
+    commitment_until_year = models.IntegerField()
+    commitment_until_year_start = models.DateField() # <--- Added
+    commitment_until_year_end = models.DateField()   # <--- Added
+    
+    class Meta:
+        managed = False  # Created via SQL
+        db_table = 'fund_man_fee_commitment_year'

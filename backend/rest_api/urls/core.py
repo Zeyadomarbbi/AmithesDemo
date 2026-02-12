@@ -38,7 +38,11 @@ urlpatterns = router.urls + [
     path("funds/<int:fund_id>/management-fee/rates/", management_fee_rates),
     path("funds/<int:fund_id>/closing-periods/", closing_periods),
     path("funds/<int:fund_id>/lp-register/", lp_register),
-
+    path(
+        "funds/<int:fund>/man-fee-commitment-year/", 
+        FundManFeeCommitmentYearRetrieveView.as_view(), 
+        name="fund-man-fee-commitment-year"
+    ),
     # ✅ PnL (backend used by your React PnLTab)
     path("pnl/<int:fund_id>/", PnLView.as_view(), name="pnl-get"),
     path("pnl/<int:fund_id>/value/", PnLValueUpsertView.as_view(), name="pnl-upsert-value"),

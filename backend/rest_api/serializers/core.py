@@ -104,3 +104,18 @@ class ShareClassSerializer(serializers.ModelSerializer):
             path = default_storage.save(f"share_class_docs/{file_obj.name}", file_obj)
             validated_data["document_link"] = default_storage.url(path)
         return super().update(instance, validated_data)
+    
+class FundManFeeCommitmentYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FundManFeeCommitmentYear
+        fields = [
+            'fund_id',
+            'commitment_from',
+            'commitment_from_year',
+            'commitment_from_year_start',
+            'commitment_from_year_end',
+            'commitment_until',
+            'commitment_until_year',
+            'commitment_until_year_start',
+            'commitment_until_year_end'
+        ]

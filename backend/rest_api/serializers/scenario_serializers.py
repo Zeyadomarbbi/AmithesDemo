@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from ..models.core import ShareClass
+from ..models.views import ViewMasterManFees
 from ..models.transactions import (
     ScenarioList, 
     ScenarioDueDiligenceFee, 
@@ -182,3 +183,17 @@ class ScenarioDueDiligenceFeeSerializer(serializers.ModelSerializer):
             scenario_id=obj.scenario_id
         ).first()
         return proj.cost if proj else 0
+    
+class ViewMasterManFeesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ViewMasterManFees
+        fields = [
+            'fund_id', 
+            'scenario_id', 
+            'order_priority', 
+            'entity_type', 
+            'entity_id', 
+            'entity_name', 
+            'year', 
+            'fee_amount'
+        ]
