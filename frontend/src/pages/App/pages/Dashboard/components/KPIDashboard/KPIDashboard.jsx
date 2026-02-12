@@ -4,10 +4,10 @@ import { useOutletContext, useParams } from 'react-router-dom';
 import './KPIDashboard.css';
 
 // Import the 4 modular sections
-import FundCard from './FundCard/FundCard';
-import FundValueChart from './FundValueChart/FundValueChart';
-import PortfolioValueChart from './PortfolioValueChart/PortfolioValueChart';
-import PortfolioCard from './PortfolioCard/PortfolioCard';
+import FundCard from './FundKPIs/FundCard/FundCard';
+import FundValueChart from './FundKPIs/FundValueChart/FundValueChart';
+import PortfolioValueChart from './PortfolioKPIs/PortfolioValueChart/PortfolioValueChart';
+import PortfolioCard from './PortfolioKPIs/PortfolioCard/PortfolioCard';
 
 // --- CENTRAL MOCK DATA SOURCE ---
 // Data structure keyed by fundId, then by 'Quarter-Year' string.
@@ -90,7 +90,7 @@ function KPIDashboard() {
   const { fundId } = useOutletContext();
   const { timeframeId } = useParams();
   const [activeData, setActiveData] = useState({});
-
+  /** Call calculatefundportfolioKPI.js */
   useEffect(() => {
     const fId = String(fundId);
     const tId = String(timeframeId);
