@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../../../../../../../../../hooks/useApi';
 export const useMasterManFees = (fundId, scenarioId) => {
     const [pivotedData, setPivotedData] = useState([]); 
     const [columns, setColumns] = useState([]);      
+    const [annualTotals, setAnnualTotals] = useState([]); // <--- NEW STATE
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -13,25 +14,19 @@ export const useMasterManFees = (fundId, scenarioId) => {
         
         setLoading(true);
         try {
-            // 1. Parallel Fetch: Fee Data AND The Commitment Year Definition
+            // 1. Parallel Fetch: Fee Data AND Commitment Year Definition
             const [feeRes, commitYearRes] = await Promise.allSettled([
                 axios.get(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/master-man-fees/`),
                 axios.get(`${API_BASE_URL}/api/funds/${fundId}/man-fee-commitment-year/`)
             ]);
 
-            // --- DEBUG LOGS ---
-            
             // 2. Determine Start Year
             let startYear = new Date().getFullYear(); // Default
             if (commitYearRes.status === 'fulfilled' && commitYearRes.value.data) {
-                // Use the explicit Year column from your derived table
                 if (commitYearRes.value.data.commitment_from_year) {
                     startYear = parseInt(commitYearRes.value.data.commitment_from_year);
                 }
-            } else {
-                console.warn("Could not fetch Commitment Year table (Phase 1 not set?)");
             }
-
 
             // 3. Process Fee Data
             if (feeRes.status === 'fulfilled') {
@@ -40,7 +35,6 @@ export const useMasterManFees = (fundId, scenarioId) => {
                 throw new Error(feeRes.reason);
             }
             
-            console.groupEnd();
             setError(null);
 
         } catch (err) {
@@ -88,7 +82,13 @@ export const useMasterManFees = (fundId, scenarioId) => {
         // C. Sort Rows
         const sortedRows = Object.values(yearsMap).sort((a, b) => a.year - b.year);
 
-        // D. Sort Columns
+        // D. Create Simplified Aggregates (NEW LOGIC)
+        const simpleTotals = sortedRows.map(row => ({
+            year: row.year,
+            total_amount: row.total
+        }));
+
+        // E. Sort Columns
         const typeOrder = { 'Share Class': 1, 'Tranche': 2, 'Portfolio': 3 };
         const sortedColumns = Array.from(uniqueEntities.values()).sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) {
@@ -98,8 +98,16 @@ export const useMasterManFees = (fundId, scenarioId) => {
         });
 
         setPivotedData(sortedRows);
+        setAnnualTotals(simpleTotals); // <--- Set the new simplified state
         setColumns(sortedColumns);
+        
     };
-
-    return { pivotedData, columns, loading, error, refresh: fetchData };
+    return { 
+        pivotedData,   // Detailed Table Data
+        columns,       // Table Headers
+        annualTotals,  // Simplified Data: [{ year: 2023, total_amount: 50000 }, ...]
+        loading, 
+        error, 
+        refresh: fetchData 
+    };
 };
