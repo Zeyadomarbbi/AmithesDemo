@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
 
 export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
     const [gridData, setGridData] = useState([]); 
@@ -12,7 +12,7 @@ export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
 
         setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE_URL}/funds/${fundId}/scenarios/${scenarioId}/projections/`);
+            const res = await axios.get(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/`);
             const rawData = res.data;
 
             // 1. Extract Unique Years

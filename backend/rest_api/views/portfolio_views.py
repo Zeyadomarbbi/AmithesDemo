@@ -100,9 +100,55 @@ class PortfolioTransactionFlowView(APIView):
             created_by=created_by,
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def put(self, request, fund_id, investment_id, pk):
+        instance = get_object_or_404(
+            PortfolioTransactionFlow,
+            flow_id=pk,
+            portfolio_investment_id=investment_id,
+            portfolio_investment__fund_id=fund_id,
+            is_deleted=False
+        )
+
+        serializer = PortfolioTransactionFlowSerializer(
+            instance, 
+            data=request.data, 
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        # Comparison logic to detect changes
+        changed_fields = []
+        for field, value in serializer.validated_data.items():
+            if getattr(instance, field) != value:
+                changed_fields.append(field)
+
+        if not changed_fields:
+            return Response(
+                {"detail": "No changes detected."}, 
+                status=status.HTTP_200_OK
+            )
+
+        updated_by = None
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_authenticated", False):
+            updated_by = getattr(user, "username", None)
+
+        serializer.save(updated_by=updated_by)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PortfolioFairValueFlowView(APIView):
-    def get(self, request, fund_id, investment_id):
+    def get(self, request, fund_id, investment_id, pk=None):
+        if pk:
+            flow = get_object_or_404(
+                PortfolioFairValueFlow,
+                fair_value_id=pk,
+                portfolio_investment_id=investment_id,
+                portfolio_investment__fund_id=fund_id
+            )
+            serializer = PortfolioFairValueFlowSerializer(flow)
+            return Response(serializer.data)
+
         qs = PortfolioFairValueFlow.objects.filter(
             portfolio_investment_id=investment_id
         ).order_by("-date", "-fair_value_id")
@@ -142,3 +188,38 @@ class PortfolioFairValueFlowView(APIView):
             created_by=created_by,
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def put(self, request, fund_id, investment_id, pk):
+        instance = get_object_or_404(
+            PortfolioFairValueFlow,
+            fair_value_id=pk,
+            portfolio_investment_id=investment_id,
+            portfolio_investment__fund_id=fund_id
+        )
+
+        serializer = PortfolioFairValueFlowSerializer(
+            instance, 
+            data=request.data, 
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        # Check for changes to avoid redundant saves
+        changed_fields = [
+            field for field, value in serializer.validated_data.items()
+            if getattr(instance, field) != value
+        ]
+
+        if not changed_fields:
+            return Response(
+                {"detail": "No changes detected."}, 
+                status=status.HTTP_200_OK
+            )
+
+        updated_by = None
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_authenticated", False):
+            updated_by = getattr(user, "username", None)
+
+        serializer.save(updated_by=updated_by)
+        return Response(serializer.data, status=status.HTTP_200_OK)

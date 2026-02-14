@@ -17,11 +17,32 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
   }, [ddFees]);
 
   const handleLocalChange = (e, id, field) => {
-    const newVal = e.target.value;
-    setLocalRows(prev => prev.map(r => 
-      r.dd_fee_id === id ? { ...r, [field]: newVal } : r
-    ));
-  };
+      const newVal = e.target.value === '' ? 0 : parseFloat(e.target.value);
+      setLocalRows(prev => prev.map(r => 
+        r.dd_fee_id === id ? { ...r, [field]: newVal } : r
+      ));
+    };
+
+    // 2. Helper for Dynamic Preview Calculation
+    // We use the original entry_amount and original entry_fee_pct to find the 'Cost' base
+    const calculatePreview = (row, type) => {
+      const pctField = type === 'entry' ? 'entry_fee_pct' : 'exit_fee_pct';
+      const amountField = type === 'entry' ? 'entry_amount' : 'exit_amount';
+      
+      // Find the original data point from the hook's state to get the base cost
+      const original = ddFees.find(d => d.dd_fee_id === row.dd_fee_id);
+      if (!original) return 0;
+
+      // Derived Base Cost = Original Amount / (Original Pct / 100)
+      // If original pct was 0, we assume the amount passed is the base or handle accordingly
+      const originalPct = parseFloat(original[pctField]) || 0;
+      const baseCost = originalPct !== 0 
+          ? parseFloat(original[amountField]) / (originalPct / 100)
+          : parseFloat(original[amountField]); // Fallback if initial pct was 0
+
+      const currentPct = parseFloat(row[pctField]) || 0;
+      return baseCost * (currentPct / 100);
+    };
 
   const handleSave = async () => {
     setScenarioDDFeesIsSaving(true);
@@ -141,7 +162,7 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                         {row.is_entry_sunk ? (
                             <span className="scenario-dd-fees-status-text-sunk-small">In portfolio</span>
                         ) : (
-                            <span className="scenario-dd-fees-val-text">{formatMoney(row.entry_amount)}</span>
+                            <span className="scenario-dd-fees-val-text">{formatMoney(calculatePreview(row, 'entry'))}</span>
                         )}
                     </td>
 
@@ -149,7 +170,7 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                         {row.is_exit_sunk ? (
                             <span className="scenario-dd-fees-status-text-sunk-small">Exited</span>
                         ) : (
-                            <span className="scenario-dd-fees-val-text">{formatMoney(row.exit_amount)}</span>
+                            <span className="scenario-dd-fees-val-text">{formatMoney(calculatePreview(row, 'exit'))}</span>
                         )}
                     </td>
                 </tr>

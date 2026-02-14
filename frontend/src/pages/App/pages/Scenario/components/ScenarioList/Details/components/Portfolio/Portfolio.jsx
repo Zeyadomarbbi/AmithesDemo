@@ -283,7 +283,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
       setToast({ 
         type: "success", 
         title: "Portfolio Saved", 
-        message: "Refinements committed sequentially to prevent conflicts." 
+        message: "Updated Projections Successfully." 
       });
       
       fetchProjections();

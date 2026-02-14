@@ -97,13 +97,13 @@ const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
                                                 </td>
                                                 <td className="scenario-pf-left">
                                                     <input 
-                                                        className="scenario-pf-input" 
+                                                        className="man-fee-scenario-pf-input" 
                                                         value={parseFloat(row.amount).toLocaleString('en-US').replace(/,/g, ' ')} 
                                                         readOnly 
                                                     />
                                                 </td>
                                                 <td className="scenario-pf-left">
-                                                    <input className="scenario-pf-input" value={row.share_class_name} readOnly />
+                                                    <input className="man-fee-scenario-pf-input" value={row.share_class_name} readOnly />
                                                 </td>
                                                 <td className="scenario-pf-left">
                                                     <DateInputWithPicker 

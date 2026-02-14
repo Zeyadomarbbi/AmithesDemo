@@ -21,11 +21,16 @@ urlpatterns = [
     path(
         "funds/<int:fund_id>/portfolio-investments/<int:investment_id>/flows/<int:pk>/",
         PortfolioTransactionFlowView.as_view(),
-        name="flow-detail"
+        name="portfolio-transaction-flow-detail"
     ),
     path(
         "funds/<int:fund_id>/portfolio-investments/<int:investment_id>/fair-values/",
         PortfolioFairValueFlowView.as_view(),
         name="portfolio-fair-value-flow-list-create"
+    ),
+        path(
+        "funds/<int:fund_id>/portfolio-investments/<int:investment_id>/fair-values/<int:pk>/",
+        PortfolioFairValueFlowView.as_view(),
+        name="portfolio-fair-value-flow-list-detail"
     ),
 ]

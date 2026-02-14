@@ -242,7 +242,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
   // 3. Dynamic Calculations: Fair Value Amount (€)
   const fairValueAmount = useMemo(() => {
-    return toNumber(fairValueFxRate) * toNumber(fairValueAmountLC);
+    return toNumber(fairValueAmountLC) / toNumber(fairValueFxRate);
   }, [fairValueFxRate, fairValueAmountLC]);
 
   const normalizeAmountLC = (flow) => {
