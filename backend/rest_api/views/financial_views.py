@@ -1,6 +1,8 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
+from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from django.utils import timezone
 
@@ -8,8 +10,7 @@ from ..models.reference import FinancialCategory, FinancialLineItem
 from ..models.core import Timeframe
 from ..models.transactions import FinancialEntry
 
-from ..serializers.financial_serializers import FinancialCategorySerializer
-
+from ..serializers.financial_serializers import FinancialCategorySerializer, FinancialLineItemSerializer
 
 class FinancialCategoryView(ListAPIView):
     serializer_class = FinancialCategorySerializer
@@ -22,6 +23,42 @@ class FinancialCategoryView(ListAPIView):
             qs = qs.filter(category_id=category_id)
         return qs
 
+class FinancialLineItemViewSet(viewsets.ModelViewSet):
+    serializer_class = FinancialLineItemSerializer
+    def get_queryset(self):
+        """
+        Returns line items strictly for the fund specified in the URL.
+        Optimized with select_related to fetch Category data in one query.
+        """
+        fund_id = self.kwargs.get('fund_id')
+        if not fund_id:
+            return FinancialLineItem.objects.none()
+            
+        return FinancialLineItem.objects.filter(
+            fund_id=fund_id, 
+            is_deleted=False
+        ).select_related('category').order_by('category', 'name')
+
+    def perform_create(self, serializer):
+        """
+        Auto-assigns the Fund ID from the URL and the User.
+        This triggers the Serializer's validate() method where Fuzzy Matching happens.
+        """
+        fund_id = self.kwargs.get('fund_id')
+        
+        # Check for duplicates manually if needed, or rely on DB constraints
+        # valid_data includes the 'special_field' injected by the serializer
+        serializer.save(
+            fund_id=fund_id,
+            created_by=self.request.user.id if self.request.user.is_authenticated else None
+        )
+
+    def perform_destroy(self, instance):
+        """
+        Soft Delete implementation.
+        """
+        instance.is_deleted = True
+        instance.save()
 
 class PnLView(APIView):
     """
@@ -173,13 +210,15 @@ class PnLLineItemCreateView(APIView):
     POST /api/pnl/<fund_id>/line-item/
     body: { "category": "income" | "expense" | "tax", "name": "My new row" }
 
-    Creates a FinancialLineItem row so custom rows can be saved.
+    UPDATED: Now uses FinancialLineItemSerializer to enable Fuzzy Matching 
+    for 'special_field' auto-detection.
     """
 
     def post(self, request, fund_id):
         category = (request.data.get("category") or "").strip().lower()
         name = (request.data.get("name") or "").strip()
 
+        # 1. Basic Validation (Keep existing logic)
         if category not in ("income", "expense", "tax"):
             return Response(
                 {"detail": "category must be one of: income, expense, tax"},
@@ -192,7 +231,7 @@ class PnLLineItemCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # map category -> category_id (case/plural tolerant)
+        # 2. Map String Category -> ID (Keep existing logic)
         cats = {(c.name or "").strip().lower(): c.category_id for c in FinancialCategory.objects.all()}
         if category == "income":
             category_id = cats.get("income")
@@ -207,7 +246,7 @@ class PnLLineItemCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Avoid duplicates (same fund + category + name) if your table supports it
+        # 3. Check Duplicates (Keep existing logic to maintain frontend behavior)
         existing = FinancialLineItem.objects.filter(
             fund_id=int(fund_id),
             category_id=int(category_id),
@@ -223,35 +262,49 @@ class PnLLineItemCreateView(APIView):
                 "fund_id": int(fund_id),
                 "category_id": int(category_id),
                 "name": existing.name,
+                "special_field": existing.special_field  # Return this if helpful
             })
 
-        now = timezone.now()
-
-        # Create with safe optional fields if they exist in model
-        create_kwargs = {
-            "fund_id": int(fund_id),
-            "category_id": int(category_id),
+        # =========================================================
+        # 4. MERGE START: Use Serializer for Creation
+        # =========================================================
+        
+        # Prepare the data dictionary for the serializer.
+        # Note: We pass IDs because the Model expects Foreign Keys.
+        serializer_data = {
+            "fund_id": int(fund_id),   # Serializer field name is 'fund_id' in Model
+            "category": int(category_id), # Serializer field name is 'category'
             "name": name,
-            "is_deleted": False,
+            "is_deleted": False
         }
 
-        # Some schemas have created_at/updated_at columns on line items too:
-        if hasattr(FinancialLineItem, "created_at"):
-            create_kwargs["created_at"] = now
-        if hasattr(FinancialLineItem, "updated_at"):
-            create_kwargs["updated_at"] = now
-        if hasattr(FinancialLineItem, "created_by"):
-            create_kwargs["created_by"] = None
-        if hasattr(FinancialLineItem, "updated_by"):
-            create_kwargs["updated_by"] = None
+        serializer = FinancialLineItemSerializer(data=serializer_data)
 
-        obj = FinancialLineItem.objects.create(**create_kwargs)
+        if serializer.is_valid():
+            # save() triggers the 'create()' method. 
+            # We pass 'created_at' here because your model definition 
+            # might not have 'auto_now_add=True' set on the field itself.
+            obj = serializer.save(
+                created_at=timezone.now(),
+                created_by=request.user.id if request.user.is_authenticated else None
+            )
+            if obj.special_field:
+                print(f"✅ FUZZY MATCH SUCCESS: '{obj.name}' -> [{obj.special_field}]")
+            else:
+                print(f"ℹ️ No Special Field match for: '{obj.name}'")
 
-        return Response({
-            "ok": True,
-            "created": True,
-            "line_item_id": obj.line_item_id,
-            "fund_id": int(fund_id),
-            "category_id": int(category_id),
-            "name": obj.name,
-        }, status=status.HTTP_201_CREATED)
+            # Return exact same response structure as before
+            return Response({
+                "ok": True,
+                "created": True,
+                "line_item_id": obj.line_item_id,
+                "fund_id": int(fund_id),
+                "category_id": int(category_id),
+                "name": obj.name,
+                # Bonus: We can now return the detected special field
+                "special_field": obj.special_field 
+            }, status=status.HTTP_201_CREATED)
+        
+        else:
+            # Fallback for validation errors
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

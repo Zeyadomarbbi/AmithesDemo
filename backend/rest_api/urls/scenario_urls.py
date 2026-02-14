@@ -90,6 +90,11 @@ urlpatterns = [
         ViewMasterManFeesViewSet.as_view({'get': 'list'}),
         name="scenario-master-man-fees"
     ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/gains-summary/",
+        ViewMasterScenarioGainsViewSet.as_view({'get': 'list'}),
+        name="scenario-gains-summary"
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

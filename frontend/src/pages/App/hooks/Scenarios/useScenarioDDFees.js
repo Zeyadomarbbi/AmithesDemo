@@ -4,11 +4,13 @@ import { API_BASE_URL } from '../useApi';
 
 /**
  * Hook to manage Scenario Due Diligence Fees
+ * Includes annual aggregation logic.
  * @param {number} fundId 
  * @param {number} scenarioId 
  */
 export const useScenarioDDFees = (fundId, scenarioId) => {
     const [ddFees, setDDFees] = useState([]);
+    const [annualTotals, setAnnualTotals] = useState([]); // <--- New State for Aggregates
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -32,6 +34,48 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
     useEffect(() => {
         fetchDDFees();
     }, [fetchDDFees]);
+
+    // ---------------------------------------------------------
+    // NEW LOGIC: Calculate Annual Totals whenever fees change
+    // ---------------------------------------------------------
+    useEffect(() => {
+        if (!ddFees || ddFees.length === 0) {
+            setAnnualTotals([]);
+            return;
+        }
+
+        const totalsMap = {};
+
+        ddFees.forEach(fee => {
+            // A. Process Entry Amount
+            if (fee.entry_date && fee.entry_amount) {
+                const year = parseInt(fee.entry_date.split('-')[0]);
+                const amount = parseFloat(fee.entry_amount) || 0;
+                // Accumulate
+                totalsMap[year] = (totalsMap[year] || 0) + amount;
+            }
+
+            // B. Process Exit Amount
+            if (fee.exit_date && fee.exit_amount) {
+                const year = parseInt(fee.exit_date.split('-')[0]);
+                const amount = parseFloat(fee.exit_amount) || 0;
+                // Accumulate (Add to existing year total if entry happened in same year)
+                totalsMap[year] = (totalsMap[year] || 0) + amount;
+            }
+        });
+
+        // Convert Map to Sorted Array: [{ year: 2026, total_amount: 5000 }, ...]
+        const sortedTotals = Object.keys(totalsMap)
+            .map(year => ({
+                year: parseInt(year),
+                total_amount: totalsMap[year]
+            }))
+            .sort((a, b) => a.year - b.year);
+
+        setAnnualTotals(sortedTotals);
+
+    }, [ddFees]);
+    // ---------------------------------------------------------
 
     // 2. Update Fee Percentages (PATCH)
     const updateFeeRate = async (ddFeeId, patchData) => {
@@ -71,6 +115,7 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
 
     return {
         ddFees,
+        annualTotals, // <--- Exposed here
         loading,
         error,
         updateFeeRate,

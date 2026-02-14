@@ -18,3 +18,26 @@ class ViewMasterManFees(models.Model):
         managed = False  # Tells Django: "Don't try to create/migrate this table"
         db_table = 'view_master_man_fees'
         ordering = ['order_priority', 'year', 'entity_name']
+
+class ViewMasterScenarioGains(models.Model):
+    summary_id = models.BigIntegerField(primary_key=True)
+    
+    investment = models.ForeignKey('PortfolioInvestment', on_delete=models.DO_NOTHING, db_column='investment_id')
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.DO_NOTHING, db_column='scenario_id')
+    
+    investment_name = models.CharField(max_length=255)
+    year = models.IntegerField()
+    status = models.CharField(max_length=20)
+    valuation_date = models.DateField()
+    
+    closing_fair_value = models.DecimalField(max_digits=20, decimal_places=2)
+    opening_fair_value = models.DecimalField(max_digits=20, decimal_places=2)
+    
+    unrealized_gain = models.DecimalField(max_digits=20, decimal_places=2)
+    realized_gain = models.DecimalField(max_digits=20, decimal_places=2)
+    total_gain_yoy = models.DecimalField(max_digits=20, decimal_places=2)
+
+    class Meta:
+        managed = False
+        db_table = 'view_master_scenario_gains'
+        ordering = ['investment_name', 'year']

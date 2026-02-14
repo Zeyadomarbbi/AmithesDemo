@@ -93,13 +93,28 @@ class FinancialLineItem(models.Model):
     fund_id = models.IntegerField(db_column="fund_id")
 
     category = models.ForeignKey(
-        FinancialCategory,
+        'FinancialCategory', # Assuming FinancialCategory is defined or imported
         db_column="category_id",
         on_delete=models.PROTECT,
         related_name="line_items",
     )
 
     name = models.CharField(max_length=100)
+    
+    # --- NEW ADDITION START ---
+    class SpecialField(models.TextChoices):
+        REALIZED_GAIN = 'REALIZED_GAIN', 'Realized Gain'
+        UNREALIZED_GAIN = 'UNREALIZED_GAIN', 'Unrealized Gain'
+        DD_FEES = 'DD_FEES', 'Due Diligence Fees'
+        MANAGEMENT_FEES = 'MANAGEMENT_FEES', 'Management Fees'
+
+    special_field = models.CharField(
+        max_length=50,
+        choices=SpecialField.choices,
+        null=True,
+        blank=True,
+        db_column="special_field"
+    )
 
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField(null=True, blank=True)

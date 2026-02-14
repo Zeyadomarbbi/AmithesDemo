@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from ..models.views import ViewMasterManFees
+from ..models.views import ViewMasterManFees, ViewMasterScenarioGains
 from ..models.transactions import (
     ScenarioList, 
     ScenarioSynthesis, 
@@ -23,7 +23,8 @@ from ..serializers.scenario_serializers import (
     ScenarioPortfolioProjectionSerializer, 
     ScenarioDueDiligenceFeeSerializer, 
     ManFeeTrancheSerializer,
-    ViewMasterManFeesSerializer
+    ViewMasterManFeesSerializer,
+    ViewMasterScenarioGainsSerializer
     )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
@@ -234,3 +235,15 @@ class ViewMasterManFeesViewSet(viewsets.ReadOnlyModelViewSet):
             fund_id=fund_id,
             scenario_id=scenario_pk
         )
+    
+class ViewMasterScenarioGainsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ViewMasterScenarioGainsSerializer
+
+    def get_queryset(self):
+        # We don't strictly need fund_id for the query since scenario_id is unique, 
+        # but it's good practice to validate if needed.
+        scenario_pk = self.kwargs.get('scenario_pk')
+        
+        return ViewMasterScenarioGains.objects.filter(
+            scenario_id=scenario_pk
+        ).order_by('investment_name', 'year')

@@ -5,7 +5,7 @@ import Toast from '../../../../../../../../components/Toast/Toast';
 import './DDFees.css';
 
 const DDFees = ({ fundId, scenarioId, onClose }) => {
-  const { ddFees, updateFeeRate, loading } = useScenarioDDFees(fundId, scenarioId);
+  const { ddFees, annualTotals, updateFeeRate, loading } = useScenarioDDFees(fundId, scenarioId);
   const [localRows, setLocalRows] = useState([]);
   const [scenarioDDFeesIsSaving, setScenarioDDFeesIsSaving] = useState(false);
   const [scenarioDDFeesToast, setScenarioDDFeesToast] = useState(null);

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from ..models.core import ShareClass
-from ..models.views import ViewMasterManFees
+from ..models.views import ViewMasterManFees, ViewMasterScenarioGains
 from ..models.transactions import (
     ScenarioList, 
     ScenarioDueDiligenceFee, 
@@ -196,4 +196,22 @@ class ViewMasterManFeesSerializer(serializers.ModelSerializer):
             'entity_name', 
             'year', 
             'fee_amount'
+        ]
+
+class ViewMasterScenarioGainsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ViewMasterScenarioGains
+        fields = [
+            'summary_id', 
+            'investment', 
+            'investment_name', 
+            'scenario', 
+            'year', 
+            'status', 
+            'valuation_date', 
+            'closing_fair_value', 
+            'opening_fair_value', 
+            'unrealized_gain', 
+            'realized_gain', 
+            'total_gain_yoy'
         ]
