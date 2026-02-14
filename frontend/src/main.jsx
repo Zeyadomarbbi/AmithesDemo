@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
-import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard'; // <--- Import your Guard
+import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard';
 import './index.css';
 
 // --- AUTH ---
@@ -50,11 +50,8 @@ import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/C
 
 // --- SCENARIO COMPONENTS ---
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
-import ScenarioList from './pages/App/pages/Scenario/components/ScenarioList/ScenarioList.jsx';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
-import SynthesisList from './pages/App/pages/Scenario/components/SynthesisList/SynthesisList.jsx';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
-
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -72,7 +69,6 @@ const router = createBrowserRouter([
       // 2. FUND SPECIFIC PAGES
       {
         path: 'funds/:fundId',
-        // Wrap children in the Guard so it applies to ALL fund-specific modules
         element: <FundSetupGuard><Outlet /></FundSetupGuard>, 
         children: [
           { 
@@ -86,7 +82,8 @@ const router = createBrowserRouter([
                 { path: 'management-fees', element: <ManagementFees /> },
             ]
           },
-          { path: 'lps-statement', 
+          { 
+            path: 'lps-statement', 
             element: <LPsStatementPage />,
             children: [
               { index: true, element: <Navigate to="lps-register" replace /> },
@@ -106,20 +103,21 @@ const router = createBrowserRouter([
               { path: 'limits', element: <LimitsDashboard /> },
             ]
           },
+          
+          // Scenario page with synthesis drawer as child (keeps state)
           { 
             path: 'scenario-dashboard', 
-            element: <ScenariosPage />, 
+            element: <ScenariosPage />,
             children: [
-              { 
-                path: 'scenario-details/:scenarioId/:tab?', 
-                element: <ScenarioDetailPage /> 
-              },
               { 
                 path: 'synthesis-details/:synthesisId', 
                 element: <SynthesisDetailsDrawer /> 
               }
-            ], 
+            ]
           },
+          
+          // Scenario detail as separate full page
+          
           {
             path: 'portfolio',
             element: <PortfolioPage />,
@@ -146,6 +144,14 @@ const router = createBrowserRouter([
       }
     ],
   },
+    {
+    path: '/funds/:fundId/scenario-dashboard/scenario-details/:scenarioId/:tab?',
+    element: (
+      <FundSetupGuard>
+        <ScenarioDetailPage />
+      </FundSetupGuard>
+    )
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
