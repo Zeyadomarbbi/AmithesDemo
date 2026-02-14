@@ -23,6 +23,7 @@ function SetFinancials({ fundId, scenarioId }) {
   const [activeTab, setActiveTab] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [localChanges, setLocalChanges] = useState({}); // Track unsaved edits
+  const [toast, setToast] = useState(null);
 
   // 2. Automatic Timeline Calculation
   useEffect(() => {
@@ -40,7 +41,8 @@ function SetFinancials({ fundId, scenarioId }) {
       });
 
       const startYear = minYear; 
-      const endYear = Math.max(maxDataYear, maxRealizedYear + 5);
+      // Show only 10 years total by default
+      const endYear = Math.min(maxDataYear, startYear + 10);
 
       const newYears = [];
       for (let y = startYear; y <= endYear; y++) {
@@ -53,7 +55,6 @@ function SetFinancials({ fundId, scenarioId }) {
       setYears(newYears);
     }
   }, [apiYears, gridData, loading]);
-
   const handleClose = () => setActiveTab(null);
 
   const addProjectedYear = () => {
@@ -80,6 +81,7 @@ function SetFinancials({ fundId, scenarioId }) {
 
   // 3. Track Cell Edits
   const handleCellChange = (lineItemId, year, newAmount) => {
+    console.log('Cell changed:', { lineItemId, year, newAmount }); // ADD THIS
     const key = `${lineItemId}_${year}`;
     setLocalChanges(prev => ({
       ...prev,
@@ -117,9 +119,19 @@ function SetFinancials({ fundId, scenarioId }) {
       setLocalChanges({}); // Clear after save
       await refresh();
       
+      setToast({
+        type: 'success',
+        title: 'Changes saved',
+        message: `${changes.length} projection${changes.length > 1 ? 's' : ''} updated successfully`
+      });
+      
     } catch (err) {
       console.error("Save failed", err);
-      alert("Failed to save changes");
+      setToast({
+        type: 'error',
+        title: 'Save failed',
+        message: 'Unable to save changes. Please try again.'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -185,18 +197,6 @@ function SetFinancials({ fundId, scenarioId }) {
         </div>
       </div>
 
-      <div className="sf-footer">
-        <div className="sf-actions">
-          <button 
-            className="sf-btn-save" 
-            onClick={handleSave}
-            disabled={isSaving || !hasUnsavedChanges}
-          >
-            {isSaving ? "Saving..." : hasUnsavedChanges ? `Save (${Object.keys(localChanges).length})` : "Save"}
-          </button>
-        </div>
-      </div>
-
       {activeTab === 'management' && (
         <div className="sf-overlay fullscreen">
           <div className="sf-overlay-content">
@@ -217,6 +217,27 @@ function SetFinancials({ fundId, scenarioId }) {
             onClose={handleClose} 
           />
         </div>
+      )}
+      <div className="sf-footer">
+        <div className="sf-actions">
+          <button 
+            className="sf-btn-save" 
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+          >
+            {isSaving ? "Saving..." : hasUnsavedChanges ? `Save (${Object.keys(localChanges).length})` : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
       )}
     </div>
   );

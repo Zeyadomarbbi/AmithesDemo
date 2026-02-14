@@ -194,20 +194,24 @@
 /* =========================================
    6. TOTAL BAND OVERRIDES (The Blue Rows)
    ========================================= */
-.row-total td {
-  background-color: #375A89 !important;
-  color: #FFFFFF !important;
-  border-bottom: none;
-  padding-top: 14px;
-  padding-bottom: 14px;
+.row-spacer td {
+    height: 16px; /* The requested gap */
+    background-color: transparent !important; /* Ensure it looks like a gap */
+    border: none !important; /* Remove borders to make it clean */
+    padding: 0;
 }
 
-/* Force all text inside total row to be white and bold */
-.row-total .cell-label,
-.row-total .cell-realized,
-.row-total .cell-total-val,
-.row-total .cell-total-final,
-.row-total .currency-indicator {
-  color: #FFFFFF !important;
-  font-weight: 600;
+/* The Net Profit Row */
+.row-net-profit {
+    /* Optional: Add a border or shadow to make it pop since it's separated */
+    border-top: 1px solid #E5E7EB; 
+    background-color: #FFFFFF !important; /* Ensure it stands out against the background */
+    font-weight: 700;
+}
+
+.row-net-profit td {
+    /* Optional: Slightly larger text or specific color for the final result */
+    color: #111827;
+    padding-top: 16px;
+    padding-bottom: 16px;
 }
