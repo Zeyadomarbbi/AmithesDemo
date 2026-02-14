@@ -8,6 +8,7 @@ from ..models.transactions import (
     ScenarioSynthesis, 
     ScenarioPortfolioProjection, 
     ManFeeTranche,
+    ScenarioFinancialsProjection
     )
 from ..models.mappings import MapSynthesisScenario
 
@@ -215,3 +216,28 @@ class ViewMasterScenarioGainsSerializer(serializers.ModelSerializer):
             'realized_gain', 
             'total_gain_yoy'
         ]
+
+class ScenarioFinancialsProjectionSerializer(serializers.ModelSerializer):
+    line_item_name = serializers.ReadOnlyField()
+    special_field = serializers.ReadOnlyField()
+    category_name = serializers.ReadOnlyField()
+    status = serializers.SerializerMethodField() # <--- The Auto Logic
+
+    class Meta:
+        model = ScenarioFinancialsProjection
+        fields = [
+            'projection_id', 'fund', 'scenario', 'line_item', 
+            'line_item_name', 'category_name', 'special_field', 
+            'year', 'amount', 'status'
+        ]
+
+    def get_status(self, obj):
+        # We retrieve the cutoff from the context passed by the ViewSet
+        cutoff_year = self.context.get('last_realized_year', 0)
+        
+        if obj.year <= cutoff_year:
+            return 'REALIZED'
+        elif obj.special_field:
+            return 'AUTOMATED'
+        else:
+            return 'PROJECTED_EDITABLE'

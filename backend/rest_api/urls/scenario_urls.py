@@ -45,14 +45,19 @@ urlpatterns = [
         name="scenario-flow-detail"
     ),
     path(
-        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/projections/",
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-projections/",
         ScenarioPortfolioProjectionViewSet.as_view({'get': 'list'}),
         name="scenario-projections-list"
     ),
     path(
-        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/projections/<int:pk>/",
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-projections/<int:pk>/",
         ScenarioPortfolioProjectionViewSet.as_view({'patch': 'partial_update', 'get': 'retrieve'}),
-        name="scenario-projections-detail"
+        name="scenario-portfolio-projections"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/financials-projections/",
+        ScenarioFinancialsProjectionViewSet.as_view({'get': 'list', 'post': 'create', 'put': 'update'}),
+        name="scenario--financials-projections"
     ),
     # --- DUE DILIGENCE FEES ---
     path(

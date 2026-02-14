@@ -14,7 +14,7 @@ export const useScenarioPortfolioProjections = (fundId, scenarioId) => {
     if (!fundId || !scenarioId) return;
     setLoading(true);
     try {
-      const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/projections/`;
+      const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/`;
       const response = await axios.get(url);
       setProjections(response.data);
     } catch (err) {
@@ -30,7 +30,7 @@ export const useScenarioPortfolioProjections = (fundId, scenarioId) => {
    * The Django serializer handles the call to fn_rebuild_scenario_projection.
    */
   const updateProjection = async (projectionId, data) => {
-    const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/projections/${projectionId}/`;
+    const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/${projectionId}/`;
     try {
       const response = await axios.patch(url, data);
       

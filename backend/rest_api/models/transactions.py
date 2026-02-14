@@ -580,3 +580,36 @@ class ScenarioDueDiligenceFee(models.Model):
 
     def __str__(self):
         return f"DD Fee - {self.investment.name} ({self.scenario.name})"
+    
+class ScenarioFinancialsProjection(models.Model):
+    projection_id = models.BigAutoField(primary_key=True)
+    
+    fund = models.ForeignKey('Fund', on_delete=models.DO_NOTHING)
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.CASCADE)
+    line_item = models.ForeignKey('FinancialLineItem', on_delete=models.CASCADE)
+    
+    year = models.IntegerField()
+    amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        managed = False # It's a real table, but if you want Django to manage migrations, remove this. 
+                        # Since we created it via SQL, keep managed=False or run --fake-initial later.
+        db_table = 'scenario_financials_projections'
+        unique_together = (('scenario', 'line_item', 'year'),)
+
+    # --- Helpers for Serializer ---
+    @property
+    def line_item_name(self):
+        return self.line_item.name
+
+    @property
+    def special_field(self):
+        return self.line_item.special_field
+
+    @property
+    def category_name(self):
+        # Assumes FinancialLineItem has a 'category' FK
+        return self.line_item.category.name

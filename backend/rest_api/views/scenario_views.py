@@ -6,6 +6,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import connection
 
 from ..models.views import ViewMasterManFees, ViewMasterScenarioGains
 from ..models.transactions import (
@@ -15,7 +16,8 @@ from ..models.transactions import (
     PortfolioTransactionFlow, 
     ScenarioPortfolioProjection, 
     ScenarioDueDiligenceFee, 
-    ManFeeTranche
+    ManFeeTranche,
+    ScenarioFinancialsProjection
     )
 from ..serializers.scenario_serializers import (
     ScenarioSerializer, 
@@ -24,7 +26,8 @@ from ..serializers.scenario_serializers import (
     ScenarioDueDiligenceFeeSerializer, 
     ManFeeTrancheSerializer,
     ViewMasterManFeesSerializer,
-    ViewMasterScenarioGainsSerializer
+    ViewMasterScenarioGainsSerializer,
+    ScenarioFinancialsProjectionSerializer
     )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
@@ -247,3 +250,33 @@ class ViewMasterScenarioGainsViewSet(viewsets.ReadOnlyModelViewSet):
         return ViewMasterScenarioGains.objects.filter(
             scenario_id=scenario_pk
         ).order_by('investment_name', 'year')
+    
+class ScenarioFinancialsProjectionViewSet(viewsets.ModelViewSet):
+    serializer_class = ScenarioFinancialsProjectionSerializer
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        return ScenarioFinancialsProjection.objects.filter(
+            scenario_id=scenario_id
+        ).select_related('line_item', 'line_item__category').order_by('year')
+
+    def get_serializer_context(self):
+        """
+        Pass the 'last_realized_year' to the serializer so it can 
+        calculate the status automatically.
+        """
+        context = super().get_serializer_context()
+        fund_id = self.kwargs.get('fund_id')
+        
+        # Helper query to get the cutoff quickly
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT last_realized_year FROM view_fund_realized_cutoff WHERE fund_id = %s", 
+                [fund_id]
+            )
+            row = cursor.fetchone()
+            # If no result (new fund), default to 0 (all projected)
+            last_realized = row[0] if row else 0
+            
+        context['last_realized_year'] = last_realized
+        return context
