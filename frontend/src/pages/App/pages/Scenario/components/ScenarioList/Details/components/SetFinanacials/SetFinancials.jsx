@@ -2,16 +2,27 @@ import React, { useState, useEffect } from 'react';
 import FinancialTable from './FinancialTable/FinancialTable';
 import ManagementFees from './ManagementFees/ManagementFees';
 import { useScenarioFinancialsProjections } from './utils/useScenarioFinancialsProjections.js';
+import Toast from '../../../../../../../components/Toast/Toast'; 
 import DDFees from './DDFees/DDFees';
 import { DownloadIcon, PlusIcon, MinusIcon } from './Icons';
 import './SetFinancials.css';
 
 function SetFinancials({ fundId, scenarioId }) {
-  // 1. Fetch Data
-  const { gridData, years: apiYears, loading, refresh } = useScenarioFinancialsProjections(fundId, scenarioId);
+  // 1. Fetch Data + CRUD Operations
+  const { 
+    gridData, 
+    years: apiYears, 
+    loading, 
+    refresh,
+    put,
+    patch,
+    post 
+  } = useScenarioFinancialsProjections(fundId, scenarioId);
+  
   const [years, setYears] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [localChanges, setLocalChanges] = useState({}); // Track unsaved edits
 
   // 2. Automatic Timeline Calculation
   useEffect(() => {
@@ -19,19 +30,16 @@ function SetFinancials({ fundId, scenarioId }) {
       const minYear = Math.min(...apiYears);
       const maxDataYear = Math.max(...apiYears);
       
-      // Calculate maxRealizedYear from the grid data status
       let maxRealizedYear = 0;
       gridData.forEach(row => {
         Object.entries(row.values).forEach(([year, val]) => {
-          if (val.status === 'REALIZED' && parseInt(year) > maxRealizedYear) {
+          if (val.status === 'Realized' && parseInt(year) > maxRealizedYear) {
             maxRealizedYear = parseInt(year);
           }
         });
       });
 
-      // Default start to 2021 (based on your data) or minYear
       const startYear = minYear; 
-      // Ensure at least 5 years of projection beyond the last realized
       const endYear = Math.max(maxDataYear, maxRealizedYear + 5);
 
       const newYears = [];
@@ -55,10 +63,7 @@ function SetFinancials({ fundId, scenarioId }) {
     const lastYear = parseInt(years[years.length - 1].year);
     const maxAllowedYear = startYear + 16;
 
-    if (lastYear >= maxAllowedYear) {
-      // Limit reached: Start Year + 16
-      return;
-    }
+    if (lastYear >= maxAllowedYear) return;
 
     const newYear = { year: String(lastYear + 1), type: 'projected' };
     setYears(prev => [...prev, newYear]);
@@ -68,19 +73,59 @@ function SetFinancials({ fundId, scenarioId }) {
     if (years.length === 0) return;
 
     const lastIndex = years.length - 1;
-    // Only allow removal if the last year is marked as 'projected'
     if (years[lastIndex].type === 'projected') {
       setYears(prev => prev.slice(0, -1));
     }
   };
 
+  // 3. Track Cell Edits
+  const handleCellChange = (lineItemId, year, newAmount) => {
+    const key = `${lineItemId}_${year}`;
+    setLocalChanges(prev => ({
+      ...prev,
+      [key]: { lineItemId, year: parseInt(year), amount: newAmount }
+    }));
+  };
+
+  // 4. Save All Changes
   const handleSave = async () => {
     setIsSaving(true);
-    // Future: Submit local grid changes to backend
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    refresh(); 
-    setIsSaving(false);
+    
+    try {
+      const changes = Object.values(localChanges);
+      
+      for (const change of changes) {
+        const { lineItemId, year, amount } = change;
+        
+        // Find if projection exists
+        const row = gridData.find(r => r.line_item_id === lineItemId);
+        const existingCell = row?.values[year];
+        
+        if (existingCell?.id) {
+          // Update existing
+          await patch(existingCell.id, { amount });
+        } else {
+          // Create new
+          await post({
+            line_item: lineItemId,
+            year: year,
+            amount: amount
+          });
+        }
+      }
+      
+      setLocalChanges({}); // Clear after save
+      await refresh();
+      
+    } catch (err) {
+      console.error("Save failed", err);
+      alert("Failed to save changes");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const hasUnsavedChanges = Object.keys(localChanges).length > 0;
 
   return (
     <div className="sf-financials-page-layout">
@@ -132,7 +177,9 @@ function SetFinancials({ fundId, scenarioId }) {
              <FinancialTable 
               scenarioId={scenarioId} 
               years={years} 
-              rows={gridData} 
+              rows={gridData}
+              localChanges={localChanges}
+              onCellChange={handleCellChange}
             />
            )}
         </div>
@@ -143,9 +190,9 @@ function SetFinancials({ fundId, scenarioId }) {
           <button 
             className="sf-btn-save" 
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !hasUnsavedChanges}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "Saving..." : hasUnsavedChanges ? `Save (${Object.keys(localChanges).length})` : "Save"}
           </button>
         </div>
       </div>

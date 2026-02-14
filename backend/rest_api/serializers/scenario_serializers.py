@@ -218,26 +218,35 @@ class ViewMasterScenarioGainsSerializer(serializers.ModelSerializer):
         ]
 
 class ScenarioFinancialsProjectionSerializer(serializers.ModelSerializer):
-    line_item_name = serializers.ReadOnlyField()
-    special_field = serializers.ReadOnlyField()
-    category_name = serializers.ReadOnlyField()
-    status = serializers.SerializerMethodField() # <--- The Auto Logic
+    line_item_name = serializers.CharField(source='line_item.name', read_only=True)
+    category_name = serializers.CharField(source='line_item.category.name', read_only=True)
+    special_field = serializers.CharField(source='line_item.special_field', read_only=True)
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = ScenarioFinancialsProjection
         fields = [
             'projection_id', 'fund', 'scenario', 'line_item', 
-            'line_item_name', 'category_name', 'special_field', 
-            'year', 'amount', 'status'
+            'year', 'amount', 'updated_at', 'updated_by',
+            'line_item_name', 'category_name', 'special_field', 'status'
         ]
+        read_only_fields = ['projection_id', 'updated_at']
 
     def get_status(self, obj):
-        # We retrieve the cutoff from the context passed by the ViewSet
-        cutoff_year = self.context.get('last_realized_year', 0)
+        last_realized = self.context.get('last_realized_year', 0)
         
-        if obj.year <= cutoff_year:
-            return 'REALIZED'
-        elif obj.special_field:
-            return 'AUTOMATED'
-        else:
-            return 'PROJECTED_EDITABLE'
+        if obj.year <= last_realized:
+            return 'Realized'
+        
+        if obj.updated_by is not None:
+            return 'Manual'
+        
+        return 'Automated'
+
+    def update(self, instance, validated_data):
+        validated_data['updated_by'] = self.context['request'].user.id
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        validated_data['updated_by'] = self.context['request'].user.id
+        return super().create(validated_data)

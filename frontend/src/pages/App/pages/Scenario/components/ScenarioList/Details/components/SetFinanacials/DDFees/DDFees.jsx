@@ -9,7 +9,7 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
   const [localRows, setLocalRows] = useState([]);
   const [scenarioDDFeesIsSaving, setScenarioDDFeesIsSaving] = useState(false);
   const [scenarioDDFeesToast, setScenarioDDFeesToast] = useState(null);
-
+  console.log("ddFees", ddFees)
   useEffect(() => {
     if (ddFees && ddFees.length > 0) {
       setLocalRows(ddFees);
@@ -17,32 +17,25 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
   }, [ddFees]);
 
   const handleLocalChange = (e, id, field) => {
-      const newVal = e.target.value === '' ? 0 : parseFloat(e.target.value);
-      setLocalRows(prev => prev.map(r => 
-        r.dd_fee_id === id ? { ...r, [field]: newVal } : r
-      ));
-    };
+    const newVal = e.target.value; // Keep as string to allow typing decimals like "0."
+    setLocalRows(prev => prev.map(r => 
+      r.dd_fee_id === id ? { ...r, [field]: newVal } : r
+    ));
+  };
 
     // 2. Helper for Dynamic Preview Calculation
     // We use the original entry_amount and original entry_fee_pct to find the 'Cost' base
-    const calculatePreview = (row, type) => {
-      const pctField = type === 'entry' ? 'entry_fee_pct' : 'exit_fee_pct';
-      const amountField = type === 'entry' ? 'entry_amount' : 'exit_amount';
-      
-      // Find the original data point from the hook's state to get the base cost
-      const original = ddFees.find(d => d.dd_fee_id === row.dd_fee_id);
-      if (!original) return 0;
+  const calculatePreview = (row, type) => {
+    // Determine which percentage to use from local state
+    const currentPct = type === 'entry' 
+      ? parseFloat(row.entry_fee_pct) || 0 
+      : parseFloat(row.exit_fee_pct) || 0;
 
-      // Derived Base Cost = Original Amount / (Original Pct / 100)
-      // If original pct was 0, we assume the amount passed is the base or handle accordingly
-      const originalPct = parseFloat(original[pctField]) || 0;
-      const baseCost = originalPct !== 0 
-          ? parseFloat(original[amountField]) / (originalPct / 100)
-          : parseFloat(original[amountField]); // Fallback if initial pct was 0
+    // Use the explicit cost field from the data
+    const cost = parseFloat(row.cost) || 0;
 
-      const currentPct = parseFloat(row[pctField]) || 0;
-      return baseCost * (currentPct / 100);
-    };
+    return cost * (currentPct / 100);
+  };
 
   const handleSave = async () => {
     setScenarioDDFeesIsSaving(true);
