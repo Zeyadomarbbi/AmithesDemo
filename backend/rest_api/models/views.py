@@ -69,3 +69,34 @@ class ScenarioFundflowsDistributionSummary(models.Model):
 
     def __str__(self):
         return f"Distribution {self.date} - {self.flows}"
+    
+class ScenarioFundflowsCapitalcallSummary(models.Model):
+    summary_id = models.BigAutoField(primary_key=True)
+    
+    fund = models.ForeignKey('Fund', on_delete=models.DO_NOTHING, db_column='fund_id')
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.CASCADE, db_column='scenario_id')
+    
+    date = models.DateField()
+    year = models.IntegerField()
+    flows = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    investment = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    management_fees = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    structuring_fees = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    dd_fees = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    opex = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    other_expenses = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    pct_capital_called = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    source_type = models.CharField(max_length=50)
+    is_user_inserted = models.BooleanField(default=False)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'scenario_fundflows_capitalcall_summary'
+        ordering = ['date']
+        unique_together = [['fund', 'scenario', 'date', 'source_type']]
+
+    def __str__(self):
+        return f"Capital Call {self.date} - {self.flows}"

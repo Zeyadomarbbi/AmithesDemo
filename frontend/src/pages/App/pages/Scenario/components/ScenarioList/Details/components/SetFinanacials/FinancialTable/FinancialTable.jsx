@@ -195,11 +195,13 @@ const FinancialTable = ({ years, rows = [], localChanges = {}, onCellChange }) =
                                     const rawValue = getYearValue(row, y.year);
                                     
                                     let isReadOnly = false;
+                                    const READONLY_SPECIAL_FIELDS = ['REALIZED_GAIN', 'UNREALIZED_GAIN', 'MANAGEMENT_FEES', 'DD_FEES'];
+
                                     if (isTotalRow || isNetProfit) {
                                         isReadOnly = true;
                                     } else if (y.type === 'realized') {
                                         isReadOnly = true;
-                                    } else if (row.specialField) {
+                                    } else if (row.specialField && READONLY_SPECIAL_FIELDS.includes(row.specialField)) {
                                         isReadOnly = true;
                                     }
 

@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from django.db import transaction
 from ..models.core import ShareClass
-from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary
+from ..models.views import (
+    ViewMasterManFees, 
+    ViewMasterScenarioGains, 
+    ScenarioFundflowsDistributionSummary, 
+    ScenarioFundflowsCapitalcallSummary
+)
 from ..models.transactions import (
     ScenarioList, 
     ScenarioDueDiligenceFee, 
@@ -9,7 +14,7 @@ from ..models.transactions import (
     ScenarioPortfolioProjection, 
     ManFeeTranche,
     ScenarioFinancialsProjection
-    )
+)
 from ..models.mappings import MapSynthesisScenario
 
 class ScenarioSerializer(serializers.ModelSerializer):
@@ -270,3 +275,26 @@ class ScenarioFundflowsDistributionSummarySerializer(serializers.ModelSerializer
             'updated_at'
         ]
         read_only_fields = ['__all__']  # Read-only table
+
+class ScenarioFundflowsCapitalcallSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScenarioFundflowsCapitalcallSummary
+        fields = [
+            'summary_id',
+            'fund',
+            'scenario',
+            'date',
+            'year',
+            'flows',
+            'investment',
+            'management_fees',
+            'structuring_fees',
+            'dd_fees',
+            'opex',
+            'other_expenses',
+            'pct_capital_called',
+            'source_type',
+            'is_user_inserted',
+            'updated_at'
+        ]
+        read_only_fields = ['summary_id', 'flows', 'pct_capital_called', 'updated_at']

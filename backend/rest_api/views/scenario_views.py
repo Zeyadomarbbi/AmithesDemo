@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import connection
 
-from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary
+from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary, ScenarioFundflowsCapitalcallSummary
 from ..models.transactions import (
     ScenarioList, 
     ScenarioSynthesis, 
@@ -28,7 +28,8 @@ from ..serializers.scenario_serializers import (
     ViewMasterManFeesSerializer,
     ViewMasterScenarioGainsSerializer,
     ScenarioFinancialsProjectionSerializer,
-    ScenarioFundflowsDistributionSummarySerializer
+    ScenarioFundflowsDistributionSummarySerializer,
+    ScenarioFundflowsCapitalcallSummarySerializer
     )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
@@ -291,3 +292,65 @@ class ScenarioFundflowsDistributionSummaryViewSet(viewsets.ReadOnlyModelViewSet)
             ).order_by('date')
         
         return ScenarioFundflowsDistributionSummary.objects.none()
+    
+class ScenarioFundflowsCapitalcallSummaryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for capital call summary.
+    - List/Retrieve: Returns all visible capital calls (filters out hidden placeholders)
+    - Create: Add custom projected date
+    - Update: Modify date for user-inserted entries
+    - Delete: Remove user-inserted projected entries
+    """
+    serializer_class = ScenarioFundflowsCapitalcallSummarySerializer
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        if scenario_id:
+            # Filter out hidden placeholders
+            return ScenarioFundflowsCapitalcallSummary.objects.filter(
+                scenario_id=scenario_id
+            ).exclude(
+                source_type='projected_placeholder',
+                is_user_inserted=False
+            ).order_by('date')
+        
+        return ScenarioFundflowsCapitalcallSummary.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        """Create a new projected custom date entry"""
+        data = request.data.copy()
+        data['source_type'] = 'projected_custom'
+        data['is_user_inserted'] = True
+        
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """Update only user-inserted entries"""
+        instance = self.get_object()
+        
+        # Only allow updates to user-inserted entries
+        if not instance.is_user_inserted and instance.source_type != 'projected_custom':
+            return Response(
+                {'error': 'Cannot modify system-generated entries'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete only user-inserted projected entries"""
+        instance = self.get_object()
+        
+        # Only allow deletion of user-inserted custom entries
+        if not instance.is_user_inserted or instance.source_type != 'projected_custom':
+            return Response(
+                {'error': 'Cannot delete system-generated entries'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)

@@ -6,7 +6,9 @@ import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '..
 
 // Receives data AND handlers from parent
 const CapitalCalls = ({ data, onAddRow, onRemoveRow, onUpdateRow }) => {
-
+  const formatNumber = useNumberFormatter();
+  const formatPercentage = usePercentageFormatter();
+  const formatDate = useDateFormatter();
   // Group data by year
   const groupedRows = useMemo(() => {
     const groups = {};
@@ -107,13 +109,13 @@ const CapitalCalls = ({ data, onAddRow, onRemoveRow, onUpdateRow }) => {
                                 />
                             </td>
 
-                            <td className="td-right">{row.flow}</td>
-                            <td className="td-right">{row.investment}</td>
-                            <td className="td-right">{row.mgmtFees}</td>
-                            <td className="td-right">{row.structFees}</td>
-                            <td className="td-right">{row.dueDil}</td>
-                            <td className="td-right">{row.other}</td>
-                            <td className="td-right">{row.capCalled}</td>
+                            <td className="td-right">{formatNumber(row.flow)}</td>
+                            <td className="td-right">{formatNumber(row.investment)}</td>
+                            <td className="td-right">{formatNumber(row.mgmtFees)}</td>
+                            <td className="td-right">{formatNumber(row.structFees)}</td>
+                            <td className="td-right">{formatNumber(row.dueDil)}</td>
+                            <td className="td-right">{formatNumber(row.other)}</td>
+                            <td className="td-right">{formatNumber(row.capCalled)}</td>
                         </tr>
                     ))}
                     <tr className="spacer-row"><td colSpan="9"></td></tr>

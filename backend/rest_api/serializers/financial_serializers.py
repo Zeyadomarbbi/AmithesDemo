@@ -39,8 +39,11 @@ class FinancialLineItemSerializer(serializers.ModelSerializer):
         }
         
         expense_keywords = {
-            FinancialLineItem.SpecialField.MANAGEMENT_FEES: ['management fees', 'man fees', 'management', 'mngmt fees'],
+            FinancialLineItem.SpecialField.MANAGEMENT_FEES: ['management fees', 'man fees', 'management', 'mngmt fees', 'catch up'],
+            FinancialLineItem.SpecialField.STRUCTURING_FEES: ['structuring fees', 'structuring costs', 'structuring', 'struct fees'],
             FinancialLineItem.SpecialField.DD_FEES: ['due diligence', 'dd fees', 'dd', 'diligence'],
+            FinancialLineItem.SpecialField.OPEX: ['opex', 'administration fees', 'admin fees', 'administrative'],
+            FinancialLineItem.SpecialField.OTHER_EXPENSES: ['other expenses', 'other', 'miscellaneous'],
         }
 
         # 3. Select the target dictionary based on Category

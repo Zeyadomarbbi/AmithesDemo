@@ -118,6 +118,22 @@ urlpatterns = [
         ScenarioFundflowsDistributionSummaryViewSet.as_view({'get': 'list'}),
         name='scenario-fund-flows-distribution-summary-list'
     ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-capitalcall-summary/',
+        ScenarioFundflowsCapitalcallSummaryViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name='scenario-capitalcall-summary-list'
+    ),
+    # Detail operations (update/delete specific entry)
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-capitalcall-summary/<int:pk>/',
+        ScenarioFundflowsCapitalcallSummaryViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name='scenario-capitalcall-summary-detail'
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

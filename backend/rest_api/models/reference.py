@@ -103,10 +103,16 @@ class FinancialLineItem(models.Model):
     
     # --- NEW ADDITION START ---
     class SpecialField(models.TextChoices):
+        # Existing (automated in financials)
         REALIZED_GAIN = 'REALIZED_GAIN', 'Realized Gain'
         UNREALIZED_GAIN = 'UNREALIZED_GAIN', 'Unrealized Gain'
-        DD_FEES = 'DD_FEES', 'Due Diligence Fees'
         MANAGEMENT_FEES = 'MANAGEMENT_FEES', 'Management Fees'
+        DD_FEES = 'DD_FEES', 'Due Diligence Fees'
+        
+        # New (for capital call mapping)
+        STRUCTURING_FEES = 'STRUCTURING_FEES', 'Structuring Fees'
+        OPEX = 'OPEX', 'Opex/Administration Fees'
+        OTHER_EXPENSES = 'OTHER_EXPENSES', 'Other Expenses'
 
     special_field = models.CharField(
         max_length=50,

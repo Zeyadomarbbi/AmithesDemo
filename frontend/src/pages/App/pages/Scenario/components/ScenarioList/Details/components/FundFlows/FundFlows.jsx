@@ -8,16 +8,9 @@ import CapitalCalls from './CapitalCalls/CapitalCalls';
 import Distributions from './Distributions/Distributions';
 import AddOperation from './AddOperation/AddOperation'; 
 import { useScenarioFFDistribution } from './utils/useScenarioFFDistribution'
+import { useScenarioFFCapitalCall } from './utils/useScenarioFFCapitalCall'
 
 import { DownloadIcon, PlusIcon } from './Icons';
-
-// Initial Mock Data (only capital calls)
-const INITIAL_DATA = [
-  { id: 1, type: 'call', date: '01/02/2025', flow: '11 500 000', investment: '10 000 000', mgmtFees: '500 000', structFees: '500 000', dueDil: '300 000', other: '200 000', capCalled: '11.50%' },
-  { id: 2, type: 'call', date: '01/04/2025', flow: '1 050 000', investment: '-', mgmtFees: '500 000', structFees: '-', dueDil: '500 000', other: '50 000', capCalled: '1.05%' },
-  { id: 3, type: 'call', date: '01/08/2025', flow: '2 500 000', investment: '2 000 000', mgmtFees: '500 000', structFees: '-', dueDil: '-', other: '-', capCalled: '2.50%' },
-  { id: 4, type: 'call', date: '01/10/2025', flow: '400 000', investment: '-', mgmtFees: '-', structFees: '-', dueDil: '400 000', other: '-', capCalled: '0.40%' },
-];
 
 function FundFlows({ fundId, scenarioId }) {
   const [activeView, setActiveView] = useState('all_operations');
