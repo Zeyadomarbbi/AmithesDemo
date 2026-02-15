@@ -1,4 +1,4 @@
-// FundFlows.js
+// FundFlows.js - Updated
 import React, { useState } from 'react';
 import './FundFlows.css';
 
@@ -7,85 +7,95 @@ import AllOperations from './AllOperations/AllOperations';
 import CapitalCalls from './CapitalCalls/CapitalCalls';
 import Distributions from './Distributions/Distributions';
 import AddOperation from './AddOperation/AddOperation'; 
-import { useScenarioFFDistribution } from './utils/useScenarioFFDistribution'
-import { useScenarioFFCapitalCall } from './utils/useScenarioFFCapitalCall'
+import { useScenarioFFDistribution } from './utils/useScenarioFFDistribution';
+import { useScenarioFFCapitalCall } from './utils/useScenarioFFCapitalCall';
+import Toast from '../../../../../../../components/Toast/Toast';
 
 import { DownloadIcon, PlusIcon } from './Icons';
 
 function FundFlows({ fundId, scenarioId }) {
   const [activeView, setActiveView] = useState('all_operations');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [operations, setOperations] = useState(INITIAL_DATA);
+  const [toast, setToast] = useState(null);
 
   // Fetch distribution data from API
-  const { distributions, loading, error } = useScenarioFFDistribution(fundId, scenarioId);
-  console.log("distributions", distributions)
-  // Helper: Date Object -> String
-  const formatDate = (dateObj) => {
-    if (!dateObj) return '';
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const year = dateObj.getFullYear();
-    return `${day}/${month}/${year}`;
+  const { 
+    distributions, 
+    loading: distLoading, 
+    error: distError 
+  } = useScenarioFFDistribution(fundId, scenarioId);
+
+  // Fetch capital call data from API
+  const { 
+    capitalCalls, 
+    loading: ccLoading, 
+    error: ccError,
+    createCustomDate,
+    deleteEntry,
+    updateEntry,
+    refresh
+  } = useScenarioFFCapitalCall(fundId, scenarioId);
+
+  // Handle save for capital calls
+  const handleCapitalCallSave = async (changes) => {
+    try {
+      for (const [id, updateData] of Object.entries(changes)) {
+        await updateEntry(id, { date: updateData.date });
+      }
+      
+      await refresh(); // Refresh data after save
+      
+      setToast({
+        type: 'success',
+        title: 'Changes saved',
+        message: `${Object.keys(changes).length} date${Object.keys(changes).length > 1 ? 's' : ''} updated successfully`
+      });
+      
+      return true;
+    } catch (err) {
+      console.error('Save failed:', err);
+      setToast({
+        type: 'error',
+        title: 'Save failed',
+        message: 'Unable to save changes. Please try again.'
+      });
+      return false;
+    }
   };
 
-  // --- HANDLERS FOR MODAL ---
-  const handleSaveOperation = (modalData) => {
-    const newOp = {
-      id: Date.now(),
-      type: modalData.type,
-      date: formatDate(modalData.date),
-      flow: modalData.amount || '0', 
-      investment: '-', mgmtFees: '-', structFees: '-', dueDil: '-', divestment: '-', dividends: '-', recycling: '-', other: '-', capCalled: '0.00%', distPercent: '0.00%', dpi: '0.00x'
-    };
-    setOperations([...operations, newOp]);
-    setIsModalOpen(false);
-  };
-
-  // --- HANDLERS FOR TABLE EDITING ---
-  
-  // 1. Add a new empty row for a specific year and type
-  const handleAddRow = (year, type) => {
-    const newOp = {
-      id: Date.now(),
-      type: type,
-      date: `01/01/${year}`,
-      flow: '-', investment: '-', mgmtFees: '-', structFees: '-', dueDil: '-', other: '-', capCalled: '0.00%', distPercent: '0.00%', divestment: '-', dividends: '-', recycling: '-'
-    };
-    setOperations([...operations, newOp]);
-  };
-
-  // 2. Remove the last row of a specific year and type
-  const handleRemoveRow = (year, type) => {
-    const yearRows = operations.filter(op => op.type === type && op.date.endsWith(year));
-    if (yearRows.length <= 1) return;
-    const lastRowId = yearRows[yearRows.length - 1].id;
-    setOperations(operations.filter(op => op.id !== lastRowId));
-  };
-
-  // 3. Update a row (e.g. date change)
-  const handleUpdateRow = (id, field, value) => {
-    setOperations(operations.map(op => (op.id === id ? { ...op, [field]: value } : op)));
+  // Handle modal save (create new operation)
+  const handleModalCreateOperation = async () => {
+    await refresh(); // Refresh to show new entry
+    
+    setToast({
+      type: 'success',
+      title: 'Operation created',
+      message: 'New capital call entry added successfully'
+    });
   };
 
   const renderActiveView = () => {
     switch (activeView) {
       case 'calls': 
         return <CapitalCalls 
-                  data={operations.filter(op => op.type === 'call')} 
-                  onAddRow={handleAddRow}
-                  onRemoveRow={handleRemoveRow}
-                  onUpdateRow={handleUpdateRow}
+                  fundId={fundId}
+                  scenarioId={scenarioId}
+                  data={capitalCalls}
+                  loading={ccLoading}
+                  error={ccError}
+                  onCreateDate={createCustomDate}
+                  onDeleteEntry={deleteEntry}
+                  onSave={handleCapitalCallSave}
                />;
       case 'dist': 
         return <Distributions 
                   data={distributions}
-                  loading={loading}
-                  error={error}
+                  loading={distLoading}
+                  error={distError}
                />;
       case 'all_operations':
       default: 
-        return <AllOperations data={operations} />;
+        return <AllOperations data={[...capitalCalls, ...distributions]} />;
     }
   };
 
@@ -134,9 +144,24 @@ function FundFlows({ fundId, scenarioId }) {
 
       <AddOperation 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSaveOperation} 
+        onClose={() => setIsModalOpen(false)}
+        fundId={fundId}
+        scenarioId={scenarioId}
+        onCreateDate={async (payload) => {
+          await createCustomDate(payload);
+          handleModalCreateOperation();
+        }}
       />
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
     </div>
   );
 }
