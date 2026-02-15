@@ -9,6 +9,7 @@ import './SetFinancials.css';
 
 function SetFinancials({ fundId, scenarioId }) {
   // 1. Fetch Data + CRUD Operations
+
   const { 
     gridData, 
     years: apiYears, 
@@ -18,7 +19,7 @@ function SetFinancials({ fundId, scenarioId }) {
     patch,
     post 
   } = useScenarioFinancialsProjections(fundId, scenarioId);
-  
+  console.log("gridData", gridData)
   const [years, setYears] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -187,7 +188,6 @@ function SetFinancials({ fundId, scenarioId }) {
              <div className="sf-loading-state">Loading Financials...</div>
            ) : (
              <FinancialTable 
-              scenarioId={scenarioId} 
               years={years} 
               rows={gridData}
               localChanges={localChanges}

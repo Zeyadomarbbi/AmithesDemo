@@ -56,8 +56,21 @@ urlpatterns = [
     ),
     path(
         "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/financials-projections/",
-        ScenarioFinancialsProjectionViewSet.as_view({'get': 'list', 'post': 'create', 'put': 'update'}),
-        name="scenario--financials-projections"
+        ScenarioFinancialsProjectionViewSet.as_view({
+            'get': 'list', 
+            'post': 'create'
+        }),
+        name="scenario-financials-projections-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/financials-projections/<int:pk>/",
+        ScenarioFinancialsProjectionViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name="scenario-financials-projections-detail"
     ),
     # --- DUE DILIGENCE FEES ---
     path(
@@ -99,6 +112,11 @@ urlpatterns = [
         "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/gains-summary/",
         ViewMasterScenarioGainsViewSet.as_view({'get': 'list'}),
         name="scenario-gains-summary"
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-distribution-summary/',
+        ScenarioFundflowsDistributionSummaryViewSet.as_view({'get': 'list'}),
+        name='scenario-fund-flows-distribution-summary-list'
     ),
     # Scenario Synthesis
     path(

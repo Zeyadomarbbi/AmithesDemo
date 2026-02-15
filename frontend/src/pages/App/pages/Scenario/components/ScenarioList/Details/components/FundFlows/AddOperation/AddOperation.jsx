@@ -4,13 +4,13 @@ import { CloseIcon } from '../Icons';
 import './AddOperation.css';
 
 const AddOperation = ({ isOpen, onClose, onSave }) => {
-  const [type, setType] = useState('call');
+  // Hardcoded to 'call' as requested
+  const [type] = useState('call');
   const [date, setDate] = useState(new Date());
   const [amount, setAmount] = useState('');
 
   useEffect(() => {
     if (!isOpen) {
-      setType('call');
       setDate(new Date());
       setAmount('');
     }
@@ -22,7 +22,6 @@ const AddOperation = ({ isOpen, onClose, onSave }) => {
     <div className="ff-add-op-overlay">
       <div className="ff-add-op-container">
         
-        {/* Header / Close */}
         <div className="ff-add-op-close-row">
           <button className="ff-add-op-close-btn" onClick={onClose}>
             <CloseIcon />
@@ -31,31 +30,11 @@ const AddOperation = ({ isOpen, onClose, onSave }) => {
 
         <div className="ff-add-op-content">
           <div className="ff-add-op-header-group">
-            <h3 className="ff-add-op-title">Add an operation</h3>
-            
-            {/* Type Toggles */}
-            <div className="ff-add-op-toggles">
-              <div 
-                className={`ff-add-op-toggle-card ${type === 'call' ? 'selected' : ''}`} 
-                onClick={() => setType('call')}
-              >
-                <div className="ff-add-op-radio-circle"></div>
-                <div className="ff-add-op-badge yellow">Capital call</div>
-              </div>
-              
-              <div 
-                className={`ff-add-op-toggle-card ${type === 'dist' ? 'selected' : ''}`} 
-                onClick={() => setType('dist')}
-              >
-                <div className="ff-add-op-radio-circle"></div>
-                <div className="ff-add-op-badge blue">Distribution</div>
-              </div>
-            </div>
+            <h3 className="ff-add-op-title">Add a Capital Call</h3>
+            {/* Toggle group removed entirely for a cleaner UI */}
           </div>
 
           <div className="ff-add-op-inputs-group">
-            
-            {/* Date Input */}
             <div className="ff-add-op-input-col">
               <label>Date</label>
               <DateInputWithPicker 
@@ -65,7 +44,6 @@ const AddOperation = ({ isOpen, onClose, onSave }) => {
               />
             </div>
             
-            {/* Amount Input */}
             <div className="ff-add-op-input-col">
               <label>Amount</label>
               <div className="ff-add-op-input-wrapper">

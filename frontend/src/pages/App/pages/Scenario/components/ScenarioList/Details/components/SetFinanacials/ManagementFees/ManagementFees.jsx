@@ -3,10 +3,13 @@ import { useMasterManFees } from './utils/useScenarioMasterManFee.js'; // Adjust
 import { PlusIcon, CloseIcon } from '../Icons'; 
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+
 import './ManagementFees.css';
 
 const ManagementFees = ({ fundId, scenarioId, onClose }) => {
     // 1. Hook Integration (No more hardcoded 2024/15)
+    const formatNumber = useNumberFormatter();
     const { pivotedData, columns, loading, refresh } = useMasterManFees(fundId, scenarioId);
     // ------------------
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -31,12 +34,6 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
             dataByYear: yearMap
         };
     }, [pivotedData, columns]);
-
-    // Helper: Format Number ("-" for 0)
-    const formatNumber = (num) => {
-        if (!num || num === 0 || isNaN(num)) return '-';
-        return num.toLocaleString('en-US', { maximumFractionDigits: 0 }).replace(/,/g, ' ');
-    };
 
     // Helper: Calculate Totals
     const getColumnTotal = (year, rowDefinitions) => {

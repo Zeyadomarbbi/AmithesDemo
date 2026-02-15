@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import './FinancialTable.css';
+import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
 import { SortIcon } from './Icons'; 
 
 const parseValue = (value) => {
     if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    const cleanValue = String(value).replace(/ /g, '');
-    if (cleanValue === '-' || cleanValue === 'ex: 100') return 0;
+    // Remove all non-numeric characters except decimal point and minus sign
+    const cleanValue = String(value).replace(/[^\d.-]/g, '');
+    if (cleanValue === '' || cleanValue === '-') return 0;
     return parseFloat(cleanValue) || 0;
 };
 
-const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCellChange }) => {
+const FinancialTable = ({ years, rows = [], localChanges = {}, onCellChange }) => {
+    const formatNumber = useNumberFormatter();
     const [financialRows, setFinancialRows] = useState([]);
 
     useEffect(() => {
@@ -36,7 +39,7 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
                 if (localChanges[changeKey]) {
                     rowState[`v${year}`] = localChanges[changeKey].amount;
                 } else {
-                    rowState[`v${year}`] = (valObj && valObj.amount !== undefined) ? valObj.amount : "0";
+                    rowState[`v${year}`] = (valObj && valObj.amount !== undefined) ? valObj.amount : 0;
                 }
             });
             return rowState;
@@ -53,10 +56,7 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
             { label: 'Total Expense', type: 'total-band' },
             ...taxRows,
             { label: 'Total Taxes', type: 'total-band' },
-            
-            // --- INJECT SPACER HERE ---
             { type: 'spacer' },
-            
             { label: 'Net Profit/Loss', type: 'net-profit' }
         ]);
     }, [rows, years, localChanges]);
@@ -64,23 +64,20 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
     const calculateRowTotal = (row) => {
         let sum = 0;
         years.forEach(({ year }) => {
-            const key = `v${year}`;
-            sum += parseValue(row[key]);
+            sum += parseValue(row[`v${year}`]);
         });
-        return sum.toLocaleString('en-US');
+        return sum;
     };
 
     const calculateColumnTotal = (yearKey, rowsToSum) => {
         let sum = 0;
         rowsToSum.forEach(row => {
-            const value = row[yearKey];
-            sum += parseValue(value);
+            sum += parseValue(row[yearKey]);
         });
-        return sum.toLocaleString('en-US');
+        return sum;
     };
 
     const getGroupedRows = () => {
-        // We look for the index of the total bands to slice the array correctly
         const incomeEndIndex = financialRows.findIndex(r => r.label === 'Total Income');
         const expenseEndIndex = financialRows.findIndex(r => r.label === 'Total Expense');
         const taxEndIndex = financialRows.findIndex(r => r.label === 'Total Taxes');
@@ -88,9 +85,7 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
         if (incomeEndIndex === -1) return { incomeRows: [], expenseRows: [], taxRows: [] };
 
         const incomeRows = financialRows.slice(0, incomeEndIndex);
-        // Expense starts after Total Income (index + 1)
         const expenseRows = financialRows.slice(incomeEndIndex + 1, expenseEndIndex);
-        // Tax starts after Total Expense (index + 1)
         const taxRows = financialRows.slice(expenseEndIndex + 1, taxEndIndex);
         
         return { incomeRows, expenseRows, taxRows };
@@ -98,23 +93,18 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
 
     const calculateNetProfit = (yearKey) => {
         const { incomeRows, expenseRows, taxRows } = getGroupedRows();
-        const income = parseValue(calculateColumnTotal(yearKey, incomeRows).replace(/,/g, ''));
-        const expense = parseValue(calculateColumnTotal(yearKey, expenseRows).replace(/,/g, ''));
-        const tax = parseValue(calculateColumnTotal(yearKey, taxRows).replace(/,/g, ''));
-        return (income - expense - tax).toLocaleString('en-US');
+        const income = calculateColumnTotal(yearKey, incomeRows);
+        const expense = calculateColumnTotal(yearKey, expenseRows);
+        const tax = calculateColumnTotal(yearKey, taxRows);
+        return income - expense - tax;
     };
 
     const calculateNetProfitTotal = () => {
         let sum = 0;
         years.forEach(({ year }) => {
-            const key = `v${year}`;
-            const { incomeRows, expenseRows, taxRows } = getGroupedRows();
-            const income = parseValue(calculateColumnTotal(key, incomeRows).replace(/,/g, ''));
-            const expense = parseValue(calculateColumnTotal(key, expenseRows).replace(/,/g, ''));
-            const tax = parseValue(calculateColumnTotal(key, taxRows).replace(/,/g, ''));
-            sum += (income - expense - tax);
+            sum += calculateNetProfit(`v${year}`);
         });
-        return sum.toLocaleString('en-US');
+        return sum;
     };
 
     const getYearValue = (row, year) => {
@@ -128,21 +118,22 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
         if (row.type === 'net-profit') {
             return calculateNetProfit(key);
         }
-        return row[key] || "0";
+        return row[key] ?? 0;
     };
 
     const handleProjectedChange = (e, rowIndex, year) => {
-        const newValue = e.target.value;
+        const rawValue = e.target.value.replace(/[^\d.-]/g, '');
         const row = financialRows[rowIndex];
         
         setFinancialRows(prev => prev.map((r, i) => 
-            i === rowIndex ? { ...r, [`v${year}`]: newValue } : r
+            i === rowIndex ? { ...r, [`v${year}`]: rawValue } : r
         ));
         
         if (onCellChange && row.originalId) {
-            onCellChange(row.originalId, year, newValue);
+            onCellChange(row.originalId, year, rawValue);
         }
     };
+
 
     return (
         <div className="table-container">
@@ -182,51 +173,33 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
                         const isTotalRow = row.type === 'total-band';
                         const isNetProfit = row.type === 'net-profit';
                         const isSpacer = row.type === 'spacer';
-                        const isSeparator = row.type === 'separator'; // Kept in case you use it elsewhere
 
-                        // --- 1. RENDER SPACER ROW ---
                         if (isSpacer) {
                             return (
                                 <tr key={`spacer-${index}`} className="row-spacer">
-                                    {/* Spans Label + Years + Total */}
                                     <td colSpan={years.length + 2}></td>
                                 </tr>
                             );
                         }
 
-                        // --- 2. RENDER SEPARATOR (Legacy) ---
-                        if (isSeparator) {
-                            return (
-                                <tr key={index} className="row-separator">
-                                    <td colSpan={years.length + 2}></td>
-                                </tr>
-                            );
-                        }
-
-                        const rowTotal = isNetProfit ? calculateNetProfitTotal() : calculateRowTotal(row); 
+                        const rawRowTotal = isNetProfit ? calculateNetProfitTotal() : calculateRowTotal(row);
+                        const rowTotalDisplay = formatNumber(rawRowTotal);
 
                         return (
                             <tr 
                                 key={index} 
-                                className={
-                                    isTotalRow ? 'row-total' : 
-                                    isNetProfit ? 'row-total' : 
-                                    'row-standard'
-                                }
+                                className={isTotalRow || isNetProfit ? 'row-total' : 'row-standard'}
                             >
                                 <td className="cell-label">{row.label}</td>
                                 {years.map((y) => {
-                                    const value = getYearValue(row, y.year);
+                                    const rawValue = getYearValue(row, y.year);
                                     
                                     let isReadOnly = false;
-                                    
                                     if (isTotalRow || isNetProfit) {
-                                        isReadOnly = true; 
+                                        isReadOnly = true;
                                     } else if (y.type === 'realized') {
-                                        isReadOnly = true; 
+                                        isReadOnly = true;
                                     } else if (row.specialField) {
-                                        isReadOnly = true; 
-                                    } else if (row.sourceValues?.[y.year]?.status === 'Realized' || row.sourceValues?.[y.year]?.status === 'Automated') {
                                         isReadOnly = true;
                                     }
 
@@ -240,20 +213,22 @@ const FinancialTable = ({ scenarioId, years, rows = [], localChanges = {}, onCel
                                             }
                                         >
                                             {isReadOnly ? (
-                                                <span className="read-only-val disabled-cell">{value}</span>
+                                                <span className="read-only-val disabled-cell">
+                                                    {formatNumber(rawValue)}
+                                                </span>
                                             ) : (
                                                 <input 
                                                     key={`${index}-${y.year}`} 
                                                     className="proj-input" 
                                                     placeholder="ex : 100" 
-                                                    value={value} 
+                                                    value={rawValue} 
                                                     onChange={(e) => handleProjectedChange(e, index, y.year)}
                                                 />
                                             )}
                                         </td>
                                     );
                                 })}
-                                <td className="cell-total-final">{rowTotal}</td>
+                                <td className="cell-total-final">{rowTotalDisplay}</td>
                             </tr>
                         );
                     })}

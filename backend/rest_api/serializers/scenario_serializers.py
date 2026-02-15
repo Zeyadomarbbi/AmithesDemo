@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from ..models.core import ShareClass
-from ..models.views import ViewMasterManFees, ViewMasterScenarioGains
+from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary
 from ..models.transactions import (
     ScenarioList, 
     ScenarioDueDiligenceFee, 
@@ -250,3 +250,23 @@ class ScenarioFinancialsProjectionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['updated_by'] = self.context['request'].user.id
         return super().create(validated_data)
+    
+class ScenarioFundflowsDistributionSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScenarioFundflowsDistributionSummary
+        fields = [
+            'summary_id',
+            'fund_id',
+            'scenario_id',
+            'date',
+            'flows',
+            'divestment',
+            'dividends',
+            'interests',
+            'other',
+            'pct_distributed',
+            'source_type',
+            'source_id',
+            'updated_at'
+        ]
+        read_only_fields = ['__all__']  # Read-only table

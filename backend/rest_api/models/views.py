@@ -41,3 +41,31 @@ class ViewMasterScenarioGains(models.Model):
         managed = False
         db_table = 'view_master_scenario_gains'
         ordering = ['investment_name', 'year']
+
+class ScenarioFundflowsDistributionSummary(models.Model):
+    summary_id = models.BigAutoField(primary_key=True)
+    
+    fund = models.ForeignKey('Fund', on_delete=models.DO_NOTHING, db_column='fund_id')
+    scenario = models.ForeignKey('ScenarioList', on_delete=models.CASCADE, db_column='scenario_id')
+    
+    date = models.DateField()
+    flows = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    divestment = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    dividends = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    interests = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    other = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    pct_distributed = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    
+    source_type = models.CharField(max_length=50)
+    source_id = models.BigIntegerField(null=True, blank=True)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'scenario_fundflows_distribution_summary'
+        ordering = ['date']
+        unique_together = [['fund', 'scenario', 'date', 'source_type', 'source_id']]
+
+    def __str__(self):
+        return f"Distribution {self.date} - {self.flows}"

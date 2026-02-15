@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import connection
 
-from ..models.views import ViewMasterManFees, ViewMasterScenarioGains
+from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary
 from ..models.transactions import (
     ScenarioList, 
     ScenarioSynthesis, 
@@ -27,7 +27,8 @@ from ..serializers.scenario_serializers import (
     ManFeeTrancheSerializer,
     ViewMasterManFeesSerializer,
     ViewMasterScenarioGainsSerializer,
-    ScenarioFinancialsProjectionSerializer
+    ScenarioFinancialsProjectionSerializer,
+    ScenarioFundflowsDistributionSummarySerializer
     )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
@@ -254,7 +255,9 @@ class ScenarioFinancialsProjectionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         scenario_id = self.kwargs.get('scenario_pk')
-        return ScenarioFinancialsProjection.objects.filter(scenario_id=scenario_id).select_related('line_item', 'line_item__category')
+        return ScenarioFinancialsProjection.objects.filter(
+            scenario_id=scenario_id
+        ).select_related('line_item', 'line_item__category')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -270,26 +273,21 @@ class ScenarioFinancialsProjectionViewSet(viewsets.ModelViewSet):
             
         context['last_realized_year'] = last_realized
         return context
+    
+class ScenarioFundflowsDistributionSummaryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset for scenario distribution summary.
+    Automatically ordered by date.
+    """
+    serializer_class = ScenarioFundflowsDistributionSummarySerializer
+    http_method_names = ['get', 'head', 'options']  # Read-only
 
-    def put(self, request, *args, **kwargs):
-        """Full update - replaces entire resource"""
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def patch(self, request, *args, **kwargs):
-        """Partial update - modifies specific fields"""
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def post(self, request, *args, **kwargs):
-        """Create new projection"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        if scenario_id:
+            return ScenarioFundflowsDistributionSummary.objects.filter(
+                scenario_id=scenario_id
+            ).order_by('date')
+        
+        return ScenarioFundflowsDistributionSummary.objects.none()

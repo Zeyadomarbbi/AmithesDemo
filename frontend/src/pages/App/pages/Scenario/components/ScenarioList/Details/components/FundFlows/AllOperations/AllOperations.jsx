@@ -2,6 +2,7 @@ import React from 'react';
 import './AllOperations.css';
 import { SortIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
 
 const AllOperations = ({ data }) => { // Accepts data prop
 
