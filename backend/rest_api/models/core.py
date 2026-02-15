@@ -23,6 +23,7 @@ class Fund(models.Model):
 
     class Meta:
         db_table = "fund"
+        ordering = ['formation_date', 'legal_name', 'short_name']
 
 class ShareClass(models.Model):
 
@@ -71,6 +72,7 @@ class ShareClass(models.Model):
 
     class Meta:
         db_table = "share_class"
+        ordering = ['share_class_name']
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "share_class_name"],
@@ -96,9 +98,11 @@ class Timeframe(models.Model):
     class Meta:
         managed = False
         db_table = "timeframe"
+        ordering = ['date', 'name']
         constraints = [
             models.UniqueConstraint(fields=['fund', 'date'], name='uq_fund_date_timeframe')
         ]
+        
 
     def save(self, *args, **kwargs):
         if self.date:
@@ -130,6 +134,7 @@ class LimitedPartner(models.Model):
     class Meta:
         db_table = 'lps_limited_partner'
         managed = False
+        ordering = ['name']
 
 class FundManFeeCommitmentYear(models.Model):
     # Primary Key
@@ -150,3 +155,4 @@ class FundManFeeCommitmentYear(models.Model):
     class Meta:
         managed = False  # Created via SQL
         db_table = 'fund_man_fee_commitment_year'
+        ordering = ['commitment_from']

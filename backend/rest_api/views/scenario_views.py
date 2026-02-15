@@ -34,11 +34,16 @@ from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, P
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:
-            scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+            scenario = get_object_or_404(
+                ScenarioList, 
+                pk=pk, 
+                fund_id=fund_id, 
+                is_deleted=False
+            )
             serializer = ScenarioSerializer(scenario)
             return Response(serializer.data)
         
-        qs = ScenarioList.objects.filter(fund_id=fund_id, is_deleted=False).order_by("-created_at")
+        qs = ScenarioList.objects.filter(fund_id=fund_id, is_deleted=False)
         serializer = ScenarioSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -121,12 +126,11 @@ class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
     serializer_class = PortfolioInvestmentSerializer
 
     def get_queryset(self):
-        # Only returns investments for the specific scenario in the URL
         return PortfolioInvestment.objects.filter(
             fund_id=self.kwargs.get('fund_id'),
             scenario_id=self.kwargs.get('scenario_pk'),
             is_deleted=False
-        ).order_by("-created_at")
+        )
 
     def perform_create(self, serializer):
         # Automatically injects the scenario_id from the URL
@@ -144,13 +148,12 @@ class ScenarioTransactionFlowViewSet(ModelViewSet):
     serializer_class = PortfolioTransactionFlowSerializer
 
     def get_queryset(self):
-        # Filters flows by the specific Investment AND Scenario provided in the URL
         return PortfolioTransactionFlow.objects.filter(
             portfolio_investment_id=self.kwargs.get('investment_id'),
             portfolio_investment__fund_id=self.kwargs.get('fund_id'),
             scenario_id=self.kwargs.get('scenario_pk'),
             is_deleted=False
-        ).order_by("date", "flow_id")
+        )
 
     def perform_create(self, serializer):
         # Ensure the investment exists within the specified fund
@@ -243,22 +246,15 @@ class ViewMasterScenarioGainsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ViewMasterScenarioGainsSerializer
 
     def get_queryset(self):
-        # We don't strictly need fund_id for the query since scenario_id is unique, 
-        # but it's good practice to validate if needed.
         scenario_pk = self.kwargs.get('scenario_pk')
-        
-        return ViewMasterScenarioGains.objects.filter(
-            scenario_id=scenario_pk
-        ).order_by('investment_name', 'year')
+        return ViewMasterScenarioGains.objects.filter(scenario_id=scenario_pk)
     
 class ScenarioFinancialsProjectionViewSet(viewsets.ModelViewSet):
     serializer_class = ScenarioFinancialsProjectionSerializer
 
     def get_queryset(self):
         scenario_id = self.kwargs.get('scenario_pk')
-        return ScenarioFinancialsProjection.objects.filter(
-            scenario_id=scenario_id
-        ).select_related('line_item', 'line_item__category').order_by('year')
+        return ScenarioFinancialsProjection.objects.filter(scenario_id=scenario_id).select_related('line_item', 'line_item__category')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

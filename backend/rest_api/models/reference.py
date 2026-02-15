@@ -140,6 +140,7 @@ class ClosingPeriod(models.Model):
 
     class Meta:
         db_table = 'closing_period'
+        ordering = ["closing_name"]
         managed = False
 
 class PortfolioTransactionType(models.Model):
@@ -149,4 +150,5 @@ class PortfolioTransactionType(models.Model):
 
     class Meta:
         managed = False
+        ordering = ["transaction_id"]
         db_table = "portfolio_transaction_type"

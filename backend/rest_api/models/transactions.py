@@ -254,6 +254,7 @@ class ScenarioList(models.Model):
 
     class Meta:
         db_table = "scenario_list"
+        ordering = ["scenario_name", "created_at"]
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "scenario_name"],
@@ -281,6 +282,7 @@ class ScenarioSynthesis(models.Model):
 
     class Meta:
         db_table = "scenario_synthesis"
+        ordering = ["synthesis_name", "created_at"]
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "synthesis_name"],
@@ -437,6 +439,7 @@ class PortfolioInvestment(models.Model):
     class Meta:
         managed = False  # Set to True if you want Django to manage the new scenario column
         db_table = "portfolio_investment"
+        ordering = ["name"]
         constraints = [
             models.UniqueConstraint(
                 fields=['fund', 'name'], 
@@ -485,6 +488,7 @@ class PortfolioTransactionFlow(models.Model):
 
     class Meta:
         managed = False  # Set to True to allow Django to manage the new scenario column
+        ordering = ["date", "flow_id"]
         db_table = "portfolio_transaction_flows"
 
 class PortfolioFairValueFlow(models.Model):
@@ -598,7 +602,8 @@ class ScenarioFinancialsProjection(models.Model):
         managed = False # It's a real table, but if you want Django to manage migrations, remove this. 
                         # Since we created it via SQL, keep managed=False or run --fake-initial later.
         db_table = 'scenario_financials_projections'
-        unique_together = (('scenario', 'line_item', 'year'),)
+        ordering = ["year", "fund", "line_item"]
+        unique_together = (('scenario', 'line_item', 'year'))
 
     # --- Helpers for Serializer ---
     @property
