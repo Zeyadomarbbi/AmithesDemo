@@ -1,39 +1,48 @@
-// CapitalCalls.js
 import React, { useMemo, useState, useEffect } from 'react';
-import './CapitalCalls.css'; 
 import { SortIcon, PlusIcon, MinusIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 import Toast from '../../../../../../../../components/Toast/Toast'; 
+import { useScenarioFFCapitalCall } from './useScenarioFFCapitalCall';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
+import './CapitalCalls.css'; 
 
 const CapitalCalls = ({ 
   fundId,
   scenarioId,
-  data = [], 
-  loading = false, 
-  error = null, 
-  onCreateDate, 
-  onDeleteEntry,
-  onSave
+  refreshTrigger // New prop to listen for updates
 }) => {
   const formatNumber = useNumberFormatter();
+
+  // 1. Hook moved inside the component
+  const { 
+    capitalCalls: data, 
+    loading, 
+    error, 
+    createCustomDate, 
+    deleteEntry, 
+    updateEntry, 
+    refresh 
+  } = useScenarioFFCapitalCall(fundId, scenarioId);
   
   const [isSaving, setIsSaving] = useState(false);
   const [localChanges, setLocalChanges] = useState({});
   const [pendingActions, setPendingActions] = useState([]);
   const [optimisticData, setOptimisticData] = useState([]);
   const [toast, setToast] = useState(null);
-
-  // Update optimistic data when real data changes
+  console.log("capitalCalls", data)
+  // 2. Listen for Parent Refresh Signal
   useEffect(() => {
-    setOptimisticData(data);
-  }, [data]);
+    if (refreshTrigger > 0 && refresh) {
+      refresh();
+    }
+  }, [refreshTrigger, refresh]);
 
-  const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '-';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
+  // Update optimistic data when real data changes (fetched from API)
+  useEffect(() => {
+    if (data) {
+      setOptimisticData(data);
+    }
+  }, [data]);
 
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
@@ -62,10 +71,7 @@ const CapitalCalls = ({
   }, [optimisticData]);
 
   const handleAddClick = (year) => {
-    // Create temporary ID for optimistic UI
     const tempId = `temp_${Date.now()}`;
-    
-    // Add optimistic entry immediately
     const newEntry = {
       summary_id: tempId,
       fund_id: fundId,
@@ -87,7 +93,6 @@ const CapitalCalls = ({
 
     setOptimisticData(prev => [...prev, newEntry]);
 
-    // Queue the add action
     setPendingActions(prev => [...prev, { 
       type: 'add', 
       year, 
@@ -103,38 +108,30 @@ const CapitalCalls = ({
 
   const handleRemoveClick = (year) => {
     const yearRows = groupedRows[year] || [];
-    
-    // Find all custom editable entries in this year
     const customEntries = yearRows.filter(row => 
       row.source_type === 'projected_custom' && row.is_user_inserted
     );
     
-    // Must have at least one custom entry to delete
     if (customEntries.length === 0) return;
     
     const lastCustomEntry = [...customEntries].pop();
     
     if (lastCustomEntry) {
-      // Remove optimistically from UI
       setOptimisticData(prev => prev.filter(row => row.summary_id !== lastCustomEntry.summary_id));
 
-      // If it's a temp entry, just remove from pending actions
       if (String(lastCustomEntry.summary_id).startsWith('temp_')) {
         setPendingActions(prev => prev.filter(action => action.tempId !== lastCustomEntry.summary_id));
-        // Also remove from local changes if it was edited
         setLocalChanges(prev => {
           const newChanges = { ...prev };
           delete newChanges[lastCustomEntry.summary_id];
           return newChanges;
         });
       } else {
-        // Real entry - queue for deletion (will be executed on Save)
         setPendingActions(prev => [...prev, { 
           type: 'remove', 
           year,
           summaryId: lastCustomEntry.summary_id 
         }]);
-        // Also remove from local changes if it was edited
         setLocalChanges(prev => {
           const newChanges = { ...prev };
           delete newChanges[lastCustomEntry.summary_id];
@@ -151,7 +148,6 @@ const CapitalCalls = ({
     
     const formattedDate = formatDateForAPI(newDate);
     
-    // Update optimistic data
     setOptimisticData(prev => prev.map(r => 
       r.summary_id === row.summary_id ? { ...r, date: formattedDate } : r
     ));
@@ -166,32 +162,36 @@ const CapitalCalls = ({
     setIsSaving(true);
     
     try {
-      // Execute all pending remove actions first
+      // Execute pending remove actions
       const removeActions = pendingActions.filter(a => a.type === 'remove');
       for (const action of removeActions) {
-        await onDeleteEntry(action.summaryId);
+        // Use internal hook function
+        await deleteEntry(action.summaryId);
       }
 
-      // Execute all pending add actions
+      // Execute pending add actions
       const addActions = pendingActions.filter(a => a.type === 'add');
       for (const action of addActions) {
-        await onCreateDate(action.payload);
+        // Use internal hook function
+        await createCustomDate(action.payload);
       }
 
-      // Execute date changes (only for real entries, not temp ones)
+      // Execute date changes
       const realChanges = Object.entries(localChanges).filter(
         ([id]) => !id.startsWith('temp_')
       );
       
       for (const [id, updateData] of realChanges) {
-        await onSave({ [id]: updateData });
+        // Use internal hook function
+        await updateEntry(id, { date: updateData.date });
       }
 
-      // Clear pending actions and changes
+      // Refresh data after all operations
+      await refresh();
+
       setPendingActions([]);
       setLocalChanges({});
 
-      // Show success toast
       const totalChanges = removeActions.length + addActions.length + realChanges.length;
       if (totalChanges > 0) {
         setToast({
@@ -204,7 +204,7 @@ const CapitalCalls = ({
     } catch (err) {
       console.error('Save failed:', err);
       // Revert optimistic updates on error
-      setOptimisticData(data);
+      if (data) setOptimisticData(data);
       setPendingActions([]);
       setLocalChanges({});
       setToast({
@@ -220,7 +220,7 @@ const CapitalCalls = ({
   const hasUnsavedChanges = pendingActions.length > 0 || Object.keys(localChanges).length > 0;
   const totalPendingChanges = pendingActions.length + Object.keys(localChanges).length;
 
-  if (loading) {
+  if (loading && optimisticData.length === 0) {
     return (
       <div className="ff-capital-calls-container">
         <div className="ff-capital-calls-loading" style={{ padding: '40px', textAlign: 'center' }}>
@@ -240,19 +240,25 @@ const CapitalCalls = ({
     );
   }
 
-  if (data.length === 0) {
+  if (!optimisticData || optimisticData.length === 0) {
     return (
       <div className="ff-capital-calls-container">
         <div style={{ padding: '40px', textAlign: 'center' }}>
           No capital calls found
         </div>
+        {/* Helper button to add first entry if needed */}
+         <div style={{ textAlign: 'center', marginTop: '10px' }}>
+             <button onClick={() => handleAddClick(new Date().getFullYear())}>
+                Add Entry
+             </button>
+         </div>
       </div>
     );
   }
 
   return (
     <div className="ff-capital-calls-container"> 
-      <div className="ff-capital-calls-responsive-wrapper">   
+      <div className="ff-capital-calls-responsive-wrapper">    
         <table className="ff-capital-calls-table">
           <thead>
             <tr>
@@ -260,30 +266,15 @@ const CapitalCalls = ({
               <th className="ff-capital-calls-th ff-capital-calls-th-left">
                 <div className="ff-capital-calls-th-content">Date <SortIcon /></div>
               </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Flows (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Investment (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Management Fees (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Structuring Fees (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Due diligence (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Opex (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Other (€) <SortIcon /></div>
-              </th>
-              <th className="ff-capital-calls-th ff-capital-calls-th-right">
-                <div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">% Capital Called <SortIcon /></div>
-              </th>
+              {/* ... Headers remain same ... */}
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Flows (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Investment (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Management Fees (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Structuring Fees (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Due diligence (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Opex (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">Other (€) <SortIcon /></div></th>
+               <th className="ff-capital-calls-th ff-capital-calls-th-right"><div className="ff-capital-calls-th-content ff-capital-calls-th-right-align">% Capital Called <SortIcon /></div></th>
             </tr>
           </thead>
           
@@ -307,7 +298,7 @@ const CapitalCalls = ({
                                               onClick={() => handleAddClick(year)}
                                               title="Add new date"
                                             >
-                                              <PlusIcon />
+                                                <PlusIcon />
                                             </button>
                                             <span className="ff-capital-calls-row-count">{rows.length}</span>
                                             <button 
@@ -315,7 +306,7 @@ const CapitalCalls = ({
                                               onClick={() => handleRemoveClick(year)}
                                               title="Delete last custom date"
                                             >
-                                              <MinusIcon />
+                                                <MinusIcon />
                                             </button>
                                         </div>
                                     </div>

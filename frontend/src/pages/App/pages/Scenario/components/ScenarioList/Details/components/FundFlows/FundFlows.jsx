@@ -1,4 +1,3 @@
-// FundFlows.js - Updated
 import React, { useState } from 'react';
 import './FundFlows.css';
 
@@ -6,72 +5,33 @@ import './FundFlows.css';
 import AllOperations from './AllOperations/AllOperations';
 import CapitalCalls from './CapitalCalls/CapitalCalls';
 import Distributions from './Distributions/Distributions';
-import AddOperation from './AddOperation/AddOperation'; 
-import { useScenarioFFDistribution } from './utils/useScenarioFFDistribution';
-import { useScenarioFFCapitalCall } from './utils/useScenarioFFCapitalCall';
-import { useScenarioFFAllOperations } from './utils/useScenarioFFAllOperations';
+import AddOperation from './AddOperation/AddOperation';
 import Toast from '../../../../../../../components/Toast/Toast';
+import { PlusIcon } from './Icons';
 
-import { DownloadIcon, PlusIcon } from './Icons';
+// Hooks
+import { useScenarioFFCapitalCall } from './CapitalCalls/useScenarioFFCapitalCall';
 
 function FundFlows({ fundId, scenarioId }) {
   const [activeView, setActiveView] = useState('all_operations');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [toast, setToast] = useState(null);
 
-  // Fetch distribution data from API
-  const { 
-    distributions, 
-    loading: distLoading, 
-    error: distError 
-  } = useScenarioFFDistribution(fundId, scenarioId);
+  // Hook instance used ONLY for the 'Add Operation' modal logic (creating the entry)
+  // The actual list display is handled by the children
+  const { createCustomDate } = useScenarioFFCapitalCall(fundId, scenarioId);
 
-  // Fetch capital call data from API
-  const { 
-    capitalCalls, 
-    loading: ccLoading, 
-    error: ccError,
-    createCustomDate,
-    deleteEntry,
-    updateEntry,
-    refresh
-  } = useScenarioFFCapitalCall(fundId, scenarioId);
-
-  // Handle save for capital calls
-  const handleCapitalCallSave = async (changes) => {
-    try {
-      for (const [id, updateData] of Object.entries(changes)) {
-        await updateEntry(id, { date: updateData.date });
-      }
-      
-      await refresh(); // Refresh data after save
-      
-      setToast({
-        type: 'success',
-        title: 'Changes saved',
-        message: `${Object.keys(changes).length} date${Object.keys(changes).length > 1 ? 's' : ''} updated successfully`
-      });
-      
-      return true;
-    } catch (err) {
-      console.error('Save failed:', err);
-      setToast({
-        type: 'error',
-        title: 'Save failed',
-        message: 'Unable to save changes. Please try again.'
-      });
-      return false;
-    }
-  };
-
-  // Handle modal save (create new operation)
-  const handleModalCreateOperation = async () => {
-    await refresh(); // Refresh to show new entry
+  // Handle modal save (Creation of new operation)
+  const handleModalCreateOperation = () => {
+    // 1. Signal ALL children to refresh 
+    // (CapitalCalls, Distributions, and AllOperations will all catch this)
+    setRefreshTrigger(prev => prev + 1);
     
     setToast({
       type: 'success',
       title: 'Operation created',
-      message: 'New capital call entry added successfully'
+      message: 'New entry added successfully'
     });
   };
 
@@ -79,24 +39,23 @@ function FundFlows({ fundId, scenarioId }) {
     switch (activeView) {
       case 'calls': 
         return <CapitalCalls 
-                  fundId={fundId}
-                  scenarioId={scenarioId}
-                  data={capitalCalls}
-                  loading={ccLoading}
-                  error={ccError}
-                  onCreateDate={createCustomDate}
-                  onDeleteEntry={deleteEntry}
-                  onSave={handleCapitalCallSave}
+                 fundId={fundId}
+                 scenarioId={scenarioId}
+                 refreshTrigger={refreshTrigger}
                />;
       case 'dist': 
         return <Distributions 
-                  data={distributions}
-                  loading={distLoading}
-                  error={distError}
+                 fundId={fundId} 
+                 scenarioId={scenarioId} 
+                 refreshTrigger={refreshTrigger} 
                />;
       case 'all_operations':
       default: 
-        return <AllOperations data={[...capitalCalls, ...distributions]} />;
+        return <AllOperations 
+                 fundId={fundId} 
+                 scenarioId={scenarioId} 
+                 refreshTrigger={refreshTrigger}
+               />;
     }
   };
 
@@ -149,7 +108,9 @@ function FundFlows({ fundId, scenarioId }) {
         fundId={fundId}
         scenarioId={scenarioId}
         onCreateDate={async (payload) => {
+          // Use hook to create data on server
           await createCustomDate(payload);
+          // Trigger the UI refresh
           handleModalCreateOperation();
         }}
       />

@@ -139,6 +139,11 @@ urlpatterns = [
         ViewScenarioFundflowsAllOperationsViewSet.as_view({'get': 'list'}),
         name='scenario-all-operations-list'
     ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/ff-all-operations/<int:all_operations_id>/',
+        ViewScenarioFundflowsAllOperationsViewSet.as_view({'get': 'retrieve'}),
+        name='scenario-all-operations-detail'
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

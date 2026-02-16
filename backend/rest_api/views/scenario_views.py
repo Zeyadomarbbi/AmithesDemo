@@ -364,12 +364,26 @@ class ScenarioFundflowsCapitalcallSummaryViewSet(viewsets.ModelViewSet):
     
 class ViewScenarioFundflowsAllOperationsViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Read-only viewset for all fund flow operations (capital calls + distributions)
+    Read-only viewset for all fund flow operations (capital calls + distributions).
+    Excludes hidden 'projected_placeholder' entries.
     """
     serializer_class = ViewScenarioFundflowsAllOperationsSerializer
+    # Tell DRF to use all_operations_id for single object lookups (detail views)
+    lookup_field = 'all_operations_id'
     
     def get_queryset(self):
         scenario_id = self.kwargs.get('scenario_id')
-        return ViewScenarioFundflowsAllOperations.objects.filter(
-            scenario_id=scenario_id
-        )
+        fund_id = self.kwargs.get('fund_id')
+        
+        queryset = ViewScenarioFundflowsAllOperations.objects.all()
+        
+        if scenario_id:
+            queryset = queryset.filter(scenario_id=scenario_id)
+        if fund_id:
+            queryset = queryset.filter(fund_id=fund_id)
+            
+        # Exclude the placeholder rows
+        queryset = queryset.exclude(source_type='projected_placeholder')
+            
+        # Ensure consistent ordering by date, then by ID to prevent pagination jitter
+        return queryset.order_by('date', 'all_operations_id')

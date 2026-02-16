@@ -18,7 +18,7 @@ export const useScenarioFFAllOperations = (fundId, scenarioId) => {
       setError(null);
 
       const response = await axios.get(
-        `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/all-operations/`
+        `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-all-operations/`
       );
 
       setAllOperations(response.data || []);

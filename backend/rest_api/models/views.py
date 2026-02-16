@@ -102,8 +102,10 @@ class ScenarioFundflowsCapitalcallSummary(models.Model):
         return f"Capital Call {self.date} - {self.flows}"
     
 class ViewScenarioFundflowsAllOperations(models.Model):
+    all_operations_id = models.BigIntegerField(primary_key=True)
     fund_id = models.BigIntegerField()
     scenario_id = models.BigIntegerField()
+    source_type = models.CharField(max_length=50)
     date = models.DateField()
     flows = models.DecimalField(max_digits=20, decimal_places=2)
     flow_type = models.CharField(max_length=50)  # 'capital_call' or 'distribution'

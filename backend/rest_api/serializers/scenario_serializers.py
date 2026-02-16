@@ -304,9 +304,11 @@ class ViewScenarioFundflowsAllOperationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ViewScenarioFundflowsAllOperations
         fields = [
+            'all_operations_id',
             'fund_id',
             'scenario_id',
             'date',
+            'source_type',
             'flows',
             'flow_type',
             'summary_id',
