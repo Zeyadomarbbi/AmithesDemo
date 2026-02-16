@@ -134,6 +134,11 @@ urlpatterns = [
         }),
         name='scenario-capitalcall-summary-detail'
     ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/ff-all-operations/',
+        ViewScenarioFundflowsAllOperationsViewSet.as_view({'get': 'list'}),
+        name='scenario-all-operations-list'
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

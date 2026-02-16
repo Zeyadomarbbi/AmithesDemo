@@ -9,6 +9,7 @@ import Distributions from './Distributions/Distributions';
 import AddOperation from './AddOperation/AddOperation'; 
 import { useScenarioFFDistribution } from './utils/useScenarioFFDistribution';
 import { useScenarioFFCapitalCall } from './utils/useScenarioFFCapitalCall';
+import { useScenarioFFAllOperations } from './utils/useScenarioFFAllOperations';
 import Toast from '../../../../../../../components/Toast/Toast';
 
 import { DownloadIcon, PlusIcon } from './Icons';

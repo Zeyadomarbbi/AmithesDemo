@@ -8,7 +8,13 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import connection
 
-from ..models.views import ViewMasterManFees, ViewMasterScenarioGains, ScenarioFundflowsDistributionSummary, ScenarioFundflowsCapitalcallSummary
+from ..models.views import (
+    ViewMasterManFees, 
+    ViewMasterScenarioGains, 
+    ScenarioFundflowsDistributionSummary, 
+    ScenarioFundflowsCapitalcallSummary, 
+    ViewScenarioFundflowsAllOperations
+)
 from ..models.transactions import (
     ScenarioList, 
     ScenarioSynthesis, 
@@ -18,7 +24,7 @@ from ..models.transactions import (
     ScenarioDueDiligenceFee, 
     ManFeeTranche,
     ScenarioFinancialsProjection
-    )
+)
 from ..serializers.scenario_serializers import (
     ScenarioSerializer, 
     ScenarioSynthesisSerializer, 
@@ -29,8 +35,9 @@ from ..serializers.scenario_serializers import (
     ViewMasterScenarioGainsSerializer,
     ScenarioFinancialsProjectionSerializer,
     ScenarioFundflowsDistributionSummarySerializer,
-    ScenarioFundflowsCapitalcallSummarySerializer
-    )
+    ScenarioFundflowsCapitalcallSummarySerializer,
+    ViewScenarioFundflowsAllOperationsSerializer
+)
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
 
 class FundScenarioListView(APIView):
@@ -354,3 +361,15 @@ class ScenarioFundflowsCapitalcallSummaryViewSet(viewsets.ModelViewSet):
             )
         
         return super().destroy(request, *args, **kwargs)
+    
+class ViewScenarioFundflowsAllOperationsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset for all fund flow operations (capital calls + distributions)
+    """
+    serializer_class = ViewScenarioFundflowsAllOperationsSerializer
+    
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_id')
+        return ViewScenarioFundflowsAllOperations.objects.filter(
+            scenario_id=scenario_id
+        )

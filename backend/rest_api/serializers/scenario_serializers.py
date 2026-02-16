@@ -5,7 +5,8 @@ from ..models.views import (
     ViewMasterManFees, 
     ViewMasterScenarioGains, 
     ScenarioFundflowsDistributionSummary, 
-    ScenarioFundflowsCapitalcallSummary
+    ScenarioFundflowsCapitalcallSummary,
+    ViewScenarioFundflowsAllOperations
 )
 from ..models.transactions import (
     ScenarioList, 
@@ -298,3 +299,20 @@ class ScenarioFundflowsCapitalcallSummarySerializer(serializers.ModelSerializer)
             'updated_at'
         ]
         read_only_fields = ['summary_id', 'flows', 'pct_capital_called', 'updated_at']
+
+class ViewScenarioFundflowsAllOperationsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ViewScenarioFundflowsAllOperations
+        fields = [
+            'fund_id',
+            'scenario_id',
+            'date',
+            'flows',
+            'flow_type',
+            'summary_id',
+            'total_commitment',
+            'pct_capital_called',
+            'pct_distributed',
+            'dpi'
+        ]
+        read_only_fields = fields  # All fields are read-only

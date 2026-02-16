@@ -100,3 +100,19 @@ class ScenarioFundflowsCapitalcallSummary(models.Model):
 
     def __str__(self):
         return f"Capital Call {self.date} - {self.flows}"
+    
+class ViewScenarioFundflowsAllOperations(models.Model):
+    fund_id = models.BigIntegerField()
+    scenario_id = models.BigIntegerField()
+    date = models.DateField()
+    flows = models.DecimalField(max_digits=20, decimal_places=2)
+    flow_type = models.CharField(max_length=50)  # 'capital_call' or 'distribution'
+    summary_id = models.BigIntegerField()
+    total_commitment = models.DecimalField(max_digits=20, decimal_places=2)
+    pct_capital_called = models.DecimalField(max_digits=10, decimal_places=2)
+    pct_distributed = models.DecimalField(max_digits=10, decimal_places=2)
+    dpi = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        managed = False
+        db_table = 'view_scenario_fundflows_all_operations'
