@@ -64,60 +64,54 @@ class Command(BaseCommand):
         # ==============================================================================
         # 0.5. FETCH REALIZED SPLITS & HURDLE CONFIG
         # ==============================================================================
-        self.stdout.write("\n[0.5] REALIZED CONFIG & HURDLE RULES")
+        self.stdout.write("\n[0.5] REALIZED CONFIG & WATERFALL STEPS")
         self.stdout.write("-" * 100)
         
-        # A. Realized Lookups
+        # A. Realized Lookups (Kept as is)
         query_realized = """
-            SELECT 
-                d.due_date,
-                sc.share_class_name,
-                SUM(a.capital_call) as total_amount
+            SELECT d.due_date, sc.share_class_name, SUM(a.capital_call)
             FROM lps_operation_lp_allocations a
             JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
             JOIN share_class sc ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY d.due_date, sc.share_class_name;
+            WHERE d.fund_id = %s GROUP BY d.due_date, sc.share_class_name;
         """
         realized_lookup = {}
         with connection.cursor() as cursor:
             cursor.execute(query_realized, [fund_id])
             for row in cursor.fetchall():
-                r_date = str(row[0])
-                r_class = row[1]
-                r_amount = float(row[2]) if row[2] else 0.0
+                r_date, r_class, r_amount = str(row[0]), row[1], float(row[2]) if row[2] else 0.0
                 if r_date not in realized_lookup: realized_lookup[r_date] = {}
                 realized_lookup[r_date][r_class] = r_amount
 
-        # B. Hurdle Configuration (Rate & Flags)
-        hurdle_rate = 0.08 # Default
-        flag_class_a = True
-        flag_class_b = False
+        # B. Waterfall Steps Configuration (Dynamic for all steps)
+        # Structure: waterfall_config[step_number] = {'rate': 0.08, 'classes': ['Class A']}
+        waterfall_config = {}
 
-        # Fetch Step 2 (Hurdle) Config
-        step2 = FundWaterfallSteps.objects.filter(
-            fund_id=fund_id, 
-            step_definition__step_number=2
-        ).first()
+        all_steps = FundWaterfallSteps.objects.filter(fund_id=fund_id).select_related('step_definition')
 
-        if step2:
-            if step2.step_rate is not None:
-                hurdle_rate = float(step2.step_rate) / 100.0
+        for step in all_steps:
+            s_num = step.step_definition.step_number
+            s_rate = float(step.step_rate) / 100.0 if step.step_rate is not None else 0.0
             
-            # Check Rules
-            rules = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step2, is_selected=True).select_related('share_class')
-            # Reset defaults if rules exist
-            if rules.exists():
-                flag_class_a = False
-                flag_class_b = False
-                for r in rules:
-                    if "Class A" in r.share_class.share_class_name: flag_class_a = True
-                    if "Class B" in r.share_class.share_class_name: flag_class_b = True
-        
-        print(f" > Hurdle Rate: {hurdle_rate:.2%}")
-        print(f" > Include Class A in Hurdle: {flag_class_a}")
-        print(f" > Include Class B in Hurdle: {flag_class_b}")
+            # Fetch active share classes for this specific step
+            active_classes = list(FundWaterfallStepRules.objects.filter(
+                fund_waterfall_step=step, 
+                is_selected=True
+            ).values_list('share_class__share_class_name', flat=True))
 
+            waterfall_config[s_num] = {
+                'name': step.step_name,
+                'rate': s_rate,
+                'classes': active_classes
+            }
+
+            self.stdout.write(f" > Step {s_num} [{step.step_name}]: Rate={s_rate:.2%}, Classes={active_classes}")
+
+        # Default fallback for Hurdle (Step 2) logic if not found in DB
+        hurdle_rate = waterfall_config.get(2, {}).get('rate', 0.08)
+        hurdle_classes = waterfall_config.get(2, {}).get('classes', ['Class A'])
+        flag_class_a = any("Class A" in c for c in hurdle_classes)
+        flag_class_b = any("Class B" in c for c in hurdle_classes)
 
         # ==============================================================================
         # 1. GENERATE CASH FLOW SKELETON
