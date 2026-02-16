@@ -47,7 +47,7 @@ const CapitalCalls = ({
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
     const [year, month, day] = dateStr.split('-');
-    return new Date(year, month - 1, day);
+    return new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0);
   };
 
   const formatDateForAPI = (dateObj) => {
@@ -162,27 +162,33 @@ const CapitalCalls = ({
     setIsSaving(true);
     
     try {
-      // Execute pending remove actions
+      // 1. Execute pending remove actions
       const removeActions = pendingActions.filter(a => a.type === 'remove');
       for (const action of removeActions) {
-        // Use internal hook function
         await deleteEntry(action.summaryId);
       }
 
-      // Execute pending add actions
+      // 2. Execute pending add actions (FIXED)
       const addActions = pendingActions.filter(a => a.type === 'add');
       for (const action of addActions) {
-        // Use internal hook function
-        await createCustomDate(action.payload);
+        // Check if this new entry was edited in 'localChanges' before saving
+        const userEditedData = localChanges[action.tempId];
+        
+        // If user edited the date, use that. Otherwise use the default payload.
+        const finalPayload = userEditedData 
+          ? { ...action.payload, date: userEditedData.date } 
+          : action.payload;
+
+        await createCustomDate(finalPayload);
       }
 
-      // Execute date changes
+      // 3. Execute date changes for EXISTING rows only
+      // We filter out 'temp_' IDs because those changes were just handled above in step 2
       const realChanges = Object.entries(localChanges).filter(
         ([id]) => !id.startsWith('temp_')
       );
       
       for (const [id, updateData] of realChanges) {
-        // Use internal hook function
         await updateEntry(id, { date: updateData.date });
       }
 
@@ -205,8 +211,9 @@ const CapitalCalls = ({
       console.error('Save failed:', err);
       // Revert optimistic updates on error
       if (data) setOptimisticData(data);
-      setPendingActions([]);
-      setLocalChanges({});
+      // Optional: keep local changes so user doesn't lose work on error
+      // setPendingActions([]); 
+      // setLocalChanges({});
       setToast({
         type: 'error',
         title: 'Save failed',
