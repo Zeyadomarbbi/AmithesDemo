@@ -248,28 +248,194 @@ class Command(BaseCommand):
         df['Cumul flows w/ Int'] = w_list
         df['Total Interests'] = x_list
         df['Nominal Repayment'] = nr_list
+                # ==============================================================================
+        # 3. CALCULATE HURDLE
+        # ==============================================================================
+        
+        hurdle_list = []
+        sum_hurdle = 0.0
+        
+        # Get final total interests (sum across all rows)
+        total_total_interests = sum(x_list)
+        
+        for index, row in df.iterrows():
+            current_x = x_list[index]
+            current_nominal_repayment = nr_list[index]
+            current_flow = row['flow_amount']
+            
+            # Cumulative values up to current row
+            cumul_nominal_repayment = sum(nr_list[:index+1])
+            cumul_capital_call = row['cumulated_capital_call']
+            cumul_distribution = row['cumulated_distribution']
+            
+            # Branch 1: Total Interests not yet fully paid
+            if current_x > 0:
+                hurdle = -(current_x + sum_hurdle)
+            # Branch 2: Capital fully returned
+            elif abs(cumul_nominal_repayment) >= cumul_capital_call - 0.01:
+                # Check if all interests paid
+                if abs(total_total_interests + sum_hurdle) < 0.01:
+                    hurdle = 0.0
+                else:
+                    arg1 = -(cumul_distribution - cumul_capital_call)
+                    arg2 = current_flow - current_nominal_repayment
+                    hurdle = max(arg1, arg2)
+            # Branch 3: Default
+            else:
+                hurdle = 0.0
+            
+            hurdle_list.append(hurdle)
+            sum_hurdle += hurdle
+        
+        df['Hurdle'] = hurdle_list
+        catchup_rate = waterfall_config.get(3, {}).get('rate', 0.25)
 
+        catchup_list = []
+
+        for index, row in df.iterrows():
+            cumul_hurdle = sum(hurdle_list[:index+1])
+            cumul_total_interests = sum(x_list[:index+1])
+            current_total_interests = x_list[index]
+            
+            # Check if all hurdle paid (cumulative hurdle = -cumulative total interests)
+            if abs(cumul_hurdle + cumul_total_interests) < 0.01:
+                catchup = -catchup_rate * current_total_interests
+            else:
+                catchup = 0.0
+            
+            catchup_list.append(catchup)
+
+        df['Catch-up'] = catchup_list
+        special_return_list = []
+        for index, row in df.iterrows():
+            cumul_catchup = sum(catchup_list[:index+1])
+            current_flow = row['flow_amount']
+            current_nominal_repayment = nr_list[index]
+            current_hurdle = hurdle_list[index]
+            current_catchup = catchup_list[index]
+            
+            # Branch 1: Cumulative catch-up = 0
+            if abs(cumul_catchup) < 0.01:
+                special_return = 0.0
+            # Branch 2: Current flow is distribution
+            elif current_flow < 0:
+                # Sum of all waterfall payments at current row
+                waterfall_payments = current_nominal_repayment + current_hurdle + current_catchup
+                special_return = current_flow - waterfall_payments
+            else:
+                special_return = 0.0
+            
+            special_return_list.append(special_return)
+
+        df['Special Return'] = special_return_list
+        # ==============================================================================
+        # 4. WATERFALL ALLOCATION SUMMARY
+        # ==============================================================================
+        self.stdout.write("\n[4] WATERFALL ALLOCATION SUMMARY")
+        self.stdout.write("="*100)
+        
+        # Calculate totals
+        total_distributions = df[df['type'] == 'distribution']['flow_amount'].abs().sum()
+        total_capital_called = df[df['type'] == 'capital_call']['flow_amount'].sum()
+        
+        nominal_remaining = total_distributions
+        nominal_to_deduct = min(-df['Nominal Repayment'].sum(), total_capital_called)
+        hurdle_remaining = max(0, nominal_remaining - nominal_to_deduct)
+        hurdle_to_deduct = min(-df['Hurdle'].sum(), hurdle_remaining)
+        catchup_remaining = max(0, hurdle_remaining - hurdle_to_deduct)
+        catchup_to_deduct = min(-df['Catch-up'].sum(), catchup_remaining)
+        special_remaining = max(0, catchup_remaining - catchup_to_deduct)
+        special_to_deduct = special_remaining
+
+
+        self.stdout.write(f"\n[STEP 1] NOMINAL REPAYMENT")
+        self.stdout.write("-" * 100)
+        self.stdout.write(f"{'Remaining':<30}: {nominal_remaining:>20,.2f}")
+        self.stdout.write(f"{'To Deduct':<30}: {nominal_to_deduct:>20,.2f}")
+        
+        # Get active classes for Step 1
+        step1_classes = waterfall_config.get(1, {}).get('classes', list(ratios.keys()))
+        for class_name in step1_classes:
+            if class_name in ratios:
+                class_allocation = nominal_to_deduct * ratios[class_name]
+                self.stdout.write(f"{class_name:<30}: {class_allocation:>20,.2f}")
+        
+        # Step 2: Hurdle
+
+        self.stdout.write(f"\n[STEP 2] HURDLE")
+        self.stdout.write("-" * 100)
+        self.stdout.write(f"{'Remaining':<30}: {hurdle_remaining:>20,.2f}")
+        self.stdout.write(f"{'To Deduct':<30}: {hurdle_to_deduct:>20,.2f}")
+        
+        # Get active classes for Step 2
+        step2_classes = waterfall_config.get(2, {}).get('classes', [])
+        # Calculate total ratio for active classes only
+        active_ratio_sum = sum(ratios.get(c, 0) for c in step2_classes)
+        for class_name in step2_classes:
+            if class_name in ratios and active_ratio_sum > 0:
+                # Normalize ratio among active classes
+                normalized_ratio = ratios[class_name] / active_ratio_sum
+                class_allocation = hurdle_to_deduct * normalized_ratio
+                self.stdout.write(f"{class_name:<30}: {class_allocation:>20,.2f}")
+        
+        # Step 3: Catch-up
+
+
+        self.stdout.write(f"\n[STEP 3] CATCH-UP")
+        self.stdout.write("-" * 100)
+        self.stdout.write(f"{'Remaining':<30}: {catchup_remaining:>20,.2f}")
+        self.stdout.write(f"{'To Deduct':<30}: {catchup_to_deduct:>20,.2f}")
+        
+        # Get active classes for Step 3
+        step3_classes = waterfall_config.get(3, {}).get('classes', [])
+        active_ratio_sum = sum(ratios.get(c, 0) for c in step3_classes)
+        for class_name in step3_classes:
+            if class_name in ratios and active_ratio_sum > 0:
+                normalized_ratio = ratios[class_name] / active_ratio_sum
+                class_allocation = catchup_to_deduct * normalized_ratio
+                self.stdout.write(f"{class_name:<30}: {class_allocation:>20,.2f}")
+        
+        # Step 4: Special Return
+
+        
+        self.stdout.write(f"\n[STEP 4] SPECIAL RETURN")
+        self.stdout.write("-" * 100)
+        self.stdout.write(f"{'Remaining':<30}: {special_remaining:>20,.2f}")
+        self.stdout.write(f"{'To Deduct':<30}: {special_to_deduct:>20,.2f}")
+        
+        # Get active classes for Step 4
+        step4_classes = waterfall_config.get(4, {}).get('classes', list(ratios.keys()))
+        if step4_classes:
+            active_ratio_sum = sum(ratios.get(c, 0) for c in step4_classes)
+            for class_name in step4_classes:
+                if class_name in ratios and active_ratio_sum > 0:
+                    normalized_ratio = ratios[class_name] / active_ratio_sum
+                    class_allocation = special_to_deduct * normalized_ratio
+                    self.stdout.write(f"{class_name:<30}: {class_allocation:>20,.2f}")
+        
         # ---------------------------------------------------------
         # FORMAT OUTPUT
         # ---------------------------------------------------------
+        self.stdout.write("\n" + "="*100)
+        self.stdout.write("\n[5] DETAILED CASH FLOW TABLE")
+        self.stdout.write("-" * 100 + "\n")
+        
         df_preview = df[[
-            'date', 'operation_name', 'flow_amount', 'cumulated_flows', 
+            'date', 'operation_name', 'type', 'flow_amount', 'cumulated_flows', 
             'Flows Class A', 'Flows Class B',
             'Interests', 'Cumul flows w/ Int', 'Total Interests',
-            'cumulated_capital_call', 'cumulated_distribution', 'Nominal Repayment'
+            'cumulated_capital_call', 'cumulated_distribution', 
+            'Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return'
         ]].copy()
-
         df_preview.columns = [
-            'Date', 'Name of Operation', 'Flows', 'Cumul Flows', 
+            'Date', 'Name of Operation', 'Type', 'Flows', 'Cumul Flows', 
             'Class A', 'Class B',
             'Interests', 'Cumulated Interests', 'Total Interests',
-            'Cumulated Capital Call', 'Cumulated Distribution', 'Nominal Repayment'
+            'Cumulated Capital Call', 'Cumulated Distribution', 
+            'Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return'
         ]
-
         def fmt(x): return '{:,.2f}'.format(x)
-
-        for col in df_preview.columns[2:]: # Format all numeric columns
+        for col in df_preview.columns[3:]: # Format all numeric columns
             df_preview[col] = df_preview[col].apply(fmt)
-
         print(df_preview.to_string(index=False))
         print("-" * 120 + "\n")
