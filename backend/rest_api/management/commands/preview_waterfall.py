@@ -142,6 +142,127 @@ class Command(BaseCommand):
 
         return realized, config
 
+    def calculate_kpis(self, df, waterfall_config, ratios, share_class_names,
+                       nominal_remaining, nominal_to_deduct,
+                       hurdle_remaining, hurdle_to_deduct,
+                       catchup_remaining, catchup_to_deduct,
+                       special_remaining, special_to_deduct):
+        """
+        Builds and returns a KPI dict structured as:
+
+        {
+            'nominal_repayment': {
+                'remaining': float,
+                'to_deduct': float,
+                'class_allocations': { 'Class A': float, 'Class B': float, ... }
+            },
+            'hurdle': {
+                'remaining': float,
+                'to_deduct': float,
+                'class_allocations': { 'Class A': float, ... }
+            },
+            'catch_up': {
+                'remaining': float,
+                'to_deduct': float,
+                'envelopes': {
+                    1: { 'amount': float, 'class_allocations': { 'Class B': float, ... } },
+                    2: { 'amount': float, 'class_allocations': { ... } },
+                }
+            },
+            'special_return': {
+                'remaining': float,
+                'to_deduct': float,
+                'envelopes': {
+                    1: { 'amount': float, 'class_allocations': { 'Class A': float, ... } },
+                    2: { 'amount': float, 'class_allocations': { 'Class B': float, ... } },
+                }
+            }
+        }
+
+        For steps with only direct_rules (Nominal, Hurdle): allocation is split pro-rata
+        among active classes using their commitment ratios, normalized to active-class sum.
+
+        For steps with envelopes (Catch-up, Special Return): each envelope receives
+        (envelope.alloc * to_deduct), then that amount is split pro-rata among the
+        envelope's classes. Direct rules on the same step (if any) are allocated from
+        the remainder not covered by envelopes.
+        """
+
+        def allocate_by_direct_rules(amount, step_cfg):
+            """Allocate amount among direct_rules classes, normalized pro-rata."""
+            d_rules = step_cfg.get('direct_rules', {})
+            valid = [c for c in d_rules if c in ratios]
+            denom = sum(ratios.get(c, 0) for c in valid)
+            result = {}
+            for c in valid:
+                result[c] = amount * (ratios[c] / denom) if denom > 0 else 0.0
+            return result
+
+        def allocate_by_envelopes(amount, step_cfg):
+            """
+            For each envelope: envelope_amount = amount * envelope.alloc
+            Then split envelope_amount pro-rata among envelope's classes.
+            Returns dict keyed by envelope number.
+            """
+            envs = step_cfg.get('envelopes', [])
+            result = {}
+            for env in envs:
+                env_amount = amount * env['alloc']
+                valid = [c for c in env['rules'] if c in ratios]
+                denom = sum(ratios.get(c, 0) for c in valid)
+                class_allocs = {}
+                for c in valid:
+                    class_allocs[c] = env_amount * (ratios[c] / denom) if denom > 0 else 0.0
+                result[env['num']] = {
+                    'amount': env_amount,
+                    'class_allocations': class_allocs
+                }
+            return result
+
+        kpis = {}
+
+        # ------------------------------------------------------------------
+        # STEP 1 — NOMINAL REPAYMENT (direct rules only)
+        # ------------------------------------------------------------------
+        step1 = waterfall_config.get(1, {})
+        kpis['nominal_repayment'] = {
+            'remaining': nominal_remaining,
+            'to_deduct': nominal_to_deduct,
+            'class_allocations': allocate_by_direct_rules(nominal_to_deduct, step1)
+        }
+
+        # ------------------------------------------------------------------
+        # STEP 2 — HURDLE (direct rules only)
+        # ------------------------------------------------------------------
+        step2 = waterfall_config.get(2, {})
+        kpis['hurdle'] = {
+            'remaining': hurdle_remaining,
+            'to_deduct': hurdle_to_deduct,
+            'class_allocations': allocate_by_direct_rules(hurdle_to_deduct, step2)
+        }
+
+        # ------------------------------------------------------------------
+        # STEP 3 — CATCH-UP (envelope-based)
+        # ------------------------------------------------------------------
+        step3 = waterfall_config.get(3, {})
+        kpis['catch_up'] = {
+            'remaining': catchup_remaining,
+            'to_deduct': catchup_to_deduct,
+            'envelopes': allocate_by_envelopes(catchup_to_deduct, step3)
+        }
+
+        # ------------------------------------------------------------------
+        # STEP 4 — SPECIAL RETURN (envelope-based)
+        # ------------------------------------------------------------------
+        step4 = waterfall_config.get(4, {})
+        kpis['special_return'] = {
+            'remaining': special_remaining,
+            'to_deduct': special_to_deduct,
+            'envelopes': allocate_by_envelopes(special_to_deduct, step4)
+        }
+
+        return kpis
+
     def handle(self, *args, **options):
         fund_id = options['fund_id']
         scenario_id = options['scenario_id']
@@ -444,3 +565,64 @@ class Command(BaseCommand):
 
         print(df_preview.to_string(index=False))
         print("-" * 120 + "\n")
+
+        # ==============================================================================
+        # 6. KPIs
+        # ==============================================================================
+        kpis = self.calculate_kpis(
+            df=df,
+            waterfall_config=waterfall_config,
+            ratios=ratios,
+            share_class_names=share_class_names,
+            nominal_remaining=nominal_remaining,
+            nominal_to_deduct=nominal_to_deduct,
+            hurdle_remaining=hurdle_remaining,
+            hurdle_to_deduct=hurdle_to_deduct,
+            catchup_remaining=catchup_remaining,
+            catchup_to_deduct=catchup_to_deduct,
+            special_remaining=special_remaining,
+            special_to_deduct=special_to_deduct,
+        )
+
+        self.stdout.write("\n[6] KPI SUMMARY TABLE")
+        self.stdout.write("-" * 100)
+
+        def fmt(v):
+            try:
+                return f"{float(v):>20,.2f}"
+            except (TypeError, ValueError):
+                return f"{'N/A':>20}"
+
+        all_classes = list(share_class_names)
+
+        header = f"{'Step':<35} {'Remaining':>20} {'To Deduct':>20}"
+        for c in all_classes:
+            header += f"  {c:>20}"
+        self.stdout.write(header)
+        self.stdout.write("-" * len(header))
+
+        def print_row(label, remaining, to_deduct, class_allocs):
+            rem_str = fmt(remaining) if remaining != "" else f"{'':>20}"
+            ded_str = fmt(to_deduct) if to_deduct != "" else f"{'':>20}"
+            row = f"{label:<35}{rem_str}{ded_str}"
+            for c in all_classes:
+                row += fmt(class_allocs.get(c, 0.0))
+            self.stdout.write(row)
+
+        nr = kpis['nominal_repayment']
+        print_row("Nominal Repayment", nr['remaining'], nr['to_deduct'], nr['class_allocations'])
+
+        h = kpis['hurdle']
+        print_row("Hurdle", h['remaining'], h['to_deduct'], h['class_allocations'])
+
+        cu = kpis['catch_up']
+        print_row("Catch-up", cu['remaining'], "", {})
+        for env_num, env_data in cu['envelopes'].items():
+            print_row(f"  └─ Envelope {env_num}", "", env_data['amount'], env_data['class_allocations'])
+
+        sr = kpis['special_return']
+        print_row("Special Return", sr['remaining'], "", {})
+        for env_num, env_data in sr['envelopes'].items():
+            print_row(f"  └─ Envelope {env_num}", "", env_data['amount'], env_data['class_allocations'])
+
+        self.stdout.write("-" * len(header))
