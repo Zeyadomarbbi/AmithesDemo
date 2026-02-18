@@ -12,7 +12,8 @@ from rest_api.models.transactions import (
     FundWaterfallSteps,
     FundWaterfallStepRules,
     FundWaterfallEnvelopes,
-    FundWaterfallEnvelopeRules
+    FundWaterfallEnvelopeRules,
+    ScenarioPortfolioProjection
 )
 
 class Command(BaseCommand):
@@ -263,6 +264,27 @@ class Command(BaseCommand):
 
         return kpis
 
+    def fetch_portfolio_total_cost(self, fund_id, scenario_id):
+        """[0.75] PORTFOLIO TOTAL COST — returns total cost float.
+
+        Sums `cost` from scenario_portfolio_projections for all investments
+        under the given fund_id and scenario_id.
+        """
+        self.stdout.write("\n[0.75] PORTFOLIO TOTAL COST")
+        self.stdout.write("-" * 100)
+
+        qs = ScenarioPortfolioProjection.objects.filter(
+            fund_id=fund_id,
+            scenario_id=scenario_id
+        )
+
+        total_cost = sum(float(p.cost) for p in qs)
+
+        self.stdout.write(f" > Investments found : {qs.count()}")
+        self.stdout.write(f" > Total Cost        : {total_cost:>20,.2f}")
+
+        return total_cost
+
     def handle(self, *args, **options):
         fund_id = options['fund_id']
         scenario_id = options['scenario_id']
@@ -279,6 +301,11 @@ class Command(BaseCommand):
         # 0.5. FETCH REALIZED SPLITS & WATERFALL STEPS
         # ==============================================================================
         realized_lookup, waterfall_config = self.fetch_realized_and_config(fund_id)
+
+        # ==============================================================================
+        # 0.75. FETCH PORTFOLIO TOTAL COST
+        # ==============================================================================
+        portfolio_total_cost = self.fetch_portfolio_total_cost(fund_id, scenario_id)
 
         # Hurdle Configuration (Step 2)
         hurdle_rate = waterfall_config.get(2, {}).get('rate', 0.08)
@@ -482,6 +509,85 @@ class Command(BaseCommand):
         df['Special Return'] = special_return_list
 
         # ==============================================================================
+        # 3.5. CALCULATE IRR COLUMNS PER SHARE CLASS
+        # ==============================================================================
+        # Pre-compute KPIs here so IRR weights are available for the df columns.
+        # The same _kpis object is reused in section 6 for the summary table.
+
+        _total_distributions  = df[df['type'] == 'distribution']['flow_amount'].abs().sum()
+        _total_capital_called = df[df['type'] == 'capital_call']['flow_amount'].sum()
+
+        _nominal_remaining  = _total_distributions
+        _nominal_to_deduct  = min(-df['Nominal Repayment'].sum(), _total_capital_called)
+        _hurdle_remaining   = max(0, _nominal_remaining - _nominal_to_deduct)
+        _hurdle_to_deduct   = min(-df['Hurdle'].sum(),       _hurdle_remaining)
+        _catchup_remaining  = max(0, _hurdle_remaining  - _hurdle_to_deduct)
+        _catchup_to_deduct  = min(-df['Catch-up'].sum(),     _catchup_remaining)
+        _special_remaining  = max(0, _catchup_remaining - _catchup_to_deduct)
+        _special_to_deduct  = _special_remaining
+
+        _kpis = self.calculate_kpis(
+            df=df,
+            waterfall_config=waterfall_config,
+            ratios=ratios,
+            share_class_names=share_class_names,
+            nominal_remaining=_nominal_remaining,
+            nominal_to_deduct=_nominal_to_deduct,
+            hurdle_remaining=_hurdle_remaining,
+            hurdle_to_deduct=_hurdle_to_deduct,
+            catchup_remaining=_catchup_remaining,
+            catchup_to_deduct=_catchup_to_deduct,
+            special_remaining=_special_remaining,
+            special_to_deduct=_special_to_deduct,
+        )
+
+        def _step_class_weight(kpi_key, sc, envelope_based=False):
+            """
+            Fraction of a waterfall step that belongs to share class `sc`.
+            Direct-rule steps  : class_alloc / to_deduct
+            Envelope steps     : sum(env.class_alloc[sc]) / sum(env.amount)
+            Returns 0 when denominator is effectively 0.
+            """
+            entry = _kpis[kpi_key]
+            if not envelope_based:
+                numer = float(entry['class_allocations'].get(sc, 0.0))
+                denom = float(entry['to_deduct'])
+            else:
+                numer = sum(float(ed['class_allocations'].get(sc, 0.0)) for ed in entry['envelopes'].values())
+                denom = sum(float(ed['amount']) for ed in entry['envelopes'].values())
+            return numer / denom if abs(denom) > 0.01 else 0.0
+
+        for sc in share_class_names:
+            ratio_sc = ratios.get(sc, 0.0)
+
+            w_nominal = _step_class_weight('nominal_repayment', sc, envelope_based=False)
+            w_hurdle  = _step_class_weight('hurdle',            sc, envelope_based=False)
+            w_catchup = _step_class_weight('catch_up',          sc, envelope_based=True)
+            w_special = _step_class_weight('special_return',    sc, envelope_based=True)
+
+            irr_col = []
+            for _, row in df.iterrows():
+                flow_val = row['flow_amount']
+                if 'realized' in row['source_type'].lower():
+                    # Realized: IRR is the negative of the class split column
+                    irr_col.append(-row[f'Flows {sc}'])
+                else:
+                    if flow_val > 0:
+                        # Capital call: proportional to commitment ratio
+                        irr_col.append(-flow_val * ratio_sc)
+                    else:
+                        # Distribution: decomposed via waterfall step weights
+                        irr_val = (
+                            - row['Nominal Repayment'] * w_nominal
+                            - row['Hurdle']            * w_hurdle
+                            - row['Catch-up']          * w_catchup
+                            - row['Special Return']    * w_special
+                        )
+                        irr_col.append(irr_val)
+
+            df[f'IRR {sc}'] = irr_col
+
+        # ==============================================================================
         # 4. WATERFALL ALLOCATION SUMMARY
         # ==============================================================================
         self.stdout.write("\n[4] WATERFALL ALLOCATION SUMMARY")
@@ -545,6 +651,7 @@ class Command(BaseCommand):
         cols += ['Interests', 'Cumul flows w/ Int', 'Total Interests',
                  'cumulated_capital_call', 'cumulated_distribution',
                  'Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return']
+        cols += [f'IRR {sc}' for sc in share_class_names]
 
         df_preview = df[cols].copy()
 
@@ -569,20 +676,8 @@ class Command(BaseCommand):
         # ==============================================================================
         # 6. KPIs
         # ==============================================================================
-        kpis = self.calculate_kpis(
-            df=df,
-            waterfall_config=waterfall_config,
-            ratios=ratios,
-            share_class_names=share_class_names,
-            nominal_remaining=nominal_remaining,
-            nominal_to_deduct=nominal_to_deduct,
-            hurdle_remaining=hurdle_remaining,
-            hurdle_to_deduct=hurdle_to_deduct,
-            catchup_remaining=catchup_remaining,
-            catchup_to_deduct=catchup_to_deduct,
-            special_remaining=special_remaining,
-            special_to_deduct=special_to_deduct,
-        )
+        # _kpis already computed in section 3.5 — reuse directly
+        kpis = _kpis
 
         self.stdout.write("\n[6] KPI SUMMARY TABLE")
         self.stdout.write("-" * 100)
@@ -626,3 +721,145 @@ class Command(BaseCommand):
             print_row(f"  └─ Envelope {env_num}", "", env_data['amount'], env_data['class_allocations'])
 
         self.stdout.write("-" * len(header))
+        # ==============================================================================
+        # 7. SIMULATION RESULTS KPIs
+        # ==============================================================================
+
+        def xirr(cashflows, dates, guess=0.1):
+            """Newton-Raphson XIRR. Returns None if result is non-real or diverged."""
+            t0 = dates[0]
+            years = [(d - t0).days / 365.0 for d in dates]
+            def npv(r):
+                return sum(cf / (1 + r) ** t for cf, t in zip(cashflows, years))
+            def dnpv(r):
+                return sum(-t * cf / (1 + r) ** (t + 1) for cf, t in zip(cashflows, years))
+            try:
+                r = float(guess)
+                for _ in range(1000):
+                    f_val = npv(r)
+                    f_der = dnpv(r)
+                    if abs(f_der) < 1e-12:
+                        break
+                    r_new = r - f_val / f_der
+                    if abs(r_new - r) < 1e-8:
+                        r = r_new
+                        break
+                    r = r_new
+                # Validate: must be real, finite, and reasonable
+                r = float(r)
+                if not isinstance(r, float) or r != r or abs(r) > 1e6:
+                    return None
+                return r
+            except Exception:
+                return None
+
+        # --- Helper: get class total received (sum of positive IRR col values) ---
+        def class_total_received(sc):
+            return df[f'IRR {sc}'].clip(lower=0).sum()
+
+        def class_total_invested(sc):
+            return df[f'IRR {sc}'].clip(upper=0).abs().sum()
+
+        # --- Block 1: Allocation Table ---
+        def get_class_step_alloc(sc, kpi_key, envelope_based=False):
+            entry = kpis[kpi_key]
+            if not envelope_based:
+                return float(entry['class_allocations'].get(sc, 0.0))
+            else:
+                return sum(float(ed['class_allocations'].get(sc, 0.0)) for ed in entry['envelopes'].values())
+
+        alloc_rows = {}
+        for sc in share_class_names:
+            nr_a  = get_class_step_alloc(sc, 'nominal_repayment', False)
+            h_a   = get_class_step_alloc(sc, 'hurdle',            False)
+            cu_a  = get_class_step_alloc(sc, 'catch_up',          True)
+            sr_a  = get_class_step_alloc(sc, 'special_return',    True)
+            alloc_rows[sc] = {
+                'Nominal Repayment': nr_a,
+                'Hurdle':            h_a,
+                'Catch-up':          cu_a,
+                'Special Return':    sr_a,
+                'Total':             nr_a + h_a + cu_a + sr_a,
+            }
+
+        fund_alloc = {
+            'Nominal Repayment': float(kpis['nominal_repayment']['to_deduct']),
+            'Hurdle':            float(kpis['hurdle']['to_deduct']),
+            'Catch-up':          float(kpis['catch_up']['to_deduct']),
+            'Special Return':    float(kpis['special_return']['to_deduct']),
+        }
+        fund_alloc['Total'] = sum(fund_alloc.values())
+
+        # --- Block 2: TVPI & IRR ---
+        tvpi = {}
+        irr_pct = {}
+        dates_list = df['date'].dt.to_pydatetime().tolist()
+
+        for sc in share_class_names:
+            invested = class_total_invested(sc)
+            received = class_total_received(sc)
+            tvpi[sc] = received / invested if invested > 0 else 0.0
+            sc_flows = df[f'IRR {sc}'].tolist()
+            irr_pct[sc] = xirr(sc_flows, dates_list)
+
+        fund_invested = float(total_capital_called)
+        fund_received = float(total_distributions)
+        tvpi['Fund']   = fund_received / fund_invested if fund_invested > 0 else 0.0
+        fund_flows = df['flow_amount'].tolist()
+        irr_pct['Fund'] = xirr(fund_flows, dates_list)
+
+        # --- Block 3: Break-even ---
+        breakeven_hurdle  = (float(_nominal_to_deduct) + float(_hurdle_to_deduct)) / portfolio_total_cost if portfolio_total_cost > 0 else 0.0
+        breakeven_dpi_1x  = float(_nominal_to_deduct) / portfolio_total_cost if portfolio_total_cost > 0 else 0.0
+
+        # --- PRINT ---
+        self.stdout.write("\n" + "=" * 100)
+        self.stdout.write("\n[7] SIMULATION RESULTS KPIs")
+        self.stdout.write("=" * 100)
+
+        step_cols = ['Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return', 'Total']
+
+        def fmtc(v):
+            try:
+                f = float(v)
+                return f"{f:>18,.0f}" if abs(f) > 0.005 else f"{'  -':>18}"
+            except:
+                return f"{'N/A':>18}"
+
+        # Header
+        alloc_header = f"{'':>20}"
+        for col in step_cols:
+            alloc_header += f"  {col:>18}"
+        self.stdout.write("\n" + alloc_header)
+        self.stdout.write("-" * len(alloc_header))
+
+        for sc in share_class_names:
+            row_str = f"{sc:>20}"
+            for col in step_cols:
+                row_str += fmtc(alloc_rows[sc][col])
+            self.stdout.write(row_str)
+
+        fund_row = f"{'Fund':>20}"
+        for col in step_cols:
+            fund_row += fmtc(fund_alloc[col])
+        self.stdout.write(fund_row)
+
+        # TVPI & IRR
+        self.stdout.write("")
+        perf_header = f"{'':>20}  {'TVPI':>10}  {'IRR':>10}"
+        self.stdout.write(perf_header)
+        self.stdout.write("-" * len(perf_header))
+
+        for sc in share_class_names:
+            irr_val = irr_pct[sc]
+            irr_str = f"{irr_val:.2%}" if (irr_val is not None and irr_val == irr_val) else "N/A"
+            self.stdout.write(f"{sc:>20}  {tvpi[sc]:>10.2f}  {irr_str:>10}")
+
+        fund_irr_str = f"{irr_pct['Fund']:.2%}" if (irr_pct['Fund'] is not None and irr_pct['Fund'] == irr_pct['Fund']) else "N/A"
+        self.stdout.write(f"{'Fund':>20}  {tvpi['Fund']:>10.2f}  {fund_irr_str:>10}")
+
+        # Break-even
+        self.stdout.write("")
+        self.stdout.write(f"  {'Break-even Hurdle':<25}  {'Break-even DPI 1.00x':<25}")
+        self.stdout.write(f"  {breakeven_hurdle:<25.2f}  {breakeven_dpi_1x:<25.2f}")
+        self.stdout.write("=" * 100)
