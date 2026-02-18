@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
 import Shares from './KPIs/Shares';
 import Operations from './KPIs/Operations';
+import { useScenarioWaterfall } from './utils/useScenarioWaterfall'; // Adjust path
 import './SimulationResults.css';
 
-const SimulationResults = ({ scenarioId }) => {
+const SimulationResults = ({ scenarioId, fundId }) => {
+  // If IDs come from props, use them. Otherwise, grab from URL params if needed.
+  // const fId = fundId || paramFundId;
+  // const sId = scenarioId || paramScenarioId;
+  
   const [breakdownMode, setBreakdownMode] = useState('shares');
+  const { data, loading, error } = useScenarioWaterfall(fundId, scenarioId);
+
+  if (loading) return <div className="sim-results-container">Loading simulation...</div>;
+  if (error) return <div className="sim-results-container">Error: {error}</div>;
+  if (!data || !data.simulation_results) return null;
+
+  const { allocations, operations, performance, breakeven } = data.simulation_results;
 
   return (
-    /* Changed class to match the CSS container */
     <div className="sim-results-container">
         {/* === HEADER SECTION === */}
         <div className="sim-header">
@@ -34,17 +45,25 @@ const SimulationResults = ({ scenarioId }) => {
 
       {/* === CONTENT SECTION === */}
         <div className="sim-content">
-            {breakdownMode === 'shares' ? <Shares /> : <Operations />}
+            {breakdownMode === 'shares' ? (
+                <Shares allocations={allocations} performance={performance} />
+            ) : (
+                <Operations operations={operations} performance={performance} />
+            )}
         </div>
 
         <div className="kpi-row">
             <div className="kpi-card">
                 <span className="kpi-title">Break-even Hurdle</span>
-                <span className="kpi-number">1.76x</span>
+                <span className="kpi-number">
+                    {breakeven?.hurdle ? `${breakeven.hurdle.toFixed(2)}x` : '-'}
+                </span>
             </div>
             <div className="kpi-card">
                 <span className="kpi-title">Break-even DPI 1.00x</span>
-                <span className="kpi-number">1.23x</span>
+                <span className="kpi-number">
+                    {breakeven?.dpi_1x ? `${breakeven.dpi_1x.toFixed(2)}x` : '-'}
+                </span>
             </div>
         </div>
     </div>

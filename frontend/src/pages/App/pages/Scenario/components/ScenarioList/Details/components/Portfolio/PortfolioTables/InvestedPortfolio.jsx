@@ -24,12 +24,23 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
 
     const calculateExitDate = (firstInvestDate, duration) => {
         if (!firstInvestDate) return null;
-        const date = new Date(firstInvestDate);
+        const startDate = new Date(firstInvestDate);
         const yearsToAdd = parseFloat(duration) || 0;
-        date.setFullYear(date.getFullYear() + Math.floor(yearsToAdd));
-        const extraMonths = Math.round((yearsToAdd % 1) * 12);
-        date.setMonth(date.getMonth() + extraMonths);
-        return date;
+        
+        // Convert duration to total months
+        const totalMonths = Math.round(yearsToAdd * 12);
+        
+        const targetDate = new Date(startDate);
+        targetDate.setMonth(startDate.getMonth() + totalMonths);
+
+        // FIX: Check for end-of-month overflow
+        // If original day was 31, but new day is 1, we overflowed.
+        if (targetDate.getDate() !== startDate.getDate()) {
+        // setDate(0) sets the date to the last day of the previous month
+        targetDate.setDate(0);
+        }
+        
+        return targetDate;
     };
 
     /**

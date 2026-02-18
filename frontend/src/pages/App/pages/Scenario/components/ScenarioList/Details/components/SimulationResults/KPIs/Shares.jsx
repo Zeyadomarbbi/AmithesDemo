@@ -1,28 +1,43 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';
 import './SRTable.css';
 
-const sharesData = [
-  { label: 'Shares A1', nominal: '30 000 000', hurdle: '7 575 758', catchup: '-', special: '12 000 000' },
-  { label: 'Shares A2', nominal: '40 000 000', hurdle: '10 101 010', catchup: '-', special: '16 000 000' },
-  { label: 'Shares A3', nominal: '29 000 000', hurdle: '7 323 232', catchup: '-', special: '11 600 000' },
-  { label: 'Shares B', nominal: '1 000 000', hurdle: '-', catchup: '6 250 000', special: '10 400 000' },
-  { label: 'Fund', nominal: '100 000 000', hurdle: '25 000 000', catchup: '6 250 000', special: '50 000 000', isTotal: true },
-];
+const Shares = ({ allocations, performance }) => {
+    const formatNumber = useNumberFormatter();
+    const formatPercent = usePercentageFormatter();
+    console.log("allocations", allocations)
+    console.log("performance", performance)
+    // Safe wrapper to handle 0/nulls as '-' 
+    const fmtMoney = (val) => {
+        if (val === undefined || val === null || val === 0) return '-';
+        return formatNumber(val);
+    };
 
-const performanceData = [
-  { label: 'Shares A1', tvpi: '1.45x', irr: '9.08%' },
-  { label: 'Shares A2', tvpi: '1.45x', irr: '9.08%' },
-  { label: 'Shares A3', tvpi: '1.43x', irr: '8.75%' },
-  { label: 'Shares B', tvpi: '1.88x', irr: '31.65%' },
-  { label: 'Shares B', tvpi: '1.88x', irr: '31.65%' },
-  { label: 'Shares B', tvpi: '1.88x', irr: '31.65%' },
-  { label: 'Shares B', tvpi: '1.88x', irr: '31.65%' },
-  { label: 'Shares B', tvpi: '1.88x', irr: '31.65%' },
-  { label: 'Fund', tvpi: '1.49x', irr: '10.21%', isTotal: true },
-];
+    const tableData = useMemo(() => {
+        if (!allocations) return [];
+        const rows = Object.entries(allocations)
+            .filter(([key]) => key !== 'Fund')
+            .map(([key, data]) => ({ label: key, ...data }));
+        
+        if (allocations['Fund']) {
+            rows.push({ label: 'Fund', ...allocations['Fund'], isTotal: true });
+        }
+        return rows;
+    }, [allocations]);
 
-const Shares = () => {
-  return (
+    const performanceRows = useMemo(() => {
+        if (!performance) return [];
+        const rows = Object.entries(performance)
+            .filter(([key]) => key !== 'Fund')
+            .map(([key, data]) => ({ label: key, ...data }));
+        
+        if (performance['Fund']) {
+            rows.push({ label: 'Fund', ...performance['Fund'], isTotal: true });
+        }
+        return rows;
+    }, [performance]);
+
+    return (
     <div className="sr-container">
       
       {/* === TABLE 1: WATERFALL / NOMINAL === */}
@@ -35,16 +50,18 @@ const Shares = () => {
               <th className="th-val">Hurdle <span>(€)</span></th>
               <th className="th-val">Catch-up <span>(€)</span></th>
               <th className="th-val">Special Return <span>(€)</span></th>
+              <th className="th-val">Total <span>(€)</span></th>
             </tr>
           </thead>
           <tbody>
-            {sharesData.map((row, index) => (
+            {tableData.map((row, index) => (
               <tr key={index} className={row.isTotal ? 'row-fund' : ''}>
                 <td className="td-label">{row.label}</td>
-                <td className="td-val" title={row.nominal}>{row.nominal}</td>
-                <td className="td-val" title={row.hurdle}>{row.hurdle}</td>
-                <td className="td-val" title={row.catchup}>{row.catchup}</td>
-                <td className="td-val" title={row.special}>{row.special}</td>
+                <td className="td-val">{fmtMoney(row['Nominal Repayment'])}</td>
+                <td className="td-val">{fmtMoney(row['Hurdle'])}</td>
+                <td className="td-val">{fmtMoney(row['Catch-up'])}</td>
+                <td className="td-val">{fmtMoney(row['Special Return'])}</td>
+                <td className="td-val">{fmtMoney(row['Total'])}</td>
               </tr>
             ))}
           </tbody>
@@ -62,11 +79,15 @@ const Shares = () => {
             </tr>
         </thead>
         <tbody>
-            {performanceData.map((row, index) => (
+            {performanceRows.map((row, index) => (
             <tr key={index} className={row.isTotal ? 'row-fund' : ''}>
                 <td className="td-label">{row.label}</td>
-                <td className="td-val" title={row.tvpi}>{row.tvpi}</td>
-                <td className="td-val" title={row.irr}>{row.irr}</td>
+                <td className="td-val">
+                    {row.TVPI ? `${formatNumber(row.TVPI)}x` : '-'}
+                </td>
+                <td className="td-val">
+                    {row.IRR ? formatPercent(row.IRR*100) : '-'}
+                </td>
             </tr>
             ))}
         </tbody>

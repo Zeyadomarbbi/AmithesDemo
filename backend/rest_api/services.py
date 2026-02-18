@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from django.db import connection
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from rest_api.models.views import (
     ScenarioFundflowsCapitalcallSummary, 
     ScenarioFundflowsDistributionSummary
@@ -19,8 +19,7 @@ from rest_api.models.transactions import (
 def xirr(cashflows, dates, guess=0.1):
     """Newton-Raphson XIRR."""
     try:
-        if not cashflows or not dates:
-            return None
+        if not cashflows or not dates: return None
         t0 = dates[0]
         years = [(d - t0).days / 365.0 for d in dates]
 
@@ -34,16 +33,13 @@ def xirr(cashflows, dates, guess=0.1):
         for _ in range(100):
             f_val = npv(r)
             f_der = dnpv(r)
-            if abs(f_der) < 1e-12:
-                break
+            if abs(f_der) < 1e-12: break
             r_new = r - f_val / f_der
             if abs(r_new - r) < 1e-8:
                 r = r_new
                 break
             r = r_new
-        if r != r or abs(r) > 1e6: 
-            return None
-        return r
+        return r if (r == r and abs(r) <= 1e6) else None
     except Exception:
         return None
 
@@ -125,12 +121,10 @@ class WaterfallService:
             s_num = step.step_definition.step_number
             s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
             
-            # Direct Rules
             d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
                 .select_related('share_class')
             d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
 
-            # Envelopes
             envs = []
             env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
             for e in env_qs:
@@ -138,7 +132,6 @@ class WaterfallService:
                 e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
                 envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
 
-            # Classes
             classes = list(d_rules.keys())
             for e in envs:
                 for c in e['rules']:
@@ -151,6 +144,23 @@ class WaterfallService:
         result = ScenarioPortfolioProjection.objects.filter(fund_id=self.fund_id, scenario_id=self.scenario_id)\
             .aggregate(total=Sum('cost'))
         return float(result['total'] or 0)
+
+    def fetch_projected_exit_names(self):
+        qs = ScenarioPortfolioProjection.objects.filter(
+            fund_id=self.fund_id, 
+            scenario_id=self.scenario_id,
+            exit_date__isnull=False
+        ).values('exit_date', 'investment__name') 
+
+        exit_map = {}
+        for item in qs:
+            d_str = str(item['exit_date'])
+            inv_name = item['investment__name'] or "Unknown Investment"
+            if d_str in exit_map:
+                exit_map[d_str] += f", {inv_name}"
+            else:
+                exit_map[d_str] = inv_name
+        return exit_map
 
     # --- CORE CALCULATION ---
 
@@ -186,6 +196,7 @@ class WaterfallService:
         realized_calls, realized_dists = self.fetch_realized_lookups()
         waterfall_config = self.fetch_waterfall_config()
         portfolio_total_cost = self.fetch_portfolio_total_cost()
+        exit_names_map = self.fetch_projected_exit_names()
 
         hurdle_rate = waterfall_config.get(2, {}).get('rate', 0.08)
         hurdle_participating_classes = waterfall_config.get(2, {}).get('classes', share_class_names) or share_class_names
@@ -197,19 +208,31 @@ class WaterfallService:
         dist_qs = ScenarioFundflowsDistributionSummary.objects.filter(fund_id=self.fund_id, scenario_id=self.scenario_id)\
             .exclude(source_type='projected_placeholder').values('date', 'flows', 'source_type')
 
-        data = ([{'date': r['date'], 'flow_amount': float(r['flows']), 'type': 'capital_call', 'source_type': r['source_type']} for r in calls_qs] +
-                [{'date': r['date'], 'flow_amount': -float(r['flows']), 'type': 'distribution', 'source_type': r['source_type']} for r in dist_qs])
+        data = (
+            [{'date': r['date'], 'flow_amount':  float(r['flows']), 'type': 'capital_call',  'source_type': r['source_type'], 'operation_name': f"Call ({r['source_type']})"} for r in calls_qs] +
+            [{'date': r['date'], 'flow_amount': -float(r['flows']), 'type': 'distribution',  'source_type': r['source_type'], 'operation_name': f"Dist ({r['source_type']})"} for r in dist_qs]
+        )
         
-        if not data:
-            return None
+        if not data: return None
 
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values('date').reset_index(drop=True)
+        
+        # Resolve Operation Names
+        df['date_str'] = df['date'].dt.strftime('%Y-%m-%d')
+
+        def resolve_op_name(row):
+            if row['type'] == 'distribution' and 'projected' in row['source_type']:
+                if row['date_str'] in exit_names_map:
+                    return f"Exit: {exit_names_map[row['date_str']]}"
+            return row['operation_name']
+
+        df['operation_name'] = df.apply(resolve_op_name, axis=1)
 
         is_realized = df['source_type'].str.contains('realized', case=False)
         is_call = df['type'] == 'capital_call'
-        date_strs = df['date'].dt.strftime('%Y-%m-%d')
+        date_strs = df['date_str']
 
         for sc in share_class_names:
             ratio_sc = ratios.get(sc, 0.0)
@@ -277,7 +300,6 @@ class WaterfallService:
         sum_hurdle = cumul_nr = sum_hurdle_cu = cumul_x = cumul_catchup = 0.0
 
         for i in range(len(df)):
-            # Hurdle
             cur_nr = nr_list[i]
             cur_x = x_list[i]
             cumul_nr += cur_nr
@@ -292,13 +314,11 @@ class WaterfallService:
             hurdle_list.append(h)
             sum_hurdle += h
 
-            # Catchup
             sum_hurdle_cu += h
             cumul_x += cur_x
             cu = (-catchup_rate * cur_x if abs(sum_hurdle_cu + cumul_x) < 0.01 else 0.0)
             catchup_list.append(cu)
 
-            # Special
             cumul_catchup += cu
             if abs(cumul_catchup) < 0.01 or flow_vals[i] >= 0:
                 sp = 0.0
@@ -325,7 +345,7 @@ class WaterfallService:
 
         kpis = self.calculate_kpis(waterfall_config, ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
 
-        # 6. Prepare Results Output
+        # 6. Prepare Results
         allocations = {}
         for sc in share_class_names:
             nr_a = get_class_step_alloc(kpis, sc, 'nominal_repayment')
@@ -333,7 +353,6 @@ class WaterfallService:
             cu_a = get_class_step_alloc(kpis, sc, 'catch_up', True)
             sr_a = get_class_step_alloc(kpis, sc, 'special_return', True)
             
-            # IRR Vectors
             w_nom = step_class_weight(kpis, 'nominal_repayment', sc)
             w_hur = step_class_weight(kpis, 'hurdle', sc)
             w_cu = step_class_weight(kpis, 'catch_up', sc, True)
@@ -355,7 +374,6 @@ class WaterfallService:
                 'Total': nr_a + h_a + cu_a + sr_a
             }
 
-        # Fund Level Alloc
         fund_alloc = {
             'Nominal Repayment': float(kpis['nominal_repayment']['to_deduct']),
             'Hurdle': float(kpis['hurdle']['to_deduct']),
@@ -364,6 +382,40 @@ class WaterfallService:
         }
         fund_alloc['Total'] = sum(fund_alloc.values())
         allocations['Fund'] = fund_alloc
+
+        # --- OPERATIONS BREAKDOWN ---
+        dist_mask = df['type'] == 'distribution'
+        ops_df = df[dist_mask].groupby('operation_name', sort=False)[[
+            'Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return', 'flow_amount'
+        ]].sum().abs()
+
+        operations_alloc = {}
+        # Accumulators for the Fund Total in Operations
+        f_ops_nom = f_ops_hur = f_ops_cat = f_ops_spe = f_ops_tot = 0.0
+
+        for name, row in ops_df.iterrows():
+            operations_alloc[name] = {
+                'Nominal Repayment': row['Nominal Repayment'],
+                'Hurdle': row['Hurdle'],
+                'Catch-up': row['Catch-up'],
+                'Special Return': row['Special Return'],
+                'Total': row['flow_amount']
+            }
+            f_ops_nom += row['Nominal Repayment']
+            f_ops_hur += row['Hurdle']
+            f_ops_cat += row['Catch-up']
+            f_ops_spe += row['Special Return']
+            f_ops_tot += row['flow_amount']
+
+        # Add Fund Total to Operations
+        operations_alloc['Fund'] = {
+            'Nominal Repayment': f_ops_nom,
+            'Hurdle': f_ops_hur,
+            'Catch-up': f_ops_cat,
+            'Special Return': f_ops_spe,
+            'Total': f_ops_tot
+        }
+        # ----------------------------
 
         # Performance (IRR/TVPI)
         performance = {}
@@ -377,7 +429,6 @@ class WaterfallService:
             irr_val = xirr(col.tolist(), dates_list)
             performance[sc] = {'TVPI': tvpi, 'IRR': irr_val}
 
-        # Fund Perf
         f_inv = float(total_calls)
         f_rec = float(total_dists)
         performance['Fund'] = {
@@ -385,15 +436,21 @@ class WaterfallService:
             'IRR': xirr(df['flow_amount'].tolist(), dates_list)
         }
 
-        # Breakeven
         be_hurdle = (float(nom_ded) + float(hur_ded)) / portfolio_total_cost if portfolio_total_cost > 0 else 0.0
         be_dpi = float(nom_ded) / portfolio_total_cost if portfolio_total_cost > 0 else 0.0
+
+        df = df.replace({np.nan: None})
+        
+        cashflow_cols = ['date_str', 'operation_name', 'type', 'flow_amount', 'Nominal Repayment', 'Hurdle', 'Catch-up', 'Special Return'] + [f'IRR {sc}' for sc in share_class_names] + [f'Flows {sc}' for sc in share_class_names]
+        cashflows_data = df[cashflow_cols].to_dict(orient='records')
 
         return {
             'kpis': kpis,
             'simulation_results': {
                 'allocations': allocations,
+                'operations': operations_alloc,
                 'performance': performance,
                 'breakeven': {'hurdle': be_hurdle, 'dpi_1x': be_dpi}
-            }
+            },
+            'cashflows': cashflows_data
         }

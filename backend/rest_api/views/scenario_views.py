@@ -404,7 +404,8 @@ class ScenarioWaterfallView(APIView):
             return Response(results, status=status.HTTP_200_OK)
             
         except Exception as e:
-            # Log the error in production
+            # In production, use a logger here
+            print(f"Error generating waterfall: {e}")
             return Response(
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

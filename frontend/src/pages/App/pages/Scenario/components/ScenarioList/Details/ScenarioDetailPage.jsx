@@ -43,7 +43,9 @@ function ScenarioDetailPage() {
           onBack={handleBack}
         />
         <div className="scenarios-details-content-area">
-          {currentTab === 'simulation-results' && <SimulationResults scenarioId={scenarioId} />}
+          {currentTab === 'simulation-results' && (
+            <SimulationResults fundId={fundId} scenarioId={scenarioId} />
+          )}
           {currentTab === 'portfolio' && (
             <Portfolio fundId={fundId} scenarioId={scenarioId} />
           )}
