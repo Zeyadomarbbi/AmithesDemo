@@ -1,24 +1,73 @@
+/* --- Portfolio.css --- */
 .portfolio-tab-container {
   display: flex;
   flex-direction: column;
   padding: 24px 40px;
   background-color: #FFFFFF;
-  min-height: 100%;
+  
+  /* CHANGED: Ensure container grows */
+  min-height: 100%; 
+  height: auto;
+  
   position: relative;
-  overflow: visible; /* ⬅️ مهم جدًا */
+  overflow-y: visible; 
+  overflow-x: hidden;
+}
+
+.portfolio-split-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100%;   /* grows with content */
+  height: auto;       /* do NOT fix height */
+  align-items: stretch; /* both columns match tallest */
+  position: relative;
+  overflow: visible;
+}
+
+.portfolio-content-inner {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
-.portfolio-scenario-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
+/* LEFT COLUMN */
+.portfolio-main-column {
+  flex: 1;
+  min-width: 0;
+  height: auto;       /* natural height */
+  overflow: visible;
+  transition: flex-grow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-right: 1px solid #eee;
 }
 
+/* RIGHT COLUMN (Simulation Panel) */
+.simulation-side-panel {
+  background-color: #1e293b;
+  width: 3%;
+  height: auto;       /* natural height, stretches via align-items: stretch */
+  min-height: 0;      /* remove min-height: 100% — this was the culprit */
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-x: auto;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+  z-index: 10;
+  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* When open, expand right column */
+.portfolio-split-layout.sim-open .simulation-side-panel {
+  width: 45%; /* Or 40% if you prefer percentage */
+}
+
+/* CONTENT WRAPPER inside SimulationResults */
+/* This ensures the content doesn't jump around */
 /* =========================================================
-   2. Controls & Toggles
+   Standard Components (No Changes Needed Below)
 ========================================================= */
+
+
 .portfolio-controls-header {
   display: flex;
   flex-direction: row;
@@ -83,34 +132,6 @@
   color: #375A89;
 }
 
-/* =========================================================
-   3. Header Actions (New Deal / Target)
-========================================================= */
-.portfolio-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.portfolio-new-deal-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #111827;
-  color: #FFFFFF;
-  border-radius: 8px;
-  border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.portfolio-new-deal-btn:hover {
-  opacity: 0.9;
-}
-
 .destructive-btn-md {
   display: flex;
   justify-content: center;
@@ -124,61 +145,6 @@
   font-size: 14px;
   font-weight: 500;
   color: #E11D48;
-}
-
-/* =========================================================
-   4. Tables (زي ما كانت)
-========================================================= */
-.std-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-}
-
-.std-table th {
-  text-align: left;
-  padding: 12px 16px;
-  color: #111827;
-  font-weight: 600;
-}
-
-.std-table td {
-  padding: 12px 16px;
-  color: #111827;
-  background-color: #FFFFFF;
-}
-
-.row-banded-gray td {
-  background-color: #F9FAFB;
-}
-
-.row-summary td {
-  background-color: #375A89 !important;
-  color: #FFFFFF;
-  font-weight: 600;
-}
-
-/* =========================================================
-   5. Overlay & Card (ده اللي كان ناقص)
-========================================================= */
-.portfolio-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.35);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.portfolio-card {
-  width: 640px;
-  max-width: 90%;
-  background: #FFFFFF;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
 
 .proj-add-btn {
@@ -204,12 +170,6 @@
 
 .proj-add-btn:hover {
     background: rgba(55, 90, 137, 0.2);
-}
-
-.proj-plus-icon {
-    width: 14px;
-    height: 14px;
-    color: #6B7280;
 }
 
 .scenario-portfolio-footer {

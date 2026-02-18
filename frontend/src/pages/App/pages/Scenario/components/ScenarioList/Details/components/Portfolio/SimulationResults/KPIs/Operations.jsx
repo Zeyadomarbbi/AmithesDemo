@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../../components/useFormatter';
 import './SRTable.css';
 
 const Operations = ({ operations, performance }) => {
@@ -23,23 +23,9 @@ const Operations = ({ operations, performance }) => {
         return rows;
     }, [operations]);
 
-    const performanceRows = useMemo(() => {
-        if (!performance) return [];
-        const rows = Object.entries(performance)
-            .filter(([key]) => key !== 'Fund')
-            .map(([key, data]) => ({ label: key, ...data }));
-        
-        if (performance['Fund']) {
-            rows.push({ label: 'Fund', ...performance['Fund'], isTotal: true });
-        }
-        return rows;
-    }, [performance]);
-
     return (
     <div className="sr-container">
       
-      {/* === TABLE 1: OPERATIONS BREAKDOWN === */}
-      <div className="sr-table-wrapper">
         <table className="sr-table">
           <thead>
             <tr>
@@ -65,15 +51,6 @@ const Operations = ({ operations, performance }) => {
           </tbody>
         </table>
       </div>
-
-      {/* === TABLE 2: PERFORMANCE (Share Class Level) === */}
-      <div className="sr-table-wrapper mt-large">
-        <table className="sr-table performance-table">
-
-
-        </table>
-      </div>
-    </div>
   );
 };
 

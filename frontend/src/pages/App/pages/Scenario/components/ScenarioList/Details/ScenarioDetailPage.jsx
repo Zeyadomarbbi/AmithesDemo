@@ -6,7 +6,6 @@ import Header from './components/Header/Header';
 import Portfolio from './components/Portfolio/Portfolio'; 
 import SetFinancials from './components/SetFinanacials/SetFinancials'; 
 import FundFlows from './components/FundFlows/FundFlows'; 
-import SimulationResults from './components/SimulationResults/SimulationResults';
 import { useScenarioData } from './utils/useScenarioData';
 
 import './ScenarioDetailPage.css';
@@ -16,7 +15,7 @@ function ScenarioDetailPage() {
   const navigate = useNavigate();
   
   const { data: scenarioData, loading, error } = useScenarioData(fundId, scenarioId);
-  const currentTab = tab ? tab.toLowerCase() : 'simulation-results';
+  const currentTab = tab ? tab.toLowerCase() : 'portfolio';
   const [isClosing, setIsClosing] = useState(false);
   
   const handleBack = () => {
@@ -43,9 +42,6 @@ function ScenarioDetailPage() {
           onBack={handleBack}
         />
         <div className="scenarios-details-content-area">
-          {currentTab === 'simulation-results' && (
-            <SimulationResults fundId={fundId} scenarioId={scenarioId} />
-          )}
           {currentTab === 'portfolio' && (
             <Portfolio fundId={fundId} scenarioId={scenarioId} />
           )}

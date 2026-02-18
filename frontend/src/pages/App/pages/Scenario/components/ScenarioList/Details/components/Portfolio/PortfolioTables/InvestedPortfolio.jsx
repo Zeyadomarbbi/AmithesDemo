@@ -6,6 +6,7 @@ import {
 } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
 import Sensitivity from '../Sensitivity/Sensitivity'; 
 import './PortfolioTables.css'; 
 
@@ -13,6 +14,10 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
     const [localData, setLocalData] = useState(investedData || []);
     const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
+    
+    const formatNumber = useNumberFormatter();
+    const formatPercent = usePercentageFormatter();
+    const formatDate = useDateFormatter();
 
     useEffect(() => {
         setLocalData(investedData || []);
@@ -26,31 +31,21 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
         if (!firstInvestDate) return null;
         const startDate = new Date(firstInvestDate);
         const yearsToAdd = parseFloat(duration) || 0;
-        
-        // Convert duration to total months
         const totalMonths = Math.round(yearsToAdd * 12);
         
         const targetDate = new Date(startDate);
         targetDate.setMonth(startDate.getMonth() + totalMonths);
 
-        // FIX: Check for end-of-month overflow
-        // If original day was 31, but new day is 1, we overflowed.
         if (targetDate.getDate() !== startDate.getDate()) {
-        // setDate(0) sets the date to the last day of the previous month
-        targetDate.setDate(0);
+            targetDate.setDate(0);
         }
-        
         return targetDate;
     };
 
-    /**
-     * Frontend calculation for Exit Value
-     * Exit Value = Basis Cost * MOIC
-     */
     const calculateExitValue = (cost, moic) => {
         const c = parseFloat(cost) || 0;
         const m = parseFloat(moic) || 0;
-        return (c * m).toFixed(2);
+        return c * m;
     };
 
     /* ===== HANDLERS ===== */
@@ -76,14 +71,16 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
 
     const summary = useMemo(() => {
         const defaults = {
-            avgDuration: "0 yrs", totalCost: "0", totalExitVal: "0",
-            totalDividends: "0", avgIrr: "0.00%", avgMoic: "0.00x"
+            avgDuration: 0, totalCost: 0, totalExitVal: 0,
+            totalDividends: 0, avgIrr: 0, avgMoic: 0
         };
 
         if (!localData || localData.length === 0) return defaults;
 
-        const parseVal = (v) => parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0;
-        const formatNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, ' ');
+        const parseVal = (v) => {
+            if (typeof v === 'number') return v;
+            return parseFloat(String(v || "").replace(/[^0-9.-]/g, "")) || 0;
+        };
 
         let totals = { dur: 0, cost: 0, exit: 0, div: 0, irr: 0, moic: 0 };
 
@@ -102,12 +99,12 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
         const count = localData.length;
 
         return {
-            avgDuration: (totals.dur / count).toFixed(1) + " yrs",
-            totalCost: formatNum(totals.cost),
-            totalExitVal: formatNum(totals.exit),
-            totalDividends: formatNum(totals.div),
-            avgIrr: (totals.irr / count).toFixed(2) + "%",
-            avgMoic: (totals.moic / count).toFixed(2) + "x"
+            avgDuration: totals.dur / count,
+            totalCost: totals.cost,
+            totalExitVal: totals.exit,
+            totalDividends: totals.div,
+            avgIrr: totals.irr / count,
+            avgMoic: totals.moic / count
         };
     }, [localData]);
 
@@ -190,14 +187,13 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
                                 <React.Fragment key={r.id}>
                                     <tr>
                                         <td className="scenario-pf-left">
-                                            {/* ADDED ONCLICK TO TRIGGER DRAWER */}
                                             <div 
                                                 className="scenario-pf-name-block" 
                                                 onClick={() => onRowClick?.(r)}
                                                 style={{ cursor: 'pointer' }}
                                             >
                                                 <span className="label">{r.name}</span>
-                                                <span className="sub">{r.first_investment_date || '-'}</span>
+                                                <span className="sub">{formatDate(r.first_investment_date)}</span>
                                             </div>
                                         </td>
                                         <td className="scenario-pf-center">
@@ -208,16 +204,16 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
                                             />
                                         </td>
                                         <td className="scenario-pf-center">
-                                            <input className="scenario-pf-input" value={r.display_cost || r.cost || 0} readOnly />
+                                            <input className="scenario-pf-input" value={formatNumber(r.display_cost || r.cost)} readOnly />
                                         </td>
                                         <td className="scenario-pf-center">
-                                            <input className="scenario-pf-input" value={localExitValue} readOnly />
+                                            <input className="scenario-pf-input" value={formatNumber(localExitValue)} readOnly />
                                         </td>
                                         <td className="scenario-pf-center">
-                                            <input className="scenario-pf-input" value={r.dividends_interests || 0} readOnly />
+                                            <input className="scenario-pf-input" value={formatNumber(r.dividends_interests)} readOnly />
                                         </td>
                                         <td className="scenario-pf-center">
-                                            <input className="scenario-pf-input" value={r.irr || "0.00%"} readOnly />
+                                            <input className="scenario-pf-input" value={formatPercent(r.irr)} readOnly />
                                         </td>
                                         <td className="scenario-pf-center">
                                             <input 
@@ -274,12 +270,12 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
 
                         <tr className="scenario-pf-summary-row">
                             <td className="scenario-pf-left">Total</td>
-                            <td className="scenario-pf-center">{summary.avgDuration}</td>
-                            <td className="scenario-pf-center">{summary.totalCost}</td>
-                            <td className="scenario-pf-center">{summary.totalExitVal}</td>
-                            <td className="scenario-pf-center">{summary.totalDividends}</td>
-                            <td className="scenario-pf-center">{summary.avgIrr}</td>
-                            <td className="scenario-pf-center">{summary.avgMoic}</td>
+                            <td className="scenario-pf-center">{summary.avgDuration.toFixed(1)} yrs</td>
+                            <td className="scenario-pf-center">{formatNumber(summary.totalCost)}</td>
+                            <td className="scenario-pf-center">{formatNumber(summary.totalExitVal)}</td>
+                            <td className="scenario-pf-center">{formatNumber(summary.totalDividends)}</td>
+                            <td className="scenario-pf-center">{formatPercent(summary.avgIrr)}</td>
+                            <td className="scenario-pf-center">{summary.avgMoic.toFixed(2)}x</td>
                             <td className="scenario-pf-center">-</td>
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <td></td>}
                         </tr>

@@ -159,28 +159,23 @@
 }
 
 .scenario-pf-input {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 8px 12px;
-  gap: 8px;
-  width: 100%; /* Changed from 519px for responsiveness within drawer */
-  height: 40px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
-  position: relative;
-
-  
-  /* Typography */
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #1C1917; /* Darker for readability */
+    box-sizing: border-box;
+    display: block;      /* Changed from flex to block to allow text-align to work */
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;   /* Keep this padding */
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    
+    /* Typography */
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #1C1917;
+    
+    /* Critical Fix: Inherits 'center' or 'left' from the TD class */
+    text-align: inherit; 
 }
 
 
@@ -193,7 +188,6 @@
     background-color: transparent;
     border-color: transparent;
     cursor: default;
-    padding-left: 0;
 }
 
 /* =========================================
@@ -204,7 +198,12 @@
     color: #FFFFFF !important;
     font-weight: 600;
     border-bottom: none;
-    padding: 12px;
+    
+    /* Critical Fix: 
+       Vertical: 12px 
+       Horizontal: 24px (Matches 12px TD padding + 12px Input padding) 
+    */
+    padding: 12px 25px; 
 }
 
 .scenario-pf-action-btn {

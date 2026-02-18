@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react';
-import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../../components/useFormatter';
 import './SRTable.css';
 
 const Shares = ({ allocations, performance }) => {
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
-    console.log("allocations", allocations)
-    console.log("performance", performance)
     // Safe wrapper to handle 0/nulls as '-' 
     const fmtMoney = (val) => {
         if (val === undefined || val === null || val === 0) return '-';

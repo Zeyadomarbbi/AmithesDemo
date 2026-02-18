@@ -39,9 +39,7 @@ function Header({
       // Ensure this matches your new route: /funds/:id/scenario-dashboard/scenario-details/:id
       const baseUrl = `/funds/${fundId}/scenario-dashboard/scenario-details/${scenarioId}`;
 
-      if (tabKey === 'simulation-results') {
-          navigate(`${baseUrl}/simulation-results`);
-      } else if (tabKey === 'portfolio') {
+       if (tabKey === 'portfolio') {
           navigate(`${baseUrl}/portfolio`);
       } else if (tabKey === 'set-financials') {
           navigate(`${baseUrl}/set-financials`);

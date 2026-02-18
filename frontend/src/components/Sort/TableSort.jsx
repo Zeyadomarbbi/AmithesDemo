@@ -71,7 +71,7 @@ export function SortableHeaderRenderer({ label, columnKey, currentSortKey, curre
             onClick={() => toggleSort(columnKey)}
             style={{ cursor: 'pointer', userSelect: 'none' }}
         >
-            <div className="inv-th-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="inv-th-group" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
                 {label}
                 {showCurrency && <span className="inv-currency-indicator">(€)</span>}
                 <SortIcon active={isActive} dir={currentSortDir} />

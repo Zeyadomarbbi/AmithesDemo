@@ -6,6 +6,8 @@ import {
 } from "../Icons";
 import DateInputWithPicker from "../../../../../../../../../../components/DateComponents/DateInput";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../../../components/Sort/TableSort";
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+
 import Sensitivity from "../Sensitivity/Sensitivity";
 import './PortfolioTables.css'; 
 
@@ -13,11 +15,15 @@ function ProjectedPortfolio({
   rows = [],
   activeMode,
   onChangeRow,
-  onRowClick // Prop to trigger drawer
+  onRowClick
 }) {
   const [localRows, setLocalRows] = useState(rows);
   const [lockedRows, setLockedRows] = useState([]);
   const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null);
+
+  const formatNumber = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+  const formatDate = useDateFormatter();
 
   useEffect(() => {
     setLocalRows(rows);
@@ -33,27 +39,18 @@ function ProjectedPortfolio({
     if (!firstInvestDate) return null;
     const startDate = new Date(firstInvestDate);
     const yearsToAdd = parseFloat(duration) || 0;
-    
-    // Convert duration to total months
     const totalMonths = Math.round(yearsToAdd * 12);
     
     const targetDate = new Date(startDate);
     targetDate.setMonth(startDate.getMonth() + totalMonths);
 
-    // FIX: Check for end-of-month overflow
-    // If original day was 31, but new day is 1, we overflowed.
     if (targetDate.getDate() !== startDate.getDate()) {
-      // setDate(0) sets the date to the last day of the previous month
       targetDate.setDate(0);
     }
     
     return targetDate;
   };
 
-  /**
-   * Frontend calculation for Exit Value
-   * Exit Value = Cost * MOIC
-   */
   const cleanNumber = (v) => {
       if (typeof v === "number") return v;
       const str = String(v ?? "").replace(/[^0-9.-]/g, "");
@@ -64,7 +61,7 @@ function ProjectedPortfolio({
   const calculateExitValue = (cost, moic) => {
       const c = cleanNumber(cost);
       const m = cleanNumber(moic);
-      return (c * m).toFixed(2);
+      return c * m;
   };
 
   /* ===== HANDLERS ===== */
@@ -90,22 +87,25 @@ function ProjectedPortfolio({
 
   const summary = useMemo(() => {
     const defaults = {
-      avgDuration: "0 yrs", totalCost: "0", totalExitVal: "0",
-      totalDividends: "0", avgIrr: "0.00%", avgMoic: "0.00x",
+      avgDuration: 0, totalCost: 0, totalExitVal: 0,
+      totalDividends: 0, avgIrr: 0, avgMoic: 0,
     };
 
     if (!localRows || localRows.length === 0) return defaults;
 
-    const parseVal = (v) => parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0;
-    const formatNum = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, ' ');
+    const parseVal = (v) => {
+        if (typeof v === 'number') return v;
+        return parseFloat(String(v || "").replace(/[^0-9.-]/g, "")) || 0;
+    };
 
     let sum = { duration: 0, cost: 0, exit: 0, dividends: 0, irr: 0, moic: 0 };
 
     localRows.forEach((r) => {
-      const currentExitVal = parseVal(r.cost) * parseVal(r.input_moic);
+      const currentCost = parseVal(r.cost);
+      const currentExitVal = currentCost * parseVal(r.input_moic);
       
       sum.duration += parseVal(r.input_duration);
-      sum.cost += parseVal(r.cost);
+      sum.cost += currentCost;
       sum.exit += currentExitVal;
       sum.dividends += parseVal(r.dividends_interests);
       sum.irr += parseVal(r.irr);
@@ -115,12 +115,12 @@ function ProjectedPortfolio({
     const count = localRows.length;
 
     return {
-      avgDuration: (sum.duration / count).toFixed(1) + " yrs",
-      totalCost: formatNum(sum.cost),
-      totalExitVal: formatNum(sum.exit),
-      totalDividends: formatNum(sum.dividends),
-      avgIrr: (sum.irr / count).toFixed(2) + "%",
-      avgMoic: (sum.moic / count).toFixed(2) + "x",
+      avgDuration: sum.duration / count,
+      totalCost: sum.cost,
+      totalExitVal: sum.exit,
+      totalDividends: sum.dividends,
+      avgIrr: sum.irr / count,
+      avgMoic: sum.moic / count,
     };
   }, [localRows]);
 
@@ -209,7 +209,7 @@ function ProjectedPortfolio({
                         style={{ cursor: 'pointer' }}
                       >
                         <span className="label">{r.name}</span>
-                        <span className="sub">{r.first_investment_date || '-'}</span>
+                        <span className="sub">{formatDate(r.first_investment_date)}</span>
                       </div>
                     </td>
 
@@ -222,19 +222,19 @@ function ProjectedPortfolio({
                     </td>
 
                     <td className="scenario-pf-center">
-                      <input className="scenario-pf-input" value={r.cost || 0} readOnly />
+                      <input className="scenario-pf-input" value={formatNumber(r.cost)} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">
-                      <input className="scenario-pf-input" value={localExitValue} readOnly />
+                      <input className="scenario-pf-input" value={formatNumber(localExitValue)} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">
-                      <input className="scenario-pf-input" value={r.dividends_interests ? r.dividends_interests : "0.00 €"} readOnly />
+                      <input className="scenario-pf-input" value={formatNumber(r.dividends_interests)} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">
-                      <input className="scenario-pf-input" value={r.irr || "0.00%"} readOnly />
+                      <input className="scenario-pf-input" value={formatPercent(r.irr)} readOnly />
                     </td>
 
                     <td className="scenario-pf-center">
@@ -293,12 +293,12 @@ function ProjectedPortfolio({
 
             <tr className="scenario-pf-summary-row">
               <td className="scenario-pf-left">Total</td>
-              <td className="scenario-pf-center">{summary.avgDuration}</td>
-              <td className="scenario-pf-center">{summary.totalCost}</td>
-              <td className="scenario-pf-center">{summary.totalExitVal}</td>
-              <td className="scenario-pf-center">{summary.totalDividends}</td>
-              <td className="scenario-pf-center">{summary.avgIrr}</td>
-              <td className="scenario-pf-center">{summary.avgMoic}</td>
+              <td className="scenario-pf-center">{summary.avgDuration.toFixed(1)} yrs</td>
+              <td className="scenario-pf-center">{formatNumber(summary.totalCost)}</td>
+              <td className="scenario-pf-center">{formatNumber(summary.totalExitVal)}</td>
+              <td className="scenario-pf-center">{formatNumber(summary.totalDividends)}</td>
+              <td className="scenario-pf-center">{formatPercent(summary.avgIrr)}</td>
+              <td className="scenario-pf-center">{summary.avgMoic.toFixed(2)}x</td>
               <td className="scenario-pf-center">-</td>
               {(activeMode === "target" || activeMode === "sensitivity") && <td />}
             </tr>

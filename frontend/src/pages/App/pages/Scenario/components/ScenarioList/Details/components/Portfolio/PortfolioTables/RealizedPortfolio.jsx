@@ -1,61 +1,57 @@
 import React, { useMemo } from 'react';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+
 import './PortfolioTables.css'; 
 
 function RealizedPortfolio({ realizedData }) {
     const rawData = realizedData || [];
+    
+    const formatNumber = useNumberFormatter();
+    const formatPercent = usePercentageFormatter();
+    const formatDate = useDateFormatter();
 
-    // Integrated sorting hook
     const { sorted: sortedRows, sortKey, sortDir, toggleSort } = useTableSort(rawData, "name");
 
     /* ===== CALCULATIONS ===== */
 
     const summary = useMemo(() => {
         const defaults = {
-            avgDuration: "0 yrs",
-            totalCost: "0",
-            totalExitVal: "0",
-            totalDividends: "0",
-            avgIrr: "0.00%",
-            avgMoic: "0.00x"
+            avgDuration: 0,
+            totalCost: 0,
+            totalExitVal: 0,
+            totalDividends: 0,
+            avgIrr: 0,
+            avgMoic: 0
         };
 
         if (!rawData || rawData.length === 0) return defaults;
 
-        const parseVal = (str) => {
-            if (!str) return 0;
-            return parseFloat(String(str).replace(/[^0-9.-]/g, "")) || 0;
+        const parseVal = (v) => {
+            if (typeof v === 'number') return v;
+            return parseFloat(String(v || "").replace(/[^0-9.-]/g, "")) || 0;
         };
 
-        const formatNum = (num) => {
-            return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-        };
-
-        let sumDuration = 0;
-        let sumCost = 0;
-        let sumExitVal = 0;
-        let sumDividends = 0;
-        let sumIrr = 0;
-        let sumMoic = 0;
+        let totals = { dur: 0, cost: 0, exit: 0, div: 0, irr: 0, moic: 0 };
 
         rawData.forEach(row => {
-            sumDuration += parseVal(row.input_duration);
-            sumCost += parseVal(row.display_cost || row.cost);
-            sumExitVal += parseVal(row.exit_value);
-            sumDividends += parseVal(row.dividends_interests);
-            sumIrr += parseVal(row.irr);
-            sumMoic += parseVal(row.input_moic);
+            totals.dur += parseVal(row.input_duration);
+            totals.cost += parseVal(row.display_cost || row.cost);
+            totals.exit += parseVal(row.exit_value);
+            totals.div += parseVal(row.dividends_interests);
+            totals.irr += parseVal(row.irr);
+            totals.moic += parseVal(row.input_moic);
         });
 
         const count = rawData.length;
 
         return {
-            avgDuration: (sumDuration / count).toFixed(1) + " yrs",
-            totalCost: formatNum(sumCost),
-            totalExitVal: formatNum(sumExitVal),
-            totalDividends: formatNum(sumDividends),
-            avgIrr: (sumIrr / count).toFixed(2) + "%", 
-            avgMoic: (sumMoic / count).toFixed(2) + "x" 
+            avgDuration: totals.dur / count,
+            totalCost: totals.cost,
+            totalExitVal: totals.exit,
+            totalDividends: totals.div,
+            avgIrr: totals.irr / count,
+            avgMoic: totals.moic / count
         };
     }, [rawData]);
 
@@ -131,42 +127,42 @@ function RealizedPortfolio({ realizedData }) {
                                 <td className="scenario-pf-left">
                                     <div className="scenario-pf-name-block">
                                         <span className="label">{row.name}</span>
-                                        <span className="sub">{row.first_investment_date || '-'}</span>
+                                        <span className="sub">{formatDate(row.first_investment_date)}</span>
                                     </div>
                                 </td>
                                 <td className="scenario-pf-left">
                                     <input className="scenario-pf-input" value={row.input_duration || 0} readOnly />
                                 </td>
                                 <td className="scenario-pf-left">
-                                    <input className="scenario-pf-input" value={row.display_cost || row.cost || 0} readOnly />
+                                    <input className="scenario-pf-input" value={formatNumber(row.display_cost || row.cost)} readOnly />
                                 </td>
                                 <td className="scenario-pf-left">
-                                    <input className="scenario-pf-input" value={row.exit_value || 0} readOnly />
+                                    <input className="scenario-pf-input" value={formatNumber(row.exit_value)} readOnly />
                                 </td>
                                 <td className="scenario-pf-left">
-                                    <input className="scenario-pf-input" value={row.dividends_interests || 0} readOnly />
+                                    <input className="scenario-pf-input" value={formatNumber(row.dividends_interests)} readOnly />
                                 </td> 
                                 <td className="scenario-pf-left">
-                                    <input className="scenario-pf-input" value={row.irr || "0.00%"} readOnly />
+                                    <input className="scenario-pf-input" value={formatPercent(row.irr)} readOnly />
                                 </td>
                                 <td className="scenario-pf-left">
                                     <input className="scenario-pf-input" value={row.input_moic || 0} readOnly />
                                 </td>
                                 <td className="scenario-pf-left">
                                     <div className="scenario-pf-input-readonly-text">
-                                        {row.exit_date || '-'}
+                                        {formatDate(row.exit_date)}
                                     </div>
                                 </td>
                             </tr>
                         ))}
                         <tr className="scenario-pf-summary-row"> 
                             <td className="scenario-pf-left">Total</td>
-                            <td className="scenario-pf-left">{summary.avgDuration}</td>
-                            <td className="scenario-pf-left">{summary.totalCost}</td>
-                            <td className="scenario-pf-left">{summary.totalExitVal}</td>
-                            <td className="scenario-pf-left">{summary.totalDividends}</td>
-                            <td className="scenario-pf-left">{summary.avgIrr}</td>
-                            <td className="scenario-pf-left">{summary.avgMoic}</td>
+                            <td className="scenario-pf-left">{summary.avgDuration.toFixed(1)} yrs</td>
+                            <td className="scenario-pf-left">{formatNumber(summary.totalCost)}</td>
+                            <td className="scenario-pf-left">{formatNumber(summary.totalExitVal)}</td>
+                            <td className="scenario-pf-left">{formatNumber(summary.totalDividends)}</td>
+                            <td className="scenario-pf-left">{formatPercent(summary.avgIrr)}</td>
+                            <td className="scenario-pf-left">{summary.avgMoic.toFixed(2)}x</td>
                             <td className="scenario-pf-left">-</td>
                         </tr>
                     </tbody>
