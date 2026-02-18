@@ -39,6 +39,7 @@ from ..serializers.scenario_serializers import (
     ViewScenarioFundflowsAllOperationsSerializer
 )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
+from ..services import WaterfallService
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -387,3 +388,24 @@ class ViewScenarioFundflowsAllOperationsViewSet(viewsets.ReadOnlyModelViewSet):
             
         # Ensure consistent ordering by date, then by ID to prevent pagination jitter
         return queryset.order_by('date', 'all_operations_id')
+    
+class ScenarioWaterfallView(APIView):
+    def get(self, request, fund_id, scenario_id):
+        try:
+            service = WaterfallService(fund_id=fund_id, scenario_id=scenario_id)
+            results = service.run_simulation()
+            
+            if results is None:
+                return Response(
+                    {"detail": "No operations found for this scenario."}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response(results, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            # Log the error in production
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
