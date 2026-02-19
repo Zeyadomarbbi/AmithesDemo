@@ -149,6 +149,11 @@ urlpatterns = [
         ScenarioWaterfallView.as_view(), 
         name='scenario-waterfall'
     ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/sensitivity/', 
+         ScenarioSensitivityView.as_view(), 
+         name='scenario-sensitivity'
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

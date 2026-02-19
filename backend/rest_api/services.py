@@ -65,6 +65,42 @@ class WaterfallService:
         self.fund_id = fund_id
         self.scenario_id = scenario_id
 
+    def calculate_virtual_matrix(self, investment_id, moic_range, duration_range):
+        # Fetch base data once (Read-only)
+        # We need the cost to calculate the virtual exit values
+        base_inv = ScenarioPortfolioProjection.objects.get(investment_id=investment_id, scenario_id=self.scenario_id)
+        
+        # Pre-fetch waterfall config and ratios once (to keep it fast)
+        ratios, _ = self.fetch_commitments_and_ratios()
+        waterfall_config = self.fetch_waterfall_config()
+        
+        matrix = []
+        
+        # The 5x5 Loop
+        for m in moic_range:
+            row = []
+            for d in duration_range:
+                # VIRTUAL MATH: Calculate exit based on loop variables
+                virtual_exit_value = float(base_inv.cost) * m
+                
+                # This is where you call your existing math loop 
+                # (but pass variables, don't read from DB tables)
+                # For now, let's assume a simplified version of your KPI logic:
+                kpis = self.run_stateless_calculation(
+                    cost=base_inv.cost,
+                    exit_value=virtual_exit_value,
+                    duration=d,
+                    config=waterfall_config,
+                    ratios=ratios
+                )
+                
+                # We return the specific KPI requested (e.g. Net IRR)
+                # Formatted as a string to match your UI needs
+                row.append(f"{kpis['performance']['Fund']['IRR'] * 100:.2f}%")
+                
+            matrix.append(row)
+            
+        return matrix
     # --- FETCH METHODS ---
 
     def fetch_commitments_and_ratios(self):

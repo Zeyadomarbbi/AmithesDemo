@@ -119,13 +119,17 @@
 
 /* A. Top-Left Axis Label Cell */
 .sensitivity-moic-label-cell {
+    position: relative;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: stretch;
     padding: 8px;
-    gap: 4px;
+    gap: 0;
     border-bottom: none;
     background: none;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
 .sensitivity-moic-label-text {
@@ -135,7 +139,10 @@
     line-height: 16px;
     letter-spacing: 0.01em;
     color: #1C1917;
+    position: relative;
     text-align: right;
+    align-self: flex-end;
+    z-index: 1;
 }
 
 .sensitivity-duration-label-text {
@@ -145,7 +152,10 @@
     line-height: 20px;
     letter-spacing: 0.01em;
     color: #375A89;
+    position: relative;
     text-align: left;
+    align-self: flex-start;
+    z-index: 1;
 }
 
 /* B. MOIC Input Header Cells */

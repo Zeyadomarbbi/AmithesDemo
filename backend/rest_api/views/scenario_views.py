@@ -410,3 +410,40 @@ class ScenarioWaterfallView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+class ScenarioSensitivityView(APIView):
+    def post(self, request, fund_id, scenario_id):
+        data = request.data
+        investment_id = data.get('investment_id')
+        
+        # Grid parameters from the frontend
+        m_center = float(data.get('moic_center', 1.5))
+        d_center = float(data.get('duration_center', 5.0))
+        m_step = float(data.get('moic_step', 0.5))
+        d_step = float(data.get('duration_step', 1.0))
+
+        # 1. Generate the 5x5 axis values
+        # We create a range: [Center - 2*Step, Center - Step, Center, Center + Step, Center + 2*Step]
+        moic_range = [round(m_center + (i * m_step), 2) for i in range(-2, 3)]
+        duration_range = [round(d_center + (i * d_step), 2) for i in range(-2, 3)]
+
+        # 2. Initialize the Service
+        service = WaterfallService(fund_id, scenario_id)
+        
+        # 3. The Virtual Sequence
+        # We call a stateless method that returns the matrix
+        try:
+            matrix = service.calculate_virtual_matrix(
+                investment_id=investment_id,
+                moic_range=moic_range,
+                duration_range=duration_range
+            )
+            
+            return Response({
+                "matrix": matrix,
+                "moic_axis": moic_range,
+                "duration_axis": duration_range
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
