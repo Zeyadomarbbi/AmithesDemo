@@ -12,6 +12,8 @@ import Sensitivity from "../Sensitivity/Sensitivity";
 import './PortfolioTables.css'; 
 
 function ProjectedPortfolio({
+  fundId,
+  scenarioId,
   rows = [],
   activeMode,
   onChangeRow,
@@ -283,7 +285,11 @@ function ProjectedPortfolio({
                   {activeMode === "sensitivity" && activeSensitivityRowId === r.id && (
                     <tr className="scenario-pf-sensitivity-expanded-row">
                       <td colSpan={COL_SPAN} className="scenario-pf-center">
-                        <Sensitivity rowData={r} />
+                        <Sensitivity 
+                          rowData={r} 
+                          fundId={fundId} 
+                          scenarioId={scenarioId} 
+                        />
                       </td>
                     </tr>
                   )}

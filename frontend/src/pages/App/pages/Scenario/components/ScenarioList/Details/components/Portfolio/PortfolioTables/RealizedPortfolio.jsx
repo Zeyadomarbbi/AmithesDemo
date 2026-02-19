@@ -4,7 +4,7 @@ import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '..
 
 import './PortfolioTables.css'; 
 
-function RealizedPortfolio({ realizedData }) {
+function RealizedPortfolio({ fundId, scenarioId, realizedData }) {
     const rawData = realizedData || [];
     
     const formatNumber = useNumberFormatter();

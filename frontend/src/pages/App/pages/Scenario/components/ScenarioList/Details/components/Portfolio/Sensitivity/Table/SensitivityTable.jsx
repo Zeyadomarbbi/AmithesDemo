@@ -1,6 +1,4 @@
-// src/components/Table/SensitivityTable.jsx
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './SensitivityTable.css';
 
 // Helper component for styled input fields (MOIC and Duration axes)
@@ -13,33 +11,32 @@ const StyledInput = ({ value, onChange, className, type = "text" }) => (
     />
 );
 
-const SensitivityTable = () => {
-    // State for MOIC inputs (X-Axis) - Moved here
-    const [moicValues, setMoicValues] = useState(["1.75x", "1.90x", "2.00x", "2.50x"]);
-    // State for Duration inputs (Y-Axis) - Moved here
-    const [durationValues, setDurationValues] = useState(["4.25", "4.50", "4.75", "4.68", "5.00", "5.50"]);
-    // Placeholder for the Net IRR results - Moved here
-    const [irrData] = useState([
-        ["6.78%", "7.40%", "8.21%", "9.50%"],
-        ["6.57%", "7.25%", "8.02%", "9.12%"],
-        ["6.32%", "7.10%", "7.85%", "8.65%"],
-        ["6.18%", "6.87%", "7.54%", "8.54%"],
-        ["6.04%", "6.57%", "7.36%", "8.23%"],
-        ["5.76%", "6.34%", "7.14%", "7.69%"],
-    ]);
+const SensitivityTable = ({ data = [] }) => {
+    // 1. Initialize X-Axis (MOIC) with 5 default values (0)
+    const [moicValues, setMoicValues] = useState(new Array(5).fill("0.00x"));
+    
+    // 2. Initialize Y-Axis (Duration) with 5 default values (0)
+    const [durationValues, setDurationValues] = useState(new Array(5).fill("0.00"));
 
-    // Function to handle changes in MOIC inputs 
+    // 3. IRR Data Logic: Use props if available, otherwise 5x5 matrix of 0%
+    const displayData = useMemo(() => {
+        if (data && data.length > 0) return data;
+        return new Array(5).fill(0).map(() => new Array(5).fill("0.00%"));
+    }, [data]);
+
     const handleMoicChange = (index, value) => {
         setMoicValues(prev => prev.map((v, i) => i === index ? value : v));
     };
     
-    // Function to handle changes in Duration inputs 
     const handleDurationChange = (index, value) => {
         setDurationValues(prev => prev.map((v, i) => i === index ? value : v));
     };
 
     return (
-        <div className="sensitivity-main-grid">
+        <div className="sensitivity-main-grid" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: `repeat(6, 1fr)` // 1 for label + 5 for inputs
+        }}>
             
             {/* A. Top-Left Axis Label Cell */}
             <div className="grid-cell moic-label-cell">
@@ -47,41 +44,37 @@ const SensitivityTable = () => {
                 <span className="duration-label-text">Duration (yrs)</span>
             </div>
 
-            {/* B. MOIC INPUTS (X-Axis Header) */}
+            {/* B. MOIC INPUTS (X-Axis Header) - 5 Cells */}
             {moicValues.map((val, index) => (
                 <div key={`moic-cell-${index}`} className="moic-input grid-cell">
-                    {/* Input element nested inside the grid cell for styling control */}
                     <StyledInput
                         className="moic-input-field"
                         value={val}
                         onChange={(e) => handleMoicChange(index, e.target.value)}
-                        type="text" 
                     />
                 </div>
             ))}
 
-            {/* C. Duration Inputs (Y-Axis) and IRR Results (Data Grid) */}
+            {/* C. Duration Inputs (Y-Axis) and Results - 5 Rows */}
             {durationValues.map((duration, rowIndex) => (
                 <React.Fragment key={`row-${rowIndex}`}>
                     
                     {/* Y-Axis Input Cell (Duration) */}
-                    <div className="duration-input grid-cell">
-                        {/* Input element nested inside the grid cell for styling control */}
+                    <div className="moic-input grid-cell">
                         <StyledInput
-                            className="duration-input-field"
+                            className="moic-input-field"
                             value={duration}
                             onChange={(e) => handleDurationChange(rowIndex, e.target.value)}
-                            type="text" 
                         />
                     </div>
 
-                    {/* Main Data Cells (Net IRR Results) for this row */}
-                    {irrData[rowIndex].map((irr, colIndex) => (
+                    {/* Main Data Cells (Results) - 5 Columns per row */}
+                    {displayData[rowIndex].map((val, colIndex) => (
                         <div
-                            key={`irr-${rowIndex}-${colIndex}`}
+                            key={`result-${rowIndex}-${colIndex}`}
                             className="irr-result-cell grid-cell"
                         >
-                            {irr}
+                            {val}
                         </div>
                     ))}
                 </React.Fragment>

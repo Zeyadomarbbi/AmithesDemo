@@ -10,7 +10,7 @@ import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '..
 import Sensitivity from '../Sensitivity/Sensitivity'; 
 import './PortfolioTables.css'; 
 
-function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }) {
+function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onChangeRow, onRowClick }) {
     const [localData, setLocalData] = useState(investedData || []);
     const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
@@ -260,7 +260,11 @@ function InvestedPortfolio({ activeMode, investedData, onChangeRow, onRowClick }
                                     {activeMode === 'sensitivity' && activeSensitivityRowId === r.id && (
                                         <tr className="scenario-pf-sensitivity-expanded-row">
                                             <td colSpan={COL_SPAN} className="scenario-pf-center"> 
-                                                <Sensitivity rowData={r} />
+                                                <Sensitivity 
+                                                    fundId={fundId}
+                                                    scenarioId={scenarioId}
+                                                    rowData={r} 
+                                                />
                                             </td>
                                         </tr>
                                     )}

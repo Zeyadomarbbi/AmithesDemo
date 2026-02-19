@@ -274,9 +274,15 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     )}
                 </div>
 
-                <RealizedPortfolio realizedData={realizedData} />
+                <RealizedPortfolio 
+                  fundId={fundId}
+                  scenarioId={scenarioId}
+                  realizedData={realizedData} 
+                />
                 
                 <InvestedPortfolio 
+                    fundId={fundId}
+                    scenarioId={scenarioId}
                     activeMode={activeMode} 
                     investedData={investedData} 
                     onChangeRow={handleUpdateInput}
@@ -284,6 +290,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                 />
                 
                 <ProjectedPortfolio 
+                    fundId={fundId}
+                    scenarioId={scenarioId}
                     activeMode={activeMode} 
                     rows={projectedData} 
                     onChangeRow={handleUpdateInput}

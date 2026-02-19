@@ -32,63 +32,72 @@
     flex-direction: column;
     justify-content: space-around;
     align-items: flex-end;
-    padding: 8px 8px 8px 0px;
+    padding: 8px;
+    gap: 4px;
 }
 
-.moic-label-text {
-    /* ... (MOIC label text styles remain the same) ... */
-    font-family: 'Inter', sans-serif;
-    font-style: italic;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 16px;
-    color: #1C1917;
-    text-align: right;
+.moic-input-field,
+.duration-input-field {
     width: 100%;
-}
-
-.duration-label-text {
-    /* ... (Duration label text styles remain the same) ... */
-    font-family: 'Inter', sans-serif;
-    font-style: italic;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 16px;
-    color: #1C1917;
-    text-align: right;
-    width: 100%;
-}
-
-/* --- B. MOIC Input (X-Axis Header) Styles --- */
-.moic-input {
-    /* Padding will ensure the nested input remains centered/left-aligned in the wider cell */
-    padding: 8px 28px;
-    justify-content: center; /* Center the nested input field within the cell */
-    background: none;
-    border-bottom: 1px solid rgba(231, 229, 228, 0.24);
-}
-
-/* Update: Target the nested input field directly (assuming the input is nested in a div.moic-input) */
-.moic-input-field {
-    /* Keep the nested input's width fixed at 122px */
-    width: 122px; 
     box-sizing: border-box;
     padding: 8px 12px;
-    gap: 8px;
     height: 40px;
     background: #FFFFFF;
     border: 1px solid rgba(204, 205, 206, 0.5);
     border-radius: 4px;
     font-family: 'Inter', sans-serif;
-    font-style: normal;
     font-weight: 500;
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.01em;
     color: #1C1917;
-    text-align: left;
+    text-align: center;
     outline: none;
 }
+
+/* Fix label cell alignment */
+.moic-label-cell {
+    align-items: stretch; /* was flex-end */
+}
+
+.moic-label-text {
+    text-align: right; /* already right — keep */
+    /* Title */
+
+    max-height: 32px;
+
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+
+    letter-spacing: 0.01em;
+
+    color: #1C1917;
+
+
+
+
+}
+
+.duration-label-text {
+    text-align: left; /* was right — change this */
+    /* Nomlong prénom */
+    max-height: 40px;
+
+    /* Text-SM/Normal */
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    /* identical to box height, or 143% */
+    letter-spacing: 0.01em;
+
+    color: #375A89;
+}
+
 
 
 /* --- C. Duration Inputs (Y-Axis) and IRR Results (Data Grid) Styles --- */
