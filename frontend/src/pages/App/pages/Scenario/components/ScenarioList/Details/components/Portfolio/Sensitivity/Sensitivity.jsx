@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import debounce from 'lodash.debounce';
-import SensitivityTableHeader from './Header/SensitivityTableHeader.jsx'; 
 import SensitivityTable from './Table/SensitivityTable.jsx'; 
 import './Sensitivity.css';
 
-function Sensitivity({ rowData, fundId, scenarioId }) {
+function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
     const [moicCenter, setMoicCenter] = useState(parseFloat(rowData.input_moic) || 1.5);
     const [durationCenter, setDurationCenter] = useState(parseFloat(rowData.input_duration) || 5.0);
     const [moicStep, setMoicStep] = useState(0.5); 
@@ -52,17 +51,8 @@ function Sensitivity({ rowData, fundId, scenarioId }) {
     };
 
     return (
-        <div className="sensitivity-table-wrapper">
-            <SensitivityTableHeader 
-                moicCenter={moicCenter}
-                durationCenter={durationCenter}
-                onCenterChange={handleCenterChange}
-            />
-            {isLoading ? (
-                <div>Calculating Virtual Matrix...</div>
-            ) : (
-                <SensitivityTable data={matrixData} />
-            )}
+        <div className={`sensitivity-table-wrapper ${isClosing ? 'sensitivity-table-closing' : ''}`}>
+            <SensitivityTable data={matrixData} isLoading={isLoading} />
         </div>
     );
 }

@@ -14,7 +14,7 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
     const [localData, setLocalData] = useState(investedData || []);
     const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
-    
+    const [closingRowId, setClosingRowId] = useState(null);
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
     const formatDate = useDateFormatter();
@@ -57,7 +57,16 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
     };
 
     const handleSensitivityClick = (rowId) => {
-        setActiveSensitivityRowId(prev => prev === rowId ? null : rowId);
+        if (activeSensitivityRowId === rowId) {
+            setClosingRowId(rowId);
+            setTimeout(() => {
+                setActiveSensitivityRowId(null);
+                setClosingRowId(null);
+            }, 600); 
+        } else {
+            setActiveSensitivityRowId(rowId);
+            setClosingRowId(null);
+        }
     };
 
     const handleLocalInputChange = (id, field, value) => {
@@ -257,17 +266,18 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
                                         )}
                                     </tr>
 
-                                    {activeMode === 'sensitivity' && activeSensitivityRowId === r.id && (
-                                        <tr className="scenario-pf-sensitivity-expanded-row">
-                                            <td colSpan={COL_SPAN} className="scenario-pf-center"> 
-                                                <Sensitivity 
-                                                    fundId={fundId}
-                                                    scenarioId={scenarioId}
-                                                    rowData={r} 
-                                                />
-                                            </td>
-                                        </tr>
-                                    )}
+                                {(activeMode === 'sensitivity' && (activeSensitivityRowId === r.id || closingRowId === r.id)) && (
+                                    <tr className="scenario-pf-sensitivity-expanded-row">
+                                        <td colSpan={COL_SPAN} className="scenario-pf-center"> 
+                                            <Sensitivity 
+                                                fundId={fundId}
+                                                scenarioId={scenarioId}
+                                                rowData={r} 
+                                                isClosing={closingRowId === r.id}
+                                            />
+                                        </td>
+                                    </tr>
+                                )}
                                 </React.Fragment>
                             );
                         })}
