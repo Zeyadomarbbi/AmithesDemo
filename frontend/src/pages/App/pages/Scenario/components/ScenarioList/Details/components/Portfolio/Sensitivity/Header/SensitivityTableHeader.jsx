@@ -11,20 +11,7 @@ function SensitivityTableHeader({ handleDurationChange, handleNetIRRChange }) {
             <span className="sensitivity-title-text">Sensitivity table</span>
             
             {/* Controls Group */}
-            <div className="sensitivity-controls-group">
-                
-                {/* Duration Dropdown */}
-                <div className="header-dropdown-container duration-control-container">
-                    <select 
-                        className="header-control-dropdown" 
-                        onChange={handleDurationChange}
-                    >
-                        <option>Duration</option>
-                    </select>
-                    {/* Insert the icon next to the select element */}
-                    <ChevronDownIcon className="dropdown-icon" />
-                </div>
-                
+            <div className="sensitivity-controls-group">                
                 {/* Net IRR Dropdown */}
                 <div className="header-dropdown-container net-irr-control-container">
                     <select 
