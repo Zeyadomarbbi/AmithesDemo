@@ -1,3 +1,5 @@
+from dateutil.relativedelta import relativedelta
+
 import pandas as pd
 import numpy as np
 from django.db import connection
@@ -490,3 +492,154 @@ class WaterfallService:
             },
             'cashflows': cashflows_data
         }
+    
+
+class SensitivityService:
+    
+    def __init__(self, fund_id, scenario_id, investment_id):
+        self.fund_id = fund_id
+        self.scenario_id = scenario_id
+        self.investment_id = investment_id
+        
+        try:
+            self.base_projection = ScenarioPortfolioProjection.objects.get(
+                investment_id=self.investment_id, 
+                scenario_id=self.scenario_id
+            )
+        except ScenarioPortfolioProjection.DoesNotExist:
+            raise ValueError("Base projection not found for this investment/scenario.")
+        
+        self.total_commitment = self._fetch_total_commitment()
+        self.static_distributions = self._fetch_static_distributions()
+    
+    def _fetch_total_commitment(self):
+        query = """
+            SELECT COALESCE(SUM(total_commitment), 0)
+            FROM scenario_lps_sc_man_fee_tranches_config
+            WHERE fund_id = %s AND scenario_id = %s;
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.fund_id, self.scenario_id])
+            result = cursor.fetchone()[0]
+        return float(result)
+
+    def _calculate_virtual_exit(self, moic_input, duration_input):
+        """
+        Replicates the SQL logic of fn_rebuild_scenario_projection in Python.
+        Calculates exit_date and exit_value strictly in memory.
+        """
+        virtual_exit_date = None
+        virtual_exit_value = 0.0
+
+        if self.base_projection.first_investment_date and duration_input is not None:
+            # Replicating: v_exit_date := v_first_date + (v_duration || ' years')::INTERVAL;
+            years = int(duration_input)
+            months = int(round((duration_input - years) * 12))
+            virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
+
+        if moic_input is not None:
+            # Replicating: v_exit_value := v_cost * v_moic;
+            virtual_exit_value = float(self.base_projection.cost) * float(moic_input)
+
+        return virtual_exit_date, virtual_exit_value
+    
+    def _fetch_static_distributions(self):
+        """
+        Retrieves the pre-calculated summary but EXCLUDES the projected exit 
+        for the target investment (Source 2A).
+        """
+        qs = ScenarioFundflowsDistributionSummary.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id=self.scenario_id
+        ).exclude(
+            # This combination precisely targets the divestment row from Source 2A
+            source_type='projected',
+            source_id=self.investment_id,
+            divestment__gt=0 
+        ).values(
+            'date', 'flows', 'divestment', 'dividends', 'interests', 'other', 'pct_distributed', 'source_type', 'source_id'
+        )
+        
+        # Convert Decimals to floats for in-memory math speed
+        dists = []
+        for row in qs:
+            dists.append({
+                'date': row['date'],
+                'flows': float(row['flows']),
+                'divestment': float(row['divestment']),
+                'dividends': float(row['dividends']),
+                'interests': float(row['interests']),
+                'other': float(row['other']),
+                'pct_distributed': float(row['pct_distributed']),
+                'source_type': row['source_type'],
+                'source_id': row['source_id']
+            })
+        return dists
+    
+    def _build_virtual_distribution_summary(self, virtual_exit_date, virtual_exit_value):
+        """
+        Creates the cell-specific distribution array.
+        """
+        # Shallow copy the static list
+        virtual_dists = self.static_distributions.copy()
+
+        if virtual_exit_date and virtual_exit_value:
+            # Safely handle missing total_commitment for now
+            pct_dist = (virtual_exit_value / self.total_commitment * 100) if self.total_commitment > 0 else 0
+            # Inject Source 2A virtual equivalent
+            virtual_dists.append({
+                'date': virtual_exit_date,
+                'flows': virtual_exit_value,
+                'divestment': virtual_exit_value,
+                'dividends': 0.0,
+                'interests': 0.0,
+                'other': 0.0,
+                'pct_distributed': pct_dist,
+                'source_type': 'projected_virtual',
+                'source_id': self.investment_id
+            })
+
+        # Sort chronologically, matching SQL ORDER BY
+        virtual_dists.sort(key=lambda x: x['date'])
+        return virtual_dists
+    
+    def generate_matrices(self, moic_inputs, duration_inputs):
+        results = {
+            "portfolio_irr": [],
+            "fund_irr_net": [],
+            "fund_irr_gross": [],
+        }
+        
+        # UI matching: Rows = Duration (Y-axis), Columns = MOIC (X-axis)
+        for r_idx, duration in enumerate(duration_inputs):
+            row_portfolio = []
+            row_net = []
+            row_gross = []
+            
+            for c_idx, moic in enumerate(moic_inputs):
+                print(f"Grid[{r_idx}][{c_idx}] | Duration: {duration:.2f} yrs | MOIC: {moic:.2f}x")
+                
+                virtual_exit_date, virtual_exit_value = self._calculate_virtual_exit(
+                    moic_input=moic, 
+                    duration_input=duration
+                )
+                
+                # Build the dynamic array for this specific cell
+                virtual_distribution_summary = self._build_virtual_distribution_summary(
+                    virtual_exit_date, 
+                    virtual_exit_value
+                )
+                print(virtual_distribution_summary)
+                print("----------------------")
+                # TODO: Run isolated fundflow logic & Extract KPIs
+                
+                # Append placeholders to complete the grid format required by React
+                row_portfolio.append("0.00%")
+                row_net.append("0.00%")
+                row_gross.append("0.00%")
+                
+            results["portfolio_irr"].append(row_portfolio)
+            results["fund_irr_net"].append(row_net)
+            results["fund_irr_gross"].append(row_gross)
+
+        return results

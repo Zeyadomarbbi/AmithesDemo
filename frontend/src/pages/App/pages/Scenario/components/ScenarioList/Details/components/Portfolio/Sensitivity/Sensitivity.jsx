@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import debounce from 'lodash.debounce';
 import SensitivityTable from './Table/SensitivityTable.jsx'; 
 import { useShareClasses } from '../../../../../../../../hooks/useShareClass.js';
+import { useSensitivityAnalysis } from './useSensitivityAnalysis.js'; // Adjust path if needed
 import './Sensitivity.css';
 
 function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
@@ -27,10 +28,11 @@ function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
         (baseDur + dStep * 2).toFixed(2)
     ]);
 
-    const [matrixData, setMatrixData] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-
+    // 1. Fetch Dynamic Share Classes
     const { data: shareClasses } = useShareClasses(fundId);
+
+    // 2. Initialize the Sensitivity Hook
+    const { matrixData, loading, fetchMatrix } = useSensitivityAnalysis(fundId, scenarioId);
 
     const kpiOptions = useMemo(() => {
         const baseOptions = [
@@ -50,41 +52,21 @@ function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
         return [...baseOptions, ...dynamicOptions];
     }, [shareClasses]);
 
-    const fetchSensitivityData = (mValues, dValues) => {
-        setIsLoading(true);
-        
-        const payload = {
-            investment_id: rowData.id,
-            fund_id: fundId,
-            scenario_id: scenarioId,
-            moic_inputs: mValues.map(v => parseFloat(v) || 0),
-            duration_inputs: dValues.map(v => parseFloat(v) || 0)
-        };
-
-        console.log("DEBOUNCE FIRED - Payload Data:", payload);
-
-        setTimeout(() => {
-            const mockResponse = {};
-            // Mock changing data based on first input just to see UI react
-            const mockVal = `${parseFloat(mValues[0] || 0) + 10}%`; 
-            const mockMatrix = new Array(5).fill(0).map(() => new Array(5).fill(mockVal));
-            
-            kpiOptions.forEach(opt => {
-                mockResponse[opt.value] = mockMatrix;
-            });
-
-            setMatrixData(mockResponse); 
-            setIsLoading(false);
-        }, 300);
-    };
-
+    // 3. Bind the Hook to the Debounce
     const debouncedFetch = useCallback(
         debounce((m, d) => {
-            fetchSensitivityData(m, d);
-        }, 2000),
-        [fundId, scenarioId, rowData.id, kpiOptions] 
+            const payload = {
+                investment_id: rowData.id,
+                moic_inputs: m.map(v => parseFloat(v) || 0),
+                duration_inputs: d.map(v => parseFloat(v) || 0)
+            };
+            console.log("DEBOUNCE FIRED - Sending Payload to Hook:", payload);
+            fetchMatrix(payload);
+        }, 2000), // 2-second debounce
+        [rowData.id, fetchMatrix] 
     );
 
+    // 4. Trigger Debounce on input change
     useEffect(() => {
         debouncedFetch(moicValues, durationValues);
         return () => debouncedFetch.cancel(); 
@@ -103,7 +85,7 @@ function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
             <SensitivityTable 
                 data={matrixData} 
                 kpiOptions={kpiOptions}
-                isLoading={isLoading}
+                isLoading={loading} // Use hook's loading state
                 moicValues={moicValues}
                 durationValues={durationValues}
                 onMoicChange={handleMoicChange}

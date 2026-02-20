@@ -39,7 +39,7 @@ from ..serializers.scenario_serializers import (
     ViewScenarioFundflowsAllOperationsSerializer
 )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
-from ..services import WaterfallService
+from ..services import WaterfallService, SensitivityService
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -447,3 +447,44 @@ class ScenarioSensitivityView(APIView):
             
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class ScenarioSensitivityView(APIView):
+    def post(self, request, fund_id, scenario_id):
+        data = request.data
+        investment_id = data.get('investment_id')
+        
+        # Extract arrays sent by the frontend handshake
+        moic_inputs = data.get('moic_inputs', [])
+        duration_inputs = data.get('duration_inputs', [])
+
+        # Strict validation
+        if not investment_id:
+            return Response({"error": "investment_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(moic_inputs) != 5 or len(duration_inputs) != 5:
+            return Response(
+                {"error": "Exactly 5 MOIC and 5 Duration inputs are required."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Ensure all inputs are floats to prevent calculation errors downstream
+        try:
+            moic_inputs = [float(m) for m in moic_inputs]
+            duration_inputs = [float(d) for d in duration_inputs]
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Invalid numeric data in inputs."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        service = SensitivityService(
+            fund_id=fund_id,
+            scenario_id=scenario_id,
+            investment_id=investment_id
+        )
+
+        try:
+            result_matrix = service.generate_matrices(moic_inputs, duration_inputs)
+            return Response(result_matrix, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
