@@ -1,5 +1,6 @@
 from dateutil.relativedelta import relativedelta
 import pprint
+from datetime import date
 
 import pandas as pd
 import numpy as np
@@ -15,7 +16,8 @@ from rest_api.models.transactions import (
     FundWaterfallStepRules,
     FundWaterfallEnvelopes,
     FundWaterfallEnvelopeRules,
-    ScenarioPortfolioProjection
+    ScenarioPortfolioProjection,
+    ScenarioDueDiligenceFee
 )
 
 # --- UTILITIES ---
@@ -68,43 +70,6 @@ class WaterfallService:
     def __init__(self, fund_id, scenario_id):
         self.fund_id = fund_id
         self.scenario_id = scenario_id
-
-    def calculate_virtual_matrix(self, investment_id, moic_range, duration_range):
-        # Fetch base data once (Read-only)
-        # We need the cost to calculate the virtual exit values
-        base_inv = ScenarioPortfolioProjection.objects.get(investment_id=investment_id, scenario_id=self.scenario_id)
-        
-        # Pre-fetch waterfall config and ratios once (to keep it fast)
-        ratios, _ = self.fetch_commitments_and_ratios()
-        waterfall_config = self.fetch_waterfall_config()
-        
-        matrix = []
-        
-        # The 5x5 Loop
-        for m in moic_range:
-            row = []
-            for d in duration_range:
-                # VIRTUAL MATH: Calculate exit based on loop variables
-                virtual_exit_value = float(base_inv.cost) * m
-                
-                # This is where you call your existing math loop 
-                # (but pass variables, don't read from DB tables)
-                # For now, let's assume a simplified version of your KPI logic:
-                kpis = self.run_stateless_calculation(
-                    cost=base_inv.cost,
-                    exit_value=virtual_exit_value,
-                    duration=d,
-                    config=waterfall_config,
-                    ratios=ratios
-                )
-                
-                # We return the specific KPI requested (e.g. Net IRR)
-                # Formatted as a string to match your UI needs
-                row.append(f"{kpis['performance']['Fund']['IRR'] * 100:.2f}%")
-                
-            matrix.append(row)
-            
-        return matrix
     # --- FETCH METHODS ---
 
     def fetch_commitments_and_ratios(self):
@@ -511,9 +476,38 @@ class SensitivityService:
         except ScenarioPortfolioProjection.DoesNotExist:
             raise ValueError("Base projection not found for this investment/scenario.")
         
+        self.waterfall_config = self._fetch_waterfall_config()
         self.total_commitment = self._fetch_total_commitment()
         self.base_investment_flows = self._fetch_base_investment_flows()
-        self.static_operations = self._fetch_static_operations()
+        self.base_dd_fee = self._fetch_base_dd_fee()
+
+    def _fetch_waterfall_config(self):
+        config = {}
+        steps = FundWaterfallSteps.objects.filter(fund_id=self.fund_id)\
+            .select_related('step_definition').order_by('step_definition__step_number')
+
+        for step in steps:
+            s_num = step.step_definition.step_number
+            s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
+            
+            d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
+                .select_related('share_class')
+            d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
+
+            envs = []
+            env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
+            for e in env_qs:
+                e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
+                e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
+                envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
+
+            classes = list(d_rules.keys())
+            for e in envs:
+                for c in e['rules']:
+                    if c not in classes: classes.append(c)
+
+            config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
+        return config
     
     def _fetch_total_commitment(self):
         query = """
@@ -558,6 +552,20 @@ class SensitivityService:
                 base_flows.append((date, cf))
                 
         return base_flows
+    
+    def _calculate_virtual_exit(self, moic_input, duration_input):
+        virtual_exit_date = None
+        virtual_exit_value = 0.0
+
+        if self.base_projection.first_investment_date and duration_input is not None:
+            years = int(duration_input)
+            months = int(round((duration_input - years) * 12))
+            virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
+
+        if moic_input is not None:
+            virtual_exit_value = float(self.base_projection.cost) * float(moic_input)
+
+        return virtual_exit_date, virtual_exit_value
 
     def _fetch_target_summary_id(self):
         """Finds the summary_id of the original projected exit to remove it."""
@@ -576,83 +584,134 @@ class SensitivityService:
             result = cursor.fetchone()
         return result[0] if result else None
 
-    def _fetch_static_operations(self):
-        """Fetches the raw flows from the View, EXCLUDING placeholders and the original target exit."""
+    def _fetch_static_distributions(self):
+        """
+        Fetches base distributions, excluding placeholders 
+        and the specific target investment's projected exit.
+        """
         target_summary_id = self._fetch_target_summary_id()
         
-        qs = ViewScenarioFundflowsAllOperations.objects.filter(
+        qs = ScenarioFundflowsDistributionSummary.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id=self.scenario_id
+        ).exclude(source_type='projected_placeholder')
+
+        if target_summary_id:
+            qs = qs.exclude(summary_id=target_summary_id)
+
+        return [
+            {
+                'summary_id': r['summary_id'],
+                'date': r['date'],
+                'flows': -float(r['flows']), # Standardize as negative for distribution
+                'type': 'distribution',
+                'source_type': r['source_type'],
+                'source_id': r['source_id']
+            }
+            for r in qs.values('summary_id', 'date', 'flows', 'source_type', 'source_id')
+        ]
+    
+    def _fetch_static_capital_calls(self):
+        """
+        Fetches base capital calls, excluding placeholders.
+        This serves as the base for adding/subtracting virtual fees later.
+        """
+        qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
             fund_id=self.fund_id,
             scenario_id=self.scenario_id
         ).exclude(
-            source_type='projected_placeholder'
+            source_type='projected_placeholder', 
+            is_user_inserted=False
         )
-        
-        if target_summary_id:
-            qs = qs.exclude(
-                summary_id=target_summary_id, 
-                flow_type='distribution'
-            )
-            
-        qs = qs.values('date', 'flows', 'flow_type', 'source_type')
-        operations = []
-        for row in qs:
-            operations.append({
-                'date': row['date'],
-                'flows': float(row['flows']),
-                'flow_type': row['flow_type'],
-                'source_type': row['source_type']
-            })
-        return operations
 
-    def _calculate_virtual_exit(self, moic_input, duration_input):
-        virtual_exit_date = None
-        virtual_exit_value = 0.0
-
-        if self.base_projection.first_investment_date and duration_input is not None:
-            years = int(duration_input)
-            months = int(round((duration_input - years) * 12))
-            virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
-
-        if moic_input is not None:
-            virtual_exit_value = float(self.base_projection.cost) * float(moic_input)
-
-        return virtual_exit_date, virtual_exit_value
+        return [
+            {
+                'summary_id': r['summary_id'],
+                'date': r['date'],
+                'flows': float(r['flows']), # Standardize as positive for call
+                'type': 'capital_call',
+                'source_type': r['source_type'],
+            }
+            for r in qs.values('summary_id', 'date', 'flows', 'source_type')
+        ]
     
+    def _fetch_base_dd_fee(self):
+        try:
+            dd_fee = ScenarioDueDiligenceFee.objects.get(
+                investment_id=self.investment_id,
+                scenario_id=self.scenario_id
+            )
+            return {
+                'entry_fee_pct': float(dd_fee.entry_fee_pct),
+                'exit_fee_pct': float(dd_fee.exit_fee_pct),
+                'is_entry_sunk': dd_fee.is_entry_sunk,
+                'is_exit_sunk': dd_fee.is_exit_sunk,
+                'base_exit_date': dd_fee.exit_date, # Need this to locate the old fee
+                'base_exit_amount': float(dd_fee.exit_amount) # Need this to subtract it
+            }
+        except ScenarioDueDiligenceFee.DoesNotExist:
+            return {
+                'entry_fee_pct': 0.0, 'exit_fee_pct': 0.0,
+                'is_entry_sunk': False, 'is_exit_sunk': False,
+                'base_exit_date': None, 'base_exit_amount': 0.0
+            }
+
     def _build_virtual_operations(self, virtual_exit_date, virtual_exit_value):
-        """
-        Injects the virtual exit, sorts, and recalculates the running totals (SQL Window Functions).
-        """
-        virtual_ops = self.static_operations.copy()
-
-        if virtual_exit_date and virtual_exit_value:
-            # Note: distributions are negative flows in the view
-            virtual_ops.append({
-                'date': virtual_exit_date,
-                'flows': -virtual_exit_value, 
-                'flow_type': 'distribution',
-                'source_type': 'projected_virtual'
-            })
-
-        # 1. Sort chronologically (replicates ORDER BY date)
-        virtual_ops.sort(key=lambda x: x['date'])
-
-        # 2. Recalculate cumulative sums (replicates SUM(...) OVER (...))
-        running_called = 0.0
-        running_dist = 0.0
-
-        for op in virtual_ops:
-            if op['flow_type'] == 'capital_call' and self.total_commitment > 0:
-                running_called += (op['flows'] / self.total_commitment) * 100
-            elif op['flow_type'] == 'distribution' and self.total_commitment > 0:
-                # Use absolute value for distribution accumulation
-                running_dist += (abs(op['flows']) / self.total_commitment) * 100
+        def _calculate_dd_fee_deltas(virtual_exit_date):
+            """
+            Returns only the 'delta' rows (reversals and new virtuals) 
+            for Due Diligence fees.
+            """
+            base_dd = self.base_dd_fee
+            deltas = []
             
-            # Attach running totals to the dictionary
-            op['pct_capital_called'] = running_called
-            op['pct_distributed'] = running_dist
-            op['dpi'] = (running_dist / running_called) if running_called > 0 else 0.0
+            # 1. Reversal of the original projected fee
+            if not base_dd['is_exit_sunk'] and base_dd.get('base_exit_amount', 0) > 0:
+                deltas.append({
+                    'date': base_dd['base_exit_date'],
+                    'flows': -base_dd['base_exit_amount'], # Reverse the call
+                    'type': 'capital_call',
+                    'source_type': 'dd_fee_reversal' 
+                })
 
-        return virtual_ops
+            # 2. Virtual injection of the new fee
+            is_virtual_sunk = virtual_exit_date is not None and virtual_exit_date < date.today()
+            if not is_virtual_sunk and virtual_exit_date:
+                v_amt = float(self.base_projection.cost) * (base_dd['exit_fee_pct'] / 100.0)
+                if v_amt > 0:
+                    deltas.append({
+                        'date': virtual_exit_date,
+                        'flows': v_amt,
+                        'type': 'capital_call',
+                        'source_type': 'dd_fee_virtual'
+                    })
+            return deltas
+        # 1. Project Virtual Exit (Distribution)
+        dists = self._fetch_static_distributions()
+        if virtual_exit_date and virtual_exit_value:
+            dists.append({
+                'date': virtual_exit_date,
+                'flows': -virtual_exit_value,
+                'type': 'distribution',
+                'source_type': 'projected_virtual',
+                'source_id': self.investment_id
+            })
+        
+        # B. Capital Calls (Base + Fee Deltas)
+        # dd_deltas = _calculate_dd_fee_deltas(virtual_exit_date)
+        
+        full_ledger = dists
+        full_ledger.sort(key=lambda x: x['date'])
+
+        # D. Map Operation Names (Used for the 'Name of the operation' column)
+        # This will be used by the Waterfall to identify specific exits
+        for op in full_ledger:
+            if op['type'] == 'distribution' and 'projected' in op['source_type']:
+                op['name'] = f"Exit: {self.base_projection.investment.name}" if op['source_id'] == self.investment_id else "Exit: Portfolio"
+            else:
+                op['name'] = f"{op['type'].replace('_', ' ').title()} ({op['source_type']})"
+
+        return full_ledger
     
     def generate_matrices(self, moic_inputs, duration_inputs):
         results = {
@@ -660,7 +719,7 @@ class SensitivityService:
             "fund_irr_net": [],
             "fund_irr_gross": [],
         }
-        
+        pprint.pprint(self.waterfall_config)
         for r_idx, duration in enumerate(duration_inputs):
             row_portfolio = []
             row_net = []
@@ -672,6 +731,7 @@ class SensitivityService:
                     moic_input=moic, 
                     duration_input=duration
                 )
+                # Calculations of Portfolio IRR 
                 cell_dates = [flow[0] for flow in self.base_investment_flows]
                 cell_cashflows = [flow[1] for flow in self.base_investment_flows]
                 cell_dates.append(virtual_exit_date)
@@ -686,8 +746,6 @@ class SensitivityService:
                     virtual_exit_date, 
                     virtual_exit_value
                 )
-                # TODO: Pass `virtual_all_operations` into your KPI calculator
-                
                 row_net.append("0.00%")
                 row_gross.append("0.00%")
                 
