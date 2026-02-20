@@ -155,6 +155,8 @@ export const processPortfolioData = (investments, projections, targetDate, activ
 function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [activeMode, setActiveMode] = useState(null);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
+  const [isFinalizationOpen, setIsFinalizationOpen] = useState(false); // NEW
+  const [targetResults, setTargetResults] = useState(null);
   const [showNewInvestmentModal, setShowNewInvestmentModal] = useState(false);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
   const [simRefreshTrigger, setSimRefreshTrigger] = useState(0);
@@ -276,6 +278,31 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
       return viewingInvestment; 
   }, [viewingInvestment]);
 
+  const handleTargetNext = (results) => {
+    setTargetResults(results);
+    setIsTargetModalOpen(false);
+    setIsFinalizationOpen(true);
+};
+
+const handleTargetFinalSave = ({ success, error }) => {
+    if (success) {
+        setToast({ 
+            type: "success", 
+            title: "Target Applied", 
+            message: "All unlocked portfolio MOICs have been updated." 
+        });
+        // Global refresh to update table values and simulation charts
+        fetchInvestments();
+        fetchProjections();
+        setSimRefreshTrigger(prev => prev + 1);
+    } else {
+        setToast({ 
+            type: "error", 
+            title: "Update Failed", 
+            message: error?.message || "An error occurred while saving targets." 
+        });
+    }
+};
   if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
 
   return (
@@ -398,17 +425,17 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
         <TargetSelectionModal 
           isOpen={isTargetModalOpen} 
           onClose={() => setIsTargetModalOpen(false)} 
-          onSave={handleTargetSave}
+          onNext={handleTargetNext} // Updated handler
           shareClasses={availableShareClasses}
-          fundId={fundId}                     // Passed down
-          scenarioId={scenarioId}             // Passed down
+          fundId={fundId} 
+          scenarioId={scenarioId}
           unlockedPortfolios={unlockedPortfolios}
         />
 
         <TargetFinalizationModal 
           isOpen={isFinalizationOpen}
           onClose={() => setIsFinalizationOpen(false)}
-          onSave={handleFinalSave}
+          onSave={handleTargetFinalSave}
           result={targetResults}
           fundId={fundId}
           scenarioId={scenarioId}
