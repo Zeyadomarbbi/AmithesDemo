@@ -157,13 +157,27 @@ function RealizedPortfolio({ fundId, scenarioId, realizedData }) {
                         ))}
                         <tr className="scenario-pf-summary-row"> 
                             <td className="scenario-pf-left">Total</td>
-                            <td className="scenario-pf-left">{summary.avgDuration.toFixed(1)} yrs</td>
-                            <td className="scenario-pf-left">{formatNumber(summary.totalCost)}</td>
-                            <td className="scenario-pf-left">{formatNumber(summary.totalExitVal)}</td>
-                            <td className="scenario-pf-left">{formatNumber(summary.totalDividends)}</td>
-                            <td className="scenario-pf-left">{formatPercent(summary.avgIrr)}</td>
-                            <td className="scenario-pf-left">{summary.avgMoic.toFixed(2)}x</td>
-                            <td className="scenario-pf-left">-</td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={`${summary.avgDuration.toFixed(1)} yrs`} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={formatNumber(summary.totalCost)} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={formatNumber(summary.totalExitVal)} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={formatNumber(summary.totalDividends)} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={formatPercent(summary.avgIrr)} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value={`${summary.avgMoic.toFixed(2)}x`} readOnly />
+                            </td>
+                            <td className="scenario-pf-center">
+                                <input className="scenario-pf-input" value="-" readOnly />
+                            </td>
                         </tr>
                     </tbody>
                 </table>

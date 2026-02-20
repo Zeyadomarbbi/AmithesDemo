@@ -477,9 +477,98 @@ class SensitivityService:
             raise ValueError("Base projection not found for this investment/scenario.")
         
         self.waterfall_config = self._fetch_waterfall_config()
+        self.ratios, self.share_class_names = self._fetch_commitments_and_ratios()
         self.total_commitment = self._fetch_total_commitment()
         self.base_investment_flows = self._fetch_base_investment_flows()
+        self.realized_calls, self.realized_dists = self._fetch_realized_lookups()
+        self.portfolio_total_cost = self._fetch_portfolio_total_cost()
         self.base_dd_fee = self._fetch_base_dd_fee()
+        self.static_capital_calls = self._fetch_static_capital_calls()
+        self.man_fee_rate = self._fetch_man_fee_rate()
+
+    def _fetch_commitments_and_ratios(self):
+        query = """
+            SELECT sc.share_class_name, c.total_commitment
+            FROM scenario_lps_sc_man_fee_tranches_config c
+            JOIN share_class sc ON c.share_class_id = sc.share_class_id
+            WHERE c.fund_id = %s AND c.scenario_id = %s
+            ORDER BY c.share_class_id;
+        """
+        ratios = {}
+        share_class_names = []
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.fund_id, self.scenario_id])
+            rows = cursor.fetchall()
+
+        total = sum(float(r[1]) for r in rows)
+        for name, amount in rows:
+            amount = float(amount)
+            ratio = amount / total if total > 0 else 0.0
+            ratios[name] = ratio
+            share_class_names.append(name)
+        return ratios, share_class_names
+
+    def fetch_realized_lookups(self):
+        q = """
+            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
+            FROM lps_operation_lp_allocations a
+            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
+            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
+            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
+            WHERE d.fund_id = %s
+            GROUP BY t.name, d.due_date, sc.share_class_name;
+        """
+        realized_calls = {}
+        realized_dists = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id])
+            for op_type, due_date, sc_name, amount in c.fetchall():
+                dt = str(due_date)
+                amt = float(amount) if amount else 0.0
+                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
+                    realized_calls.setdefault(dt, {})[sc_name] = amt
+                elif op_type == 'Distribution':
+                    realized_dists.setdefault(dt, {})[sc_name] = amt
+        return realized_calls, realized_dists
+    
+    def _fetch_realized_lookups(self):
+        q = """
+            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
+            FROM lps_operation_lp_allocations a
+            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
+            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
+            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
+            WHERE d.fund_id = %s
+            GROUP BY t.name, d.due_date, sc.share_class_name;
+        """
+        realized_calls = {}
+        realized_dists = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id])
+            for op_type, due_date, sc_name, amount in c.fetchall():
+                dt = str(due_date)
+                amt = float(amount) if amount else 0.0
+                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
+                    realized_calls.setdefault(dt, {})[sc_name] = amt
+                elif op_type == 'Distribution':
+                    realized_dists.setdefault(dt, {})[sc_name] = amt
+        return realized_calls, realized_dists
+
+    def _fetch_man_fee_rate(self):
+        """
+        Fetches the fee rate for 'Portfolio' level management fees.
+        """
+        # Adjust query to match your specific config table
+        query = """
+            SELECT fee_rate_percent 
+            FROM scenario_lps_sc_man_fee_tranches_config 
+            WHERE fund_id = %s AND scenario_id = %s 
+            LIMIT 1;
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.fund_id, self.scenario_id])
+            row = cursor.fetchone()
+        return float(row[0]) / 100.0 if row else 0.02 # Default to 2%
 
     def _fetch_waterfall_config(self):
         config = {}
@@ -509,6 +598,12 @@ class SensitivityService:
             config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
         return config
     
+    def _fetch_portfolio_total_cost(self):
+        result = ScenarioPortfolioProjection.objects.filter(fund_id=self.fund_id, scenario_id=self.scenario_id)\
+            .aggregate(total=Sum('cost'))
+        return float(result['total'] or 0)
+
+
     def _fetch_total_commitment(self):
         query = """
             SELECT COALESCE(SUM(total_commitment), 0)
@@ -612,10 +707,6 @@ class SensitivityService:
         ]
     
     def _fetch_static_capital_calls(self):
-        """
-        Fetches base capital calls, excluding placeholders.
-        This serves as the base for adding/subtracting virtual fees later.
-        """
         qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
             fund_id=self.fund_id,
             scenario_id=self.scenario_id
@@ -628,11 +719,14 @@ class SensitivityService:
             {
                 'summary_id': r['summary_id'],
                 'date': r['date'],
-                'flows': float(r['flows']), # Standardize as positive for call
+                'flows': float(r['flows']),
+                'investment': float(r['investment']),
+                'management_fees': float(r['management_fees']), # ADDED
+                'dd_fees': float(r['dd_fees']),                 # ADDED
                 'type': 'capital_call',
                 'source_type': r['source_type'],
             }
-            for r in qs.values('summary_id', 'date', 'flows', 'source_type')
+            for r in qs.values('summary_id', 'date', 'flows', 'investment', 'management_fees', 'dd_fees', 'source_type')
         ]
     
     def _fetch_base_dd_fee(self):
@@ -656,101 +750,338 @@ class SensitivityService:
                 'base_exit_date': None, 'base_exit_amount': 0.0
             }
 
-    def _build_virtual_operations(self, virtual_exit_date, virtual_exit_value):
-        def _calculate_dd_fee_deltas(virtual_exit_date):
-            """
-            Returns only the 'delta' rows (reversals and new virtuals) 
-            for Due Diligence fees.
-            """
-            base_dd = self.base_dd_fee
-            deltas = []
-            
-            # 1. Reversal of the original projected fee
-            if not base_dd['is_exit_sunk'] and base_dd.get('base_exit_amount', 0) > 0:
-                deltas.append({
-                    'date': base_dd['base_exit_date'],
-                    'flows': -base_dd['base_exit_amount'], # Reverse the call
-                    'type': 'capital_call',
-                    'source_type': 'dd_fee_reversal' 
-                })
+    def _apply_dd_fee_in_place(self, calls, virtual_exit_date):
+        base_dd = self.base_dd_fee
+        dd_fee_amt = base_dd.get('base_exit_amount', 0.0)
+        
+        # A. Reversal
+        if not base_dd['is_exit_sunk'] and dd_fee_amt > 0:
+            base_year = base_dd['base_exit_date'].year
+            base_year_ops = [op for op in calls if op['date'].year == base_year]
+            if base_year_ops:
+                reduction_per_op = dd_fee_amt / len(base_year_ops)
+                for op in base_year_ops:
+                    op['flows'] -= reduction_per_op
+                    op['dd_fees'] -= reduction_per_op # ADDED
+                    op['source_type'] += "_dd_reduced"
 
-            # 2. Virtual injection of the new fee
-            is_virtual_sunk = virtual_exit_date is not None and virtual_exit_date < date.today()
-            if not is_virtual_sunk and virtual_exit_date:
-                v_amt = float(self.base_projection.cost) * (base_dd['exit_fee_pct'] / 100.0)
-                if v_amt > 0:
-                    deltas.append({
-                        'date': virtual_exit_date,
-                        'flows': v_amt,
-                        'type': 'capital_call',
-                        'source_type': 'dd_fee_virtual'
-                    })
-            return deltas
-        # 1. Project Virtual Exit (Distribution)
+        # B. Addition
+        is_virtual_sunk = virtual_exit_date is not None and virtual_exit_date < date.today()
+        if not is_virtual_sunk and virtual_exit_date:
+            virtual_year = virtual_exit_date.year
+            new_dd_amt = float(self.base_projection.cost) * (base_dd['exit_fee_pct'] / 100.0)
+            virtual_year_ops = [op for op in calls if op['date'].year == virtual_year]
+            if virtual_year_ops:
+                addition_per_op = new_dd_amt / len(virtual_year_ops)
+                for op in virtual_year_ops:
+                    op['flows'] += addition_per_op
+                    op['dd_fees'] += addition_per_op # ADDED
+                    op['source_type'] += "_dd_increased"
+        return calls
+
+    def _apply_man_fee_deltas(self, calls, virtual_exit_date):
+        base_exit_year = self.base_projection.exit_date.year
+        virtual_exit_year = virtual_exit_date.year
+        annual_fee = float(self.base_projection.cost) * self.man_fee_rate
+        
+        start_year = min(base_exit_year, virtual_exit_year)
+        end_year = max(base_exit_year, virtual_exit_year)
+        
+        for year in range(start_year, end_year + 1):
+            year_ops = [op for op in calls if op['date'].year == year]
+            if not year_ops:
+                continue
+            
+            delta = 0
+            if virtual_exit_year > base_exit_year and year > base_exit_year: 
+                delta = annual_fee
+            elif virtual_exit_year < base_exit_year and year > virtual_exit_year:
+                delta = -annual_fee
+
+            if delta != 0:
+                split_delta = delta / len(year_ops)
+                for op in year_ops:
+                    op['flows'] += split_delta
+                    op['management_fees'] += split_delta # ADDED
+                    op['source_type'] += "_man_fee_adj"
+        
+        return calls
+
+    def _build_virtual_operations(self, virtual_exit_date, virtual_exit_value):
+        # 1. Distributions (Exits)
         dists = self._fetch_static_distributions()
         if virtual_exit_date and virtual_exit_value:
             dists.append({
-                'date': virtual_exit_date,
-                'flows': -virtual_exit_value,
-                'type': 'distribution',
-                'source_type': 'projected_virtual',
+                'date': virtual_exit_date, 'flows': -virtual_exit_value,
+                'type': 'distribution', 'source_type': 'projected_virtual',
                 'source_id': self.investment_id
             })
+
+        # 2. Capital Calls (Deltas)
+        calls = [dict(op) for op in self.static_capital_calls]
         
-        # B. Capital Calls (Base + Fee Deltas)
-        # dd_deltas = _calculate_dd_fee_deltas(virtual_exit_date)
+        # Apply DD Fee Logic (Shifting the Exit Fee)
+        calls = self._apply_dd_fee_in_place(calls, virtual_exit_date)
         
-        full_ledger = dists
+        # Apply Management Fee Logic (Adjusting the Annuity)
+        calls = self._apply_man_fee_deltas(calls, virtual_exit_date)
+        
+        # 3. Final Assembly
+        full_ledger = dists + calls
         full_ledger.sort(key=lambda x: x['date'])
-
-        # D. Map Operation Names (Used for the 'Name of the operation' column)
-        # This will be used by the Waterfall to identify specific exits
+        
+        # 4. Name Mapping
         for op in full_ledger:
-            if op['type'] == 'distribution' and 'projected' in op['source_type']:
-                op['name'] = f"Exit: {self.base_projection.investment.name}" if op['source_id'] == self.investment_id else "Exit: Portfolio"
+            if op['type'] == 'distribution':
+                op['operation_name'] = f"Exit: {self.base_projection.investment.name}" if op.get('source_id') == self.investment_id else "Exit: Portfolio"
             else:
-                op['name'] = f"{op['type'].replace('_', ' ').title()} ({op['source_type']})"
-
+                op['operation_name'] = f"Call ({op['source_type']})"
+                
         return full_ledger
     
+    def _calculate_kpis(self, waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
+        def alloc_direct(amount, step_cfg):
+            d_rules = step_cfg.get('direct_rules', {})
+            valid = [c for c in d_rules if c in ratios]
+            denom = sum(ratios[c] for c in valid)
+            return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
+
+        def alloc_envelopes(amount, step_cfg):
+            result = {}
+            for env in step_cfg.get('envelopes', []):
+                env_amt = amount * env['alloc']
+                valid = [c for c in env['rules'] if c in ratios]
+                denom = sum(ratios[c] for c in valid)
+                result[env['num']] = {
+                    'amount': env_amt,
+                    'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
+                }
+            return result
+
+        return {
+            'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
+            'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
+            'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
+            'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
+        }
+    
+    def _evaluate_ledger_irrs(self, full_ledger):
+        hurdle_rate = self.waterfall_config.get(2, {}).get('rate', 0.08)
+        hurdle_participating_classes = self.waterfall_config.get(2, {}).get('classes', self.share_class_names) or self.share_class_names
+        catchup_rate = self.waterfall_config.get(3, {}).get('rate', 0.25)
+
+        df = pd.DataFrame(full_ledger)
+        df['date'] = pd.to_datetime(df['date'])
+        df['date_str'] = df['date'].dt.strftime('%Y-%m-%d')
+        
+        # Standardize columns to match WaterfallService logic
+        df['flow_amount'] = np.where(df['type'] == 'capital_call', df['flows'], df['flows']) 
+        
+        is_realized = df['source_type'].str.contains('realized', case=False)
+        is_call = df['type'] == 'capital_call'
+        date_strs = df['date_str']
+
+        # Construct Base Share Class Flows
+        for sc in self.share_class_names:
+            ratio_sc = self.ratios.get(sc, 0.0)
+            col = pd.Series(0.0, index=df.index)
+            
+            mask_rc = is_realized & is_call
+            col[mask_rc] = date_strs[mask_rc].map(lambda d: self.realized_calls.get(d, {}).get(sc, 0.0)).abs()
+            
+            mask_rd = is_realized & ~is_call
+            col[mask_rd] = -date_strs[mask_rd].map(lambda d: self.realized_dists.get(d, {}).get(sc, 0.0)).abs()
+            
+            mask_p = ~is_realized
+            col[mask_p] = df.loc[mask_p, 'flow_amount'] * ratio_sc
+            
+            df[f'Flows {sc}'] = col
+
+        df['cumulated_capital_call'] = df['flow_amount'].where(is_call, 0.0).cumsum()
+        df['cumulated_distribution'] = df['flow_amount'].abs().where(~is_call, 0.0).cumsum()
+
+        # Calculation Loop
+        flow_vals = df['flow_amount'].tolist()
+        dates = df['date'].tolist()
+        sc_flow_cols = {sc: df[f'Flows {sc}'].tolist() for sc in hurdle_participating_classes}
+        
+        w_balance = sum_u = sum_x = unreturned = 0.0
+        prev_date = dates[0]
+        x_list, nr_list = [], []
+
+        for i, cur_date in enumerate(dates):
+            days = (cur_date - prev_date).days
+            year = cur_date.year
+            div = 366.0 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365.0
+            tf = days / div
+            
+            u_int = w_balance * ((1 + hurdle_rate) ** tf - 1)
+            sum_u += u_int
+            rel_flow = sum(sc_flow_cols[sc][i] for sc in hurdle_participating_classes)
+            w_new = w_balance + u_int + rel_flow
+            
+            x_total = sum_u if (sum_x <= 0.0001 and w_new < -0.01) else 0.0
+            sum_x += x_total
+            
+            f_val = flow_vals[i]
+            if f_val > 0:
+                unreturned += f_val
+                nr = 0.0
+            elif f_val < 0:
+                repay = min(abs(f_val), unreturned)
+                nr = -repay
+                unreturned -= repay
+            else:
+                nr = 0.0
+            
+            x_list.append(x_total)
+            nr_list.append(nr)
+            w_balance = w_new
+            prev_date = cur_date
+
+        df['Nominal Repayment'] = nr_list
+        total_x = sum(x_list)
+        cumul_cc = df['cumulated_capital_call'].tolist()
+        cumul_dist = df['cumulated_distribution'].tolist()
+        
+        hurdle_list, catchup_list, special_list = [], [], []
+        sum_hurdle = cumul_nr = sum_hurdle_cu = cumul_x = cumul_catchup = 0.0
+
+        for i in range(len(df)):
+            cur_nr = nr_list[i]
+            cur_x = x_list[i]
+            cumul_nr += cur_nr
+            
+            if cur_x > 0:
+                h = -(cur_x + sum_hurdle)
+            elif abs(cumul_nr) >= cumul_cc[i] - 0.01:
+                if abs(total_x + sum_hurdle) < 0.01: h = 0.0
+                else: h = max(-(cumul_dist[i] - cumul_cc[i]), flow_vals[i] - cur_nr)
+            else:
+                h = 0.0
+            hurdle_list.append(h)
+            sum_hurdle += h
+
+            sum_hurdle_cu += h
+            cumul_x += cur_x
+            cu = (-catchup_rate * cur_x if abs(sum_hurdle_cu + cumul_x) < 0.01 else 0.0)
+            catchup_list.append(cu)
+
+            cumul_catchup += cu
+            if abs(cumul_catchup) < 0.01 or flow_vals[i] >= 0:
+                sp = 0.0
+            else:
+                sp = flow_vals[i] - cur_nr - h - cu
+            special_list.append(sp)
+
+        # Aggregations
+        total_dists = df[~is_call]['flow_amount'].abs().sum()
+        total_calls = df[is_call]['flow_amount'].sum()
+        
+        nom_rem = total_dists
+        nom_ded = min(-sum(nr_list), total_calls)
+        hur_rem = max(0, nom_rem - nom_ded)
+        hur_ded = min(-sum(hurdle_list), hur_rem)
+        cu_rem = max(0, hur_rem - hur_ded)
+        cu_ded = min(-sum(catchup_list), cu_rem)
+        sp_rem = max(0, cu_rem - cu_ded)
+        sp_ded = sp_rem
+
+        # Requires missing calculate_kpis definition
+        kpis = self._calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
+
+        results = {}
+        dates_list = df['date'].dt.to_pydatetime().tolist()
+
+        # Fund Net IRR
+        # Negative mapping for LP view: Calls are negative, Dists are positive in XIRR array
+        fund_flows = [-f for f in df['flow_amount'].tolist()]
+        results['fund_irr_net'] = xirr(fund_flows, dates_list)
+
+        # Share Class IRRs
+        for sc in self.share_class_names:
+            w_nom = step_class_weight(kpis, 'nominal_repayment', sc)
+            w_hur = step_class_weight(kpis, 'hurdle', sc)
+            w_cu = step_class_weight(kpis, 'catch_up', sc, True)
+            w_sp = step_class_weight(kpis, 'special_return', sc, True)
+            
+            irr_flow = np.where(
+                is_realized.values,
+                -df[f'Flows {sc}'].values,
+                np.where(
+                    df['flow_amount'].values > 0,
+                    -df['flow_amount'].values * self.ratios.get(sc, 0.0),
+                    -np.array(nr_list)*w_nom - np.array(hurdle_list)*w_hur - np.array(catchup_list)*w_cu - np.array(special_list)*w_sp
+                )
+            )
+            results[f'irr_{sc.replace(" ", "_").lower()}'] = xirr(irr_flow.tolist(), dates_list)
+
+        return results
+    
     def generate_matrices(self, moic_inputs, duration_inputs):
+        # Initialize dynamic dictionary structure based on share classes
         results = {
             "portfolio_irr": [],
             "fund_irr_net": [],
-            "fund_irr_gross": [],
+            "fund_irr_gross": []
         }
-        pprint.pprint(self.waterfall_config)
+        for sc in self.share_class_names:
+            results[f"irr_{sc.replace(' ', '_').lower()}"] = []
+
         for r_idx, duration in enumerate(duration_inputs):
-            row_portfolio = []
-            row_net = []
-            row_gross = []
+            row_portfolio, row_net, row_gross = [], [], []
+            row_sc_irrs = {sc: [] for sc in self.share_class_names}
             
             for c_idx, moic in enumerate(moic_inputs):                
-                # 1. Get virtual dates/values
-                virtual_exit_date, virtual_exit_value = self._calculate_virtual_exit(
-                    moic_input=moic, 
-                    duration_input=duration
-                )
-                # Calculations of Portfolio IRR 
+                virtual_exit_date, virtual_exit_value = self._calculate_virtual_exit(moic, duration)
+                
+                # Portfolio IRR (Base asset level)
                 cell_dates = [flow[0] for flow in self.base_investment_flows]
                 cell_cashflows = [flow[1] for flow in self.base_investment_flows]
                 cell_dates.append(virtual_exit_date)
                 cell_cashflows.append(virtual_exit_value)
-                cell_irr = xirr(cell_cashflows, cell_dates)
-                if cell_irr is not None:
-                    row_portfolio.append(f"{cell_irr * 100:.2f}%")
-                else:
-                    row_portfolio.append("0.00%")
-                # 2. Build the complete 'All Operations' array in memory
-                virtual_all_operations = self._build_virtual_operations(
-                    virtual_exit_date, 
-                    virtual_exit_value
-                )
-                row_net.append("0.00%")
-                row_gross.append("0.00%")
                 
+                cell_irr = xirr(cell_cashflows, cell_dates)
+                row_portfolio.append(f"{cell_irr * 100:.2f}%" if cell_irr else "0.00%")
+
+                # Build full virtualized timeline
+                full_ledger = self._build_virtual_operations(virtual_exit_date, virtual_exit_value)
+                
+                # Execute waterfall rules to determine LP net yields
+                # --- CALCULATE FUND GROSS IRR ---
+                gross_dates = []
+                gross_flows = []
+                
+                for op in full_ledger:
+                    if op['type'] == 'capital_call':
+                        inv_amt = op.get('investment', 0.0)
+                        if inv_amt > 0:
+                            gross_dates.append(op['date'])
+                            # Outflows to buy companies are negative
+                            gross_flows.append(-inv_amt) 
+                    elif op['type'] == 'distribution':
+                        gross_dates.append(op['date'])
+                        # Inflows from exiting companies are positive
+                        gross_flows.append(abs(op['flows']))
+                
+                f_gross = xirr(gross_flows, gross_dates)
+                row_gross.append(f"{f_gross * 100:.2f}%" if f_gross else "0.00%")
+                # --------------------------------
+
+                # Execute waterfall rules to determine LP net yields
+                irrs = self._evaluate_ledger_irrs(full_ledger)
+                
+                f_net = irrs.get('fund_irr_net')
+                row_net.append(f"{f_net * 100:.2f}%" if f_net else "0.00%")
+                
+                for sc in self.share_class_names:
+                    sc_irr = irrs.get(f"irr_{sc.replace(' ', '_').lower()}")
+                    row_sc_irrs[sc].append(f"{sc_irr * 100:.2f}%" if sc_irr else "0.00%")
+
             results["portfolio_irr"].append(row_portfolio)
             results["fund_irr_net"].append(row_net)
             results["fund_irr_gross"].append(row_gross)
+            for sc in self.share_class_names:
+                results[f"irr_{sc.replace(' ', '_').lower()}"].append(row_sc_irrs[sc])
 
         return results
