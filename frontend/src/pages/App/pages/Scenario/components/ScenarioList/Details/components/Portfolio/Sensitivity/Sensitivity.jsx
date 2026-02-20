@@ -33,7 +33,6 @@ function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {
 
     // 2. Initialize the Sensitivity Hook
     const { matrixData, loading, fetchMatrix } = useSensitivityAnalysis(fundId, scenarioId);
-
     const kpiOptions = useMemo(() => {
         const baseOptions = [
             { label: "Portfolio IRR", value: "portfolio_irr" },

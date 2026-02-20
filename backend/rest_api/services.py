@@ -512,6 +512,7 @@ class SensitivityService:
             raise ValueError("Base projection not found for this investment/scenario.")
         
         self.total_commitment = self._fetch_total_commitment()
+        self.base_investment_flows = self._fetch_base_investment_flows()
         self.static_operations = self._fetch_static_operations()
     
     def _fetch_total_commitment(self):
@@ -524,6 +525,39 @@ class SensitivityService:
             cursor.execute(query, [self.fund_id, self.scenario_id])
             result = cursor.fetchone()[0]
         return float(result)
+    
+    def _fetch_base_investment_flows(self):
+        """
+        Fetches the raw transaction flows for this specific investment.
+        Investments = Negative Cashflow
+        Dividends/Interests = Positive Cashflow
+        """
+        query = """
+            SELECT f.date, f.amount, t.transaction_name
+            FROM portfolio_transaction_flows f
+            JOIN portfolio_transaction_type t ON t.transaction_id = f.transaction_id
+            WHERE f.investment_id = %s
+              AND f.is_deleted = false
+              AND (f.scenario_id IS NULL OR f.scenario_id = %s)
+            ORDER BY f.date;
+        """
+        base_flows = []
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.investment_id, self.scenario_id])
+            for row in cursor.fetchall():
+                date = row[0]
+                amount = float(row[1])
+                t_name = row[2]
+                
+                # Assign IRR direction signs
+                if t_name == 'Investment':
+                    cf = -abs(amount)
+                else:
+                    cf = abs(amount)
+                    
+                base_flows.append((date, cf))
+                
+        return base_flows
 
     def _fetch_target_summary_id(self):
         """Finds the summary_id of the original projected exit to remove it."""
@@ -632,25 +666,28 @@ class SensitivityService:
             row_net = []
             row_gross = []
             
-            for c_idx, moic in enumerate(moic_inputs):
-                print(f"Grid[{r_idx}][{c_idx}] | Duration: {duration:.2f} yrs | MOIC: {moic:.2f}x")
-                
+            for c_idx, moic in enumerate(moic_inputs):                
                 # 1. Get virtual dates/values
                 virtual_exit_date, virtual_exit_value = self._calculate_virtual_exit(
                     moic_input=moic, 
                     duration_input=duration
                 )
-                
+                cell_dates = [flow[0] for flow in self.base_investment_flows]
+                cell_cashflows = [flow[1] for flow in self.base_investment_flows]
+                cell_dates.append(virtual_exit_date)
+                cell_cashflows.append(virtual_exit_value)
+                cell_irr = xirr(cell_cashflows, cell_dates)
+                if cell_irr is not None:
+                    row_portfolio.append(f"{cell_irr * 100:.2f}%")
+                else:
+                    row_portfolio.append("0.00%")
                 # 2. Build the complete 'All Operations' array in memory
                 virtual_all_operations = self._build_virtual_operations(
                     virtual_exit_date, 
                     virtual_exit_value
                 )
-                pprint.pprint(virtual_all_operations)
-                print("-----------------")
                 # TODO: Pass `virtual_all_operations` into your KPI calculator
                 
-                row_portfolio.append("0.00%")
                 row_net.append("0.00%")
                 row_gross.append("0.00%")
                 

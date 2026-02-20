@@ -452,12 +452,9 @@ class ScenarioSensitivityView(APIView):
     def post(self, request, fund_id, scenario_id):
         data = request.data
         investment_id = data.get('investment_id')
-        
-        # Extract arrays sent by the frontend handshake
         moic_inputs = data.get('moic_inputs', [])
         duration_inputs = data.get('duration_inputs', [])
 
-        # Strict validation
         if not investment_id:
             return Response({"error": "investment_id is required."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -467,8 +464,8 @@ class ScenarioSensitivityView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Ensure all inputs are floats to prevent calculation errors downstream
         try:
+            # Enforce numeric types
             moic_inputs = [float(m) for m in moic_inputs]
             duration_inputs = [float(d) for d in duration_inputs]
         except (ValueError, TypeError):
@@ -477,14 +474,19 @@ class ScenarioSensitivityView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        service = SensitivityService(
-            fund_id=fund_id,
-            scenario_id=scenario_id,
-            investment_id=investment_id
-        )
-
         try:
+            service = SensitivityService(
+                fund_id=fund_id,
+                scenario_id=scenario_id,
+                investment_id=investment_id
+            )
+            
+            # This generates the dictionary containing portfolio_irr, fund_irr_net, etc.
             result_matrix = service.generate_matrices(moic_inputs, duration_inputs)
-            return Response(result_matrix, status=status.HTTP_200_OK)
+            # The hook expects the matrices wrapped in a 'matrix' key
+            return Response({"matrix": result_matrix}, status=status.HTTP_200_OK)
+            
         except Exception as e:
+            import traceback
+            traceback.print_exc() # Useful for debugging server-side errors
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
