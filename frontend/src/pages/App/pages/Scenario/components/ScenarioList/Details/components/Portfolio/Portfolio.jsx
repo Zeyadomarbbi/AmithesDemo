@@ -3,8 +3,9 @@ import { xirr as xirrLib } from "@webcarrot/xirr";
 import { usePortfolio } from "../../../../../../../hooks/Portfolio/usePortfolio.js";
 import { usePortfolioTransactionTypes } from "../../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
 import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
+import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "./ScenarioPortfolioHelpers.js";
-
+import { useTargetMode } from "./TargetSelectionModal/useTargetMode.js";
 // Components
 import { PlusIcon, ChevronDoubleLeftIcon } from "./Icons"; // Ensure ChevronDoubleLeftIcon is imported
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
@@ -16,7 +17,7 @@ import RealizedPortfolio from "./PortfolioTables/RealizedPortfolio.jsx";
 import InvestedPortfolio from "./PortfolioTables/InvestedPortfolio.jsx";
 import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
-
+import TargetFinalizationModal from "./TargetSelectionModal/TargetFinalizationModal.jsx";
 // Simulation Results
 import SimulationResults from "./SimulationResults/SimulationResults.jsx"; 
 
@@ -157,6 +158,15 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [showNewInvestmentModal, setShowNewInvestmentModal] = useState(false);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
   const [simRefreshTrigger, setSimRefreshTrigger] = useState(0);
+  const [lockedRows, setLockedRows] = useState([]);
+  const { data: shareClassesData } = useShareClasses(fundId);
+
+    // 2. Extract just the names for the modal columns
+    // Assuming your API returns objects like { id: 1, share_class_name: "Class A", ... }
+    const availableShareClasses = useMemo(() => {
+        if (!shareClassesData) return [];
+        return shareClassesData.map(sc => sc.share_class_name || sc.name); 
+    }, [shareClassesData]);
   // --- Simulation Panel State ---
   // Default to false (collapsed) or true based on preference
   const [isSimPanelOpen, setIsSimPanelOpen] = useState(false);
@@ -170,7 +180,12 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const { investments, fetchInvestments, createFlow, loading: loadInv } = usePortfolio(fundId);
   const { transactionTypes } = usePortfolioTransactionTypes();
   const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
-
+  const { executeTargetMode, loading: targetLoading } = useTargetMode(fundId, scenarioId);
+  const handleToggleLock = (rowId) => {
+        setLockedRows(prev => 
+            prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
+        );
+    };
   useEffect(() => {
     fetchInvestments();
     fetchProjections();
@@ -238,7 +253,22 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   };
 
   const handleToggle = (mode) => setActiveMode((prev) => (prev === mode ? null : mode));
+  const unlockedPortfolios = useMemo(() => {
+        const allDeals = [...investedData, ...projectedData];
+        return allDeals.filter(inv => !lockedRows.includes(inv.id));
+    }, [investedData, projectedData, lockedRows]);
 
+  const handleTargetSave = ({ success, error }) => {
+        if (success) {
+            setToast({ type: "success", title: "Target Reached", message: "MOICs have been updated successfully." });
+            // Refresh tables
+            fetchInvestments();
+            fetchProjections();
+            setSimRefreshTrigger(prev => prev + 1);
+        } else {
+            setToast({ type: "error", title: "Target Error", message: error?.message || "Could not reach target with available deals." });
+        }
+    };
   // Drawer Data Prep
   const drawerData = useMemo(() => {
       if (!viewingInvestment) return null;
@@ -286,7 +316,9 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     activeMode={activeMode} 
                     investedData={investedData} 
                     onChangeRow={handleUpdateInput}
-                    onRowClick={(row) => setSelectedInvestmentId(row.id)} 
+                    onRowClick={(row) => setSelectedInvestmentId(row.id)}
+                    lockedRows={lockedRows}
+                    onToggleLock={handleToggleLock}
                 />
                 
                 <ProjectedPortfolio 
@@ -296,6 +328,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     rows={projectedData} 
                     onChangeRow={handleUpdateInput}
                     onRowClick={(row) => setSelectedInvestmentId(row.id)} 
+                    lockedRows={lockedRows}
+                    onToggleLock={handleToggleLock}
                 />
 
                 <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
@@ -361,7 +395,24 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
         />
       )}
 
-      <TargetSelectionModal isOpen={isTargetModalOpen} onClose={() => setIsTargetModalOpen(false)} onSave={() => {}} />
+        <TargetSelectionModal 
+          isOpen={isTargetModalOpen} 
+          onClose={() => setIsTargetModalOpen(false)} 
+          onSave={handleTargetSave}
+          shareClasses={availableShareClasses}
+          fundId={fundId}                     // Passed down
+          scenarioId={scenarioId}             // Passed down
+          unlockedPortfolios={unlockedPortfolios}
+        />
+
+        <TargetFinalizationModal 
+          isOpen={isFinalizationOpen}
+          onClose={() => setIsFinalizationOpen(false)}
+          onSave={handleFinalSave}
+          result={targetResults}
+          fundId={fundId}
+          scenarioId={scenarioId}
+        />
       
     </div>
   );

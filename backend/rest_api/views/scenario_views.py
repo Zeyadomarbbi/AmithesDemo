@@ -39,7 +39,7 @@ from ..serializers.scenario_serializers import (
     ViewScenarioFundflowsAllOperationsSerializer
 )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
-from ..services import WaterfallService, SensitivityService
+from ..services import WaterfallService, SensitivityService, TargetModeService
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -490,3 +490,28 @@ class ScenarioSensitivityView(APIView):
             import traceback
             traceback.print_exc() # Useful for debugging server-side errors
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class TargetModePreviewView(APIView):
+    def post(self, request, fund_id, scenario_id):
+        target_kpi_type = request.data.get('target_kpi_type')
+        target_kpi_value = request.data.get('target_kpi_value')
+        unlocked_ids = request.data.get('unlocked_ids', [])
+
+        if not target_kpi_type or target_kpi_value is None or not unlocked_ids:
+            return Response({"error": "Missing required parameters."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_val_float = float(target_kpi_value)
+            service = TargetModeService(fund_id=fund_id, scenario_id=scenario_id)
+            
+            # Execute solver and generate preview payload
+            result = service.calculate_preview(target_kpi_type, target_val_float, unlocked_ids)
+            
+            return Response(result, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            print(e)
+            return Response({"error": str(e)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        except Exception as e:
+            print(e)
+            return Response({"error": f"Calculation failure: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

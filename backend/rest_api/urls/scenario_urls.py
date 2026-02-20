@@ -154,6 +154,11 @@ urlpatterns = [
          ScenarioSensitivityView.as_view(), 
          name='scenario-sensitivity'
     ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/target-mode/', 
+        TargetModePreviewView.as_view(), 
+        name='target_mode'
+    ),
     # Scenario Synthesis
     path(
         "funds/<int:fund_id>/synthesis-scenario/", 

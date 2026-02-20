@@ -1,11 +1,15 @@
 from dateutil.relativedelta import relativedelta
 import pprint
 from datetime import date
+from decimal import Decimal
+import copy
+import warnings
 
 import pandas as pd
 import numpy as np
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Sum
+
 from rest_api.models.views import (
     ScenarioFundflowsCapitalcallSummary, 
     ScenarioFundflowsDistributionSummary,
@@ -20,6 +24,7 @@ from rest_api.models.transactions import (
     ScenarioDueDiligenceFee
 )
 
+warnings.filterwarnings('ignore')
 # --- UTILITIES ---
 
 def xirr(cashflows, dates, guess=0.1):
@@ -1085,3 +1090,477 @@ class SensitivityService:
                 results[f"irr_{sc.replace(' ', '_').lower()}"].append(row_sc_irrs[sc])
 
         return results
+    
+class TargetModeService:
+    def __init__(self, fund_id, scenario_id):
+        self.fund_id = fund_id
+        self.scenario_id = scenario_id
+        
+        print(f"\n--- [TARGET MODE DEBUG START] Fund: {fund_id} | Scenario: {scenario_id} ---")
+
+        # 1. Prefetch config
+        self.waterfall_config = self._fetch_waterfall_config()
+        self.ratios, self.share_class_names = self._fetch_commitments_and_ratios()
+        self.realized_calls, self.realized_dists = self._fetch_realized_lookups()
+        
+        # 2. Fetch ledger
+        self.static_capital_calls = self._fetch_static_capital_calls()
+        self.static_distributions = self._fetch_static_distributions()
+        
+        # 3. Fetch costs
+        self.investment_costs = self._fetch_investment_costs()
+        
+        # EXECUTE DEBUG PRINT
+        self.debug_print_state()
+
+    def debug_print_state(self):
+        print(f"Share Classes Found: {self.share_class_names}")
+        print(f"Ratios: {self.ratios}")
+        
+        print(f"Static Capital Calls Count: {len(self.static_capital_calls)}")
+        if self.static_capital_calls:
+            print(f"Sample Call: {self.static_capital_calls[0]}")
+            
+        print(f"Static Distributions Count: {len(self.static_distributions)}")
+        if self.static_distributions:
+            print(f"Sample Dist: {self.static_distributions[0]}")
+            
+        print(f"Investment Costs Map: {self.investment_costs}")
+        
+        # Check for None values in costs which usually trigger the error you saw
+        none_costs = [k for k, v in self.investment_costs.items() if v is None]
+        if none_costs:
+            print(f"CRITICAL: Found None costs for investment IDs: {none_costs}")
+        
+        print(f"--- [DEBUG END] ---\n")
+
+
+    def calculate_preview(self, target_kpi_type, target_kpi_value, unlocked_ids, tol=0.0001, max_iter=50):
+        low_moic = 0.0
+        high_moic = 50.0 
+        
+        # 1. Evaluate boundaries
+        kpi_low = self._simulate_kpi(low_moic, unlocked_ids, target_kpi_type)
+        kpi_high = self._simulate_kpi(high_moic, unlocked_ids, target_kpi_type)
+        
+        # Debugging the search space
+        print(f"DEBUG: Search Range: [{low_moic}x : {kpi_low}] to [{high_moic}x : {kpi_high}] | Target: {target_kpi_value}")
+
+        # 2. Check if target is reachable
+        min_reach = min(kpi_low, kpi_high)
+        max_reach = max(kpi_low, kpi_high)
+        
+        if not (min_reach <= target_kpi_value <= max_reach):
+            raise ValueError(
+                f"Target {target_kpi_type} of {target_kpi_value} is mathematically unreachable. "
+                f"With current unlocked deals, the range is {round(min_reach, 4)} to {round(max_reach, 4)}."
+            )
+
+        optimal_moic = 0.0
+
+        # 3. Bisection Loop
+        for i in range(max_iter):
+            mid_moic = (low_moic + high_moic) / 2.0
+            current_kpi = self._simulate_kpi(mid_moic, unlocked_ids, target_kpi_type)
+            
+            error = current_kpi - target_kpi_value
+            
+            # Print progress every 5 iterations to monitor convergence
+            if i % 5 == 0:
+                print(f"Iteration {i}: MOIC {round(mid_moic, 4)} -> KPI {round(current_kpi, 4)}")
+
+            if abs(error) < tol:
+                optimal_moic = mid_moic
+                break
+            
+            # Since MOIC and IRR/TVPI/Dist are positively correlated:
+            if current_kpi < target_kpi_value:
+                low_moic = mid_moic
+            else:
+                high_moic = mid_moic
+                
+        if optimal_moic == 0.0:
+            optimal_moic = (low_moic + high_moic) / 2.0
+
+        print(f"SUCCESS: Found Optimal MOIC: {round(optimal_moic, 4)}")
+        
+        return {
+            "optimal_moic": round(optimal_moic, 4),
+            "investments": self._generate_investment_preview(unlocked_ids, optimal_moic)
+        }
+
+    def _simulate_kpi(self, test_moic, unlocked_ids, target_kpi_type):
+        virtual_dists = []
+        
+        for dist in self.static_distributions:
+            d_copy = dist.copy()
+            source_id = d_copy.get('source_id')
+            
+            if source_id in unlocked_ids and d_copy.get('source_type') == 'projected':
+                cost = self.investment_costs.get(source_id, 0.0)
+                # Ensure flows are negative for distributions in your ledger structure
+                d_copy['flows'] = -(float(cost or 0) * test_moic)
+                
+            virtual_dists.append(d_copy)
+            
+        full_ledger = [dict(c) for c in self.static_capital_calls] + virtual_dists
+        full_ledger.sort(key=lambda x: x['date'])
+        
+        results = self._evaluate_ledger_irrs(full_ledger)
+        val = results.get(target_kpi_type)
+
+        if val is None:
+            # Logic: If xirr fails at a high MOIC, assume the KPI is very high.
+            # If it fails at a low MOIC, assume it's very low.
+            return 10.0 if test_moic > 5.0 else -0.9999
+            
+        return float(val)
+
+    def _generate_investment_preview(self, unlocked_ids, optimal_moic):
+        qs = ScenarioPortfolioProjection.objects.filter(
+            scenario_id=self.scenario_id,
+            investment_id__in=unlocked_ids
+        ).select_related('investment')
+
+        preview = []
+        for proj in qs:
+            cost = float(proj.cost or 0.0)
+            preview.append({
+                "projection_id": proj.projection_id, # CRITICAL: used for the updateProjection call
+                "investment_id": proj.investment_id,
+                "name": proj.investment.name, 
+                "current_moic": float(proj.input_moic or 0.0),
+                "suggested_moic": round(optimal_moic, 4),
+                "cost": cost,
+                "suggested_exit_value": round(cost * optimal_moic, 2)
+            })
+        return preview
+
+    # ==========================================================
+    # YOUR EXACT WATERFALL ENGINE (With TVPI/Total Dist added)
+    # ==========================================================
+
+    def _evaluate_ledger_irrs(self, full_ledger):
+        hurdle_rate = self.waterfall_config.get(2, {}).get('rate', 0.08)
+        hurdle_participating_classes = self.waterfall_config.get(2, {}).get('classes', self.share_class_names) or self.share_class_names
+        catchup_rate = self.waterfall_config.get(3, {}).get('rate', 0.25)
+
+        df = pd.DataFrame(full_ledger)
+        df['date'] = pd.to_datetime(df['date'])
+        df['date_str'] = df['date'].dt.strftime('%Y-%m-%d')
+        
+        df['flow_amount'] = np.where(df['type'] == 'capital_call', df['flows'], df['flows']) 
+        
+        is_realized = df['source_type'].str.contains('realized', case=False)
+        is_call = df['type'] == 'capital_call'
+        date_strs = df['date_str']
+
+        for sc in self.share_class_names:
+            ratio_sc = self.ratios.get(sc, 0.0)
+            col = pd.Series(0.0, index=df.index)
+            
+            mask_rc = is_realized & is_call
+            col[mask_rc] = date_strs[mask_rc].map(lambda d: self.realized_calls.get(d, {}).get(sc, 0.0)).abs()
+            
+            mask_rd = is_realized & ~is_call
+            col[mask_rd] = -date_strs[mask_rd].map(lambda d: self.realized_dists.get(d, {}).get(sc, 0.0)).abs()
+            
+            mask_p = ~is_realized
+            col[mask_p] = df.loc[mask_p, 'flow_amount'] * ratio_sc
+            
+            df[f'Flows {sc}'] = col
+
+        df['cumulated_capital_call'] = df['flow_amount'].where(is_call, 0.0).cumsum()
+        df['cumulated_distribution'] = df['flow_amount'].abs().where(~is_call, 0.0).cumsum()
+
+        flow_vals = df['flow_amount'].tolist()
+        dates = df['date'].tolist()
+        sc_flow_cols = {sc: df[f'Flows {sc}'].tolist() for sc in hurdle_participating_classes}
+        
+        w_balance = sum_u = sum_x = unreturned = 0.0
+        prev_date = dates[0]
+        x_list, nr_list = [], []
+
+        for i, cur_date in enumerate(dates):
+            days = (cur_date - prev_date).days
+            year = cur_date.year
+            div = 366.0 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365.0
+            tf = days / div
+            
+            u_int = w_balance * ((1 + hurdle_rate) ** tf - 1)
+            sum_u += u_int
+            rel_flow = sum(sc_flow_cols[sc][i] for sc in hurdle_participating_classes)
+            w_new = w_balance + u_int + rel_flow
+            
+            x_total = sum_u if (sum_x <= 0.0001 and w_new < -0.01) else 0.0
+            sum_x += x_total
+            
+            f_val = flow_vals[i]
+            if f_val > 0:
+                unreturned += f_val
+                nr = 0.0
+            elif f_val < 0:
+                repay = min(abs(f_val), unreturned)
+                nr = -repay
+                unreturned -= repay
+            else:
+                nr = 0.0
+            
+            x_list.append(x_total)
+            nr_list.append(nr)
+            w_balance = w_new
+            prev_date = cur_date
+
+        df['Nominal Repayment'] = nr_list
+        total_x = sum(x_list)
+        cumul_cc = df['cumulated_capital_call'].tolist()
+        cumul_dist = df['cumulated_distribution'].tolist()
+        
+        hurdle_list, catchup_list, special_list = [], [], []
+        sum_hurdle = cumul_nr = sum_hurdle_cu = cumul_x = cumul_catchup = 0.0
+
+        for i in range(len(df)):
+            cur_nr = nr_list[i]
+            cur_x = x_list[i]
+            cumul_nr += cur_nr
+            
+            if cur_x > 0:
+                h = -(cur_x + sum_hurdle)
+            elif abs(cumul_nr) >= cumul_cc[i] - 0.01:
+                if abs(total_x + sum_hurdle) < 0.01: h = 0.0
+                else: h = max(-(cumul_dist[i] - cumul_cc[i]), flow_vals[i] - cur_nr)
+            else:
+                h = 0.0
+            hurdle_list.append(h)
+            sum_hurdle += h
+
+            sum_hurdle_cu += h
+            cumul_x += cur_x
+            cu = (-catchup_rate * cur_x if abs(sum_hurdle_cu + cumul_x) < 0.01 else 0.0)
+            catchup_list.append(cu)
+
+            cumul_catchup += cu
+            if abs(cumul_catchup) < 0.01 or flow_vals[i] >= 0:
+                sp = 0.0
+            else:
+                sp = flow_vals[i] - cur_nr - h - cu
+            special_list.append(sp)
+
+        total_dists = df[~is_call]['flow_amount'].abs().sum()
+        total_calls = df[is_call]['flow_amount'].sum()
+        
+        nom_rem = total_dists
+        nom_ded = min(-sum(nr_list), total_calls)
+        hur_rem = max(0, nom_rem - nom_ded)
+        hur_ded = min(-sum(hurdle_list), hur_rem)
+        cu_rem = max(0, hur_rem - hur_ded)
+        cu_ded = min(-sum(catchup_list), cu_rem)
+        sp_rem = max(0, cu_rem - cu_ded)
+        sp_ded = sp_rem
+
+        kpis = self._calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
+
+        results = {}
+        dates_list = df['date'].dt.to_pydatetime().tolist()
+
+        fund_flows = [-f for f in df['flow_amount'].tolist()]
+        results['fund_irr_net'] = xirr(fund_flows, dates_list)
+        results['fund_total_distributed'] = total_dists
+        results['fund_tvpi'] = total_dists / total_calls if total_calls else 0.0
+
+        for sc in self.share_class_names:
+            sc_key = sc.replace(" ", "_").lower()
+            w_nom = step_class_weight(kpis, 'nominal_repayment', sc)
+            w_hur = step_class_weight(kpis, 'hurdle', sc)
+            w_cu = step_class_weight(kpis, 'catch_up', sc, True)
+            w_sp = step_class_weight(kpis, 'special_return', sc, True)
+            
+            irr_flow = np.where(
+                is_realized.values,
+                -df[f'Flows {sc}'].values,
+                np.where(
+                    df['flow_amount'].values > 0,
+                    -df['flow_amount'].values * self.ratios.get(sc, 0.0),
+                    -np.array(nr_list)*w_nom - np.array(hurdle_list)*w_hur - np.array(catchup_list)*w_cu - np.array(special_list)*w_sp
+                )
+            )
+            results[f'irr_{sc_key}'] = xirr(irr_flow.tolist(), dates_list)
+            
+            # Add TVPI and Total Dist for Share Classes
+            sc_dist = sum(f for f in irr_flow if f > 0)
+            sc_call = abs(sum(f for f in irr_flow if f < 0))
+            results[f'total_distributed_{sc_key}'] = sc_dist
+            results[f'tvpi_{sc_key}'] = sc_dist / sc_call if sc_call else 0.0
+
+        return results
+
+    # ==========================================================
+    # DATA FETCHERS (Simplified versions of your existing ones)
+    # ==========================================================
+
+    def _fetch_investment_costs(self):
+        qs = ScenarioPortfolioProjection.objects.filter(scenario_id=self.scenario_id).values_list('investment_id', 'cost')
+        return {r[0]: float(r[1] or 0.0) for r in qs}
+
+    def _fetch_static_distributions(self):
+        # We fetch ALL base distributions, we do not exclude anything since we will
+        # overwrite the 'flows' in memory for the unlocked IDs
+        qs = ScenarioFundflowsDistributionSummary.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id=self.scenario_id
+        ).exclude(source_type='projected_placeholder')
+
+        return [
+            {
+                'summary_id': r['summary_id'],
+                'date': r['date'],
+                'flows': -float(r['flows']), 
+                'type': 'distribution',
+                'source_type': r['source_type'],
+                'source_id': r['source_id']
+            }
+            for r in qs.values('summary_id', 'date', 'flows', 'source_type', 'source_id')
+        ]
+
+    def _fetch_static_capital_calls(self):
+        # Exactly the same as your SensitivityService
+        qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id=self.scenario_id
+        ).exclude(source_type='projected_placeholder', is_user_inserted=False)
+
+        return [
+            {
+                'summary_id': r['summary_id'],
+                'date': r['date'],
+                'flows': float(r['flows']),
+                'investment': float(r['investment']),
+                'management_fees': float(r['management_fees']), 
+                'dd_fees': float(r['dd_fees']),                 
+                'type': 'capital_call',
+                'source_type': r['source_type'],
+            }
+            for r in qs.values('summary_id', 'date', 'flows', 'investment', 'management_fees', 'dd_fees', 'source_type')
+        ]
+    
+    def _fetch_commitments_and_ratios(self):
+        query = """
+            SELECT sc.share_class_name, c.total_commitment
+            FROM scenario_lps_sc_man_fee_tranches_config c
+            JOIN share_class sc ON c.share_class_id = sc.share_class_id
+            WHERE c.fund_id = %s AND c.scenario_id = %s
+            ORDER BY c.share_class_id;
+        """
+        ratios = {}
+        share_class_names = []
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.fund_id, self.scenario_id])
+            rows = cursor.fetchall()
+
+        total = sum(float(r[1]) for r in rows)
+        for name, amount in rows:
+            amount = float(amount)
+            ratio = amount / total if total > 0 else 0.0
+            ratios[name] = ratio
+            share_class_names.append(name)
+        return ratios, share_class_names
+
+    def fetch_realized_lookups(self):
+        q = """
+            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
+            FROM lps_operation_lp_allocations a
+            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
+            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
+            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
+            WHERE d.fund_id = %s
+            GROUP BY t.name, d.due_date, sc.share_class_name;
+        """
+        realized_calls = {}
+        realized_dists = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id])
+            for op_type, due_date, sc_name, amount in c.fetchall():
+                dt = str(due_date)
+                amt = float(amount) if amount else 0.0
+                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
+                    realized_calls.setdefault(dt, {})[sc_name] = amt
+                elif op_type == 'Distribution':
+                    realized_dists.setdefault(dt, {})[sc_name] = amt
+        return realized_calls, realized_dists
+    
+    def _fetch_realized_lookups(self):
+        q = """
+            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
+            FROM lps_operation_lp_allocations a
+            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
+            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
+            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
+            WHERE d.fund_id = %s
+            GROUP BY t.name, d.due_date, sc.share_class_name;
+        """
+        realized_calls = {}
+        realized_dists = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id])
+            for op_type, due_date, sc_name, amount in c.fetchall():
+                dt = str(due_date)
+                amt = float(amount) if amount else 0.0
+                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
+                    realized_calls.setdefault(dt, {})[sc_name] = amt
+                elif op_type == 'Distribution':
+                    realized_dists.setdefault(dt, {})[sc_name] = amt
+        return realized_calls, realized_dists
+    
+    def _calculate_kpis(self, waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
+        def alloc_direct(amount, step_cfg):
+            d_rules = step_cfg.get('direct_rules', {})
+            valid = [c for c in d_rules if c in ratios]
+            denom = sum(ratios[c] for c in valid)
+            return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
+
+        def alloc_envelopes(amount, step_cfg):
+            result = {}
+            for env in step_cfg.get('envelopes', []):
+                env_amt = amount * env['alloc']
+                valid = [c for c in env['rules'] if c in ratios]
+                denom = sum(ratios[c] for c in valid)
+                result[env['num']] = {
+                    'amount': env_amt,
+                    'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
+                }
+            return result
+
+        return {
+            'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
+            'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
+            'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
+            'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
+        }
+    
+    def _fetch_waterfall_config(self):
+        config = {}
+        steps = FundWaterfallSteps.objects.filter(fund_id=self.fund_id)\
+            .select_related('step_definition').order_by('step_definition__step_number')
+
+        for step in steps:
+            s_num = step.step_definition.step_number
+            s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
+            
+            d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
+                .select_related('share_class')
+            d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
+
+            envs = []
+            env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
+            for e in env_qs:
+                e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
+                e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
+                envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
+
+            classes = list(d_rules.keys())
+            for e in envs:
+                for c in e['rules']:
+                    if c not in classes: classes.append(c)
+
+            config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
+        return config

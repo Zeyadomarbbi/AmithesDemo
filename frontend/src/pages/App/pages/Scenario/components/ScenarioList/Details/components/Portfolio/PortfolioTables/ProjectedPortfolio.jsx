@@ -11,9 +11,8 @@ import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '..
 import Sensitivity from "../Sensitivity/Sensitivity";
 import './PortfolioTables.css'; 
 
-function ProjectedPortfolio({ fundId, scenarioId, rows = [], activeMode, onChangeRow, onRowClick }) {
+function ProjectedPortfolio({ fundId, scenarioId, rows = [], activeMode, onChangeRow, onRowClick, lockedRows, onToggleLock }) {
   const [localRows, setLocalRows] = useState(rows);
-  const [lockedRows, setLockedRows] = useState([]);
   const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null);
   const [closingRowId, setClosingRowId] = useState(null);
   const formatNumber = useNumberFormatter();
@@ -263,11 +262,14 @@ function ProjectedPortfolio({ fundId, scenarioId, rows = [], activeMode, onChang
                       <td className="scenario-pf-center">
                         <div className="scenario-pf-th-group" style={{justifyContent: 'center'}}>
                           {activeMode === "target" && (
-                            <button
-                              className={`scenario-pf-action-btn ${lockedRows.includes(r.id) ? "locked" : ""}`}
-                              onClick={() => toggleLock(r.id)}
+                            <button 
+                                className={`scenario-pf-action-btn ${lockedRows.includes(r.id) ? 'locked' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent row click
+                                    onToggleLock(r.id);
+                                }}
                             >
-                              {lockedRows.includes(r.id) ? <LockClosedIcon /> : <LockOpenIcon />}
+                                {lockedRows.includes(r.id) ? <LockClosedIcon /> : <LockOpenIcon />}
                             </button>
                           )}
 

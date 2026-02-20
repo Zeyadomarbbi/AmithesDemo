@@ -10,9 +10,8 @@ import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '..
 import Sensitivity from '../Sensitivity/Sensitivity'; 
 import './PortfolioTables.css'; 
 
-function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onChangeRow, onRowClick }) {
+function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onChangeRow, onRowClick, lockedRows, onToggleLock }) {
     const [localData, setLocalData] = useState(investedData || []);
-    const [lockedRows, setLockedRows] = useState([]);
     const [activeSensitivityRowId, setActiveSensitivityRowId] = useState(null); 
     const [closingRowId, setClosingRowId] = useState(null);
     const formatNumber = useNumberFormatter();
@@ -247,12 +246,14 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
                                                     {activeMode === 'target' && (
                                                         <button 
                                                             className={`scenario-pf-action-btn ${lockedRows.includes(r.id) ? 'locked' : ''}`}
-                                                            onClick={() => toggleLock(r.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation(); // Prevent row click
+                                                                onToggleLock(r.id);
+                                                            }}
                                                         >
                                                             {lockedRows.includes(r.id) ? <LockClosedIcon /> : <LockOpenIcon />}
                                                         </button>
                                                     )}
-
                                                     {activeMode === 'sensitivity' && (
                                                         <button 
                                                             className="scenario-pf-action-btn sensitivity"
