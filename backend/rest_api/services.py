@@ -533,6 +533,7 @@ class SensitivityService:
 
         if self.base_projection.first_investment_date and duration_input is not None:
             # Replicating: v_exit_date := v_first_date + (v_duration || ' years')::INTERVAL;
+            # Note: relativedelta is safer for years, but timedelta(days=365.25 * years) is an approximation.
             years = int(duration_input)
             months = int(round((duration_input - years) * 12))
             virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
@@ -544,26 +545,19 @@ class SensitivityService:
         return virtual_exit_date, virtual_exit_value
     
     def _fetch_static_distributions(self):
-        """
-        Retrieves the pre-calculated summary but EXCLUDES the projected exit 
-        for the target investment (Source 2A).
-        """
         qs = ScenarioFundflowsDistributionSummary.objects.filter(
             fund_id=self.fund_id,
             scenario_id=self.scenario_id
-        ).exclude(
-            # This combination precisely targets the divestment row from Source 2A
-            source_type='projected',
-            source_id=self.investment_id,
-            divestment__gt=0 
         ).values(
-            'date', 'flows', 'divestment', 'dividends', 'interests', 'other', 'pct_distributed', 'source_type', 'source_id'
+            'summary_id', 'date', 'flows', 'divestment', 'dividends', 'interests', 'other', 'pct_distributed', 'source_type', 'source_id'
         )
         
-        # Convert Decimals to floats for in-memory math speed
         dists = []
+        self.target_distribution_row = None
+        
         for row in qs:
-            dists.append({
+            parsed_row = {
+                'summary_id': row['summary_id'],
                 'date': row['date'],
                 'flows': float(row['flows']),
                 'divestment': float(row['divestment']),
@@ -573,33 +567,34 @@ class SensitivityService:
                 'pct_distributed': float(row['pct_distributed']),
                 'source_type': row['source_type'],
                 'source_id': row['source_id']
-            })
+            }
+
+            # Isolate the target row to use as a template
+            if row['source_type'] == 'projected' and row['source_id'] == self.investment_id and parsed_row['divestment'] > 0:
+                self.target_distribution_row = parsed_row
+            else:
+                dists.append(parsed_row)
+                
         return dists
     
     def _build_virtual_distribution_summary(self, virtual_exit_date, virtual_exit_value):
-        """
-        Creates the cell-specific distribution array.
-        """
-        # Shallow copy the static list
         virtual_dists = self.static_distributions.copy()
 
-        if virtual_exit_date and virtual_exit_value:
-            # Safely handle missing total_commitment for now
+        if virtual_exit_date and virtual_exit_value and self.target_distribution_row:
             pct_dist = (virtual_exit_value / self.total_commitment * 100) if self.total_commitment > 0 else 0
-            # Inject Source 2A virtual equivalent
-            virtual_dists.append({
+            
+            # Duplicate the template and overwrite altered values
+            virtual_target_row = self.target_distribution_row.copy()
+            virtual_target_row.update({
                 'date': virtual_exit_date,
                 'flows': virtual_exit_value,
                 'divestment': virtual_exit_value,
-                'dividends': 0.0,
-                'interests': 0.0,
-                'other': 0.0,
                 'pct_distributed': pct_dist,
-                'source_type': 'projected_virtual',
-                'source_id': self.investment_id
+                'source_type': 'projected_virtual'
             })
+            
+            virtual_dists.append(virtual_target_row)
 
-        # Sort chronologically, matching SQL ORDER BY
         virtual_dists.sort(key=lambda x: x['date'])
         return virtual_dists
     
