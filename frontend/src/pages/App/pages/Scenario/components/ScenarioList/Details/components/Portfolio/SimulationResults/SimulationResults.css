@@ -3,11 +3,21 @@
   height: 100%;       /* was 100% — resolves against fixed parent, stops short */
   background: transparent;
   color: #FFFFFF;
-  padding: 24px 40px;
+  padding: 24px 24px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: visible;
+  gap: 12px;
+}
+
+.sim-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    justify-content: space-evenly;
 }
 
 /* Collapsed Container State */
@@ -25,7 +35,6 @@
     justify-content: flex-start; 
     gap: 16px;
     width: 100%;
-    padding-bottom: 24px; 
     flex-shrink: 0; 
 }
 
@@ -171,9 +180,8 @@
 .sim-content {
     display: flex;
     flex-direction: column;
-    gap: 24px;
     width: 100%;
-    flex: 0;
+    flex: 0 0 auto;
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -193,7 +201,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    flex: 1 1 15rem;
+    flex: 1 1 0;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -207,6 +215,84 @@
     font-size: 1.25rem;
     font-weight: 700;
     color: #FFFFFF;
+}
+
+/* === STATE PANELS (loading / error / empty) === */
+
+.sim-state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  min-height: 160px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 32px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.sim-state-panel--error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.sim-state-panel--empty {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.sim-state-icon {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sim-state-panel--error .sim-state-icon {
+  color: #f87171;
+}
+
+.sim-state-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.sim-state-panel--error .sim-state-text {
+  color: #fca5a5;
+}
+
+.sim-state-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.sim-state-retry {
+  margin-top: 4px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #E2E8F0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sim-state-retry:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @keyframes fadeIn {

@@ -14,7 +14,8 @@
   line-height: 1.4rem;
   letter-spacing: 0.01em;
   animation: fadeIn 0.4s ease-out;
-  height: 100%;
+  gap: 48px;
+  /* removed height: 100% */
 }
 
 /* =========================================
@@ -24,11 +25,14 @@
   width: 100%;
   margin-bottom: 1.5rem;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .sr-table-wrapper.mt-large {
-  margin-top: 0.5rem;
-  width: 62%;
+    width: 62%;
+    margin-left: auto;
+    margin-right: auto;
+    align-self: center;
 }
 
 .sr-table {
