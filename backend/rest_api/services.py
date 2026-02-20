@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+import pprint
 
 import pandas as pd
 import numpy as np
@@ -6,7 +7,8 @@ from django.db import connection
 from django.db.models import Sum
 from rest_api.models.views import (
     ScenarioFundflowsCapitalcallSummary, 
-    ScenarioFundflowsDistributionSummary
+    ScenarioFundflowsDistributionSummary,
+    ViewScenarioFundflowsAllOperations
 )
 from rest_api.models.transactions import (
     FundWaterfallSteps,
@@ -510,7 +512,7 @@ class SensitivityService:
             raise ValueError("Base projection not found for this investment/scenario.")
         
         self.total_commitment = self._fetch_total_commitment()
-        self.static_distributions = self._fetch_static_distributions()
+        self.static_operations = self._fetch_static_operations()
     
     def _fetch_total_commitment(self):
         query = """
@@ -523,80 +525,100 @@ class SensitivityService:
             result = cursor.fetchone()[0]
         return float(result)
 
+    def _fetch_target_summary_id(self):
+        """Finds the summary_id of the original projected exit to remove it."""
+        query = """
+            SELECT summary_id
+            FROM scenario_fundflows_distribution_summary
+            WHERE fund_id = %s
+              AND scenario_id = %s
+              AND source_type = 'projected'
+              AND source_id = %s
+              AND divestment > 0
+            LIMIT 1;
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [self.fund_id, self.scenario_id, self.investment_id])
+            result = cursor.fetchone()
+        return result[0] if result else None
+
+    def _fetch_static_operations(self):
+        """Fetches the raw flows from the View, EXCLUDING placeholders and the original target exit."""
+        target_summary_id = self._fetch_target_summary_id()
+        
+        qs = ViewScenarioFundflowsAllOperations.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id=self.scenario_id
+        ).exclude(
+            source_type='projected_placeholder'
+        )
+        
+        if target_summary_id:
+            qs = qs.exclude(
+                summary_id=target_summary_id, 
+                flow_type='distribution'
+            )
+            
+        qs = qs.values('date', 'flows', 'flow_type', 'source_type')
+        operations = []
+        for row in qs:
+            operations.append({
+                'date': row['date'],
+                'flows': float(row['flows']),
+                'flow_type': row['flow_type'],
+                'source_type': row['source_type']
+            })
+        return operations
+
     def _calculate_virtual_exit(self, moic_input, duration_input):
-        """
-        Replicates the SQL logic of fn_rebuild_scenario_projection in Python.
-        Calculates exit_date and exit_value strictly in memory.
-        """
         virtual_exit_date = None
         virtual_exit_value = 0.0
 
         if self.base_projection.first_investment_date and duration_input is not None:
-            # Replicating: v_exit_date := v_first_date + (v_duration || ' years')::INTERVAL;
-            # Note: relativedelta is safer for years, but timedelta(days=365.25 * years) is an approximation.
             years = int(duration_input)
             months = int(round((duration_input - years) * 12))
             virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
 
         if moic_input is not None:
-            # Replicating: v_exit_value := v_cost * v_moic;
             virtual_exit_value = float(self.base_projection.cost) * float(moic_input)
 
         return virtual_exit_date, virtual_exit_value
     
-    def _fetch_static_distributions(self):
-        qs = ScenarioFundflowsDistributionSummary.objects.filter(
-            fund_id=self.fund_id,
-            scenario_id=self.scenario_id
-        ).values(
-            'summary_id', 'date', 'flows', 'divestment', 'dividends', 'interests', 'other', 'pct_distributed', 'source_type', 'source_id'
-        )
-        
-        dists = []
-        self.target_distribution_row = None
-        
-        for row in qs:
-            parsed_row = {
-                'summary_id': row['summary_id'],
-                'date': row['date'],
-                'flows': float(row['flows']),
-                'divestment': float(row['divestment']),
-                'dividends': float(row['dividends']),
-                'interests': float(row['interests']),
-                'other': float(row['other']),
-                'pct_distributed': float(row['pct_distributed']),
-                'source_type': row['source_type'],
-                'source_id': row['source_id']
-            }
+    def _build_virtual_operations(self, virtual_exit_date, virtual_exit_value):
+        """
+        Injects the virtual exit, sorts, and recalculates the running totals (SQL Window Functions).
+        """
+        virtual_ops = self.static_operations.copy()
 
-            # Isolate the target row to use as a template
-            if row['source_type'] == 'projected' and row['source_id'] == self.investment_id and parsed_row['divestment'] > 0:
-                self.target_distribution_row = parsed_row
-            else:
-                dists.append(parsed_row)
-                
-        return dists
-    
-    def _build_virtual_distribution_summary(self, virtual_exit_date, virtual_exit_value):
-        virtual_dists = self.static_distributions.copy()
-
-        if virtual_exit_date and virtual_exit_value and self.target_distribution_row:
-            pct_dist = (virtual_exit_value / self.total_commitment * 100) if self.total_commitment > 0 else 0
-            
-            # Duplicate the template and overwrite altered values
-            virtual_target_row = self.target_distribution_row.copy()
-            virtual_target_row.update({
+        if virtual_exit_date and virtual_exit_value:
+            # Note: distributions are negative flows in the view
+            virtual_ops.append({
                 'date': virtual_exit_date,
-                'flows': virtual_exit_value,
-                'divestment': virtual_exit_value,
-                'pct_distributed': pct_dist,
+                'flows': -virtual_exit_value, 
+                'flow_type': 'distribution',
                 'source_type': 'projected_virtual'
             })
-            
-            virtual_dists.append(virtual_target_row)
 
-        virtual_dists.sort(key=lambda x: x['date'])
-        return virtual_dists
+        # 1. Sort chronologically (replicates ORDER BY date)
+        virtual_ops.sort(key=lambda x: x['date'])
+
+        # 2. Recalculate cumulative sums (replicates SUM(...) OVER (...))
+        running_called = 0.0
+        running_dist = 0.0
+
+        for op in virtual_ops:
+            if op['flow_type'] == 'capital_call' and self.total_commitment > 0:
+                running_called += (op['flows'] / self.total_commitment) * 100
+            elif op['flow_type'] == 'distribution' and self.total_commitment > 0:
+                # Use absolute value for distribution accumulation
+                running_dist += (abs(op['flows']) / self.total_commitment) * 100
+            
+            # Attach running totals to the dictionary
+            op['pct_capital_called'] = running_called
+            op['pct_distributed'] = running_dist
+            op['dpi'] = (running_dist / running_called) if running_called > 0 else 0.0
+
+        return virtual_ops
     
     def generate_matrices(self, moic_inputs, duration_inputs):
         results = {
@@ -605,7 +627,6 @@ class SensitivityService:
             "fund_irr_gross": [],
         }
         
-        # UI matching: Rows = Duration (Y-axis), Columns = MOIC (X-axis)
         for r_idx, duration in enumerate(duration_inputs):
             row_portfolio = []
             row_net = []
@@ -614,21 +635,21 @@ class SensitivityService:
             for c_idx, moic in enumerate(moic_inputs):
                 print(f"Grid[{r_idx}][{c_idx}] | Duration: {duration:.2f} yrs | MOIC: {moic:.2f}x")
                 
+                # 1. Get virtual dates/values
                 virtual_exit_date, virtual_exit_value = self._calculate_virtual_exit(
                     moic_input=moic, 
                     duration_input=duration
                 )
                 
-                # Build the dynamic array for this specific cell
-                virtual_distribution_summary = self._build_virtual_distribution_summary(
+                # 2. Build the complete 'All Operations' array in memory
+                virtual_all_operations = self._build_virtual_operations(
                     virtual_exit_date, 
                     virtual_exit_value
                 )
-                print(virtual_distribution_summary)
-                print("----------------------")
-                # TODO: Run isolated fundflow logic & Extract KPIs
+                pprint.pprint(virtual_all_operations)
+                print("-----------------")
+                # TODO: Pass `virtual_all_operations` into your KPI calculator
                 
-                # Append placeholders to complete the grid format required by React
                 row_portfolio.append("0.00%")
                 row_net.append("0.00%")
                 row_gross.append("0.00%")
