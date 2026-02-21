@@ -161,12 +161,12 @@ urlpatterns = [
     ),
     # Scenario Synthesis
     path(
-        "funds/<int:fund_id>/synthesis-scenario/", 
+        "funds/<int:fund_id>/synthesis-details/", 
         FundScenarioSynthesisView.as_view(), 
         name="synthesis-list-create"
     ),
     path(
-        "funds/<int:fund_id>/synthesis-scenario/<int:pk>/", 
+        "funds/<int:fund_id>/synthesis-details/<int:pk>/", 
         FundScenarioSynthesisView.as_view(), 
         name="synthesis-detail"
     ),

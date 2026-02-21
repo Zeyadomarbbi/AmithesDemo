@@ -217,11 +217,10 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   console.log("projectedData", projectedData)
   /* ===== HANDLERS ===== */
 
-  const handleCreationSuccess = () => {
-    fetchInvestments();
-    fetchProjections();
+  const handleCreationSuccess = async () => {
+    await Promise.all([fetchInvestments(scenarioId), fetchProjections()]);
     setToast({ type: "success", title: "Created", message: "New investment added successfully." });
-  };
+};
 
   const handleUpdateInput = (investmentId, field, value) => {
     const proj = projections.find(p => p.investment == investmentId);
@@ -241,11 +240,18 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     setIsSaving(true);
     try {
       await executeDeferredUpdates(pendingFlows, localEditedProjections, { createFlow, updateProjection });
+      
+      // Await both fetches before clearing local state
+      await Promise.all([
+        fetchInvestments(scenarioId),
+        fetchProjections()
+      ]);
+
+      // Clear local state only after fresh data is in place
       setPendingFlows([]);
       setLocalEditedProjections({});
+      
       setToast({ type: "success", title: "Portfolio Saved", message: "Updated Projections Successfully." });
-      fetchInvestments();
-      fetchProjections();
       setSimRefreshTrigger(prev => prev + 1);
     } catch (err) {
       setToast({ type: "error", title: "Save Error", message: "A database conflict occurred." });
@@ -273,25 +279,16 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     setIsFinalizationOpen(true);
 };
 
-const handleTargetFinalSave = ({ success, error }) => {
-    if (success) {
-        setToast({ 
-            type: "success", 
-            title: "Target Applied", 
-            message: "All unlocked portfolio MOICs have been updated." 
-        });
-        // Global refresh to update table values and simulation charts
-        fetchInvestments();
-        fetchProjections();
-        setSimRefreshTrigger(prev => prev + 1);
-    } else {
-        setToast({ 
-            type: "error", 
-            title: "Update Failed", 
-            message: error?.message || "An error occurred while saving targets." 
-        });
-    }
-};
+  const handleTargetFinalSave = async ({ success, error }) => {
+      if (success) {
+          await Promise.all([fetchInvestments(scenarioId), fetchProjections()]);
+          setToast({ type: "success", title: "Target Applied", message: "All unlocked portfolio MOICs have been updated." });
+          setSimRefreshTrigger(prev => prev + 1);
+      } else {
+          setToast({ type: "error", title: "Update Failed", message: error?.message || "An error occurred while saving targets." });
+      }
+  };
+
   if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
 
   return (
@@ -414,7 +411,11 @@ const handleTargetFinalSave = ({ success, error }) => {
         <TargetSelectionModal 
           isOpen={isTargetModalOpen} 
           onClose={() => setIsTargetModalOpen(false)} 
-          onNext={handleTargetNext} // Updated handler
+          onNext={handleTargetNext}
+          onError={(msg) => {
+              setIsTargetModalOpen(false);  // close modal so toast is visible
+              setToast({ type: "error", title: "Target Mode Failed", message: msg });
+          }}
           shareClasses={availableShareClasses}
           fundId={fundId} 
           scenarioId={scenarioId}

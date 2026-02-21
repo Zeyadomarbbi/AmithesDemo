@@ -11,13 +11,14 @@ from django.db.models import Q
 import math
 import traceback
 
-
+from ..models.mappings import MapSynthesisScenario
 from ..models.views import (
     ViewMasterManFees, 
     ViewMasterScenarioGains, 
     ScenarioFundflowsDistributionSummary, 
     ScenarioFundflowsCapitalcallSummary, 
-    ViewScenarioFundflowsAllOperations
+    ViewScenarioFundflowsAllOperations,
+    
 )
 from ..models.transactions import (
     ScenarioList, 
@@ -89,24 +90,38 @@ class FundScenarioListView(APIView):
         return Response(serializer.data)
 
     def delete(self, request, fund_id, pk):
-        """
-        Implements Soft Delete as per new model schema.
-        """
         scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id)
-        scenario.is_deleted = True
-        scenario.save()
+        force = request.query_params.get('force') == 'true'
+
+        affected = MapSynthesisScenario.objects.filter(scenario_id=pk).select_related('synthesis')
+
+        if affected.exists() and not force:
+            names = list(affected.values_list('synthesis__synthesis_name', flat=True))
+            return Response(
+                {"detail": "Scenario is used in one or more syntheses.", "syntheses": names},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        if force:
+            synthesis_ids = list(affected.values_list('synthesis_id', flat=True))
+            ScenarioSynthesis.objects.filter(synthesis_id__in=synthesis_ids).delete()
+
+        scenario.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class FundScenarioSynthesisView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:
             synthesis = get_object_or_404(
-                ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False
+                ScenarioSynthesis.objects.prefetch_related('scenario_mappings'),
+                pk=pk, fund_id=fund_id, is_deleted=False
             )
             serializer = ScenarioSynthesisSerializer(synthesis)
             return Response(serializer.data)
         
-        qs = ScenarioSynthesis.objects.filter(fund_id=fund_id, is_deleted=False)
+        qs = ScenarioSynthesis.objects.prefetch_related('scenario_mappings').filter(
+            fund_id=fund_id, is_deleted=False
+        )
         serializer = ScenarioSynthesisSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -124,7 +139,10 @@ class FundScenarioSynthesisView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def put(self, request, fund_id, pk):
-        synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False)
+        synthesis = get_object_or_404(
+            ScenarioSynthesis.objects.prefetch_related('scenario_mappings'),
+            pk=pk, fund_id=fund_id, is_deleted=False
+        )
         serializer = ScenarioSynthesisSerializer(synthesis, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -132,8 +150,7 @@ class FundScenarioSynthesisView(APIView):
 
     def delete(self, request, fund_id, pk):
         synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id)
-        synthesis.is_deleted = True
-        synthesis.save()
+        synthesis.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class ScenarioPortfolioInvestmentViewSet(ModelViewSet):

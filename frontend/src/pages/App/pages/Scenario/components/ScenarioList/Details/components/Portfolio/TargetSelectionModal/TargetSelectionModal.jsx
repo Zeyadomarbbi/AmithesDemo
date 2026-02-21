@@ -72,6 +72,7 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
         } catch (err) {
             // error is already set in the hook — just capture for local display
             setLocalError(err.message);
+            onError?.(err.message);  
         }
     };
 

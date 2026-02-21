@@ -1,0 +1,332 @@
+/* =========================================
+   DRAWER DETAILS — OUTER WRAPPER
+   ========================================= */
+
+.scenario-synthesis-drawer-details-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   HEADER
+   ========================================= */
+
+.scenario-synthesis-drawer-header-wrapper {
+  width: 100%;
+  height: auto;
+  min-height: 88px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  background: #FFFFFF;
+  box-sizing: border-box;
+  flex: none;
+}
+
+.scenario-synthesis-header-content {
+  width: 100%;
+  height: auto;
+
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+
+  padding: 24px 24px 0px;
+  gap: 16px;
+
+  box-sizing: border-box;
+}
+
+.scenario-synthesis-header-icon-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #375A89;
+}
+
+.scenario-synthesis-header-text-frame {
+  height: auto;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.scenario-synthesis-header-titles-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0;
+}
+
+.scenario-synthesis-header-main-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 28px;
+  color: #1C1917;
+
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scenario-synthesis-header-sub-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+
+  white-space: normal;
+  width: 100%;
+}
+
+.scenario-synthesis-header-bottom-pad {
+  width: 100%;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   TABLE
+   ========================================= */
+
+.scenario-synthesis-drawer-table-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px 56px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scenario-synthesis-table-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: #FFFFFF;
+}
+
+.scenario-synthesis-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 800px;
+}
+
+/* --- HEADERS --- */
+.scenario-synthesis-table-header th {
+  height: 40px;
+  background-color: #FFFFFF;
+  text-align: left;
+  padding: 0 12px;
+  border: none;
+  padding-bottom: 16px;
+}
+
+.scenario-synthesis-kpi-header-cell {
+  width: 28%;
+  min-width: 250px;
+}
+
+.scenario-synthesis-scenario-header-cell {
+  width: 24%;
+  min-width: 150px;
+
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+
+  color: #1C1917;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 1;
+
+}
+
+.scenario-synthesis-kpi-header-content,
+.scenario-synthesis-scenario-header-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.scenario-synthesis-unit-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #7B7D7E;
+}
+
+.scenario-synthesis-sort-icon {
+  width: 12px;
+  height: 12px;
+  color: #375A89;
+}
+
+/* --- BODY ROWS --- */
+.scenario-synthesis-table-body td {
+  padding: 12px;
+  border: none;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1C1917;
+  height: 48px;
+  vertical-align: middle;
+}
+
+.scenario-synthesis-table-body tr:nth-child(odd) {
+  background-color: #FAFAF9;
+}
+
+.scenario-synthesis-table-body tr:nth-child(even) {
+  background-color: #FFFFFF;
+}
+
+.scenario-synthesis-kpi-row.scenario-synthesis-clickable {
+  cursor: pointer;
+}
+
+.scenario-synthesis-kpi-name-cell {
+  font-weight: 500;
+  color: #375A89;
+}
+
+.scenario-synthesis-cell-flex-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.scenario-synthesis-kpi-name-cell.scenario-synthesis-expandable {
+  font-weight: 400;
+}
+
+.scenario-synthesis-plus-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  transition: transform 0.2s ease;
+}
+
+.scenario-synthesis-plus-icon.scenario-synthesis-rotated {
+  transform: rotate(45deg);
+}
+
+.scenario-synthesis-plus-icon {
+  width: 14px;
+  height: 14px;
+  color: #375A89;
+  flex-shrink: 0;
+}
+
+.scenario-synthesis-kpi-row:last-child td {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.scenario-synthesis-kpi-value-cell {
+  font-weight: 400;
+  text-align: left;
+  color: #7B7D7E;
+}
+
+/* --- SUB-ROW STYLING --- */
+.scenario-synthesis-sub-kpi-row td {
+  padding: 8px 12px;
+  border: none;
+  font-size: 14px;
+  color: #000;
+  background-color: inherit;
+}
+
+.scenario-synthesis-sub-kpi-row:last-child td {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.scenario-synthesis-table-body tr.scenario-synthesis-sub-kpi-row {
+  background-color: transparent !important;
+}
+
+.scenario-synthesis-sub-kpi-name-cell {
+  padding-left: 28px !important;
+  font-weight: 400;
+  color: #1C1917;
+}
+
+.scenario-synthesis-sub-cell-flex-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.scenario-synthesis-sub-unit-tag {
+  font-weight: 500;
+  font-size: 13px;
+  background-color: transparent;
+  color: #375A89;
+  padding: 0;
+}
+
+.scenario-synthesis-sub-kpi-value-cell {
+  text-align: left;
+  color: #1C1917;
+}
+
+/* =========================================
+   MEDIA QUERY (Mobile < 480px)
+   ========================================= */
+@media (max-width: 480px) {
+  .scenario-synthesis-header-content {
+    padding: 16px 16px 0px;
+    gap: 12px;
+  }
+
+  .scenario-synthesis-header-main-title {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .scenario-synthesis-drawer-table-wrapper {
+    padding: 16px 16px;
+  }
+}

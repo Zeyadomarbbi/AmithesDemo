@@ -1,56 +1,67 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import DrawerHeader from './components/Header/DrawerHeader';
-import DrawerTable from './components/Table/DrawerTable';
+import DrawerDetails from './components/DrawerDetails';
+import useScenarioSynthesis from './utils/useScenarioSynthesis';
 import './SynthesisDetailsDrawer.css';
 
 function SynthesisDetailsDrawer() {
   const { fundId, synthesisId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const [isExpanded, setIsExpanded] = useState(false);
-    
-  const { 
-      synthesisTitle, 
-      synthesisDescription,
-      synthesisLinks
-  } = location.state || {}; 
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const { synthesis, loading, error } = useScenarioSynthesis(fundId, synthesisId);
+
+  const { 
+    synthesisTitle, 
+    synthesisDescription,
+    synthesisLinks
+  } = location.state || {};
+  console.log("synthesis", synthesis)
   const handleClose = () => {
-    // Navigate back to the parent Scenarios page
     navigate(`/funds/${fundId}/scenario-dashboard`);
   };
 
   const handleToggleExpand = () => {
     setIsExpanded(!isExpanded);
   };
-  
+
+  if (loading) return (
+    <div className="drawer-overlay" onClick={handleClose}>
+      <div className={`drawer-container ${isExpanded ? 'expanded' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-loading">Loading...</div>
+      </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="drawer-overlay" onClick={handleClose}>
+      <div className={`drawer-container ${isExpanded ? 'expanded' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-error">Failed to load synthesis: {error}</div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="drawer-overlay" onClick={handleClose}>
-      <div 
-        className={`drawer-container ${isExpanded ? 'expanded' : ''}`} 
+      <div
+        className={`drawer-container ${isExpanded ? 'expanded' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-        
-        <DrawerHeader 
-            onClose={handleClose} 
-            onExpand={handleToggleExpand} 
-            title={synthesisTitle || `Synthesis #${synthesisId}`} 
-            description={synthesisDescription}
-        />
-
-        {/* If you are on the base route /synthesis-details/:id, show the table.
-          If you navigate to a child route, the Outlet will render that child instead.
-        */}
-        <div className="drawer-content">
-            {synthesisId && !location.pathname.includes('child-tab-name') ? (
-                <DrawerTable synthesisLinks={synthesisLinks} /> 
-            ) : (
-                <Outlet />
-            )}
-        </div>
-
+        {synthesisId && !location.pathname.includes('child-tab-name') ? (
+          <DrawerDetails
+            onClose={handleClose}
+            onExpand={handleToggleExpand}
+            isExpanded={isExpanded}
+            title={synthesis?.synthesis_name || synthesisTitle || `Synthesis #${synthesisId}`}
+            description={synthesis?.description || synthesisDescription}
+            synthesisLinks={synthesisLinks}
+            scenarios={synthesis?.scenarios || []}
+          />
+        ) : (
+          <Outlet />
+        )}
       </div>
     </div>
   );

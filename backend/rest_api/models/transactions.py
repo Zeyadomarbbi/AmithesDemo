@@ -229,7 +229,6 @@ class ScenarioList(models.Model):
             return super().get_queryset().filter(is_deleted=False)
         
     scenario_id = models.BigAutoField(primary_key=True)
-    
     fund = models.ForeignKey(
         "Fund", 
         on_delete=models.CASCADE, 
@@ -239,19 +238,12 @@ class ScenarioList(models.Model):
     
     scenario_name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    
-    # Soft Delete flag
     is_deleted = models.BooleanField(default=False)
-    
-    # Metadata fields
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=150, null=True, blank=True)
-    
-    # Maps to your "updated_by date" requirement
     updated_at = models.DateTimeField(null=True, blank=True)
     objects = ScenarioManager() # Default manager filters out deleted items
     all_objects = models.Manager()
-
     class Meta:
         db_table = "scenario_list"
         ordering = ["scenario_name", "created_at"]
@@ -273,13 +265,10 @@ class ScenarioSynthesis(models.Model):
     )
     synthesis_name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    
     is_deleted = models.BooleanField(default=False)
-    
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=150, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    updated_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         db_table = "scenario_synthesis"
         ordering = ["synthesis_name", "created_at"]
@@ -441,9 +430,17 @@ class PortfolioInvestment(models.Model):
         db_table = "portfolio_investment"
         ordering = ["name"]
         constraints = [
+            # 1. If scenario is NULL (Master/Base deals): Fund + Name must be unique
             models.UniqueConstraint(
-                fields=['fund', 'name'], 
-                name='unique_investment_name_per_fund'
+                fields=['fund', 'name'],
+                condition=models.Q(scenario__isnull=True),
+                name='unique_base_investment_name_per_fund'
+            ),
+            # 2. If scenario is NOT NULL (Scenario deals): Fund + Scenario + Name must be unique
+            models.UniqueConstraint(
+                fields=['fund', 'scenario', 'name'],
+                condition=models.Q(scenario__isnull=False),
+                name='unique_scenario_investment_name_per_fund'
             )
         ]
 
