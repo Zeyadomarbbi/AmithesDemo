@@ -14,14 +14,16 @@
 }
 
 .trgt-selection-mode-container {
+    position: relative;
     background: #FFFFFF;
-    box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
-    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
     width: 90%;
-    max-width: 600px;
+    max-width: 650px;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 24px;
+    overflow-x: hidden;
+    padding: 32px;
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -32,8 +34,9 @@
 .trgt-selection-mode-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
+    padding-right: 40px;
 }
 
 .trgt-selection-mode-title {
@@ -45,20 +48,34 @@
     margin: 0;
 }
 
+.trgt-selection-mode-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    font-weight: normal;
+}
+
 .trgt-selection-mode-close-icon {
+    position: absolute;
+    top: 24px;
+    right: 24px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    border-radius: 4px;
-    color: #64748B;
+    padding: 8px;
+    border-radius: 50%;
+    color: #6B7280;
     transition: background-color 0.2s;
     flex-shrink: 0;
+    background: transparent;
+    border: none;
+    z-index: 10;
 }
 
 .trgt-selection-mode-close-icon:hover {
-    background-color: #F1F5F9;
+    background-color: #F3F4F6;
     color: #111827;
 }
 
@@ -83,7 +100,7 @@
     font-size: 14px;
     line-height: 20px;
     color: #374151;
-    padding-bottom: 12px;
+    padding: 6px 8px;
 }
 
 .trgt-selection-mode-row-label {
@@ -92,7 +109,7 @@
     font-size: 14px;
     line-height: 20px;
     color: #111827;
-    padding: 16px 0;
+    padding: 6px 8px;
     white-space: nowrap;
 }
 
@@ -102,40 +119,29 @@
 }
 
 .trgt-selection-mode-table td {
-    padding: 12px 0;
+    padding: 6px 8px;
     vertical-align: middle;
 }
 
 .trgt-selection-mode-input {
-    width: 100%;
-    padding: 10px 16px;
-    background: #F1F5F9;
-    border: 1px solid #E2E8F0;
-    border-radius: 6px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    line-height: 20px;
-    color: #64748B;
     box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #1C1917;
     outline: none;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition: border-color 0.2s;
 }
 
 .trgt-selection-mode-input:focus {
-    border-color: #3B82F6;
-    background: #FFFFFF;
-    color: #111827;
-}
-
-.trgt-selection-mode-table th:nth-child(2),
-.trgt-selection-mode-table td:nth-child(2) {
-    padding-left: 24px;
-    padding-right: 12px;
-}
-
-.trgt-selection-mode-table th:nth-child(3),
-.trgt-selection-mode-table td:nth-child(3) {
-    padding-left: 12px;
+    border-color: #375A89;
+    outline: none;
 }
 
 /* --- FOOTER & BUTTONS --- */
@@ -160,8 +166,13 @@
     transition: background-color 0.2s;
 }
 
-.trgt-selection-mode-btn-cancel:hover {
+.trgt-selection-mode-btn-cancel:hover:not(:disabled) {
     background: #F1F5F9;
+}
+
+.trgt-selection-mode-btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .trgt-selection-mode-btn-save {
@@ -178,7 +189,7 @@
     transition: background-color 0.2s;
 }
 
-.trgt-selection-mode-btn-save:hover {
+.trgt-selection-mode-btn-save:hover:not(:disabled) {
     background: #D97706;
 }
 
@@ -249,9 +260,24 @@
 /* --- RESPONSIVE MEDIA QUERIES --- */
 @media (max-width: 640px) {
     .trgt-selection-mode-container {
-        padding: 16px;
+        padding: 20px 16px;
         gap: 16px;
         width: 95%;
+        border-radius: 6px;
+    }
+
+    .trgt-selection-mode-header {
+        padding-right: 36px;
+    }
+
+    .trgt-selection-mode-close-icon {
+        top: 16px;
+        right: 16px;
+    }
+
+    .trgt-selection-mode-title {
+        font-size: 16px;
+        line-height: 24px;
     }
 
     .trgt-selection-mode-table th:nth-child(2),
@@ -272,6 +298,16 @@
 
     .trgt-selection-mode-input {
         padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .trgt-selection-mode-footer {
+        gap: 8px;
+    }
+
+    .trgt-selection-mode-btn-cancel,
+    .trgt-selection-mode-btn-save {
+        padding: 9px 12px;
         font-size: 13px;
     }
 }
