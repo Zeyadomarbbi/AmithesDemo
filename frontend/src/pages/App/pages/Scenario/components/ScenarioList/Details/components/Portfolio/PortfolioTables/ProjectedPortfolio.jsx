@@ -141,54 +141,57 @@ function ProjectedPortfolio({ fundId, scenarioId, rows = [], activeMode, onChang
               <th className="scenario-pf-left">
                 <SortableHeaderRenderer 
                     label="Deal Name" columnKey="name"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={false} showCurrency={false}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Duration" columnKey="input_duration"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={false}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Cost" columnKey="cost"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                    right={false} showCurrency={true}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={true}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Exit Value" columnKey="exit_value"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                    right={false} showCurrency={true}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={true}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Dividends/Interests" columnKey="dividends_interests"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                    right={false} showCurrency={true}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={true}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="IRR" columnKey="irr"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                    right={false}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={false}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="MOIC" columnKey="input_moic"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                    right={false}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={false}
                 />
               </th>
               <th className="scenario-pf-center">
                 <SortableHeaderRenderer 
                     label="Exit Date" columnKey="exit_date"
-                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                    center={true} showCurrency={false}
                 />
               </th>
               {(activeMode === "target" || activeMode === "sensitivity") && (

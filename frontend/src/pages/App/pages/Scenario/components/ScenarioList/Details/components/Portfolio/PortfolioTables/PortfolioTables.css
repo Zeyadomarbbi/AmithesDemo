@@ -46,8 +46,8 @@
     color: #111827;
     font-weight: 600;
     vertical-align: middle;
-    padding: 12px;
     white-space: nowrap;
+    padding: 12px;
 }
 
 /* =========================================
@@ -87,7 +87,6 @@
     vertical-align: middle;
     color: #111827;
     white-space: nowrap;
-    width: 100%;
 }
 
 .scenario-pf-table tbody tr:nth-child(odd) {
@@ -174,6 +173,7 @@
     font-size: 14px;
     color: #1C1917;
     text-align: inherit;
+    margin: 0 auto;
 }
 
 .scenario-pf-input:focus {
@@ -195,12 +195,6 @@
     color: #FFFFFF !important;
     font-weight: 400;
     border-bottom: none;
-    
-    /* Critical Fix: 
-       Vertical: 12px 
-       Horizontal: 24px (Matches 12px TD padding + 12px Input padding) 
-    */
-    padding: 12px 25px; 
 }
 
 .scenario-pf-summary-row .scenario-pf-input[readonly] {

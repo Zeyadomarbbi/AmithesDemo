@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 
-import './PortfolioTables.css'; 
+import './PortfolioTables.css';
 
 function RealizedPortfolio({ fundId, scenarioId, realizedData }) {
     const rawData = realizedData || [];
-    
+
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
     const formatDate = useDateFormatter();
@@ -58,104 +59,110 @@ function RealizedPortfolio({ fundId, scenarioId, realizedData }) {
     return (
         <div className="scenario-pf-section">
             <h3 className="scenario-pf-section-title">
-                Realized portfolio 
+                Realized portfolio
                 <span className="scenario-pf-section-count">{rawData.length}</span>
             </h3>
-            
-            <div className="scenario-pf-table-container no-borders"> 
-                <table className="scenario-pf-table content-fit"> 
+
+            <div className="scenario-pf-table-container no-borders">
+                <table className="scenario-pf-table content-fit">
                     <thead>
                         <tr>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-left">
+                                <SortableHeaderRenderer
                                     label="Deal Name" columnKey="name"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={false} showCurrency={false}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="Duration" columnKey="input_duration"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={false}
                                 />
-                            </th> 
-                            <th>
-                                <SortableHeaderRenderer 
+                            </th>
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="Cost" columnKey="cost"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                    right={false} showCurrency={true}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={true}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="Exit Value" columnKey="exit_value"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                    right={false} showCurrency={true}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={true}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="Dividends/Interests" columnKey="dividends_interests"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                    right={false} showCurrency={true}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={true}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="IRR" columnKey="irr"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                    right={false}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={false}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="MOIC" columnKey="input_moic"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                    right={false}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={false}
                                 />
                             </th>
-                            <th>
-                                <SortableHeaderRenderer 
+                            <th className="scenario-pf-center">
+                                <SortableHeaderRenderer
                                     label="Exit Date" columnKey="exit_date"
-                                    currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                    currentSortKey={sortKey}  toggleSort={toggleSort}
+                                    center={true} showCurrency={false}
                                 />
-                            </th> 
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedRows.map((row, index) => (
-                            <tr key={row.id} className={index % 2 === 0 ? "scenario-pf-gray" : ""}>
+                        {sortedRows.map((row) => (
+                            <tr key={row.id}>
                                 <td className="scenario-pf-left">
                                     <div className="scenario-pf-name-block">
                                         <span className="label">{row.name}</span>
                                         <span className="sub">{formatDate(row.first_investment_date)}</span>
                                     </div>
                                 </td>
-                                <td className="scenario-pf-left">
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={row.input_duration || 0} readOnly />
                                 </td>
-                                <td className="scenario-pf-left">
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={formatNumber(row.display_cost || row.cost)} readOnly />
                                 </td>
-                                <td className="scenario-pf-left">
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={formatNumber(row.exit_value)} readOnly />
                                 </td>
-                                <td className="scenario-pf-left">
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={formatNumber(row.dividends_interests)} readOnly />
-                                </td> 
-                                <td className="scenario-pf-left">
+                                </td>
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={formatPercent(row.irr)} readOnly />
                                 </td>
-                                <td className="scenario-pf-left">
+                                <td className="scenario-pf-center">
                                     <input className="scenario-pf-input" value={row.input_moic || 0} readOnly />
                                 </td>
-                                <td className="scenario-pf-left">
-                                    <div className="scenario-pf-input-readonly-text">
-                                        {formatDate(row.exit_date)}
-                                    </div>
+                                <td className="scenario-pf-center">
+                                    <DateInputWithPicker
+                                        initialDate={row.exit_date ? new Date(row.exit_date) : new Date()}
+                                        disabled={true}
+                                        isSingle={true}
+                                        dateFormat="DD/MM/YYYY"
+                                    />
                                 </td>
                             </tr>
                         ))}
-                        <tr className="scenario-pf-summary-row"> 
+                        <tr className="scenario-pf-summary-row">
                             <td className="scenario-pf-left">Total</td>
                             <td className="scenario-pf-center">
                                 <input className="scenario-pf-input" value={`${summary.avgDuration.toFixed(1)} yrs`} readOnly />
