@@ -21,10 +21,22 @@ export const useTargetMode = (fundId, scenarioId) => {
             setData(response.data);
             return response.data;
         } catch (err) {
-            console.error('Error executing target mode:', err);
             const resData = err.response?.data;
-            setError(resData?.detail || resData?.error || err.message || 'Failed to execute target mode');
-            throw err;
+            const status = err.response?.status;
+
+            let userMessage;
+            if (status === 404) {
+                userMessage = resData?.error || 'Investment data not found for this scenario.';
+            } else if (status === 422) {
+                userMessage = resData?.error || 'Target value is mathematically unreachable with current deals.';
+            } else if (status === 400) {
+                userMessage = resData?.error || 'Invalid input parameters.';
+            } else {
+                userMessage = resData?.error || 'Calculation failed. Please try again.';
+            }
+
+            setError(userMessage);
+            throw new Error(userMessage); // re-throw with clean message
         } finally {
             setLoading(false);
         }

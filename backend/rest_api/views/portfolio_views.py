@@ -9,9 +9,10 @@ from ..models.transactions import *
 from ..serializers.portfolio_serializers import *
 
 class PortfolioInvestmentView(APIView):
-    def get(self, request, fund_id, investment_id=None):
+    def get(self, request, fund_id, investment_id=None, **kwargs):
+        scenario_id = kwargs.get('scenario_pk') or kwargs.get('scenario_id')
+
         if investment_id:
-            # Optimize single fetch too
             investment = get_object_or_404(
                 PortfolioInvestment.objects.prefetch_related('transaction_flows'), 
                 investment_id=investment_id, 
@@ -21,25 +22,32 @@ class PortfolioInvestmentView(APIView):
             serializer = PortfolioInvestmentSerializer(investment)
             return Response(serializer.data)
             
-        # THE KEY OPTIMIZATION: prefetch_related
-        qs = PortfolioInvestment.objects.filter(
+        # Base filter
+        queryset = PortfolioInvestment.objects.filter(
             fund_id=fund_id,
             is_deleted=False
-        ).prefetch_related('transaction_flows').order_by("-created_at")
-        
+        )
+
+        # The strict separation logic
+        if scenario_id:
+            # Show base fund deals (null) + this specific scenario's deals
+            queryset = queryset.filter(Q(scenario_id=scenario_id) | Q(scenario_id__isnull=True))
+        else:
+            # Show ONLY base fund deals
+            queryset = queryset.filter(scenario_id__isnull=True)
+
+        qs = queryset.prefetch_related('transaction_flows').order_by("-created_at")
         serializer = PortfolioInvestmentSerializer(qs, many=True)
         return Response(serializer.data)
 
-    def post(self, request, fund_id):
+    def post(self, request, fund_id, **kwargs):
         serializer = PortfolioInvestmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        created_by = None
         user = getattr(request, "user", None)
-        if user is not None and getattr(user, "is_authenticated", False):
-            created_by = getattr(user, "username", None)
+        created_by = getattr(user, "username", None) if user and getattr(user, "is_authenticated", False) else None
 
-        scenario_id = request.data.get("scenario_id")
+        scenario_id = kwargs.get('scenario_pk') or kwargs.get('scenario_id') or request.data.get("scenario_id")
 
         serializer.save(
             fund_id=fund_id, 

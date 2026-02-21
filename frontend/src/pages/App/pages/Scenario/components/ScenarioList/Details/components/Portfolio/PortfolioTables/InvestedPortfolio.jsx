@@ -21,7 +21,7 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
     useEffect(() => {
         setLocalData(investedData || []);
     }, [investedData]);
-
+    console.log("investedData 2 ", investedData)
     const { sorted: sortedRows, sortKey, sortDir, toggleSort } = useTableSort(localData, "name");
 
     /* ===== HELPERS ===== */

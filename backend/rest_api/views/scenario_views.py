@@ -7,6 +7,10 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import connection
+from django.db.models import Q
+import math
+import traceback
+
 
 from ..models.views import (
     ViewMasterManFees, 
@@ -136,11 +140,15 @@ class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
     serializer_class = PortfolioInvestmentSerializer
 
     def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_id = self.kwargs.get('scenario_pk')
+
+        # Use Q objects to fetch BOTH the specific scenario deals AND the base fund deals
         return PortfolioInvestment.objects.filter(
-            fund_id=self.kwargs.get('fund_id'),
-            scenario_id=self.kwargs.get('scenario_pk'),
+            Q(scenario_id=scenario_id) | Q(scenario_id__isnull=True),
+            fund_id=fund_id,
             is_deleted=False
-        )
+        ).prefetch_related('transaction_flows').order_by("-created_at")
 
     def perform_create(self, serializer):
         # Automatically injects the scenario_id from the URL
@@ -158,15 +166,16 @@ class ScenarioTransactionFlowViewSet(ModelViewSet):
     serializer_class = PortfolioTransactionFlowSerializer
 
     def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
         return PortfolioTransactionFlow.objects.filter(
+            Q(scenario_id=scenario_id) | Q(scenario_id__isnull=True),
             portfolio_investment_id=self.kwargs.get('investment_id'),
             portfolio_investment__fund_id=self.kwargs.get('fund_id'),
-            scenario_id=self.kwargs.get('scenario_pk'),
             is_deleted=False
-        )
+        ).order_by('date')
 
     def perform_create(self, serializer):
-        # Ensure the investment exists within the specified fund
         investment = get_object_or_404(
             PortfolioInvestment, 
             investment_id=self.kwargs.get('investment_id'), 
@@ -177,7 +186,6 @@ class ScenarioTransactionFlowViewSet(ModelViewSet):
         if self.request.user and self.request.user.is_authenticated:
             created_by = self.request.user.username
 
-        # Auto-generate the next flow index for this investment
         next_index = (
             PortfolioTransactionFlow.objects.filter(portfolio_investment=investment).count() + 1
         )
@@ -189,7 +197,7 @@ class ScenarioTransactionFlowViewSet(ModelViewSet):
             flow_name=flow_name,
             created_by=created_by
         )
-
+        
 class ScenarioPortfolioProjectionViewSet(ModelViewSet):
     serializer_class = ScenarioPortfolioProjectionSerializer
 
@@ -389,6 +397,78 @@ class ViewScenarioFundflowsAllOperationsViewSet(viewsets.ReadOnlyModelViewSet):
         # Ensure consistent ordering by date, then by ID to prevent pagination jitter
         return queryset.order_by('date', 'all_operations_id')
     
+def _safe_float(value, field_name="value"):
+    """
+    Converts a value to float, rejecting complex numbers and non-finite results.
+    Raises ValueError with a descriptive message.
+    """
+    if isinstance(value, complex):
+        raise ValueError(
+            f"Numerical instability: '{field_name}' produced a complex number ({value}). "
+            "This usually means the cashflow series has no real IRR solution."
+        )
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Cannot convert '{field_name}' to float: {value!r}. Original: {e}")
+
+    if math.isnan(result):
+        raise ValueError(f"'{field_name}' resolved to NaN — cashflow series is degenerate.")
+    if math.isinf(result):
+        raise ValueError(f"'{field_name}' resolved to Infinity — likely zero investment cost.")
+
+    return result
+
+
+
+def _safe_float(value, field_name="value"):
+    if isinstance(value, complex):
+        raise ValueError(
+            f"'{field_name}' produced a complex number ({value}). "
+            "The cashflow series has no real IRR solution."
+        )
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Cannot convert '{field_name}' to float: {value!r}. Original: {e}")
+    if math.isnan(result):
+        raise ValueError(f"'{field_name}' resolved to NaN — cashflow series is degenerate.")
+    if math.isinf(result):
+        raise ValueError(f"'{field_name}' resolved to Infinity — likely zero investment cost.")
+    return result
+
+
+def _is_valid_kpi_type(kpi_type):
+    exact = {'fund_irr_net', 'fund_tvpi', 'fund_total_distributed'}
+    prefixes = ('irr_', 'tvpi_', 'total_distributed_')
+    return kpi_type in exact or any(kpi_type.startswith(p) for p in prefixes)
+
+
+def _check_data_exists(fund_id, scenario_id, unlocked_ids):
+    found_ids = set(
+        ScenarioPortfolioProjection.objects.filter(
+            scenario_id=scenario_id,
+            investment_id__in=unlocked_ids
+        ).values_list('investment_id', flat=True)
+    )
+    missing = set(unlocked_ids) - found_ids
+    if missing:
+        return False, f"Investment IDs not found in scenario {scenario_id}: {sorted(missing)}", status.HTTP_404_NOT_FOUND
+
+    has_calls = ScenarioFundflowsCapitalcallSummary.objects.filter(
+        fund_id=fund_id, scenario_id=scenario_id
+    ).exclude(source_type='projected_placeholder', is_user_inserted=False).exists()
+    if not has_calls:
+        return False, "No capital call data found for this fund/scenario.", status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    has_dists = ScenarioFundflowsDistributionSummary.objects.filter(
+        fund_id=fund_id, scenario_id=scenario_id
+    ).exclude(source_type='projected_placeholder').exists()
+    if not has_dists:
+        return False, "No distribution data found for this fund/scenario.", status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    return True, None, None
+    
 class ScenarioWaterfallView(APIView):
     def get(self, request, fund_id, scenario_id):
         try:
@@ -410,43 +490,6 @@ class ScenarioWaterfallView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-class ScenarioSensitivityView(APIView):
-    def post(self, request, fund_id, scenario_id):
-        data = request.data
-        investment_id = data.get('investment_id')
-        
-        # Grid parameters from the frontend
-        m_center = float(data.get('moic_center', 1.5))
-        d_center = float(data.get('duration_center', 5.0))
-        m_step = float(data.get('moic_step', 0.5))
-        d_step = float(data.get('duration_step', 1.0))
-
-        # 1. Generate the 5x5 axis values
-        # We create a range: [Center - 2*Step, Center - Step, Center, Center + Step, Center + 2*Step]
-        moic_range = [round(m_center + (i * m_step), 2) for i in range(-2, 3)]
-        duration_range = [round(d_center + (i * d_step), 2) for i in range(-2, 3)]
-
-        # 2. Initialize the Service
-        service = WaterfallService(fund_id, scenario_id)
-        
-        # 3. The Virtual Sequence
-        # We call a stateless method that returns the matrix
-        try:
-            matrix = service.calculate_virtual_matrix(
-                investment_id=investment_id,
-                moic_range=moic_range,
-                duration_range=duration_range
-            )
-            
-            return Response({
-                "matrix": matrix,
-                "moic_axis": moic_range,
-                "duration_axis": duration_range
-            }, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class ScenarioSensitivityView(APIView):
     def post(self, request, fund_id, scenario_id):
@@ -492,26 +535,66 @@ class ScenarioSensitivityView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class TargetModePreviewView(APIView):
+
     def post(self, request, fund_id, scenario_id):
+        # --- 1. Input Validation ---
         target_kpi_type = request.data.get('target_kpi_type')
         target_kpi_value = request.data.get('target_kpi_value')
         unlocked_ids = request.data.get('unlocked_ids', [])
 
-        if not target_kpi_type or target_kpi_value is None or not unlocked_ids:
-            return Response({"error": "Missing required parameters."}, status=status.HTTP_400_BAD_REQUEST)
+        if not target_kpi_type:
+            return Response({"error": "Missing 'target_kpi_type'."}, status=status.HTTP_400_BAD_REQUEST)
+        if target_kpi_value is None:
+            return Response({"error": "Missing 'target_kpi_value'."}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(unlocked_ids, list) or not unlocked_ids:
+            return Response({"error": "'unlocked_ids' must be a non-empty list."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not _is_valid_kpi_type(target_kpi_type):
+            return Response(
+                {"error": f"Invalid 'target_kpi_type': '{target_kpi_type}'. "
+                          "Expected one of: fund_irr_net, fund_tvpi, fund_total_distributed, "
+                          "or a prefixed share-class variant (irr_*, tvpi_*, total_distributed_*)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            target_val_float = float(target_kpi_value)
-            service = TargetModeService(fund_id=fund_id, scenario_id=scenario_id)
-            
-            # Execute solver and generate preview payload
-            result = service.calculate_preview(target_kpi_type, target_val_float, unlocked_ids)
-            
-            return Response(result, status=status.HTTP_200_OK)
-            
+            target_val_float = _safe_float(target_kpi_value, 'target_kpi_value')
         except ValueError as e:
-            print(e)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- 2. Data Existence Pre-flight ---
+        ok, err_msg, err_status = _check_data_exists(fund_id, scenario_id, unlocked_ids)
+        if not ok:
+            return Response({"error": err_msg}, status=err_status)
+
+        # --- 3. Execute ---
+        try:
+            service = TargetModeService(fund_id=fund_id, scenario_id=scenario_id)
+            result = service.calculate_preview(target_kpi_type, target_val_float, unlocked_ids)
+            return Response(result, status=status.HTTP_200_OK)
+
+        except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        except TypeError as e:
+            msg = str(e)
+            if 'complex' in msg:
+                return Response(
+                    {"error": "Numerical instability — IRR produced a complex result. "
+                              "Check for zero-cost investments or degenerate cashflow timelines."},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+            return Response({"error": f"Type error during calculation: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except ZeroDivisionError:
+            return Response(
+                {"error": "Division by zero — likely a zero total commitment or zero-cost investment."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
+
         except Exception as e:
-            print(e)
-            return Response({"error": f"Calculation failure: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            traceback.print_exc()
+            return Response(
+                {"error": "Unexpected calculation failure.", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

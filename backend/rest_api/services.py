@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 import copy
 import warnings
+import math
 
 import pandas as pd
 import numpy as np
@@ -27,10 +28,40 @@ from rest_api.models.transactions import (
 warnings.filterwarnings('ignore')
 # --- UTILITIES ---
 
+
+def fetch_commitments_and_ratios(fund_id, scenario_id):
+    query = """
+        SELECT sc.share_class_name, c.total_commitment
+        FROM scenario_lps_sc_man_fee_tranches_config c
+        JOIN share_class sc ON c.share_class_id = sc.share_class_id
+        WHERE c.fund_id = %s AND c.scenario_id = %s
+        ORDER BY c.share_class_id;
+    """
+    ratios = {}
+    share_class_names = []
+    with connection.cursor() as cursor:
+        cursor.execute(query, [fund_id, scenario_id])
+        rows = cursor.fetchall()
+
+    total = sum(float(r[1]) for r in rows)
+    for name, amount in rows:
+        amount = float(amount)
+        ratio = amount / total if total > 0 else 0.0
+        ratios[name] = ratio
+        share_class_names.append(name)
+    return ratios, share_class_names
+
 def xirr(cashflows, dates, guess=0.1):
-    """Newton-Raphson XIRR."""
+    """Newton-Raphson XIRR. Always returns float or None — never complex."""
     try:
-        if not cashflows or not dates: return None
+        if not cashflows or not dates:
+            return None
+        # Guard: all-negative or all-positive flows have no real IRR
+        has_pos = any(cf > 0 for cf in cashflows)
+        has_neg = any(cf < 0 for cf in cashflows)
+        if not has_pos or not has_neg:
+            return None
+
         t0 = dates[0]
         years = [(d - t0).days / 365.0 for d in dates]
 
@@ -42,15 +73,26 @@ def xirr(cashflows, dates, guess=0.1):
 
         r = float(guess)
         for _ in range(100):
+            if r <= -1.0:
+                r = -0.9999  # Prevent (1+r) going to zero or negative
             f_val = npv(r)
             f_der = dnpv(r)
-            if abs(f_der) < 1e-12: break
+            if abs(f_der) < 1e-12:
+                break
             r_new = r - f_val / f_der
+            if isinstance(r_new, complex):
+                return None  # Newton stepped into complex space
+            if not math.isfinite(r_new):
+                return None
             if abs(r_new - r) < 1e-8:
                 r = r_new
                 break
             r = r_new
-        return r if (r == r and abs(r) <= 1e6) else None
+
+        if isinstance(r, complex) or not math.isfinite(r) or abs(r) > 1e6:
+            return None
+        return r
+
     except Exception:
         return None
 
@@ -70,90 +112,116 @@ def get_class_step_alloc(kpis, sc, kpi_key, envelope_based=False):
         return float(entry['class_allocations'].get(sc, 0.0))
     return sum(float(ed['class_allocations'].get(sc, 0.0)) for ed in entry['envelopes'].values())
 
+def fetch_realized_lookups(fund_id):
+    q = """
+        SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
+        FROM lps_operation_lp_allocations a
+        JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
+        JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
+        JOIN share_class sc          ON a.share_class_id = sc.share_class_id
+        WHERE d.fund_id = %s
+        GROUP BY t.name, d.due_date, sc.share_class_name;
+    """
+    realized_calls = {}
+    realized_dists = {}
+    with connection.cursor() as c:
+        c.execute(q, [fund_id])
+        for op_type, due_date, sc_name, amount in c.fetchall():
+            dt = str(due_date)
+            amt = float(amount) if amount else 0.0
+            if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
+                realized_calls.setdefault(dt, {})[sc_name] = amt
+            elif op_type == 'Distribution':
+                realized_dists.setdefault(dt, {})[sc_name] = amt
+    return realized_calls, realized_dists
+    
 
+def fetch_waterfall_config(fund_id):
+    config = {}
+    steps = FundWaterfallSteps.objects.filter(fund_id=fund_id)\
+        .select_related('step_definition').order_by('step_definition__step_number')
+
+    for step in steps:
+        s_num = step.step_definition.step_number
+        s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
+        
+        d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
+            .select_related('share_class')
+        d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
+
+        envs = []
+        env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
+        for e in env_qs:
+            e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
+            e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
+            envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
+
+        classes = list(d_rules.keys())
+        for e in envs:
+            for c in e['rules']:
+                if c not in classes: classes.append(c)
+
+        config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
+    return config
+
+def calculate_kpis(waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
+    def alloc_direct(amount, step_cfg):
+        d_rules = step_cfg.get('direct_rules', {})
+        valid = [c for c in d_rules if c in ratios]
+        denom = sum(ratios[c] for c in valid)
+        return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
+
+    def alloc_envelopes(amount, step_cfg):
+        result = {}
+        for env in step_cfg.get('envelopes', []):
+            env_amt = amount * env['alloc']
+            valid = [c for c in env['rules'] if c in ratios]
+            denom = sum(ratios[c] for c in valid)
+            result[env['num']] = {
+                'amount': env_amt,
+                'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
+            }
+        return result
+
+    return {
+        'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
+        'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
+        'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
+        'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
+    }
+
+def fetch_portfolio_total_cost(fund_id, scenario_id):
+    result = ScenarioPortfolioProjection.objects.filter(fund_id=fund_id, scenario_id=scenario_id)\
+        .aggregate(total=Sum('cost'))
+    return float(result['total'] or 0)
+
+def fetch_static_capital_calls(fund_id, scenario_id):
+    qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
+        fund_id=fund_id,
+        scenario_id=scenario_id
+    ).exclude(
+        source_type='projected_placeholder', 
+        is_user_inserted=False
+    )
+
+    return [
+        {
+            'summary_id': r['summary_id'],
+            'date': r['date'],
+            'flows': float(r['flows']),
+            'investment': float(r['investment']),
+            'management_fees': float(r['management_fees']), # ADDED
+            'dd_fees': float(r['dd_fees']),                 # ADDED
+            'type': 'capital_call',
+            'source_type': r['source_type'],
+        }
+        for r in qs.values('summary_id', 'date', 'flows', 'investment', 'management_fees', 'dd_fees', 'source_type')
+    ]
+    
 class WaterfallService:
     def __init__(self, fund_id, scenario_id):
         self.fund_id = fund_id
         self.scenario_id = scenario_id
-    # --- FETCH METHODS ---
-
-    def fetch_commitments_and_ratios(self):
-        query = """
-            SELECT sc.share_class_name, c.total_commitment
-            FROM scenario_lps_sc_man_fee_tranches_config c
-            JOIN share_class sc ON c.share_class_id = sc.share_class_id
-            WHERE c.fund_id = %s AND c.scenario_id = %s
-            ORDER BY c.share_class_id;
-        """
-        ratios = {}
-        share_class_names = []
-        with connection.cursor() as cursor:
-            cursor.execute(query, [self.fund_id, self.scenario_id])
-            rows = cursor.fetchall()
-
-        total = sum(float(r[1]) for r in rows)
-        for name, amount in rows:
-            amount = float(amount)
-            ratio = amount / total if total > 0 else 0.0
-            ratios[name] = ratio
-            share_class_names.append(name)
-        return ratios, share_class_names
-
-    def fetch_realized_lookups(self):
-        q = """
-            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
-            FROM lps_operation_lp_allocations a
-            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
-            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
-            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY t.name, d.due_date, sc.share_class_name;
-        """
-        realized_calls = {}
-        realized_dists = {}
-        with connection.cursor() as c:
-            c.execute(q, [self.fund_id])
-            for op_type, due_date, sc_name, amount in c.fetchall():
-                dt = str(due_date)
-                amt = float(amount) if amount else 0.0
-                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
-                    realized_calls.setdefault(dt, {})[sc_name] = amt
-                elif op_type == 'Distribution':
-                    realized_dists.setdefault(dt, {})[sc_name] = amt
-        return realized_calls, realized_dists
-
-    def fetch_waterfall_config(self):
-        config = {}
-        steps = FundWaterfallSteps.objects.filter(fund_id=self.fund_id)\
-            .select_related('step_definition').order_by('step_definition__step_number')
-
-        for step in steps:
-            s_num = step.step_definition.step_number
-            s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
-            
-            d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
-                .select_related('share_class')
-            d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
-
-            envs = []
-            env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
-            for e in env_qs:
-                e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
-                e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
-                envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
-
-            classes = list(d_rules.keys())
-            for e in envs:
-                for c in e['rules']:
-                    if c not in classes: classes.append(c)
-
-            config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
-        return config
-
-    def fetch_portfolio_total_cost(self):
-        result = ScenarioPortfolioProjection.objects.filter(fund_id=self.fund_id, scenario_id=self.scenario_id)\
-            .aggregate(total=Sum('cost'))
-        return float(result['total'] or 0)
 
     def fetch_projected_exit_names(self):
         qs = ScenarioPortfolioProjection.objects.filter(
@@ -174,38 +242,14 @@ class WaterfallService:
 
     # --- CORE CALCULATION ---
 
-    def calculate_kpis(self, waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
-        def alloc_direct(amount, step_cfg):
-            d_rules = step_cfg.get('direct_rules', {})
-            valid = [c for c in d_rules if c in ratios]
-            denom = sum(ratios[c] for c in valid)
-            return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
 
-        def alloc_envelopes(amount, step_cfg):
-            result = {}
-            for env in step_cfg.get('envelopes', []):
-                env_amt = amount * env['alloc']
-                valid = [c for c in env['rules'] if c in ratios]
-                denom = sum(ratios[c] for c in valid)
-                result[env['num']] = {
-                    'amount': env_amt,
-                    'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
-                }
-            return result
-
-        return {
-            'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
-            'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
-            'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
-            'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
-        }
 
     def run_simulation(self):
         # 1. Fetch Data
-        ratios, share_class_names = self.fetch_commitments_and_ratios()
-        realized_calls, realized_dists = self.fetch_realized_lookups()
-        waterfall_config = self.fetch_waterfall_config()
-        portfolio_total_cost = self.fetch_portfolio_total_cost()
+        ratios, share_class_names = fetch_commitments_and_ratios(self.fund_id, self.scenario_id)
+        realized_calls, realized_dists = fetch_realized_lookups(self.fund_id)
+        waterfall_config = fetch_waterfall_config(self.fund_id)
+        portfolio_total_cost = fetch_portfolio_total_cost(self.fund_id, self.scenario_id)
         exit_names_map = self.fetch_projected_exit_names()
 
         hurdle_rate = waterfall_config.get(2, {}).get('rate', 0.08)
@@ -353,7 +397,7 @@ class WaterfallService:
         sp_rem = max(0, cu_rem - cu_ded)
         sp_ded = sp_rem
 
-        kpis = self.calculate_kpis(waterfall_config, ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
+        kpis = calculate_kpis(waterfall_config, ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
 
         # 6. Prepare Results
         allocations = {}
@@ -481,83 +525,15 @@ class SensitivityService:
         except ScenarioPortfolioProjection.DoesNotExist:
             raise ValueError("Base projection not found for this investment/scenario.")
         
-        self.waterfall_config = self._fetch_waterfall_config()
-        self.ratios, self.share_class_names = self._fetch_commitments_and_ratios()
+        self.waterfall_config = fetch_waterfall_config(fund_id)
+        self.ratios, self.share_class_names = fetch_commitments_and_ratios(fund_id, scenario_id)
         self.total_commitment = self._fetch_total_commitment()
         self.base_investment_flows = self._fetch_base_investment_flows()
-        self.realized_calls, self.realized_dists = self._fetch_realized_lookups()
-        self.portfolio_total_cost = self._fetch_portfolio_total_cost()
+        self.realized_calls, self.realized_dists = fetch_realized_lookups(fund_id)
+        self.portfolio_total_cost = fetch_portfolio_total_cost(fund_id, scenario_id)
         self.base_dd_fee = self._fetch_base_dd_fee()
-        self.static_capital_calls = self._fetch_static_capital_calls()
+        self.static_capital_calls = fetch_static_capital_calls(fund_id, scenario_id)
         self.man_fee_rate = self._fetch_man_fee_rate()
-
-    def _fetch_commitments_and_ratios(self):
-        query = """
-            SELECT sc.share_class_name, c.total_commitment
-            FROM scenario_lps_sc_man_fee_tranches_config c
-            JOIN share_class sc ON c.share_class_id = sc.share_class_id
-            WHERE c.fund_id = %s AND c.scenario_id = %s
-            ORDER BY c.share_class_id;
-        """
-        ratios = {}
-        share_class_names = []
-        with connection.cursor() as cursor:
-            cursor.execute(query, [self.fund_id, self.scenario_id])
-            rows = cursor.fetchall()
-
-        total = sum(float(r[1]) for r in rows)
-        for name, amount in rows:
-            amount = float(amount)
-            ratio = amount / total if total > 0 else 0.0
-            ratios[name] = ratio
-            share_class_names.append(name)
-        return ratios, share_class_names
-
-    def fetch_realized_lookups(self):
-        q = """
-            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
-            FROM lps_operation_lp_allocations a
-            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
-            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
-            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY t.name, d.due_date, sc.share_class_name;
-        """
-        realized_calls = {}
-        realized_dists = {}
-        with connection.cursor() as c:
-            c.execute(q, [self.fund_id])
-            for op_type, due_date, sc_name, amount in c.fetchall():
-                dt = str(due_date)
-                amt = float(amount) if amount else 0.0
-                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
-                    realized_calls.setdefault(dt, {})[sc_name] = amt
-                elif op_type == 'Distribution':
-                    realized_dists.setdefault(dt, {})[sc_name] = amt
-        return realized_calls, realized_dists
-    
-    def _fetch_realized_lookups(self):
-        q = """
-            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
-            FROM lps_operation_lp_allocations a
-            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
-            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
-            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY t.name, d.due_date, sc.share_class_name;
-        """
-        realized_calls = {}
-        realized_dists = {}
-        with connection.cursor() as c:
-            c.execute(q, [self.fund_id])
-            for op_type, due_date, sc_name, amount in c.fetchall():
-                dt = str(due_date)
-                amt = float(amount) if amount else 0.0
-                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
-                    realized_calls.setdefault(dt, {})[sc_name] = amt
-                elif op_type == 'Distribution':
-                    realized_dists.setdefault(dt, {})[sc_name] = amt
-        return realized_calls, realized_dists
 
     def _fetch_man_fee_rate(self):
         """
@@ -574,40 +550,6 @@ class SensitivityService:
             cursor.execute(query, [self.fund_id, self.scenario_id])
             row = cursor.fetchone()
         return float(row[0]) / 100.0 if row else 0.02 # Default to 2%
-
-    def _fetch_waterfall_config(self):
-        config = {}
-        steps = FundWaterfallSteps.objects.filter(fund_id=self.fund_id)\
-            .select_related('step_definition').order_by('step_definition__step_number')
-
-        for step in steps:
-            s_num = step.step_definition.step_number
-            s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
-            
-            d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
-                .select_related('share_class')
-            d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
-
-            envs = []
-            env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
-            for e in env_qs:
-                e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
-                e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
-                envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
-
-            classes = list(d_rules.keys())
-            for e in envs:
-                for c in e['rules']:
-                    if c not in classes: classes.append(c)
-
-            config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
-        return config
-    
-    def _fetch_portfolio_total_cost(self):
-        result = ScenarioPortfolioProjection.objects.filter(fund_id=self.fund_id, scenario_id=self.scenario_id)\
-            .aggregate(total=Sum('cost'))
-        return float(result['total'] or 0)
-
 
     def _fetch_total_commitment(self):
         query = """
@@ -711,28 +653,7 @@ class SensitivityService:
             for r in qs.values('summary_id', 'date', 'flows', 'source_type', 'source_id')
         ]
     
-    def _fetch_static_capital_calls(self):
-        qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
-            fund_id=self.fund_id,
-            scenario_id=self.scenario_id
-        ).exclude(
-            source_type='projected_placeholder', 
-            is_user_inserted=False
-        )
 
-        return [
-            {
-                'summary_id': r['summary_id'],
-                'date': r['date'],
-                'flows': float(r['flows']),
-                'investment': float(r['investment']),
-                'management_fees': float(r['management_fees']), # ADDED
-                'dd_fees': float(r['dd_fees']),                 # ADDED
-                'type': 'capital_call',
-                'source_type': r['source_type'],
-            }
-            for r in qs.values('summary_id', 'date', 'flows', 'investment', 'management_fees', 'dd_fees', 'source_type')
-        ]
     
     def _fetch_base_dd_fee(self):
         try:
@@ -843,32 +764,6 @@ class SensitivityService:
                 op['operation_name'] = f"Call ({op['source_type']})"
                 
         return full_ledger
-    
-    def _calculate_kpis(self, waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
-        def alloc_direct(amount, step_cfg):
-            d_rules = step_cfg.get('direct_rules', {})
-            valid = [c for c in d_rules if c in ratios]
-            denom = sum(ratios[c] for c in valid)
-            return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
-
-        def alloc_envelopes(amount, step_cfg):
-            result = {}
-            for env in step_cfg.get('envelopes', []):
-                env_amt = amount * env['alloc']
-                valid = [c for c in env['rules'] if c in ratios]
-                denom = sum(ratios[c] for c in valid)
-                result[env['num']] = {
-                    'amount': env_amt,
-                    'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
-                }
-            return result
-
-        return {
-            'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
-            'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
-            'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
-            'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
-        }
     
     def _evaluate_ledger_irrs(self, full_ledger):
         hurdle_rate = self.waterfall_config.get(2, {}).get('rate', 0.08)
@@ -992,8 +887,7 @@ class SensitivityService:
         sp_rem = max(0, cu_rem - cu_ded)
         sp_ded = sp_rem
 
-        # Requires missing calculate_kpis definition
-        kpis = self._calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
+        kpis = calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
 
         results = {}
         dates_list = df['date'].dt.to_pydatetime().tolist()
@@ -1099,12 +993,12 @@ class TargetModeService:
         print(f"\n--- [TARGET MODE DEBUG START] Fund: {fund_id} | Scenario: {scenario_id} ---")
 
         # 1. Prefetch config
-        self.waterfall_config = self._fetch_waterfall_config()
-        self.ratios, self.share_class_names = self._fetch_commitments_and_ratios()
-        self.realized_calls, self.realized_dists = self._fetch_realized_lookups()
+        self.waterfall_config = fetch_waterfall_config(fund_id)
+        self.ratios, self.share_class_names = fetch_commitments_and_ratios(fund_id, scenario_id)
+        self.realized_calls, self.realized_dists = fetch_realized_lookups(fund_id)
         
         # 2. Fetch ledger
-        self.static_capital_calls = self._fetch_static_capital_calls()
+        self.static_capital_calls = fetch_static_capital_calls(fund_id, scenario_id)
         self.static_distributions = self._fetch_static_distributions()
         
         # 3. Fetch costs
@@ -1358,7 +1252,7 @@ class TargetModeService:
         sp_rem = max(0, cu_rem - cu_ded)
         sp_ded = sp_rem
 
-        kpis = self._calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
+        kpis = calculate_kpis(self.waterfall_config, self.ratios, nom_rem, nom_ded, hur_rem, hur_ded, cu_rem, cu_ded, sp_rem, sp_ded)
 
         results = {}
         dates_list = df['date'].dt.to_pydatetime().tolist()
@@ -1421,146 +1315,3 @@ class TargetModeService:
             }
             for r in qs.values('summary_id', 'date', 'flows', 'source_type', 'source_id')
         ]
-
-    def _fetch_static_capital_calls(self):
-        # Exactly the same as your SensitivityService
-        qs = ScenarioFundflowsCapitalcallSummary.objects.filter(
-            fund_id=self.fund_id,
-            scenario_id=self.scenario_id
-        ).exclude(source_type='projected_placeholder', is_user_inserted=False)
-
-        return [
-            {
-                'summary_id': r['summary_id'],
-                'date': r['date'],
-                'flows': float(r['flows']),
-                'investment': float(r['investment']),
-                'management_fees': float(r['management_fees']), 
-                'dd_fees': float(r['dd_fees']),                 
-                'type': 'capital_call',
-                'source_type': r['source_type'],
-            }
-            for r in qs.values('summary_id', 'date', 'flows', 'investment', 'management_fees', 'dd_fees', 'source_type')
-        ]
-    
-    def _fetch_commitments_and_ratios(self):
-        query = """
-            SELECT sc.share_class_name, c.total_commitment
-            FROM scenario_lps_sc_man_fee_tranches_config c
-            JOIN share_class sc ON c.share_class_id = sc.share_class_id
-            WHERE c.fund_id = %s AND c.scenario_id = %s
-            ORDER BY c.share_class_id;
-        """
-        ratios = {}
-        share_class_names = []
-        with connection.cursor() as cursor:
-            cursor.execute(query, [self.fund_id, self.scenario_id])
-            rows = cursor.fetchall()
-
-        total = sum(float(r[1]) for r in rows)
-        for name, amount in rows:
-            amount = float(amount)
-            ratio = amount / total if total > 0 else 0.0
-            ratios[name] = ratio
-            share_class_names.append(name)
-        return ratios, share_class_names
-
-    def fetch_realized_lookups(self):
-        q = """
-            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
-            FROM lps_operation_lp_allocations a
-            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
-            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
-            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY t.name, d.due_date, sc.share_class_name;
-        """
-        realized_calls = {}
-        realized_dists = {}
-        with connection.cursor() as c:
-            c.execute(q, [self.fund_id])
-            for op_type, due_date, sc_name, amount in c.fetchall():
-                dt = str(due_date)
-                amt = float(amount) if amount else 0.0
-                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
-                    realized_calls.setdefault(dt, {})[sc_name] = amt
-                elif op_type == 'Distribution':
-                    realized_dists.setdefault(dt, {})[sc_name] = amt
-        return realized_calls, realized_dists
-    
-    def _fetch_realized_lookups(self):
-        q = """
-            SELECT t.name, d.due_date, sc.share_class_name, SUM(a.capital_call)
-            FROM lps_operation_lp_allocations a
-            JOIN lps_operation_details d ON a.lps_operation_details_id = d.lps_operation_details_id
-            JOIN lps_operation_type t    ON d.operation_type_id = t.operation_type_id
-            JOIN share_class sc          ON a.share_class_id = sc.share_class_id
-            WHERE d.fund_id = %s
-            GROUP BY t.name, d.due_date, sc.share_class_name;
-        """
-        realized_calls = {}
-        realized_dists = {}
-        with connection.cursor() as c:
-            c.execute(q, [self.fund_id])
-            for op_type, due_date, sc_name, amount in c.fetchall():
-                dt = str(due_date)
-                amt = float(amount) if amount else 0.0
-                if op_type in ('Capital Call', 'Capital Call / Equalization', 'Equalization'):
-                    realized_calls.setdefault(dt, {})[sc_name] = amt
-                elif op_type == 'Distribution':
-                    realized_dists.setdefault(dt, {})[sc_name] = amt
-        return realized_calls, realized_dists
-    
-    def _calculate_kpis(self, waterfall_config, ratios, nr_rem, nr_deduct, hr_rem, hr_deduct, cu_rem, cu_deduct, sp_rem, sp_deduct):
-        def alloc_direct(amount, step_cfg):
-            d_rules = step_cfg.get('direct_rules', {})
-            valid = [c for c in d_rules if c in ratios]
-            denom = sum(ratios[c] for c in valid)
-            return {c: amount * ratios[c] / denom if denom > 0 else 0.0 for c in valid}
-
-        def alloc_envelopes(amount, step_cfg):
-            result = {}
-            for env in step_cfg.get('envelopes', []):
-                env_amt = amount * env['alloc']
-                valid = [c for c in env['rules'] if c in ratios]
-                denom = sum(ratios[c] for c in valid)
-                result[env['num']] = {
-                    'amount': env_amt,
-                    'class_allocations': {c: env_amt * ratios[c] / denom if denom > 0 else 0.0 for c in valid},
-                }
-            return result
-
-        return {
-            'nominal_repayment': {'remaining': nr_rem, 'to_deduct': nr_deduct, 'class_allocations': alloc_direct(nr_deduct, waterfall_config.get(1, {}))},
-            'hurdle': {'remaining': hr_rem, 'to_deduct': hr_deduct, 'class_allocations': alloc_direct(hr_deduct, waterfall_config.get(2, {}))},
-            'catch_up': {'remaining': cu_rem, 'to_deduct': cu_deduct, 'envelopes': alloc_envelopes(cu_deduct, waterfall_config.get(3, {}))},
-            'special_return': {'remaining': sp_rem, 'to_deduct': sp_deduct, 'envelopes': alloc_envelopes(sp_deduct, waterfall_config.get(4, {}))},
-        }
-    
-    def _fetch_waterfall_config(self):
-        config = {}
-        steps = FundWaterfallSteps.objects.filter(fund_id=self.fund_id)\
-            .select_related('step_definition').order_by('step_definition__step_number')
-
-        for step in steps:
-            s_num = step.step_definition.step_number
-            s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
-            
-            d_rules_qs = FundWaterfallStepRules.objects.filter(fund_waterfall_step=step, is_selected=True)\
-                .select_related('share_class')
-            d_rules = {r.share_class.share_class_name: (float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata') for r in d_rules_qs}
-
-            envs = []
-            env_qs = FundWaterfallEnvelopes.objects.filter(fund_waterfall_steps=step).order_by('envelope_number')
-            for e in env_qs:
-                e_rules_qs = FundWaterfallEnvelopeRules.objects.filter(envelope=e, is_selected=True).select_related('share_class')
-                e_rules = {er.share_class.share_class_name: (float(er.fixed_percentage) if er.fixed_percentage else 'Pro-Rata') for er in e_rules_qs}
-                envs.append({'num': e.envelope_number, 'alloc': float(e.allocation_percentage) / 100.0, 'rules': e_rules})
-
-            classes = list(d_rules.keys())
-            for e in envs:
-                for c in e['rules']:
-                    if c not in classes: classes.append(c)
-
-            config[s_num] = {'name': step.step_name, 'rate': s_rate, 'direct_rules': d_rules, 'envelopes': envs, 'classes': classes}
-        return config

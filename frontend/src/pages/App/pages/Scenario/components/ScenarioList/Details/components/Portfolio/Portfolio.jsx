@@ -182,17 +182,15 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const { investments, fetchInvestments, createFlow, loading: loadInv } = usePortfolio(fundId);
   const { transactionTypes } = usePortfolioTransactionTypes();
   const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
-  const { executeTargetMode, loading: targetLoading } = useTargetMode(fundId, scenarioId);
   const handleToggleLock = (rowId) => {
         setLockedRows(prev => 
             prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
         );
     };
   useEffect(() => {
-    fetchInvestments();
+    fetchInvestments(scenarioId);
     fetchProjections();
   }, [fundId, scenarioId, fetchInvestments, fetchProjections]);
-
   const mergedProjections = useMemo(() => {
     return projections.map(proj => ({
       ...proj,
@@ -214,7 +212,9 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     if (!selectedInvestmentId) return null;
     return [...investedData, ...projectedData].find(inv => inv.id === selectedInvestmentId);
   }, [selectedInvestmentId, investedData, projectedData]);
-
+  console.log("realizedData", realizedData)
+  console.log("investedData", investedData)
+  console.log("projectedData", projectedData)
   /* ===== HANDLERS ===== */
 
   const handleCreationSuccess = () => {
@@ -260,17 +260,6 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
         return allDeals.filter(inv => !lockedRows.includes(inv.id));
     }, [investedData, projectedData, lockedRows]);
 
-  const handleTargetSave = ({ success, error }) => {
-        if (success) {
-            setToast({ type: "success", title: "Target Reached", message: "MOICs have been updated successfully." });
-            // Refresh tables
-            fetchInvestments();
-            fetchProjections();
-            setSimRefreshTrigger(prev => prev + 1);
-        } else {
-            setToast({ type: "error", title: "Target Error", message: error?.message || "Could not reach target with available deals." });
-        }
-    };
   // Drawer Data Prep
   const drawerData = useMemo(() => {
       if (!viewingInvestment) return null;

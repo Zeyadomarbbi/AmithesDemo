@@ -5,7 +5,8 @@ import './TargetSelectionModal.css';
 
 const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fundId, scenarioId, unlockedPortfolios = [] }) => {
     const [activeTarget, setActiveTarget] = useState({ entity: null, metric: null, value: '' });
-    const { executeTargetMode, loading } = useTargetMode(fundId, scenarioId);
+    const { executeTargetMode, loading, error } = useTargetMode(fundId, scenarioId);
+    const [localError, setLocalError] = useState(null);
 
     if (!isOpen) return null;
 
@@ -17,24 +18,48 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
     ];
 
     const handleInputChange = (entity, metricId, value) => {
+        setLocalError(null);
         const sanitizedValue = value.replace(/[^0-9.-]/g, '');
-        setActiveTarget(sanitizedValue === '' ? { entity: null, metric: null, value: '' } : { entity, metric: metricId, value: sanitizedValue });
+        setActiveTarget(
+            sanitizedValue === ''
+                ? { entity: null, metric: null, value: '' }
+                : { entity, metric: metricId, value: sanitizedValue }
+        );
+    };
+
+    const buildTargetType = (entity, metric) => {
+        if (entity === 'Fund') {
+            if (metric === 'irr') return 'fund_irr_net';
+            if (metric === 'tvpi') return 'fund_tvpi';
+            if (metric === 'total_distributed') return 'fund_total_distributed';
+        } else {
+            const entityKey = entity.toLowerCase().replace(/\s+/g, '_');
+            if (metric === 'irr') return `irr_${entityKey}`;
+            if (metric === 'tvpi') return `tvpi_${entityKey}`;
+            if (metric === 'total_distributed') return `total_distributed_${entityKey}`;
+        }
+        return null;
     };
 
     const handleNext = async () => {
+        setLocalError(null);
+
         if (!activeTarget.value || unlockedPortfolios.length === 0) return;
 
-        let targetType = "";
+        const targetType = buildTargetType(activeTarget.entity, activeTarget.metric);
+        if (!targetType) {
+            setLocalError('Could not determine target type. Please reselect.');
+            return;
+        }
+
         let targetValue = parseFloat(activeTarget.value);
-        const entityKey = activeTarget.entity === "Fund" ? "fund" : activeTarget.entity.toLowerCase().replace(/\s+/g, '_');
+        if (isNaN(targetValue)) {
+            setLocalError('Target value must be a valid number.');
+            return;
+        }
 
         if (activeTarget.metric === 'irr') {
-            targetType = activeTarget.entity === "Fund" ? "fund_irr_net" : `irr_${entityKey}`;
             targetValue = targetValue / 100.0;
-        } else if (activeTarget.metric === 'tvpi') {
-            targetType = activeTarget.entity === "Fund" ? "fund_tvpi" : `tvpi_${entityKey}`;
-        } else if (activeTarget.metric === 'total_distributed') {
-            targetType = activeTarget.entity === "Fund" ? "fund_total_distributed" : `total_distributed_${entityKey}`;
         }
 
         try {
@@ -43,14 +68,14 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                 target_kpi_value: targetValue,
                 unlocked_ids: unlockedPortfolios.map(p => p.id)
             });
-            
-            // Pass the calculation results to the next step
-            onNext(result); 
+            onNext(result);
         } catch (err) {
-            console.error(err);
+            // error is already set in the hook — just capture for local display
+            setLocalError(err.message);
         }
     };
 
+    const displayError = localError || error;
     const hasActiveTarget = activeTarget.value !== '';
 
     return (
@@ -59,37 +84,64 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                 <div className="trgt-selection-mode-header">
                     <div>
                         <h2 className="trgt-selection-mode-title">Choose one target</h2>
-                        <p className="trgt-selection-mode-subtitle">Modifying MOIC for <strong>{unlockedPortfolios.length}</strong> unlocked deal(s).</p>
+                        <p className="trgt-selection-mode-subtitle">
+                            Modifying MOIC for <strong>{unlockedPortfolios.length}</strong> unlocked deal(s).
+                        </p>
                     </div>
                     <div className="trgt-selection-mode-close-icon" onClick={onClose}><CloseIcon /></div>
                 </div>
 
                 <div className="trgt-selection-mode-body">
+                    {/* Error Banner */}
+                    {displayError && (
+                        <div className="trgt-selection-mode-error-banner">
+                            <span>⚠ {displayError}</span>
+                            <button 
+                                className="trgt-selection-mode-error-dismiss" 
+                                onClick={() => setLocalError(null)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    )}
+
                     <table className="trgt-selection-mode-table">
                         <thead>
                             <tr>
                                 <th className="trgt-selection-mode-row-header"></th>
-                                {columns.map((col) => <th key={col} className="trgt-selection-mode-col-header">{col}</th>)}
+                                {columns.map((col) => (
+                                    <th key={col} className="trgt-selection-mode-col-header">{col}</th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody>
                             {metrics.map((metric) => (
                                 <tr key={metric.id}>
                                     <td className="trgt-selection-mode-row-label">
-                                        {metric.label} {metric.id === 'total_distributed' && <span className="trgt-selection-mode-currency">(€)</span>}
+                                        {metric.label}
+                                        {metric.id === 'total_distributed' && (
+                                            <span className="trgt-selection-mode-currency"> (€)</span>
+                                        )}
+                                        {metric.id === 'irr' && (
+                                            <span className="trgt-selection-mode-currency"> (%)</span>
+                                        )}
                                     </td>
                                     {columns.map((col) => {
                                         const isActive = activeTarget.entity === col && activeTarget.metric === metric.id;
                                         const isDisabled = hasActiveTarget && !isActive;
                                         return (
                                             <td key={`${col}-${metric.id}`}>
-                                                <input 
-                                                    type="text" placeholder="ex : 100"
+                                                <input
+                                                    type="text"
+                                                    placeholder={metric.id === 'irr' ? 'e.g. 15' : 'e.g. 1.5'}
                                                     value={isActive ? activeTarget.value : ''}
                                                     onChange={(e) => handleInputChange(col, metric.id, e.target.value)}
                                                     disabled={isDisabled || loading}
                                                     className={`trgt-selection-mode-input ${isActive ? 'active-target-input' : ''}`}
-                                                    style={{ opacity: isDisabled ? 0.5 : 1, cursor: isDisabled ? 'not-allowed' : 'text' }}
+                                                    style={{
+                                                        opacity: isDisabled ? 0.5 : 1,
+                                                        cursor: isDisabled ? 'not-allowed' : 'text'
+                                                    }}
                                                 />
                                             </td>
                                         );
@@ -98,15 +150,26 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                             ))}
                         </tbody>
                     </table>
+
                     <div className="trgt-selection-list-display">
-                        <label className="trgt-selection-input-label">Unlocked Deals ({unlockedPortfolios.length})</label>
+                        <label className="trgt-selection-input-label">
+                            Unlocked Deals ({unlockedPortfolios.length})
+                        </label>
                         <div className="trgt-selection-items-container">
                             {unlockedPortfolios.map((portfolio) => (
                                 <div key={portfolio.id} className="trgt-selection-item">
                                     <span className="trgt-selection-item-title">{portfolio.name}</span>
                                     <div className="trgt-selection-item-details">
-                                        <span className="trgt-selection-item-detail-text">Date: {portfolio.first_investment_date ? new Date(portfolio.first_investment_date).toLocaleDateString() : '-'}</span>
-                                        <span className="trgt-selection-item-detail-text">MOIC: {portfolio.input_moic ? `${parseFloat(portfolio.input_moic).toFixed(2)}x` : '-'}</span>
+                                        <span className="trgt-selection-item-detail-text">
+                                            Date: {portfolio.first_investment_date
+                                                ? new Date(portfolio.first_investment_date).toLocaleDateString()
+                                                : '-'}
+                                        </span>
+                                        <span className="trgt-selection-item-detail-text">
+                                            MOIC: {portfolio.input_moic
+                                                ? `${parseFloat(portfolio.input_moic).toFixed(2)}x`
+                                                : '-'}
+                                        </span>
                                     </div>
                                 </div>
                             ))}
@@ -115,8 +178,18 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                 </div>
 
                 <div className="trgt-selection-mode-footer">
-                    <button className="trgt-selection-mode-btn-cancel" onClick={onClose} disabled={loading}>Cancel</button>
-                    <button className="trgt-selection-mode-btn-save" onClick={handleNext} disabled={!activeTarget.value || unlockedPortfolios.length === 0 || loading}>
+                    <button
+                        className="trgt-selection-mode-btn-cancel"
+                        onClick={onClose}
+                        disabled={loading}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="trgt-selection-mode-btn-save"
+                        onClick={handleNext}
+                        disabled={!activeTarget.value || unlockedPortfolios.length === 0 || loading}
+                    >
                         {loading ? 'Calculating...' : 'Next'}
                     </button>
                 </div>
