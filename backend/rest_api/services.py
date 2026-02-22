@@ -3,6 +3,7 @@ from datetime import date
 import warnings
 import math
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
 
 import pandas as pd
 import numpy as np
@@ -21,6 +22,7 @@ from rest_api.models.transactions import (
     ScenarioPortfolioProjection,
     ScenarioDueDiligenceFee, 
     ScenarioFinancialsProjection,
+    PortfolioTransactionFlow
 )
 from rest_api.models.core import ShareClass
 from rest_api.models.reference import FinancialLineItem
@@ -135,7 +137,6 @@ def fetch_realized_lookups(fund_id):
                 realized_dists.setdefault(dt, {})[sc_name] = amt
     return realized_calls, realized_dists
     
-
 def fetch_waterfall_config(fund_id):
     config = {}
     steps = FundWaterfallSteps.objects.filter(fund_id=fund_id)\
@@ -509,7 +510,6 @@ class WaterfallService:
             'cashflows': cashflows_data
         }
     
-
 class SensitivityService:
     
     def __init__(self, fund_id, scenario_id, investment_id):
@@ -1321,81 +1321,124 @@ class SynthesisKPIService:
         self.fund_id = fund_id
         self.scenario_ids = scenario_ids
         
-        # 1. Map string names to DB IDs for frontend blueprint alignment
         self.sc_map = {
             sc.share_class_name: sc.share_class_id 
             for sc in ShareClass.objects.filter(fund_id=fund_id)
         }
         
-        # 2. Pre-fetch and aggregate fee data directly from projections
         self._prefetch_fees()
+        self._prefetch_portfolio_data()
 
     def _prefetch_fees(self):
-        """
-        Exploits the database triggers by fetching the pre-calculated 
-        financial projections in a single query.
-        """
-        # Initialize default values to 0.0
         self.fee_data = {sid: {'mgm': 0.0, 'dd': 0.0} for sid in self.scenario_ids}
-
-        # Find the specific Line Item IDs for this fund using the special_field enum
         line_items = FinancialLineItem.objects.filter(
             fund_id=self.fund_id,
             special_field__in=['MANAGEMENT_FEES', 'DD_FEES']
         ).values('line_item_id', 'special_field')
 
         li_map = {item['line_item_id']: item['special_field'] for item in line_items}
+        if not li_map: return
 
-        if not li_map:
-            return # No line items configured yet
-
-        # Aggregate sums from the synced projections table
         projections = ScenarioFinancialsProjection.objects.filter(
             fund_id=self.fund_id,
             scenario_id__in=self.scenario_ids,
             line_item_id__in=li_map.keys()
         ).values('scenario_id', 'line_item_id').annotate(total_amount=Sum('amount'))
 
-        # Map the results to our fast lookup dictionary
         for p in projections:
             sid = p['scenario_id']
             field_type = li_map[p['line_item_id']]
             total = float(p['total_amount'] or 0.0)
+            if field_type == 'MANAGEMENT_FEES': self.fee_data[sid]['mgm'] += total
+            elif field_type == 'DD_FEES': self.fee_data[sid]['dd'] += total
 
-            if field_type == 'MANAGEMENT_FEES':
-                self.fee_data[sid]['mgm'] += total
-            elif field_type == 'DD_FEES':
-                self.fee_data[sid]['dd'] += total
+    def _prefetch_portfolio_data(self):
+        projections = ScenarioPortfolioProjection.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id__in=self.scenario_ids
+        ).select_related('investment').values(
+            'scenario_id', 'investment__name', 'input_moic', 'input_duration'
+        )
 
+        self.portfolio_totals = {sid: {'moic_sum': 0.0, 'dur_sum': 0.0, 'count': 0} for sid in self.scenario_ids}
+        self.asset_matrix = defaultdict(lambda: {sid: None for sid in self.scenario_ids})
+
+        for p in projections:
+            sid, name = p['scenario_id'], p['investment__name'] or "Unknown"
+            moic, dur = float(p['input_moic'] or 0.0), float(p['input_duration'] or 0.0)
+            self.asset_matrix[name][sid] = {'moic': moic, 'duration': dur}
+            self.portfolio_totals[sid]['moic_sum'] += moic
+            self.portfolio_totals[sid]['dur_sum'] += dur
+            self.portfolio_totals[sid]['count'] += 1
+
+    def _calculate_gross_portfolio_irr(self, scenario_id):
+        flows = PortfolioTransactionFlow.objects.filter(
+            portfolio_investment__fund_id=self.fund_id,
+            scenario_id__in=[None, scenario_id],
+            is_deleted=False
+        ).values(
+            'date',
+            'amount',
+            'transaction_type_id',
+            'transaction_type__transaction_name'
+        )
+
+        dates = []
+        amounts = []
+        for f in flows:
+            date = f['date']
+            t_name = f['transaction_type__transaction_name'] or ""
+            raw_amount = float(f['amount'])
+
+            if "investment" in t_name.lower() or "acquisition" in t_name.lower():
+                amount = -abs(raw_amount)
+            else:
+                amount = abs(raw_amount)
+
+            dates.append(date)
+            amounts.append(amount)
+
+        projections = ScenarioPortfolioProjection.objects.filter(
+            scenario_id=scenario_id
+        ).values('exit_date', 'exit_value')
+
+        for p in projections:
+            if p['exit_date'] and p['exit_value']:
+                dates.append(p['exit_date'])
+                amounts.append(abs(float(p['exit_value'])))
+                print(f"  Projection | Date: {p['exit_date']} | Amount: {abs(float(p['exit_value'])):,.2f}")
+
+        try:
+            result = xirr(amounts, dates)
+            return result
+        except Exception as e:
+            print(f"  XIRR Error: {e}")
+            return None
+        
     def process_single_scenario(self, scenario_id):
         waterfall = WaterfallService(fund_id=self.fund_id, scenario_id=scenario_id)
         sim_data = waterfall.run_simulation()
+        if not sim_data: return {scenario_id: {}}
 
-        if not sim_data:
-            return {scenario_id: {}}
-
-        performance = sim_data.get('simulation_results', {}).get('performance', {})
+        perf = sim_data.get('simulation_results', {}).get('performance', {})
         kpis = sim_data.get('kpis', {})
-        allocations = sim_data.get('simulation_results', {}).get('allocations', {})
+        alloc = sim_data.get('simulation_results', {}).get('allocations', {})
 
         metrics = {
-            "irr_net": performance.get('Fund', {}).get('IRR'),
-            "tvpi_fund": performance.get('Fund', {}).get('TVPI'),
+            "irr_net": perf.get('Fund', {}).get('IRR'),
+            "tvpi_fund": perf.get('Fund', {}).get('TVPI'),
+            "irr_portfolio": self._calculate_gross_portfolio_irr(scenario_id),
             "hurdle": float(kpis.get('hurdle', {}).get('to_deduct', 0.0)),
-            "distributed_total": float(allocations.get('Fund', {}).get('Total', 0.0)),
-            
-            # Inject the pre-fetched fees directly into the metrics dictionary
+            "distributed_total": float(alloc.get('Fund', {}).get('Total', 0.0)),
             "management_fees": self.fee_data[scenario_id]['mgm'],
             "due_diligence_fees": self.fee_data[scenario_id]['dd'],
         }
 
-        # Filter active classes via provided function
         _, active_sc_names = fetch_commitments_and_ratios(self.fund_id, scenario_id)
-
-        for sc_name in active_sc_names:
-            sc_id = self.sc_map.get(sc_name)
+        for name in active_sc_names:
+            sc_id = self.sc_map.get(name)
             if sc_id:
-                sc_perf = performance.get(sc_name, {})
+                sc_perf = perf.get(name, {})
                 metrics[f"irr_share_{sc_id}"] = sc_perf.get('IRR')
                 metrics[f"tvpi_share_{sc_id}"] = sc_perf.get('TVPI')
 
@@ -1403,36 +1446,49 @@ class SynthesisKPIService:
 
     def generate_synthesis_matrix(self):
         scenario_results = {}
-        
         with ThreadPoolExecutor(max_workers=5) as executor:
             results = executor.map(self.process_single_scenario, self.scenario_ids)
-            for res in results:
-                scenario_results.update(res)
+            for res in results: scenario_results.update(res)
 
         formatted_kpis = [
             self._build_kpi_row('irr_net', 'Fund Net IRR', 'pct', scenario_results, 'irr_net'),
+        ]
+
+        for sc_name, sc_id in self.sc_map.items():
+            formatted_kpis.append(self._build_kpi_row(f"irr_share_{sc_id}", f"{sc_name} IRR", 'pct', scenario_results, f"irr_share_{sc_id}"))
+
+        formatted_kpis.extend([
+            self._build_kpi_row('irr_portfolio', 'Portfolio IRR', 'pct', scenario_results, 'irr_portfolio'),
             self._build_kpi_row('tvpi_fund', 'Fund TVPI', 'multiple', scenario_results, 'tvpi_fund'),
+        ])
+
+        for sc_name, sc_id in self.sc_map.items():
+            formatted_kpis.append(self._build_kpi_row(f"tvpi_share_{sc_id}", f"{sc_name} TVPI", 'multiple', scenario_results, f"tvpi_share_{sc_id}"))
+
+        moic_parent, dur_parent = {}, {}
+        moic_subs, dur_subs = [], []
+        for sid in self.scenario_ids:
+            t = self.portfolio_totals[sid]
+            moic_parent[str(sid)] = (t['moic_sum'] / t['count']) if t['count'] > 0 else None
+            dur_parent[str(sid)] = (t['dur_sum'] / t['count']) if t['count'] > 0 else None
+
+        for name, sid_vals in self.asset_matrix.items():
+            moic_subs.append({"name": name, "type": "multiple", "data": {str(sid): (v['moic'] if v else None) for sid, v in sid_vals.items()}})
+            dur_subs.append({"name": name, "type": "years", "data": {str(sid): (v['duration'] if v else None) for sid, v in sid_vals.items()}})
+
+        formatted_kpis.extend([
+            {"id": "moic_portfolio", "name": "Portfolio MOIC", "type": "multiple", "isExpandable": True, "data": moic_parent, "subRows": moic_subs},
+            {"id": "duration_avg", "name": "Average duration", "type": "years", "isExpandable": True, "data": dur_parent, "subRows": dur_subs},
+            self._build_kpi_row('bridge', 'Bridge', 'na', scenario_results, 'irr_net'),
             self._build_kpi_row('hurdle', 'Hurdle', 'number', scenario_results, 'hurdle'),
             self._build_kpi_row('distributed_total', 'Total distributed', 'number', scenario_results, 'distributed_total'),
             self._build_kpi_row('management_fees', 'Management fees', 'number', scenario_results, 'management_fees'),
             self._build_kpi_row('due_diligence_fees', 'Due diligence fees', 'number', scenario_results, 'due_diligence_fees'),
-        ]
-
-        # Iterate global map to ensure all frontend blueprint rows receive a key
-        for sc_name, sc_id in self.sc_map.items():
-            formatted_kpis.append(
-                self._build_kpi_row(f"irr_share_{sc_id}", f"{sc_name} IRR", 'pct', scenario_results, f"irr_share_{sc_id}")
-            )
-            formatted_kpis.append(
-                self._build_kpi_row(f"tvpi_share_{sc_id}", f"{sc_name} TVPI", 'multiple', scenario_results, f"tvpi_share_{sc_id}")
-            )
-
+        ])
         return formatted_kpis
 
     def _build_kpi_row(self, kpi_id, name, kpi_type, scenario_results, data_key):
         return {
-            "id": kpi_id,
-            "name": name,
-            "type": kpi_type,
+            "id": kpi_id, "name": name, "type": kpi_type,
             "data": {str(sid): scenario_results.get(sid, {}).get(data_key) for sid in self.scenario_ids}
         }
