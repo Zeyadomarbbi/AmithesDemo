@@ -19,9 +19,11 @@ from rest_api.models.transactions import (
     FundWaterfallEnvelopes,
     FundWaterfallEnvelopeRules,
     ScenarioPortfolioProjection,
-    ScenarioDueDiligenceFee
+    ScenarioDueDiligenceFee, 
+    ScenarioFinancialsProjection,
 )
 from rest_api.models.core import ShareClass
+from rest_api.models.reference import FinancialLineItem
 
 warnings.filterwarnings('ignore')
 # --- UTILITIES ---
@@ -1319,12 +1321,51 @@ class SynthesisKPIService:
         self.fund_id = fund_id
         self.scenario_ids = scenario_ids
         
-        # Map string names to DB IDs for frontend blueprint alignment
+        # 1. Map string names to DB IDs for frontend blueprint alignment
         self.sc_map = {
             sc.share_class_name: sc.share_class_id 
             for sc in ShareClass.objects.filter(fund_id=fund_id)
         }
         
+        # 2. Pre-fetch and aggregate fee data directly from projections
+        self._prefetch_fees()
+
+    def _prefetch_fees(self):
+        """
+        Exploits the database triggers by fetching the pre-calculated 
+        financial projections in a single query.
+        """
+        # Initialize default values to 0.0
+        self.fee_data = {sid: {'mgm': 0.0, 'dd': 0.0} for sid in self.scenario_ids}
+
+        # Find the specific Line Item IDs for this fund using the special_field enum
+        line_items = FinancialLineItem.objects.filter(
+            fund_id=self.fund_id,
+            special_field__in=['MANAGEMENT_FEES', 'DD_FEES']
+        ).values('line_item_id', 'special_field')
+
+        li_map = {item['line_item_id']: item['special_field'] for item in line_items}
+
+        if not li_map:
+            return # No line items configured yet
+
+        # Aggregate sums from the synced projections table
+        projections = ScenarioFinancialsProjection.objects.filter(
+            fund_id=self.fund_id,
+            scenario_id__in=self.scenario_ids,
+            line_item_id__in=li_map.keys()
+        ).values('scenario_id', 'line_item_id').annotate(total_amount=Sum('amount'))
+
+        # Map the results to our fast lookup dictionary
+        for p in projections:
+            sid = p['scenario_id']
+            field_type = li_map[p['line_item_id']]
+            total = float(p['total_amount'] or 0.0)
+
+            if field_type == 'MANAGEMENT_FEES':
+                self.fee_data[sid]['mgm'] += total
+            elif field_type == 'DD_FEES':
+                self.fee_data[sid]['dd'] += total
 
     def process_single_scenario(self, scenario_id):
         waterfall = WaterfallService(fund_id=self.fund_id, scenario_id=scenario_id)
@@ -1342,6 +1383,10 @@ class SynthesisKPIService:
             "tvpi_fund": performance.get('Fund', {}).get('TVPI'),
             "hurdle": float(kpis.get('hurdle', {}).get('to_deduct', 0.0)),
             "distributed_total": float(allocations.get('Fund', {}).get('Total', 0.0)),
+            
+            # Inject the pre-fetched fees directly into the metrics dictionary
+            "management_fees": self.fee_data[scenario_id]['mgm'],
+            "due_diligence_fees": self.fee_data[scenario_id]['dd'],
         }
 
         # Filter active classes via provided function
@@ -1369,6 +1414,8 @@ class SynthesisKPIService:
             self._build_kpi_row('tvpi_fund', 'Fund TVPI', 'multiple', scenario_results, 'tvpi_fund'),
             self._build_kpi_row('hurdle', 'Hurdle', 'number', scenario_results, 'hurdle'),
             self._build_kpi_row('distributed_total', 'Total distributed', 'number', scenario_results, 'distributed_total'),
+            self._build_kpi_row('management_fees', 'Management fees', 'number', scenario_results, 'management_fees'),
+            self._build_kpi_row('due_diligence_fees', 'Due diligence fees', 'number', scenario_results, 'due_diligence_fees'),
         ]
 
         # Iterate global map to ensure all frontend blueprint rows receive a key
