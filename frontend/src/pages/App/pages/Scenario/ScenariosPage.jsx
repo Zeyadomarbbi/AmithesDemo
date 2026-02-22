@@ -31,7 +31,19 @@ function ScenariosPage() {
     const { toast, showToast, closeToast } = useToast();
     const { state, actions } = useScenarioHandlers(fundId, author, apiRowToScenario, showToast);
     const [conflictPrompt, setConflictPrompt] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
+    const normalizedQuery = searchQuery.toLowerCase();
+
+    const filteredScenarios = state.scenarios.filter(s =>
+        s.title?.toLowerCase().includes(normalizedQuery) ||
+        s.description?.toLowerCase().includes(normalizedQuery)
+    );
+
+    const filteredSyntheses = state.syntheses.filter(s =>
+        s.title?.toLowerCase().includes(normalizedQuery) ||
+        s.description?.toLowerCase().includes(normalizedQuery)
+    );
     return (
         <div className="scenarios-page-container">
             <div className="scenarios-frame-1">
@@ -42,12 +54,13 @@ function ScenariosPage() {
                 onAddClick={() => actions.setIsModalOpen(true)}
                 selectedScenarioCount={state.selectedScenarioIds.length}
                 onCreateSynthesisClick={() => actions.setIsSynthesisModalOpen(true)}
+                onSearch={setSearchQuery}              // ← new
             />
 
             <div className="scenarios-frame-3">
                 <ScenarioList
                     title="List Of Scenario"
-                    scenarios={state.scenarios}
+                    scenarios={filteredScenarios}       // ← filtered
                     selectedIds={state.selectedScenarioIds}
                     onToggleSelect={actions.toggleScenarioSelection}
                     onDelete={(id) => actions.handleDeleteScenario(id, (syntheses) => setConflictPrompt({ scenarioId: id, syntheses }))}
@@ -57,7 +70,7 @@ function ScenariosPage() {
             <div className="scenarios-frame-4">
                 <SynthesisList
                     title="Scenario Synthesis"
-                    syntheses={state.syntheses}
+                    syntheses={filteredSyntheses}       // ← filtered
                     onDelete={actions.handleDeleteSynthesis}
                 />
             </div>
