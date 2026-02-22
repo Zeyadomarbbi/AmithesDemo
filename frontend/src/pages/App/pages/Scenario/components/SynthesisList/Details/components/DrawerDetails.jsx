@@ -5,6 +5,45 @@ import { useNumberFormatter, usePercentageFormatter } from '../../../../../../..
 import useScenarioSynthesisKPIs from './useScenarioSynthesisKPIs';
 import './DrawerDetails.css';
 
+function TableSpinner() {
+    return (
+        <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 10,
+            gap: 12,
+        }}>
+            <style>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+            <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: '2.5px solid #e5e7eb',
+                borderTopColor: '#6b7280',
+                animation: 'spin 0.75s linear infinite',
+            }} />
+            <span style={{
+                fontSize: 12,
+                color: '#9ca3af',
+                letterSpacing: '0.03em',
+                fontWeight: 500,
+            }}>
+                Computing scenarios…
+            </span>
+        </div>
+    );
+}
+
 export default function DrawerDetails({ 
     onClose, onExpand, title, description, scenarios = [], fundId, synthesisId, blueprint = [] 
 }) {
@@ -12,16 +51,14 @@ export default function DrawerDetails({
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
     
-    // Fetch calculation data
     const { kpiData, loading, error } = useScenarioSynthesisKPIs(fundId, synthesisId);
-    console.log("kpiData", kpiData)
-    // Merge fetched data into static blueprint
+
     const populatedRows = useMemo(() => {
         return blueprint.map((bpRow, index) => {
             const fetchedRow = (kpiData || []).find(k => k.id === bpRow.id);
             return {
                 ...bpRow,
-                originalIndex: index, // Optional: useful if you want to sort back to default later
+                originalIndex: index,
                 data: fetchedRow ? fetchedRow.data : {},
                 subRows: fetchedRow ? fetchedRow.subRows : [] 
             };
@@ -29,6 +66,7 @@ export default function DrawerDetails({
     }, [blueprint, kpiData]);
 
     const { sorted: sortedRows, sortKey, sortDir, toggleSort } = useTableSort(populatedRows, null);
+
     const formatValue = (value, type) => {
         if (value === null || value === undefined) return 'n.a';
         switch (type) {
@@ -62,7 +100,6 @@ export default function DrawerDetails({
                             <span className="scenario-synthesis-header-sub-title">{description}</span>
                         </div>
                     </div>
-
                     <div className="scenario-synthesis-header-icon-btn" onClick={onClose}>
                         <CloseIcon />
                     </div>
@@ -70,7 +107,10 @@ export default function DrawerDetails({
                 <div className="scenario-synthesis-header-bottom-pad"></div>
             </div>
 
-            <div className="scenario-synthesis-drawer-table-wrapper">
+            {/* position:relative so the spinner can absolute-fill it */}
+            <div className="scenario-synthesis-drawer-table-wrapper" style={{ position: 'relative' }}>
+                {loading && <TableSpinner />}
+
                 <div className="scenario-synthesis-table-container">
                     <table className="scenario-synthesis-table">
                         <thead className="scenario-synthesis-table-header">
@@ -122,8 +162,7 @@ export default function DrawerDetails({
                                         </td>
                                         {scenarioColumns.map((scenario) => (
                                             <td key={scenario.id} className="scenario-synthesis-kpi-value-cell">
-                                                {/* Use scenario.id here, and handle loading/error states */}
-                                                {error ? "Error" : loading ? "..." : formatValue(kpi.data[scenario.id], kpi.type)}
+                                                {error ? "Error" : formatValue(kpi.data[scenario.id], kpi.type)}
                                             </td>
                                         ))}
                                     </tr>
@@ -137,8 +176,7 @@ export default function DrawerDetails({
                                             </td>
                                             {scenarioColumns.map((scenario) => (
                                                 <td key={scenario.id} className="scenario-synthesis-sub-kpi-value-cell">
-                                                    {/* Use scenario.id here, and handle loading/error states */}
-                                                    {error ? "Error" : loading ? "..." : formatValue(subRow.data[scenario.id], subRow.type ?? kpi.type)}
+                                                    {error ? "Error" : formatValue(subRow.data[scenario.id], subRow.type ?? kpi.type)}
                                                 </td>
                                             ))}
                                         </tr>

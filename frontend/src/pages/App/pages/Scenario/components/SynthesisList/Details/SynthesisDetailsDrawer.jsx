@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import DrawerDetails from './components/DrawerDetails';
+import DrawerLoadingSkeleton from './components/DrawerLoadingSkeleton';
 import useScenarioSynthesis from './utils/useScenarioSynthesis';
 import { useShareClasses } from '../../../../../hooks/useShareClass';
 import './SynthesisDetailsDrawer.css';
@@ -19,7 +20,6 @@ function SynthesisDetailsDrawer() {
     const handleClose = () => navigate(`/funds/${fundId}/scenario-dashboard`);
     const handleToggleExpand = () => setIsExpanded(!isExpanded);
 
-    // Build the structural blueprint
     const kpiBlueprint = useMemo(() => {
         if (!shareClasses) return [];
         
@@ -27,7 +27,6 @@ function SynthesisDetailsDrawer() {
             { id: 'irr_net', name: 'Fund Net IRR', type: 'pct', data: {}, isExpandable: false },
         ];
 
-        // Dynamically inject Share Class IRRs
         shareClasses.forEach(sc => {
             blueprint.push({ id: `irr_share_${sc.share_class_id}`, name: `${sc.share_class_name} IRR`, type: 'pct', data: {}, isExpandable: false });
         });
@@ -37,7 +36,6 @@ function SynthesisDetailsDrawer() {
             { id: 'tvpi_fund', name: 'Fund TVPI', type: 'multiple', data: {}, isExpandable: false }
         );
 
-        // Dynamically inject Share Class TVPIs
         shareClasses.forEach(sc => {
             blueprint.push({ id: `tvpi_share_${sc.share_class_id}`, name: `${sc.share_class_name} TVPI`, type: 'multiple', data: {}, isExpandable: false });
         });
@@ -55,26 +53,19 @@ function SynthesisDetailsDrawer() {
         return blueprint;
     }, [shareClasses]);
 
-    if (synLoading || scLoading) return (
-        <div className="drawer-overlay" onClick={handleClose}>
-            <div className={`drawer-container ${isExpanded ? 'expanded' : ''}`} onClick={(e) => e.stopPropagation()}>
-                <div className="drawer-loading">Loading configuration...</div>
-            </div>
-        </div>
-    );
-
-    if (synError) return (
-        <div className="drawer-overlay" onClick={handleClose}>
-            <div className={`drawer-container ${isExpanded ? 'expanded' : ''}`} onClick={(e) => e.stopPropagation()}>
-                <div className="drawer-error">Failed to load synthesis: {synError}</div>
-            </div>
-        </div>
-    );
+    const isLoading = synLoading || scLoading;
 
     return (
         <div className="drawer-overlay" onClick={handleClose}>
-            <div className={`drawer-container ${isExpanded ? 'expanded' : ''}`} onClick={(e) => e.stopPropagation()}>
-                {synthesisId && !location.pathname.includes('child-tab-name') ? (
+            <div
+                className={`drawer-container ${isExpanded ? 'expanded' : ''}`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {isLoading ? (
+                    <DrawerLoadingSkeleton />
+                ) : synError ? (
+                    <div className="drawer-error">Failed to load synthesis: {synError}</div>
+                ) : synthesisId && !location.pathname.includes('child-tab-name') ? (
                     <DrawerDetails
                         fundId={fundId}
                         synthesisId={synthesisId}
@@ -85,7 +76,7 @@ function SynthesisDetailsDrawer() {
                         description={synthesis?.description || synthesisDescription}
                         synthesisLinks={synthesisLinks}
                         scenarios={synthesis?.scenarios || []}
-                        blueprint={kpiBlueprint} // Pass the generated structure
+                        blueprint={kpiBlueprint}
                     />
                 ) : (
                     <Outlet />
@@ -94,4 +85,5 @@ function SynthesisDetailsDrawer() {
         </div>
     );
 }
+
 export default SynthesisDetailsDrawer;
