@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../components/Sort/TableSort';
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../components/useFormatter';
 import { PlusIcon, MinusIcon } from "../../../Icons.jsx";
@@ -35,7 +35,7 @@ function TableSpinner() {
                 letterSpacing: '0.03em',
                 fontWeight: 500,
             }}>
-                Loading share classes…
+                Loading Capital Account Statement KPIs
             </span>
         </div>
     );
@@ -44,10 +44,11 @@ function TableSpinner() {
 export default function CapitalAccountTable({ columns, data, navDetails, isLoading }) {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdjustedOpen, setIsAdjustedOpen] = useState(false);
+    
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
 
-    const { sorted: sortedData, sortKey, sortDir, toggleSort } = useTableSort(data, null);
+    const { sorted: sortedData, sortKey, toggleSort } = useTableSort(data, null);
 
     const formatValue = (value, suffix) => {
         if (value === null || value === undefined || value === '') return '-';
@@ -167,10 +168,10 @@ export default function CapitalAccountTable({ columns, data, navDetails, isLoadi
                                                             {navDetails.map((r) => (
                                                                 <tr key={r.label}>
                                                                     <td className="lp-cas-nav-td lp-cas-nav-td--label">{r.label}</td>
-                                                                    <td className="lp-cas-nav-td">{r.nominal}</td>
-                                                                    <td className="lp-cas-nav-td">{r.hurdle}</td>
-                                                                    <td className="lp-cas-nav-td">{r.catchup}</td>
-                                                                    <td className="lp-cas-nav-td">{r.special}</td>
+                                                                    <td className="lp-cas-nav-td">{formatValue(r.nominal)}</td>
+                                                                    <td className="lp-cas-nav-td">{formatValue(r.hurdle)}</td>
+                                                                    <td className="lp-cas-nav-td">{formatValue(r.catchup)}</td>
+                                                                    <td className="lp-cas-nav-td">{formatValue(r.special)}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>

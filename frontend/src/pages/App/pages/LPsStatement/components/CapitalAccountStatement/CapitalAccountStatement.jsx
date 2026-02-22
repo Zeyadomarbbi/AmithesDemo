@@ -16,8 +16,8 @@ function buildValues(scKeys, getter) {
 function mapServiceData(d) {
   if (!d?.basic_kpis) return null;
 
-  const k   = d.basic_kpis;
-  const wp  = k.waterfall_payments;
+  const k  = d.basic_kpis;
+  const wp = k.waterfall_payments;
 
   // Use all fund share classes, not just those with commitments
   const scKeys = d.share_classes
@@ -29,6 +29,11 @@ function mapServiceData(d) {
     return sc ? (bysc[sc] ?? null) : (k[metric]?.total ?? null);
   };
 
+  const irrVal = (sc) => {
+    if (!d.irr) return null;
+    return sc ? (d.irr.by_share_class?.[sc] ?? null) : (d.irr.fund_irr ?? null);
+  };
+
   const kpiRows = [
     { kpi: "Commitment",       values: buildValues(scKeys, (sc) => val("commitment",       sc)) },
     { kpi: "Capital called",   values: buildValues(scKeys, (sc) => val("capital_called",   sc)) },
@@ -37,10 +42,11 @@ function mapServiceData(d) {
     { kpi: "NAV",              values: buildValues(scKeys, (sc) => val("nav",              sc)) },
     { kpi: "NAV per share", isExpandable: true,
                                values: buildValues(scKeys, (sc) => val("nav_per_share",    sc)) },
-    { kpi: "TVPI", suffix: "x", values: buildValues(scKeys, (sc) => val("tvpi",           sc)) },
-    { kpi: "RVPI", suffix: "x", values: buildValues(scKeys, (sc) => val("rvpi",           sc)) },
-    { kpi: "DPI",  suffix: "x", values: buildValues(scKeys, (sc) => val("dpi",            sc)) },
-    { kpi: "Number of shares", values: buildValues(scKeys, (sc) => val("shares",          sc)) },
+    { kpi: "IRR", suffix: "%", values: buildValues(scKeys, irrVal) },
+    { kpi: "TVPI", suffix: "x", values: buildValues(scKeys, (sc) => val("tvpi",            sc)) },
+    { kpi: "RVPI", suffix: "x", values: buildValues(scKeys, (sc) => val("rvpi",            sc)) },
+    { kpi: "DPI",  suffix: "x", values: buildValues(scKeys, (sc) => val("dpi",             sc)) },
+    { kpi: "Number of shares", values: buildValues(scKeys, (sc) => val("shares",           sc)) },
     { kpi: "% Called",    suffix: "%", values: buildValues(scKeys, (sc) => val("pct_called",      sc)) },
     { kpi: "% Distributed", suffix: "%", values: buildValues(scKeys, (sc) => val("pct_distributed", sc)) },
   ];
@@ -81,7 +87,8 @@ export default function CapitalAccountStatement() {
 
   const { data: casData, isLoading: casLoading, isError } = useCASKPIs(fundId, selectedTimeframeIds[0]);
   const mapped = useMemo(() => mapServiceData(casData), [casData]);
-  console.log("casData", casData)
+  console.log("casData ", casData)
+  console.log("mapped ", mapped)
   const columns = useMemo(() => {
     const baseColumns = [{ key: "total", label: "Total (€)" }];
     if (!shareClassesData) return baseColumns;

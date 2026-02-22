@@ -31,20 +31,56 @@ from rest_api.models.reference import FinancialLineItem
 
 warnings.filterwarnings('ignore')
 
+def xirr(cashflows, dates, guess=0.1):
+    """Newton-Raphson XIRR. Always returns float or None — never complex."""
+    try:
+        if not cashflows or not dates:
+            return None
+        # Guard: all-negative or all-positive flows have no real IRR
+        has_pos = any(cf > 0 for cf in cashflows)
+        has_neg = any(cf < 0 for cf in cashflows)
+        if not has_pos or not has_neg:
+            return None
+
+        t0 = dates[0]
+        years = [(d - t0).days / 365.0 for d in dates]
+
+        def npv(r):
+            return sum(cf / (1 + r) ** t for cf, t in zip(cashflows, years))
+
+        def dnpv(r):
+            return sum(-t * cf / (1 + r) ** (t + 1) for cf, t in zip(cashflows, years))
+
+        r = float(guess)
+        for _ in range(100):
+            if r <= -1.0:
+                r = -0.9999  # Prevent (1+r) going to zero or negative
+            f_val = npv(r)
+            f_der = dnpv(r)
+            if abs(f_der) < 1e-12:
+                break
+            r_new = r - f_val / f_der
+            if isinstance(r_new, complex):
+                return None  # Newton stepped into complex space
+            if not math.isfinite(r_new):
+                return None
+            if abs(r_new - r) < 1e-8:
+                r = r_new
+                break
+            r = r_new
+
+        if isinstance(r, complex) or not math.isfinite(r) or abs(r) > 1e6:
+            return None
+        return r
+
+    except Exception:
+        return None
+
 class CapitalAccountService:
-    """
-    Computes Capital Account KPIs at Fund and Share Class level.
-
-    Usage:
-        service = CapitalAccountService(fund_id=1, timeframe_id=5)
-        result  = service.compute()
-    """
-
     def __init__(self, fund_id: int, timeframe_id: int):
         self.fund_id      = fund_id
         self.timeframe_id = timeframe_id
 
-    # -------------------------------------------------------------------------
     def compute(self) -> dict:
         waterfall_config = self.fetch_waterfall_config()
         share_classes    = self.fetch_share_classes()
@@ -52,7 +88,12 @@ class CapitalAccountService:
         commitments      = self.fetch_commitments()
         shares           = self.fetch_shares()
         cash_flow_table  = self.fetch_cash_flow_table(waterfall_config)
-        basic_kpis       = self.compute_kpis_basic(commitments, cash_flow_table, pnl_data, waterfall_config, shares)
+        basic_kpis       = self.compute_kpis_basic(commitments, cash_flow_table, pnl_data, waterfall_config, shares, share_classes)
+        irr_data         = self.compute_irr(
+            cash_flow_table,
+            basic_kpis['waterfall_payments'],
+            basic_kpis['distributed']['by_share_class'],
+        )
         return {
             'waterfall_config': waterfall_config,
             'share_classes':    share_classes,
@@ -61,9 +102,9 @@ class CapitalAccountService:
             'shares':           shares,
             'cash_flow_table':  cash_flow_table,
             'basic_kpis':       basic_kpis,
+            'irr':              irr_data,
         }
 
-    # -------------------------------------------------------------------------
     def fetch_waterfall_config(self) -> dict:
         config = {}
         steps  = (
@@ -72,11 +113,9 @@ class CapitalAccountService:
             .select_related('step_definition')
             .order_by('step_definition__step_number')
         )
-
         for step in steps:
             s_num  = step.step_definition.step_number
             s_rate = float(step.step_rate) / 100.0 if step.step_rate else 0.0
-
             d_rules_qs = FundWaterfallStepRules.objects.filter(
                 fund_waterfall_step=step, is_selected=True
             ).select_related('share_class')
@@ -84,7 +123,6 @@ class CapitalAccountService:
             for r in d_rules_qs:
                 pct_val = float(r.fixed_percentage) if r.fixed_percentage else 'Pro-Rata'
                 d_rules[r.share_class.share_class_name] = pct_val
-
             envs   = []
             env_qs = FundWaterfallEnvelopes.objects.filter(
                 fund_waterfall_steps=step
@@ -99,13 +137,11 @@ class CapitalAccountService:
                     for er in e_rules_qs
                 }
                 envs.append({'num': e.envelope_number, 'alloc': e_alloc / 100.0, 'rules': e_rules})
-
             classes = list(d_rules.keys())
             for e in envs:
                 for c in e['rules']:
                     if c not in classes:
                         classes.append(c)
-
             config[s_num] = {
                 'name':         step.step_name,
                 'rate':         s_rate,
@@ -113,10 +149,8 @@ class CapitalAccountService:
                 'envelopes':    envs,
                 'classes':      classes,
             }
-
         return config
 
-    # -------------------------------------------------------------------------
     def fetch_share_classes(self) -> dict:
         q = """
             SELECT share_class_id, share_class_name, nominal_value,
@@ -137,7 +171,6 @@ class CapitalAccountService:
                 }
         return share_classes
 
-    # -------------------------------------------------------------------------
     def fetch_net_pnl(self) -> dict:
         q = """
             SELECT fc.name, SUM(fe.amount * fc.sign_multiplier) AS signed_total
@@ -156,16 +189,13 @@ class CapitalAccountService:
             c.execute(q, [self.fund_id, self.timeframe_id])
             for category, signed_total in c.fetchall():
                 categories[category] = float(signed_total) if signed_total else 0.0
-
         with connection.cursor() as c:
             c.execute("SELECT date FROM timeframe WHERE timeframe_id = %s", [self.timeframe_id])
             row     = c.fetchone()
             tf_date = str(row[0]) if row else None
-
         net_pnl = sum(categories.values())
         return {'date': tf_date, 'categories': categories, 'net_pnl': net_pnl}
 
-    # -------------------------------------------------------------------------
     def fetch_commitments(self) -> dict:
         q = """
             SELECT sc.share_class_name, SUM(c.commitment_amount) AS total_commitment
@@ -183,10 +213,8 @@ class CapitalAccountService:
             c.execute(q, [self.fund_id, self.timeframe_id])
             for sc_name, amount in c.fetchall():
                 by_share_class[sc_name] = float(amount) if amount else 0.0
-
         return {'by_share_class': by_share_class, 'total': sum(by_share_class.values())}
 
-    # -------------------------------------------------------------------------
     def fetch_shares(self) -> dict:
         q = """
             SELECT sc.share_class_name, SUM(al.shares_issued) AS total_shares
@@ -203,10 +231,8 @@ class CapitalAccountService:
             c.execute(q, [self.fund_id, self.timeframe_id])
             for sc_name, total_shares in c.fetchall():
                 by_share_class[sc_name] = float(total_shares) if total_shares else 0.0
-
         return {'by_share_class': by_share_class, 'total': sum(by_share_class.values())}
 
-    # -------------------------------------------------------------------------
     def fetch_cash_flow_table(self, waterfall_config: dict) -> dict:
         q = """
             SELECT
@@ -229,18 +255,15 @@ class CapitalAccountService:
                      ot.name, ot.sign_multiplier, od.total_operation_amount, sc.share_class_name
             ORDER BY od.due_date, od.lps_operation_details_id;
         """
-
         ops             = {}
         share_class_set = []
         op_order        = []
-
         with connection.cursor() as c:
             c.execute(q, [self.fund_id, self.timeframe_id])
             for op_id, due_date, op_name, op_type, sign_mult, total_amount, sc_name, called_amount, commitment_amount in c.fetchall():
                 called = float(called_amount)     if called_amount     else 0.0
                 commit = float(commitment_amount) if commitment_amount else 0.0
                 flows  = float(total_amount) * sign_mult if total_amount else 0.0
-
                 if op_id not in ops:
                     ops[op_id] = {
                         'date': str(due_date), 'op_name': op_name, 'op_type': op_type,
@@ -248,28 +271,22 @@ class CapitalAccountService:
                         'commitment_by_sc': {}, 'called_by_sc': {}, 'interest_by_sc': {},
                     }
                     op_order.append(op_id)
-
                 ops[op_id]['called_by_sc'][sc_name]     = ops[op_id]['called_by_sc'].get(sc_name, 0.0)     + called
                 ops[op_id]['commitment_by_sc'][sc_name] = ops[op_id]['commitment_by_sc'].get(sc_name, 0.0) + commit
                 ops[op_id]['commitment_total']          += commit
                 if sc_name not in share_class_set:
                     share_class_set.append(sc_name)
-
         share_class_set.sort()
-        rows = [ops[op_id] for op_id in op_order]
-
+        rows        = [ops[op_id] for op_id in op_order]
         aggregation = self._build_aggregation(rows)
         self._compute_interest(rows, share_class_set, waterfall_config, aggregation)
-
         return {'share_classes': share_class_set, 'rows': rows, 'aggregation': aggregation}
 
     def _build_aggregation(self, rows: list) -> dict | None:
         if not rows:
             return None
-
         latest_year = max(int(r['date'][:4]) for r in rows)
         agg_date    = f"{latest_year}-12-31"
-
         if any(r['date'] == agg_date for r in rows):
             merged_flows = merged_commit_total = 0.0
             merged_called = {}
@@ -290,8 +307,8 @@ class CapitalAccountService:
                 'called_by_sc': merged_called, 'interest_by_sc': {},
             }
         else:
-            last_row  = rows[-1]
-            agg_flows = sum(r['flows'] for r in rows)
+            last_row   = rows[-1]
+            agg_flows  = sum(r['flows'] for r in rows)
             agg_called = {}
             for r in rows:
                 for sc, v in r['called_by_sc'].items():
@@ -313,7 +330,6 @@ class CapitalAccountService:
         step2            = waterfall_config.get(2, {})
         hurdle_rate      = step2.get('rate', 0.0)
         eligible_classes = {sc for sc, rule in step2.get('direct_rules', {}).items() if rule == 'Pro-Rata'}
-
         if eligible_classes and aggregation:
             agg_date_obj    = datetime.datetime.strptime(aggregation['date'], "%Y-%m-%d").date()
             total_interests = {}
@@ -338,20 +354,73 @@ class CapitalAccountService:
             if aggregation:
                 aggregation['interest_by_sc'] = {}
 
-    # -------------------------------------------------------------------------
+    def compute_irr(
+        self,
+        cash_flow_table:    dict,
+        waterfall_payments: dict,
+        distributed_by_sc:  dict,
+    ) -> dict:
+        rows          = cash_flow_table['rows']
+        aggregation   = cash_flow_table['aggregation']
+        share_classes = cash_flow_table['share_classes']
+
+        if not rows and not aggregation:
+            return {'fund_irr': None, 'by_share_class': {}}
+
+        fund_cfs   = []
+        fund_dates = []
+        sc_cfs     = {sc: [] for sc in share_classes}
+        sc_dates   = {sc: [] for sc in share_classes}
+
+        for row in rows:
+            row_date = datetime.datetime.strptime(row['date'], "%Y-%m-%d").date()
+            flows    = row['flows']
+            if flows == 0.0:
+                continue
+            fund_cfs.append(flows)
+            fund_dates.append(row_date)
+            for sc in share_classes:
+                called = row['called_by_sc'].get(sc, 0.0)
+                if called:
+                    sc_cfs[sc].append(called)
+                    sc_dates[sc].append(row_date)
+
+        if aggregation:
+            agg_date_obj = datetime.datetime.strptime(aggregation['date'], "%Y-%m-%d").date()
+            # Fund flows = sum of all called_by_sc totals
+            agg_flows = sum(aggregation['called_by_sc'].values())
+            fund_cfs.append(agg_flows)
+            fund_dates.append(agg_date_obj)
+            # Per-SC terminal = waterfall total_by_sc minus last distribution allocation
+            total_by_sc = waterfall_payments.get('total_by_sc', {})
+            for sc in share_classes:
+                terminal = total_by_sc.get(sc, 0.0) - distributed_by_sc.get(sc, 0.0)
+                sc_cfs[sc].append(terminal)
+                sc_dates[sc].append(agg_date_obj)
+
+        fund_irr = xirr(fund_cfs, fund_dates) if fund_cfs else None
+        by_sc    = {
+            sc: xirr(sc_cfs[sc], sc_dates[sc]) if sc_cfs[sc] else None
+            for sc in share_classes
+        }
+
+        return {'fund_irr': fund_irr, 'by_share_class': by_sc}
+
     def compute_kpis_basic(
         self,
-        commitments:      dict,
-        cash_flow_table:  dict,
-        pnl_data:         dict,
-        waterfall_config: dict,
-        shares:           dict,
+        commitments:        dict,
+        cash_flow_table:    dict,
+        pnl_data:           dict,
+        waterfall_config:   dict,
+        shares:             dict,
+        share_classes_meta: dict,
     ) -> dict:
-        total_commitment = commitments['total']
-        share_classes    = cash_flow_table['share_classes']
-        commitment_by_sc = commitments['by_share_class'].copy()
+        total_commitment   = commitments['total']
+        sc_names_from_meta = [sc['name'] for sc in share_classes_meta.values()]
+        cf_share_classes   = cash_flow_table['share_classes']
+        share_classes      = list(dict.fromkeys(sc_names_from_meta + cf_share_classes))
+        commitment_by_sc   = commitments['by_share_class'].copy()
 
-        # Capital Called
         capital_called_total = sum(
             abs(row['flows']) for row in cash_flow_table['rows']
             if row['op_type'] in ('Capital Call', 'Capital Call / Equalization', 'Equalization')
@@ -361,14 +430,12 @@ class CapitalAccountService:
             for sc in share_classes
         } if total_commitment else {sc: 0.0 for sc in share_classes}
 
-        # Undrawn
         undrawn_total = total_commitment - capital_called_total
         undrawn_by_sc = {
             sc: commitment_by_sc.get(sc, 0.0) - capital_called_by_sc.get(sc, 0.0)
             for sc in share_classes
         }
 
-        # Distributed
         distributed_total = sum(
             abs(row['flows']) for row in cash_flow_table['rows']
             if row['op_type'] == 'Distribution'
@@ -378,7 +445,6 @@ class CapitalAccountService:
             for sc in share_classes
         } if total_commitment else {sc: 0.0 for sc in share_classes}
 
-        # NAV (fund level)
         nav_total = capital_called_total - distributed_total + pnl_data['net_pnl']
 
         waterfall_payments = self._construct_waterfall_payments(
@@ -429,16 +495,15 @@ class CapitalAccountService:
 
     def _construct_waterfall_payments(
         self,
-        nav_total:           float,
-        distributed_total:   float,
+        nav_total:            float,
+        distributed_total:    float,
         capital_called_total: float,
-        commitment_by_sc:    dict,
-        total_commitment:    float,
-        share_classes:       list,
-        waterfall_config:    dict,
-        cash_flow_table:     dict,
+        commitment_by_sc:     dict,
+        total_commitment:     float,
+        share_classes:        list,
+        waterfall_config:     dict,
+        cash_flow_table:      dict,
     ) -> dict:
-        # Step 1: Nominal Repayment
         nr_rules     = waterfall_config.get(1, {}).get('direct_rules', {})
         nr_remaining = nav_total + distributed_total
         nr_to_deduct = min(nr_remaining, capital_called_total)
@@ -448,7 +513,6 @@ class CapitalAccountService:
             for sc in share_classes
         }
 
-        # Step 2: Hurdle
         step2        = waterfall_config.get(2, {})
         h_rules      = step2.get('direct_rules', {})
         hurdle_rate  = step2.get('rate', 0.0)
@@ -463,7 +527,6 @@ class CapitalAccountService:
             for sc in share_classes
         }
 
-        # Step 3: Catch-up
         step3        = waterfall_config.get(3, {})
         catchup_rate = step3.get('rate', 0.0)
         cu_remaining = max(0.0, h_remaining - h_to_deduct)
@@ -487,7 +550,6 @@ class CapitalAccountService:
                 cu_by_sc[sc] += env_by_sc[sc]
             cu_envelopes.append({'num': env['num'], 'remaining': env_to_deduct, 'to_deduct': env_to_deduct, 'by_sc': env_by_sc})
 
-        # Step 4: Special Return
         sr_remaining = max(0.0, cu_remaining - cu_to_deduct)
         sr_to_deduct = sr_remaining
         sr_by_sc     = {sc: 0.0 for sc in share_classes}
@@ -499,7 +561,7 @@ class CapitalAccountService:
             env_to_deduct = sr_to_deduct * env['alloc']
             env_by_sc     = {}
             for sc in share_classes:
-                rule         = env['rules'].get(sc)
+                rule          = env['rules'].get(sc)
                 env_by_sc[sc] = env_to_deduct if rule == 'Pro-Rata' else 0.0
                 sr_by_sc[sc] += env_by_sc[sc]
             sr_envelopes.append({'num': env['num'], 'remaining': env_to_deduct, 'to_deduct': env_to_deduct, 'by_sc': env_by_sc})
@@ -516,6 +578,7 @@ class CapitalAccountService:
             'special_return':    {'remaining': sr_remaining, 'to_deduct': sr_to_deduct, 'by_sc': sr_by_sc, 'envelopes': sr_envelopes},
             'total_by_sc':       total_by_sc,
         }
+
 
 
 def fetch_commitments_and_ratios(fund_id, scenario_id):
@@ -540,50 +603,7 @@ def fetch_commitments_and_ratios(fund_id, scenario_id):
         share_class_names.append(name)
     return ratios, share_class_names
 
-def xirr(cashflows, dates, guess=0.1):
-    """Newton-Raphson XIRR. Always returns float or None — never complex."""
-    try:
-        if not cashflows or not dates:
-            return None
-        # Guard: all-negative or all-positive flows have no real IRR
-        has_pos = any(cf > 0 for cf in cashflows)
-        has_neg = any(cf < 0 for cf in cashflows)
-        if not has_pos or not has_neg:
-            return None
 
-        t0 = dates[0]
-        years = [(d - t0).days / 365.0 for d in dates]
-
-        def npv(r):
-            return sum(cf / (1 + r) ** t for cf, t in zip(cashflows, years))
-
-        def dnpv(r):
-            return sum(-t * cf / (1 + r) ** (t + 1) for cf, t in zip(cashflows, years))
-
-        r = float(guess)
-        for _ in range(100):
-            if r <= -1.0:
-                r = -0.9999  # Prevent (1+r) going to zero or negative
-            f_val = npv(r)
-            f_der = dnpv(r)
-            if abs(f_der) < 1e-12:
-                break
-            r_new = r - f_val / f_der
-            if isinstance(r_new, complex):
-                return None  # Newton stepped into complex space
-            if not math.isfinite(r_new):
-                return None
-            if abs(r_new - r) < 1e-8:
-                r = r_new
-                break
-            r = r_new
-
-        if isinstance(r, complex) or not math.isfinite(r) or abs(r) > 1e6:
-            return None
-        return r
-
-    except Exception:
-        return None
 
 def step_class_weight(kpis, kpi_key, sc, envelope_based=False):
     entry = kpis[kpi_key]

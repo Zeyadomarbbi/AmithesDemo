@@ -1,87 +1,60 @@
-// KPIsTable.jsx
-import React from "react";
-// 1. Import the utility components/hooks
-import { useTableSort, TableSort } from "./TableSort";
+﻿import React, { useMemo } from "react";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../components/useFormatter';
 import "./KPIsTable.css";
 
-const FUNDS = [
-  {
-    id: 1,
-    name: "Asterium Fund I",
-    year: 2024,
-    strategy: "Europe - SMEs",
-    commitment: 120000000,
-    cost: 20000000,
-    deals: 2,
-    grossIrr: 17.28,
-    netIrr: 12.57,
-    dpi: 0.0,
-    rvpi: 1.25,
-    tvpi: 1.25,
-  },
-  {
-    id: 2,
-    name: "Huron Fund II",
-    year: 2023,
-    strategy: "Asia - LC",
-    commitment: 350000000,
-    cost: 250000000,
-    deals: 7,
-    grossIrr: 12.25,
-    netIrr: 7.98,
-    dpi: 0.11,
-    rvpi: 1.19,
-    tvpi: 1.3,
-  },
-  {
-    id: 3,
-    name: "Pioneer Fund I",
-    year: 2022,
-    strategy: "MENA - SMEs",
-    commitment: 200000000,
-    cost: 150000000,
-    deals: 8,
-    grossIrr: 25.93,
-    netIrr: 17.5,
-    dpi: 0.75,
-    rvpi: 0.85,
-    tvpi: 1.6,
-  },
-  {
-    id: 4,
-    name: "Lynx Fund III",
-    year: 2021,
-    strategy: "Africa - LC",
-    commitment: 250000000,
-    cost: 210000000,
-    deals: 11,
-    grossIrr: 19.67,
-    netIrr: 14.29,
-    dpi: 1.05,
-    rvpi: 0.85,
-    tvpi: 1.9,
-  },
-];
-
 const COLS = [
-  { key: "name",       label: "Fund",           align: "left",   type: "string" },
-  { key: "strategy",   label: "Strategy",       align: "right",  type: "string" },
-  { key: "commitment", label: "Commitment (€)", align: "right",  type: "number" },
-  { key: "cost",       label: "Cost (€)",       align: "right",  type: "number" },
-  { key: "deals",      label: "Nb of deals",    align: "right",  type: "number" },
-  { key: "grossIrr",   label: "Gross IRR",      align: "center", type: "number" },
-  { key: "netIrr",     label: "Net IRR",        align: "center", type: "number" },
-  { key: "dpi",        label: "DPI",            align: "right",  type: "number" },
-  { key: "rvpi",       label: "RVPI",           align: "right",  type: "number" },
-  { key: "tvpi",       label: "TVPI",           align: "right",  type: "number" },
+  { key: "name",       label: "Fund",           center: false },
+  { key: "strategy",   label: "Strategy",       center: true  },
+  { key: "commitment", label: "Commitment (€)", center: true  },
+  { key: "cost",       label: "Cost (€)",       center: true  },
+  { key: "deals",      label: "Nb of deals",    center: true  },
+  { key: "grossIrr",   label: "Gross IRR",      center: true  },
+  { key: "netIrr",     label: "Net IRR",        center: true  },
+  { key: "dpi",        label: "DPI",            center: true  },
+  { key: "rvpi",       label: "RVPI",           center: true  },
+  { key: "tvpi",       label: "TVPI",           center: true  },
 ];
 
-const fmtNum = (x) => new Intl.NumberFormat("fr-FR").format(x);
+const yearFromDate = (rawDate) => {
+  if (!rawDate) return "-";
+  const date = new Date(rawDate);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.getFullYear();
+};
 
-export default function KPIsTable() {
-  // 2. Use the custom hook to handle state and sorting
-  /** Call calculatefundportfolioKPI.js */
-  const { sorted, sortKey, sortDir, toggleSort } = useTableSort(FUNDS);
+const fmtRatio = (x) =>
+  Number.isFinite(Number(x)) ? `${Number(x).toFixed(2)}x` : "-";
+
+export default function KPIsTable({ funds = [], onFundClick, fundKpisByFundId = {} }) {
+  const formatNumber  = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+
+  const tableRows = useMemo(
+    () =>
+      funds.map((fund) => {
+        const fundKpi = fundKpisByFundId[String(fund.id)] || {};
+        return {
+          id:         fund.id,
+          name:       fund.name || "-",
+          year:       yearFromDate(fund.formationDate),
+          strategy:   fund.strategy || "-",
+          commitment: fund.commitment,
+          cost:       fundKpi.totalCost,
+          deals:      fundKpi.deals,
+          grossIrr:   Number.isFinite(Number(fundKpi.grossIrr))
+                        ? Number(fundKpi.grossIrr) * 100
+                        : null,
+          netIrr:     fund.netIrr,
+          dpi:        fund.dpi,
+          rvpi:       fund.rvpi,
+          tvpi:       fund.tvpi,
+        };
+      }),
+    [funds, fundKpisByFundId]
+  );
+
+  const { sorted, sortKey, toggleSort } = useTableSort(tableRows);
 
   return (
     <div className="table-wrapper">
@@ -89,14 +62,16 @@ export default function KPIsTable() {
         <thead>
           <tr>
             {COLS.map((c) => (
-              // 3. Use the TableSort component for headers
-              <TableSort
-                key={c.key}
-                column={c}
-                currentSortKey={sortKey}
-                currentSortDir={sortDir}
-                toggleSort={toggleSort}
-              />
+              <th key={c.key} className={c.center ? "td-center" : "td-left"}>
+                <SortableHeaderRenderer
+                  label={c.label}
+                  columnKey={c.key}
+                  currentSortKey={sortKey}
+                  toggleSort={toggleSort}
+                  center={c.center}
+                  showCurrency={false}
+                />
+              </th>
             ))}
           </tr>
         </thead>
@@ -105,21 +80,42 @@ export default function KPIsTable() {
           {sorted.map((f, i) => (
             <tr key={f.id} className={i % 2 === 0 ? "striped" : ""}>
               <td className="td-left">
-                <div className="fund-name">{f.name}</div>
+                <div
+                  className="fund-name"
+                  onClick={() => onFundClick?.(f.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onFundClick?.(f.id);
+                    }
+                  }}
+                >
+                  {f.name}
+                </div>
                 <div className="fund-year">{f.year}</div>
               </td>
 
-              <td className="td-right">{f.strategy}</td>
-              <td className="td-right">{fmtNum(f.commitment)}</td>
-              <td className="td-right">{fmtNum(f.cost)}</td>
-              <td className="td-right">{f.deals}</td>
-              <td className="td-center">{f.grossIrr.toFixed(2)}%</td>
-              <td className="td-center">{f.netIrr.toFixed(2)}%</td>
-              <td className="td-right">{f.dpi.toFixed(2)}x</td>
-              <td className="td-right">{f.rvpi.toFixed(2)}x</td>
-              <td className="td-right">{f.tvpi.toFixed(2)}x</td>
+              <td className="td-center">{f.strategy}</td>
+              <td className="td-center">{Number.isFinite(Number(f.commitment)) ? formatNumber(f.commitment) : "-"}</td>
+              <td className="td-center">{Number.isFinite(Number(f.cost))       ? formatNumber(f.cost)       : "-"}</td>
+              <td className="td-center">{Number.isFinite(Number(f.deals))      ? formatNumber(f.deals)      : "-"}</td>
+              <td className="td-center">{Number.isFinite(Number(f.grossIrr))   ? formatPercent(f.grossIrr)  : "-"}</td>
+              <td className="td-center">{Number.isFinite(Number(f.netIrr))     ? formatPercent(f.netIrr)    : "-"}</td>
+              <td className="td-center">{fmtRatio(f.dpi)}</td>
+              <td className="td-center">{fmtRatio(f.rvpi)}</td>
+              <td className="td-center">{fmtRatio(f.tvpi)}</td>
             </tr>
           ))}
+
+          {sorted.length === 0 && (
+            <tr>
+              <td className="td-left" colSpan={COLS.length}>
+                No funds found.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

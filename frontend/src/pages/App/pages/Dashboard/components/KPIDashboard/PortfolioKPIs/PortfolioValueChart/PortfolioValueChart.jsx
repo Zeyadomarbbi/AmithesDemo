@@ -1,6 +1,6 @@
 import React from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, Tooltip
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, Tooltip 
 } from 'recharts';
 import './PortfolioValueChart.css';
 
@@ -20,14 +20,24 @@ const CustomXAxisTick = ({ x, y, payload }) => {
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
-    const value = payload[0].value;
+    const value = Number(payload[0].value || 0) / 1000000;
     return (
       <div className="pvc-custom-tooltip">
-        <p className="pvc-tooltip-value">{`${value.toLocaleString('fr-FR')},00 m€`}</p>
+        <p className="pvc-tooltip-value">
+          {`${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m€`}
+        </p>
       </div>
     );
   }
   return null;
+};
+
+const formatMillions = (value) => {
+  const millions = Number(value || 0) / 1000000;
+  return `${millions.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })} m`;
 };
 
 function PortfolioValueChart({ data = [] }) {
@@ -48,8 +58,8 @@ function PortfolioValueChart({ data = [] }) {
   }
 
   const maxValue = Math.max(...chartData.map(d => d.value || 0));
-  const digitCount = maxValue > 0 ? Math.floor(Math.log10(Math.abs(maxValue))) + 1 : 1;
-  const yAxisWidth = Math.max(50, digitCount * 12 + 30);
+  const maxTickLabel = formatMillions(maxValue);
+  const yAxisWidth = Math.max(34, maxTickLabel.length * 7 + 8);
 
   return (
     <div className="pvc-card-chart-portfolio-value">
@@ -92,7 +102,7 @@ function PortfolioValueChart({ data = [] }) {
               axisLine={false}
               tickLine={false}
               tickClassName="pvc-chart-yaxis-tick"
-              tickFormatter={(value) => `${value.toLocaleString('fr-FR')},00`}
+              tickFormatter={formatMillions}
               width={yAxisWidth}
             />
 

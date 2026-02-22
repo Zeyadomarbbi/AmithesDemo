@@ -35,6 +35,10 @@ export default function FundCard({ fund, fundKpi, clickable = false, onClick }) 
     }
   };
   const formatKpi = (val) => (val !== undefined && val !== null && val !== "" ? val : "-");
+  const formatPercent = (val) =>
+    Number.isFinite(Number(val)) ? `${Number(val).toFixed(2)}%` : "-";
+  const formatDeals = (val) =>
+    Number.isFinite(Number(val)) ? String(Math.trunc(Number(val))) : "-";
 return (
     <div
       className={`fund-card ${clickable ? "clickable" : ""}`}
@@ -79,7 +83,7 @@ return (
       <div className="fund-stats">
         <div className="stat-box">
           <div className="stat-label">Gross IRR</div>
-          <div className="stat-value">{formatKpi(fundKpi?.grossIrr)}</div>
+          <div className="stat-value">{formatPercent(fundKpi?.grossIrr * 100)}</div>
         </div>
 
         <div className="stat-box">
@@ -89,7 +93,7 @@ return (
 
         <div className="stat-box">
           <div className="stat-label"># Deals</div>
-          <div className="stat-value">{formatKpi(fundKpi?.deals)}</div>
+          <div className="stat-value">{formatDeals(fundKpi?.deals)}</div>
         </div>
       </div>
     </div>

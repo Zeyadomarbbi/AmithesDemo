@@ -18,6 +18,28 @@ const CustomXAxisTick = ({ x, y, payload }) => {
   );
 };
 
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const value = Number(payload[0].value || 0);
+    return (
+      <div className="fvc-custom-tooltip">
+        <p className="fvc-tooltip-value">
+          {`${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m€`}
+        </p> 
+      </div>
+    );
+  }
+  return null;
+};
+
+const formatMillions = (value) => {
+  const millions = Number(value || 0);
+  return `${millions.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })} m`;
+};
+
 function FundValueChart({ data = [] }) { 
   const chartData = Array.isArray(data) ? data : [];
 
@@ -36,20 +58,8 @@ function FundValueChart({ data = [] }) {
   }
 
   const maxValue = Math.max(...chartData.map(d => d.value || 0));
-  const digitCount = maxValue > 0 ? Math.floor(Math.log10(Math.abs(maxValue))) + 1 : 1;
-  const yAxisWidth = Math.max(50, digitCount * 12 + 30);
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const value = payload[0].value;
-      return (
-        <div className="fvc-custom-tooltip">
-          <p className="fvc-tooltip-value">{`${value.toLocaleString('fr-FR')},00 m€`}</p> 
-        </div>
-      );
-    }
-    return null;
-  };
+  const maxTickLabel = formatMillions(maxValue);
+  const yAxisWidth = Math.max(34, maxTickLabel.length * 7 + 8);
 
   return (
     <div className="fvc-card-chart-fund-value">
@@ -66,6 +76,7 @@ function FundValueChart({ data = [] }) {
             barSize={54} 
           >
             <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(204, 205, 206, 0.5)" />
+            
             <XAxis 
               dataKey="name" 
               axisLine={false} 
@@ -73,17 +84,20 @@ function FundValueChart({ data = [] }) {
               tick={<CustomXAxisTick />} 
               interval={0}
             />
+            
             <YAxis 
               axisLine={false} 
               tickLine={false} 
               tickClassName="fvc-chart-yaxis-tick"
-              tickFormatter={(value) => `${value.toLocaleString('fr-FR')},00`}
+              tickFormatter={formatMillions}
               width={yAxisWidth}
             />
+            
             <Tooltip 
               content={<CustomTooltip />} 
               cursor={{ fill: 'transparent' }}
             /> 
+            
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               <Cell fill="#375A89" />
               <Cell fill="#375A89" />

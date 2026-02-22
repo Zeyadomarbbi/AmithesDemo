@@ -4,15 +4,15 @@ import { useFundData } from "../../hooks/Core/FundContext";
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
+import { fetchPortfolioKpisByFundIds } from "./components/PortfolioDataFuncs";
 import Toast from "../../components/Toast/Toast";
-import SearchBar from "../../../../components/SearchBar/SearchBar"
-
+import SearchBar from "../../../../components/SearchBar/SearchBar";
 import { PlusIcon } from "../../../../components/Icons";
 import "./AllFundsPage.css";
 
-// ─── Spinner ────────────────────────────────────────────────────────────────
+// ─── Spinner ─────────────────────────────────────────────────────────────────
 
-function PageSpinner() {
+function PageSpinner({ label = "Loading portfolio data…" }) {
   return (
     <>
       <style>{`
@@ -38,14 +38,14 @@ function PageSpinner() {
           animation: 'allfunds-spin 0.75s linear infinite',
         }} />
         <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500, letterSpacing: '0.02em' }}>
-          Loading portfolio data…
+          {label}
         </span>
       </div>
     </>
   );
 }
 
-// ─── Error state ─────────────────────────────────────────────────────────────
+// ─── Error state ──────────────────────────────────────────────────────────────
 
 function PageError({ message }) {
   return (
@@ -93,10 +93,40 @@ export default function AllFundsPage() {
   const [query, setQuery] = useState("");
   const [isNewFundOpen, setIsNewFundOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [fundKpisByFundId, setFundKpisByFundId] = useState({});
+  const [isKpisLoading, setIsKpisLoading] = useState(false);
 
   useEffect(() => {
     if (setActiveFundId) setActiveFundId(null);
   }, [setActiveFundId]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadPortfolioKpis = async () => {
+      const ids = funds.map((fund) => fund.id).filter(Boolean);
+      if (ids.length === 0) {
+        if (!isCancelled) {
+          setFundKpisByFundId({});
+          setIsKpisLoading(false);
+        }
+        return;
+      }
+
+      if (!isCancelled) setIsKpisLoading(true);
+
+      const nextMap = await fetchPortfolioKpisByFundIds(ids);
+
+      if (!isCancelled) {
+        setFundKpisByFundId(nextMap);
+        setIsKpisLoading(false);
+      }
+    };
+
+    loadPortfolioKpis();
+
+    return () => { isCancelled = true; };
+  }, [funds]);
 
   const normalizedQuery = (query || "").toLowerCase().trim();
   const filteredFunds = useMemo(() => {
@@ -116,9 +146,33 @@ export default function AllFundsPage() {
     }
   };
 
+  // Derive content area state
+  const renderContent = () => {
+    if (isLoading) return <PageSpinner label="Loading portfolio data…" />;
+    if (error) return <PageError message={error} />;
+    if (isKpisLoading) return <PageSpinner label="Calculating KPIs…" />;
+
+    if (activeTab === "funds") {
+      return (
+        <FundList
+          funds={filteredFunds}
+          onCardClick={handleCardClick}
+          fundKpisByFundId={fundKpisByFundId}
+        />
+      );
+    }
+
+    return (
+      <KPIsTable
+        funds={filteredFunds}
+        onFundClick={handleCardClick}
+        fundKpisByFundId={fundKpisByFundId}
+      />
+    );
+  };
+
   return (
     <div className="allfunds-page">
-      {/* Header always visible */}
       <header className="allfunds-header">
         <h1 className="allfunds-title">All funds</h1>
         <div className="allfunds-tabs">
@@ -132,7 +186,6 @@ export default function AllFundsPage() {
         <div className="tabs-underline" />
       </header>
 
-      {/* Toolbar always visible */}
       <div className="allfunds-toolbar">
         <SearchBar
           placeholder="Search by fund name..."
@@ -144,16 +197,7 @@ export default function AllFundsPage() {
         </button>
       </div>
 
-      {/* Content area — swaps between spinner / error / real content */}
-      {isLoading ? (
-        <PageSpinner />
-      ) : error ? (
-        <PageError message={error} />
-      ) : activeTab === "funds" ? (
-        <FundList funds={filteredFunds} onCardClick={handleCardClick} />
-      ) : (
-        <KPIsTable funds={filteredFunds} onFundClick={handleCardClick} />
-      )}
+      {renderContent()}
 
       <NewFundModal
         open={isNewFundOpen}
