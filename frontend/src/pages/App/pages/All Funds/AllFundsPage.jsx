@@ -5,15 +5,88 @@ import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
 import Toast from "../../components/Toast/Toast";
-import { PlusIcon, SearchIcon} from "../../../../components/Icons";
+import SearchBar from "../../../../components/SearchBar/SearchBar"
 
+import { PlusIcon } from "../../../../components/Icons";
 import "./AllFundsPage.css";
 
+// ─── Spinner ────────────────────────────────────────────────────────────────
+
+function PageSpinner() {
+  return (
+    <>
+      <style>{`
+        @keyframes allfunds-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        minHeight: 320,
+      }}>
+        <div style={{
+          width: 34,
+          height: 34,
+          borderRadius: '50%',
+          border: '2.5px solid #e5e7eb',
+          borderTopColor: '#6b7280',
+          animation: 'allfunds-spin 0.75s linear infinite',
+        }} />
+        <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500, letterSpacing: '0.02em' }}>
+          Loading portfolio data…
+        </span>
+      </div>
+    </>
+  );
+}
+
+// ─── Error state ─────────────────────────────────────────────────────────────
+
+function PageError({ message }) {
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      minHeight: 320,
+    }}>
+      <div style={{
+        width: 38,
+        height: 38,
+        borderRadius: '50%',
+        background: '#fef2f2',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        color: '#ef4444',
+      }}>
+        !
+      </div>
+      <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
+        Failed to load funds
+      </span>
+      {message && (
+        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center' }}>
+          {message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function AllFundsPage() {
-  
   const navigate = useNavigate();
-  
-  // Access state and actions from the Context
   const { funds, isLoading, error, initializeFund, setActiveFundId } = useFundData();
 
   const [activeTab, setActiveTab] = useState("funds");
@@ -21,114 +94,62 @@ export default function AllFundsPage() {
   const [isNewFundOpen, setIsNewFundOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
-  /**
-   * Effect: Ensure no fund is globally active when visiting this page.
-   * This clears the active context so the SidePanel hides fund-specific links.
-   */
   useEffect(() => {
-    if (setActiveFundId) {
-      setActiveFundId(null);
-    }
+    if (setActiveFundId) setActiveFundId(null);
   }, [setActiveFundId]);
 
   const normalizedQuery = (query || "").toLowerCase().trim();
-
   const filteredFunds = useMemo(() => {
-    return funds.filter((f) =>
-      (f.name || "").toLowerCase().includes(normalizedQuery)
-    );
+    return funds.filter((f) => (f.name || "").toLowerCase().includes(normalizedQuery));
   }, [funds, normalizedQuery]);
 
-  const handleCardClick = (fundId) => {
-    // Existing funds go to Dashboard
-    // The Guard will only stop them if they never finished the identity save
-    navigate(`/funds/${fundId}/dashboard`);
-  };
+  const handleCardClick = (fundId) => navigate(`/funds/${fundId}/dashboard`);
 
   const handleCreateFund = async (payload) => {
     const result = await initializeFund(payload);
-    
     if (result.success && result.id) {
-      // 1. Close the modal
       setIsNewFundOpen(false);
-      
-      // 2. Redirect to the specific settings tab for the new fund
       navigate(`/funds/${result.id}/settings/fund-identity`);
-      
-      // 3. Optional: show toast on the new page
-      setToast({
-        title: "Fund Initialized",
-        message: "The new fund has been created successfully.",
-      });
+      setToast({ title: "Fund Initialized", message: "The new fund has been created successfully." });
     } else {
-      setToast({
-        title: "Error",
-        message: result.error || "Could not initialize fund.",
-      });
+      setToast({ title: "Error", message: result.error || "Could not initialize fund." });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="allfunds-page allfunds-flex-center">
-        <p>Loading portfolio data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="allfunds-page allfunds-flex-center allfunds-error">
-        <p>Error loading funds: {error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="allfunds-page">
+      {/* Header always visible */}
       <header className="allfunds-header">
         <h1 className="allfunds-title">All funds</h1>
-
         <div className="allfunds-tabs">
-          <span
-            className={`tab-link ${activeTab === "funds" ? "active" : ""}`}
-            onClick={() => setActiveTab("funds")}
-          >
+          <span className={`tab-link ${activeTab === "funds" ? "active" : ""}`} onClick={() => setActiveTab("funds")}>
             Funds list
           </span>
-          <span
-            className={`tab-link ${activeTab === "kpis" ? "active" : ""}`}
-            onClick={() => setActiveTab("kpis")}
-          >
+          <span className={`tab-link ${activeTab === "kpis" ? "active" : ""}`} onClick={() => setActiveTab("kpis")}>
             KPIs
           </span>
         </div>
         <div className="tabs-underline" />
       </header>
 
+      {/* Toolbar always visible */}
       <div className="allfunds-toolbar">
-        <div className="search-box">
-          <span className="search-icon" aria-hidden="true">
-            <SearchIcon />
-          </span>
-          <input
-            className="search-input"
-            placeholder="Search by fund name..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-
-        <button
-          className="new-fund-btn"
-          onClick={() => setIsNewFundOpen(true)}
-        >
+        <SearchBar
+          placeholder="Search by fund name..."
+          onSearch={setQuery}
+        />
+        <button className="new-fund-btn" onClick={() => setIsNewFundOpen(true)}>
           <PlusIcon />
           <span>New fund</span>
         </button>
       </div>
 
-      {activeTab === "funds" ? (
+      {/* Content area — swaps between spinner / error / real content */}
+      {isLoading ? (
+        <PageSpinner />
+      ) : error ? (
+        <PageError message={error} />
+      ) : activeTab === "funds" ? (
         <FundList funds={filteredFunds} onCardClick={handleCardClick} />
       ) : (
         <KPIsTable funds={filteredFunds} onFundClick={handleCardClick} />
