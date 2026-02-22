@@ -9,7 +9,7 @@ from ..serializers.lps_statement_serializers import ClosingPeriodSerializer
 from ..models.reference import ClosingPeriod
 from ..serializers.lps_statement_serializers import FundClosingSerializer
 from ..models.transactions import FundClosing, LPsFundCommitment
-from ..models.core import LimitedPartner
+from ..models.core import LimitedPartner, Timeframe
 from ..serializers.lps_statement_serializers import LimitedPartnerSerializer, LPsFundCommitmentSerializer
 from ..services import CapitalAccountService
 
@@ -81,20 +81,26 @@ class CapitalAccountStatementKPIView(APIView):
         timeframe_id = request.query_params.get('timeframe_id')
 
         if not timeframe_id:
-            return Response(
-                {"error": "timeframe_id query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            timeframe_id = int(timeframe_id)
-        except ValueError:
-            return Response(
-                {"error": "timeframe_id must be an integer."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            # Idea: Fetch the latest timeframe for this fund by date
+            # Adjust 'date' or 'reference_date' based on your model field
+            latest_tf = Timeframe.objects.filter(fund_id=fund_id).order_by('-date').first()
+            
+            if not latest_tf:
+                return Response(
+                    {"error": "No timeframes found for this fund."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            timeframe_id = latest_tf.timeframe_id
+        else:
+            try:
+                timeframe_id = int(timeframe_id)
+            except ValueError:
+                return Response(
+                    {"error": "timeframe_id must be an integer."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         service = CapitalAccountService(fund_id=fund_id, timeframe_id=timeframe_id)
-        result  = service.compute()
+        result = service.compute()
 
         return Response(result, status=status.HTTP_200_OK)

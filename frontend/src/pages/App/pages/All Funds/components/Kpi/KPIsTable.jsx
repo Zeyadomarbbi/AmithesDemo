@@ -26,7 +26,12 @@ const yearFromDate = (rawDate) => {
 const fmtRatio = (x) =>
   Number.isFinite(Number(x)) ? `${Number(x).toFixed(2)}x` : "-";
 
-export default function KPIsTable({ funds = [], onFundClick, fundKpisByFundId = {} }) {
+export default function KPIsTable({ 
+  funds = [], 
+  onFundClick, 
+  fundKpisByFundId = {}, 
+  casKpisByFundId = {} 
+}) {
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
 
@@ -34,24 +39,31 @@ export default function KPIsTable({ funds = [], onFundClick, fundKpisByFundId = 
     () =>
       funds.map((fund) => {
         const fundKpi = fundKpisByFundId[String(fund.id)] || {};
+        const casKpi = casKpisByFundId[String(fund.id)] || {};
+        
+        const k = casKpi.basic_kpis || {};
+        const irr = casKpi.irr || {};
+
         return {
           id:         fund.id,
           name:       fund.name || "-",
           year:       yearFromDate(fund.formationDate),
           strategy:   fund.strategy || "-",
-          commitment: fund.commitment,
+          commitment: k.commitment?.total ?? fund.commitment,
           cost:       fundKpi.totalCost,
           deals:      fundKpi.deals,
           grossIrr:   Number.isFinite(Number(fundKpi.grossIrr))
                         ? Number(fundKpi.grossIrr) * 100
                         : null,
-          netIrr:     fund.netIrr,
-          dpi:        fund.dpi,
-          rvpi:       fund.rvpi,
-          tvpi:       fund.tvpi,
+          netIrr:     irr.fund_irr != null 
+                        ? Number(irr.fund_irr) * 100 
+                        : fund.netIrr,
+          dpi:        k.dpi?.total ?? fund.dpi,
+          rvpi:       k.rvpi?.total ?? fund.rvpi,
+          tvpi:       k.tvpi?.total ?? fund.tvpi,
         };
       }),
-    [funds, fundKpisByFundId]
+    [funds, fundKpisByFundId, casKpisByFundId]
   );
 
   const { sorted, sortKey, toggleSort } = useTableSort(tableRows);

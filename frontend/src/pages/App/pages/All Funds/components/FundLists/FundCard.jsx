@@ -1,9 +1,8 @@
 import React from "react";
 import "./FundCard.css";
 
-export default function FundCard({ fund, fundKpi, clickable = false, onClick }) {
-  /** Call calculatefundportfolioKPI.js */
-    const getToneClass = (phase) => {
+export default function FundCard({ fund, fundKpi, casKpi, clickable = false, onClick }) {
+  const getToneClass = (phase) => {
     const phaseLower = phase?.toLowerCase() || "";
 
     if (
@@ -34,12 +33,18 @@ export default function FundCard({ fund, fundKpi, clickable = false, onClick }) 
       onClick?.();
     }
   };
-  const formatKpi = (val) => (val !== undefined && val !== null && val !== "" ? val : "-");
+
   const formatPercent = (val) =>
     Number.isFinite(Number(val)) ? `${Number(val).toFixed(2)}%` : "-";
   const formatDeals = (val) =>
     Number.isFinite(Number(val)) ? String(Math.trunc(Number(val))) : "-";
-return (
+
+  // Determine Net IRR from casKpi if available, fallback to '-'
+  const netIrrValue = casKpi?.irr?.fund_irr != null 
+    ? formatPercent(casKpi.irr.fund_irr * 100) 
+    : "-";
+
+  return (
     <div
       className={`fund-card ${clickable ? "clickable" : ""}`}
       onClick={clickable ? onClick : undefined}
@@ -88,7 +93,7 @@ return (
 
         <div className="stat-box">
           <div className="stat-label">Net IRR</div>
-          <div className="stat-value">{formatKpi(fundKpi?.netIrr)}</div>
+          <div className="stat-value">{netIrrValue}</div>
         </div>
 
         <div className="stat-box">
