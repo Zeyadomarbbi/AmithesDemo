@@ -170,4 +170,9 @@ urlpatterns = [
         FundScenarioSynthesisView.as_view(), 
         name="synthesis-detail"
     ),
+    path(
+        "funds/<int:fund_id>/synthesis-details/<int:synthesis_id>/kpis/", 
+        ScenarioSynthesisKPIView.as_view(), 
+        name="synthesis-kpis"
+    ),
 ]

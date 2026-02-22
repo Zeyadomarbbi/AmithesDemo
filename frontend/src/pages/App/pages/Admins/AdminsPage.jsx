@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AdminsHeader from './AdminsHeader/AdminsHeader';
 import AdminsTable from './AdminsTable/AdminsTable';
-import SearchBar from '../../../../components/SearchBar'
+import SearchBar from '../../../../components/SearchBar/SearchBar'
 import './AdminsPage.css';
 
 function AdminsPage() {

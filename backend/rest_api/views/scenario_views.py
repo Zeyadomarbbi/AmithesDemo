@@ -44,7 +44,7 @@ from ..serializers.scenario_serializers import (
     ViewScenarioFundflowsAllOperationsSerializer
 )
 from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
-from ..services import WaterfallService, SensitivityService, TargetModeService
+from ..services import WaterfallService, SensitivityService, TargetModeService, SynthesisKPIService
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
@@ -615,3 +615,26 @@ class TargetModePreviewView(APIView):
                 {"error": "Unexpected calculation failure.", "detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+class ScenarioSynthesisKPIView(APIView):
+    def get(self, request, fund_id, synthesis_id):
+        try:
+            # Fetch the synthesis and its linked scenarios
+            synthesis = ScenarioSynthesis.objects.get(
+                synthesis_id=synthesis_id, 
+                fund_id=fund_id
+            )
+            
+            # Preserve order: important for mapping indices on the frontend
+            scenario_ids = list(synthesis.scenario_mappings.order_by('scenario_id').values_list('scenario_id', flat=True))
+            
+            if not scenario_ids:
+                return Response([], status=status.HTTP_200_OK)
+
+            # Initialize Service and Generate KPI Matrix
+            service = SynthesisKPIService(fund_id=fund_id, scenario_ids=scenario_ids)
+            kpis = service.generate_synthesis_matrix()
+            return Response(kpis, status=status.HTTP_200_OK)
+            
+        except ScenarioSynthesis.DoesNotExist:
+            return Response({"error": "Synthesis not found"}, status=status.HTTP_404_NOT_FOUND)

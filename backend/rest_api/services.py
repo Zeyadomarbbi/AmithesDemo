@@ -2,6 +2,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import date
 import warnings
 import math
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import numpy as np
@@ -20,6 +21,7 @@ from rest_api.models.transactions import (
     ScenarioPortfolioProjection,
     ScenarioDueDiligenceFee
 )
+from rest_api.models.core import ShareClass
 
 warnings.filterwarnings('ignore')
 # --- UTILITIES ---
@@ -1311,3 +1313,79 @@ class TargetModeService:
             }
             for r in qs.values('summary_id', 'date', 'flows', 'source_type', 'source_id')
         ]
+    
+class SynthesisKPIService:
+    def __init__(self, fund_id, scenario_ids):
+        self.fund_id = fund_id
+        self.scenario_ids = scenario_ids
+        
+        # Map string names to DB IDs for frontend blueprint alignment
+        self.sc_map = {
+            sc.share_class_name: sc.share_class_id 
+            for sc in ShareClass.objects.filter(fund_id=fund_id)
+        }
+        
+
+    def process_single_scenario(self, scenario_id):
+        waterfall = WaterfallService(fund_id=self.fund_id, scenario_id=scenario_id)
+        sim_data = waterfall.run_simulation()
+
+        if not sim_data:
+            return {scenario_id: {}}
+
+        performance = sim_data.get('simulation_results', {}).get('performance', {})
+        kpis = sim_data.get('kpis', {})
+        allocations = sim_data.get('simulation_results', {}).get('allocations', {})
+
+        metrics = {
+            "irr_net": performance.get('Fund', {}).get('IRR'),
+            "tvpi_fund": performance.get('Fund', {}).get('TVPI'),
+            "hurdle": float(kpis.get('hurdle', {}).get('to_deduct', 0.0)),
+            "distributed_total": float(allocations.get('Fund', {}).get('Total', 0.0)),
+        }
+
+        # Filter active classes via provided function
+        _, active_sc_names = fetch_commitments_and_ratios(self.fund_id, scenario_id)
+
+        for sc_name in active_sc_names:
+            sc_id = self.sc_map.get(sc_name)
+            if sc_id:
+                sc_perf = performance.get(sc_name, {})
+                metrics[f"irr_share_{sc_id}"] = sc_perf.get('IRR')
+                metrics[f"tvpi_share_{sc_id}"] = sc_perf.get('TVPI')
+
+        return {scenario_id: metrics}
+
+    def generate_synthesis_matrix(self):
+        scenario_results = {}
+        
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            results = executor.map(self.process_single_scenario, self.scenario_ids)
+            for res in results:
+                scenario_results.update(res)
+
+        formatted_kpis = [
+            self._build_kpi_row('irr_net', 'Fund Net IRR', 'pct', scenario_results, 'irr_net'),
+            self._build_kpi_row('tvpi_fund', 'Fund TVPI', 'multiple', scenario_results, 'tvpi_fund'),
+            self._build_kpi_row('hurdle', 'Hurdle', 'number', scenario_results, 'hurdle'),
+            self._build_kpi_row('distributed_total', 'Total distributed', 'number', scenario_results, 'distributed_total'),
+        ]
+
+        # Iterate global map to ensure all frontend blueprint rows receive a key
+        for sc_name, sc_id in self.sc_map.items():
+            formatted_kpis.append(
+                self._build_kpi_row(f"irr_share_{sc_id}", f"{sc_name} IRR", 'pct', scenario_results, f"irr_share_{sc_id}")
+            )
+            formatted_kpis.append(
+                self._build_kpi_row(f"tvpi_share_{sc_id}", f"{sc_name} TVPI", 'multiple', scenario_results, f"tvpi_share_{sc_id}")
+            )
+
+        return formatted_kpis
+
+    def _build_kpi_row(self, kpi_id, name, kpi_type, scenario_results, data_key):
+        return {
+            "id": kpi_id,
+            "name": name,
+            "type": kpi_type,
+            "data": {str(sid): scenario_results.get(sid, {}).get(data_key) for sid in self.scenario_ids}
+        }

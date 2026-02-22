@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SearchBar from '../../../../../components/SearchBar'
+import SearchBar from '../../../../../components/SearchBar/SearchBar'
 import { SearchIcon, PlusIcon } from '../Icons'; 
 import AddAdminPanel from './AddAdminPanel/AddAdminPanel'; // Import Panel here
 import './AdminsHeader.css';
