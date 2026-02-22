@@ -1,6 +1,10 @@
-﻿import React, { useMemo } from "react";
+﻿// KPIsTable.jsx
+import React, { useMemo, useState, useEffect } from "react";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../components/useFormatter';
+import { fetchPortfolioKpisByFundIds } from "../PortfolioDataFuncs"; 
+import { API_BASE_URL } from "../../../../hooks/useApi"; 
+import { PageSpinner } from "../../AllFundsPage"; 
 import "./KPIsTable.css";
 
 const COLS = [
@@ -26,14 +30,84 @@ const yearFromDate = (rawDate) => {
 const fmtRatio = (x) =>
   Number.isFinite(Number(x)) ? `${Number(x).toFixed(2)}x` : "-";
 
-export default function KPIsTable({ 
-  funds = [], 
-  onFundClick, 
-  fundKpisByFundId = {}, 
-  casKpisByFundId = {} 
-}) {
+export default function KPIsTable({ funds = [], onFundClick }) {
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
+
+  const [fundKpisByFundId, setFundKpisByFundId] = useState({});
+  const [casKpisByFundId, setCasKpisByFundId] = useState({});
+  const [isKpisLoading, setIsKpisLoading] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const loadAllKpis = async () => {
+      const ids = funds.map((fund) => fund.id).filter(Boolean);
+      if (ids.length === 0) {
+        if (!signal.aborted) {
+          setFundKpisByFundId({});
+          setCasKpisByFundId({});
+          setIsKpisLoading(false);
+        }
+        return;
+      }
+
+      if (!signal.aborted) setIsKpisLoading(true);
+
+      // Note: fetchPortfolioKpisByFundIds must be updated internally to accept and utilize the 'signal' parameter to fully abort its internal network requests.
+      const portfolioKpisPromise = fetchPortfolioKpisByFundIds(ids, signal).catch(e => {
+        if (e.name === 'AbortError') return {};
+        throw e;
+      });
+
+      const casBulkPromise = fetch(
+        `${API_BASE_URL}/api/funds/cas-kpis/bulk/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fund_ids: ids,
+            timeframe_id: null, // or pass actual timeframe if available
+          }),
+          signal,
+        }
+      )
+        .then(res => {
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          return res.json();
+        })
+        .catch(e => {
+          if (e.name === "AbortError") return {};
+          throw e;
+        });
+
+      try {
+        const [portfolioMap, casMap] = await Promise.all([
+          portfolioKpisPromise,
+          casBulkPromise
+        ]);
+
+        if (!signal.aborted) {
+          setFundKpisByFundId(portfolioMap || {});
+          setCasKpisByFundId(casMap || {});
+          setIsKpisLoading(false);
+        }
+      } catch (err) {
+        if (!signal.aborted) {
+          setIsKpisLoading(false);
+        }
+      }
+    };
+
+    loadAllKpis();
+
+    return () => {
+      controller.abort();
+    };
+  }, [funds]);
 
   const tableRows = useMemo(
     () =>
@@ -67,6 +141,10 @@ export default function KPIsTable({
   );
 
   const { sorted, sortKey, toggleSort } = useTableSort(tableRows);
+
+  if (isKpisLoading) {
+    return <PageSpinner label="Calculating KPIs…" />;
+  }
 
   return (
     <div className="table-wrapper">

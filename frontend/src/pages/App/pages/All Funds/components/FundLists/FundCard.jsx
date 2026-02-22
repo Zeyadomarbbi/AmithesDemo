@@ -1,7 +1,7 @@
 import React from "react";
 import "./FundCard.css";
 
-export default function FundCard({ fund, fundKpi, casKpi, clickable = false, onClick }) {
+export default function FundCard({ fund, clickable = false, onClick }) {
   const getToneClass = (phase) => {
     const phaseLower = phase?.toLowerCase() || "";
 
@@ -21,7 +21,7 @@ export default function FundCard({ fund, fundKpi, casKpi, clickable = false, onC
       return "badge-closed";
     }
 
-    return "badge-info"; // Fallback
+    return "badge-info"; 
   };
 
   const toneClass = getToneClass(fund.phaseName);
@@ -33,16 +33,6 @@ export default function FundCard({ fund, fundKpi, casKpi, clickable = false, onC
       onClick?.();
     }
   };
-
-  const formatPercent = (val) =>
-    Number.isFinite(Number(val)) ? `${Number(val).toFixed(2)}%` : "-";
-  const formatDeals = (val) =>
-    Number.isFinite(Number(val)) ? String(Math.trunc(Number(val))) : "-";
-
-  // Determine Net IRR from casKpi if available, fallback to '-'
-  const netIrrValue = casKpi?.irr?.fund_irr != null 
-    ? formatPercent(casKpi.irr.fund_irr * 100) 
-    : "-";
 
   return (
     <div
@@ -82,23 +72,6 @@ export default function FundCard({ fund, fundKpi, casKpi, clickable = false, onC
               />
             </svg>
           </div>
-        </div>
-      </div>
-
-      <div className="fund-stats">
-        <div className="stat-box">
-          <div className="stat-label">Gross IRR</div>
-          <div className="stat-value">{formatPercent(fundKpi?.grossIrr * 100)}</div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label">Net IRR</div>
-          <div className="stat-value">{netIrrValue}</div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label"># Deals</div>
-          <div className="stat-value">{formatDeals(fundKpi?.deals)}</div>
         </div>
       </div>
     </div>

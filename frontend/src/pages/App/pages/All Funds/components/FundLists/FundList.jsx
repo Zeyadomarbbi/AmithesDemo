@@ -4,8 +4,6 @@ import FundCard from "./FundCard";
 export default function FundList({ 
   funds = [], 
   onCardClick, 
-  fundKpisByFundId = {},
-  casKpisByFundId = {} 
 }) {
   return (
     <div className="funds-grid">
@@ -13,8 +11,6 @@ export default function FundList({
         <FundCard
           key={fund.id}
           fund={fund}
-          fundKpi={fundKpisByFundId[String(fund.id)]}
-          casKpi={casKpisByFundId[String(fund.id)]}
           clickable
           onClick={() => onCardClick?.(fund.id)}
         />

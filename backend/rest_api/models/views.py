@@ -118,3 +118,22 @@ class ViewScenarioFundflowsAllOperations(models.Model):
     class Meta:
         managed = False
         db_table = 'view_scenario_fundflows_all_operations'
+
+class CapitalAccountKpiCache(models.Model):
+    fund_id = models.IntegerField(db_index=True)
+    timeframe_id = models.IntegerField(db_index=True)
+
+    payload = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        unique_together = ("fund_id", "timeframe_id")
+        db_table = 'capital_account_kpi_cache'
+        indexes = [
+            models.Index(fields=["fund_id", "timeframe_id"]),
+        ]
+
+    def __str__(self):
+        return f"KPI Cache | fund={self.fund_id} | timeframe={self.timeframe_id}"
+        

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../useApi';
 
 export function useCASKPIs(fundId, timeframeId) {
@@ -6,11 +6,21 @@ export function useCASKPIs(fundId, timeframeId) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const abortRef = useRef(null);
+
   const fetchCASKPIs = useCallback(async () => {
     if (!fundId || !timeframeId) {
       setData(null);
       return;
     }
+
+    // Cancel previous request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsLoading(true);
     setError(null);
@@ -23,8 +33,8 @@ export function useCASKPIs(fundId, timeframeId) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}` // Uncomment if required
         },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -33,15 +43,26 @@ export function useCASKPIs(fundId, timeframeId) {
 
       const result = await response.json();
       setData(result);
+
     } catch (err) {
-      setError(err.message || 'Failed to fetch CAS KPIs');
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Failed to fetch CAS KPIs');
+      }
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [fundId, timeframeId]);
 
   useEffect(() => {
     fetchCASKPIs();
+
+    return () => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
   }, [fetchCASKPIs]);
 
   return { data, isLoading, error, refetch: fetchCASKPIs };

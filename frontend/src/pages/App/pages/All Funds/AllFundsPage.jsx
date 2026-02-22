@@ -1,11 +1,10 @@
+// AllFundsPage.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFundData } from "../../hooks/Core/FundContext"; 
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
-import { fetchPortfolioKpisByFundIds } from "./components/PortfolioDataFuncs";
-import { API_BASE_URL } from "../../hooks/useApi"; // Adjust import path as needed
 import Toast from "../../components/Toast/Toast";
 import SearchBar from "../../../../components/SearchBar/SearchBar";
 import { PlusIcon } from "../../../../components/Icons";
@@ -13,7 +12,7 @@ import "./AllFundsPage.css";
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 
-function PageSpinner({ label = "Loading portfolio data…" }) {
+export function PageSpinner({ label = "Loading..." }) {
   return (
     <>
       <style>{`
@@ -94,83 +93,10 @@ export default function AllFundsPage() {
   const [query, setQuery] = useState("");
   const [isNewFundOpen, setIsNewFundOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  
-  const [fundKpisByFundId, setFundKpisByFundId] = useState({});
-  const [casKpisByFundId, setCasKpisByFundId] = useState({});
-  const [isKpisLoading, setIsKpisLoading] = useState(false);
 
   useEffect(() => {
     if (setActiveFundId) setActiveFundId(null);
   }, [setActiveFundId]);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadAllKpis = async () => {
-      const ids = funds.map((fund) => fund.id).filter(Boolean);
-      if (ids.length === 0) {
-        if (!isCancelled) {
-          setFundKpisByFundId({});
-          setCasKpisByFundId({});
-          setIsKpisLoading(false);
-        }
-        return;
-      }
-
-      if (!isCancelled) setIsKpisLoading(true);
-
-      // 1. Fetch Portfolio KPIs
-      const portfolioKpisPromise = fetchPortfolioKpisByFundIds(ids);
-
-      // 2. Fetch CAS KPIs for all funds concurrently
-      const casKpisPromises = ids.map(async (id) => {
-        try {
-          const url = new URL(`${API_BASE_URL}/api/funds/${id}/cas-kpis/`);
-          
-          const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              // 'Authorization': `Bearer ${token}` // Uncomment if required
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
-          }
-
-          const data = await response.json();
-          return { id, data };
-        } catch (err) {
-          console.error(`Failed to fetch CAS KPIs for fund ${id}:`, err.message);
-          return { id, data: null };
-        }
-      });
-
-      // Run both fetch operations in parallel
-      const [portfolioMap, casResultsArray] = await Promise.all([
-        portfolioKpisPromise,
-        Promise.all(casKpisPromises)
-      ]);
-
-      if (!isCancelled) {
-        setFundKpisByFundId(portfolioMap);
-        
-        // Convert CAS array results into a map object { [fundId]: data }
-        const casMap = casResultsArray.reduce((acc, curr) => {
-          acc[curr.id] = curr.data;
-          return acc;
-        }, {});
-        setCasKpisByFundId(casMap);
-
-        setIsKpisLoading(false);
-      }
-    };
-
-    loadAllKpis();
-
-    return () => { isCancelled = true; };
-  }, [funds]);
 
   const normalizedQuery = (query || "").toLowerCase().trim();
   const filteredFunds = useMemo(() => {
@@ -190,19 +116,15 @@ export default function AllFundsPage() {
     }
   };
 
-  // Derive content area state
   const renderContent = () => {
     if (isLoading) return <PageSpinner label="Loading fund data…" />;
     if (error) return <PageError message={error} />;
-    if (isKpisLoading) return <PageSpinner label="Calculating KPIs…" />;
 
     if (activeTab === "funds") {
       return (
         <FundList
           funds={filteredFunds}
           onCardClick={handleCardClick}
-          fundKpisByFundId={fundKpisByFundId}
-          casKpisByFundId={casKpisByFundId} // Pass down to FundList to use in the cards
         />
       );
     }
@@ -211,8 +133,6 @@ export default function AllFundsPage() {
       <KPIsTable
         funds={filteredFunds}
         onFundClick={handleCardClick}
-        fundKpisByFundId={fundKpisByFundId}
-        casKpisByFundId={casKpisByFundId} // Pass down to KPIsTable
       />
     );
   };
