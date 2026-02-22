@@ -36,6 +36,4 @@ urlpatterns = [
     path('limited-partners/<int:pk>/', limited_partner_detail),
     path('funds/<int:fund_id>/fund-commitments/', commitment_list, name='fund-commitment-list'),
     path('funds/<int:fund_id>/fund-commitments/<int:pk>/', commitment_detail, name='fund-commitment-detail'),
-    path('funds/<int:fund_id>/cas-kpis/', CapitalAccountStatementKPIView.as_view(), name='cas-kpis'),
-    path('funds/cas-kpis/bulk/', BulkCapitalAccountStatementKPIView.as_view(), name="bulk-cas-kpis"),
 ]

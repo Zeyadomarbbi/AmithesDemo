@@ -4,9 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.db import transaction, IntegrityError
 
 from ..models.transactions import *
 from ..serializers.portfolio_serializers import *
+from ..models.views import PortfolioKpiCache
+from ..models.core import Timeframe
+from ..services import PortfolioKpiService
 
 class PortfolioInvestmentView(APIView):
     def get(self, request, fund_id, investment_id=None, **kwargs):
@@ -231,3 +235,94 @@ class PortfolioFairValueFlowView(APIView):
 
         serializer.save(updated_by=updated_by)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class BulkPortfolioKpiView(APIView):
+
+    def post(self, request):
+        fund_ids = request.data.get("fund_ids", [])
+        timeframe_id = request.data.get("timeframe_id")
+        
+        if not isinstance(fund_ids, list) or not fund_ids:
+            return Response(
+                {"error": "fund_ids must be non-empty list"},
+                status=400
+            )
+
+        results = {}
+
+        for fund_id in fund_ids:
+            try:
+                if not timeframe_id:
+                    latest_tf = (
+                        Timeframe.objects
+                        .filter(fund_id=fund_id)
+                        .order_by("-date")
+                        .first()
+                    )
+
+                    if not latest_tf:
+                        results[str(fund_id)] = {
+                            "grossIrr": None,
+                            "deals": 0,
+                            "totalCost": 0,
+                        }
+                        continue
+
+                    resolved_timeframe = latest_tf.timeframe_id
+                else:
+                    resolved_timeframe = int(timeframe_id)
+
+                with transaction.atomic():
+                    cached = (
+                        PortfolioKpiCache.objects
+                        .select_for_update()
+                        .filter(
+                            fund_id=fund_id,
+                            timeframe_id=resolved_timeframe
+                        )
+                        .first()
+                    )
+
+                    if cached:
+                        results[str(fund_id)] = cached.payload
+                        continue
+
+                    service = PortfolioKpiService(
+                        fund_id=fund_id,
+                        timeframe_id=resolved_timeframe
+                    )
+
+                    result = service.compute()
+                    print(result)
+                    PortfolioKpiCache.objects.create(
+                        fund_id=fund_id,
+                        timeframe_id=resolved_timeframe,
+                        payload=result
+                    )
+
+                    results[str(fund_id)] = result
+
+            except IntegrityError:
+                cached = PortfolioKpiCache.objects.filter(
+                    fund_id=fund_id,
+                    timeframe_id=resolved_timeframe
+                ).first()
+
+                if cached:
+                    results[str(fund_id)] = cached.payload
+                else:
+                    results[str(fund_id)] = {
+                        "grossIrr": None,
+                        "deals": 0,
+                        "totalCost": 0,
+                    }
+
+            except Exception:
+                results[str(fund_id)] = {
+                    "grossIrr": None,
+                    "deals": 0,
+                    "totalCost": 0,
+                }
+
+        return Response(results, status=200)

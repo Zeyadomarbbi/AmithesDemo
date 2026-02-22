@@ -136,4 +136,21 @@ class CapitalAccountKpiCache(models.Model):
 
     def __str__(self):
         return f"KPI Cache | fund={self.fund_id} | timeframe={self.timeframe_id}"
-        
+
+class PortfolioKpiCache(models.Model):
+    fund_id = models.IntegerField(db_index=True)
+    timeframe_id = models.IntegerField(db_index=True)
+
+    payload = models.JSONField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "portfolio_kpi_cache"
+        unique_together = ("fund_id", "timeframe_id")
+        indexes = [
+            models.Index(fields=["fund_id", "timeframe_id"]),
+        ]
+
+    def __str__(self):
+        return f"Portfolio KPI Cache | fund={self.fund_id} | timeframe={self.timeframe_id}"

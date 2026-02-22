@@ -1,7 +1,7 @@
 from dateutil.relativedelta import relativedelta
 from datetime import date
 import datetime
-
+from decimal import Decimal
 import warnings
 import math
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +12,7 @@ import numpy as np
 from django.db import connection
 from django.db.models import Sum
 
+from rest_api.models.core import Timeframe
 from rest_api.models.views import (
     ScenarioFundflowsCapitalcallSummary, 
     ScenarioFundflowsDistributionSummary,
@@ -24,7 +25,9 @@ from rest_api.models.transactions import (
     ScenarioPortfolioProjection,
     ScenarioDueDiligenceFee, 
     ScenarioFinancialsProjection,
-    PortfolioTransactionFlow
+    PortfolioInvestment,
+    PortfolioFairValueFlow,
+    PortfolioTransactionFlow,
 )
 from rest_api.models.core import ShareClass
 from rest_api.models.reference import FinancialLineItem
@@ -76,6 +79,92 @@ def xirr(cashflows, dates, guess=0.1):
     except Exception:
         return None
 
+class PortfolioKpiService:
+
+    def __init__(self, fund_id, timeframe_id):
+        self.fund_id = fund_id
+        self.timeframe_id = timeframe_id
+
+    def compute(self):
+
+        timeframe = Timeframe.objects.get(
+            fund_id=self.fund_id,
+            timeframe_id=self.timeframe_id
+        )
+
+        effective_date = timeframe.date
+        investments = PortfolioInvestment.objects.filter(
+            fund_id=self.fund_id,
+            is_deleted=False,
+            scenario_id__isnull=True
+        )
+        if not investments.exists():
+            return {
+                "grossIrr": None,
+                "deals": 0,
+                "totalCost": 0,
+            }
+
+        investment_ids = investments.values_list(
+            "investment_id",
+            flat=True
+        )
+        flows = PortfolioTransactionFlow.objects.filter(
+            portfolio_investment_id__in=investment_ids,
+            scenario_id__isnull=True,
+            date__lte=effective_date,
+            is_deleted=False
+        )
+        fair_values = PortfolioFairValueFlow.objects.filter(
+            portfolio_investment_id__in=investment_ids,
+            date__lte=effective_date
+        )
+        # ---- Build unified cashflow stream ----
+
+        cashflow_map = defaultdict(Decimal)
+
+        # Transaction flows
+        for flow in flows:
+            cashflow_map[flow.date] += -1*flow.amount
+
+        # Fair values treated as terminal inflow at effective date
+        # Take latest fair value per investment
+        latest_fv_map = {}
+
+        for fv in fair_values.order_by("portfolio_investment_id", "-date"):
+            inv_id = fv.portfolio_investment_id
+            if inv_id not in latest_fv_map:
+                latest_fv_map[inv_id] = fv.amount
+        for amount in latest_fv_map.values():
+            cashflow_map[effective_date] += amount
+        
+        if not cashflow_map:
+            return {
+                "grossIrr": None,
+                "deals": investments.count(),
+                "totalCost": 0,
+            }
+
+        # Sort chronologically
+        sorted_dates = sorted(cashflow_map.keys())
+        cashflows = [float(cashflow_map[d]) for d in sorted_dates]
+        gross_irr = xirr(cashflows, sorted_dates)
+        total_cost = (
+            flows
+            .filter(
+                transaction_type__transaction_name="Investment",
+                is_deleted=False
+            )
+            .aggregate(total=Sum("amount"))["total"]
+            or Decimal("0")
+        )
+        result = {
+            "grossIrr": float(gross_irr) if gross_irr is not None else None,
+            "deals": investments.count(),
+            "totalCost": float(abs(total_cost)),
+        }
+        return result
+    
 class CapitalAccountService:
     def __init__(self, fund_id: int, timeframe_id: int):
         self.fund_id      = fund_id
