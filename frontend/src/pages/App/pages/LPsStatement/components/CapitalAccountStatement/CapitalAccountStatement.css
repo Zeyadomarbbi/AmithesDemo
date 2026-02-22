@@ -17,15 +17,12 @@
   padding-bottom: 16px;
 }
 
-/* left: single filter box */
-
 .lp-cas-period {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* filter button box (Q2 → 08/07/26) */
 .lp-cas-filter-btn {
   box-sizing: border-box;
   display: flex;
@@ -63,11 +60,9 @@
   justify-content: center;
 }
 
-/* right part of top bar */
-
 .lp-cas-actions {
   display: flex;
-  align-items: flex-start; /* NOTICE stays on same top line as Breakdown */
+  align-items: flex-start;
   gap: 18px;
   flex: 1;
   justify-content: flex-end;
@@ -85,7 +80,6 @@
   font-weight: 500;
   color: #7B7D7E;
   cursor: pointer;
-  
 }
 
 .lp-cas-notice-btn:hover {
@@ -120,7 +114,6 @@
   color: #375a89;
 }
 
-/* small segmented tabs container */
 .lp-cas-breakdown-tabs {
   display: flex;
   flex-direction: row;
@@ -156,7 +149,6 @@
   color: #375a89;
 }
 
-/* active segment: white with slight shadow, dark text */
 .lp-cas-breakdown-tab--active {
   background: #ffffff;
   box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
@@ -164,260 +156,9 @@
   color: #1c1917;
 }
 
-
-
-
-
-
-
-
-/* ===========================================
-   TABLE (both modes)
-   =========================================== */
-
-.lp-cas-table-wrapper {
-  border-radius: 6px;
-  overflow: hidden;
-  background-color: #ffffff;
-  border: none;
-}
-
-.lp-cas-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: "Inter", sans-serif;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-}
-
-/* header row */
-
-.lp-cas-table thead tr {
-  background-color: #f9fafb;
-  height: 50px;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-}
-
-.lp-cas-kpi-header,
-.lp-cas-header-cell {
-  padding: 8px 16px;
-  font-weight: 500;
-  color: #000000;
-  white-space: nowrap;
-  border: none;
-}
-
-.lp-cas-kpi-header {
-  text-align: left;
-}
-
-.lp-cas-header-cell {
-  text-align: right;
-}
-
-/* sort icon next to header labels */
-.lp-cas-sort-icon {
-  margin-left: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  vertical-align: middle;
-}
-
-.lp-cas-sort-icon svg {
-  width: 8px;
-  height: 12px;
-  display: block;
-}
-
-/* body rows */
-
-.lp-cas-row {
-  height: 50px;
-}
-
-/* zebra rows: start with white */
-.lp-cas-table tbody tr:nth-child(odd) {
-  background-color: #ffffff;
-}
-
-.lp-cas-table tbody tr:nth-child(even) {
-  background-color: #fafaf9;
-}
-
-/* inside horizontal borders only */
-.lp-cas-table tbody tr {
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-}
-
-.lp-cas-table td {
-  padding: 8px 16px;
-  color: #1c1917;
-  border: none;
-}
-
-/* KPI left cell */
-
-.lp-cas-kpi-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  justify-content: flex-start;
-}
-
-.lp-cas-kpi-cell--full {
-  width: 100%;
-}
-
-/* numeric cells */
-.lp-cas-value-cell {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* "NAV per share" link style */
-.lp-cas-link {
-  color: #050330;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-/* no vertical borders */
-.lp-cas-table th,
-.lp-cas-table td {
-  border-left: none;
-  border-right: none;
-}
-
-/* ===========================================
-   NAV per share dropdown
-   =========================================== */
-
-/* main NAV row is clickable */
-.lp-cas-row--expandable {
-  cursor: pointer;
-}
-
-.lp-cas-row--open {
-  background-color: #fafafa;
-}
-
-/* force the outer NAV-details row to show the grey band */
-.lp-cas-table tbody tr.lp-cas-nav-details-row {
-  background-color: #f3f4f6 !important;
-}
-
-/* cell that holds the whole dropdown */
-.lp-cas-nav-details-row > td {
-  padding: 0;
-  border: none;
-}
-
-/* GREY BAND – full-width band under the table */
-.lp-cas-nav-details {
-  background: #f3f4f6;
-  box-sizing: border-box;
-
-  /* align with main table content */
-  padding: 0 16px 16px 16px;
-}
-
-/* inner wrapper just for horizontal scroll if needed */
-.lp-cas-nav-details-inner {
-  width: 100%;
-  overflow-x: auto;
-}
-
-/* INNER TABLE – no card look, only row dividers */
-.lp-cas-nav-details-table {
-  width: 100%;
-  min-width: 808px;
-  border-collapse: collapse;
-  font-family: "Inter", sans-serif;
-  font-size: 14px;
-  background: transparent;
-}
-
-/* header row shares same band background */
-.lp-cas-nav-details-table thead tr {
-  background: transparent;
-}
-
-/* header cells – all grey */
-.lp-cas-nav-th {
-  padding: 8px 16px;
-  text-align: right;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-  border: none;
-  background-color: #f3f4f6;  /* full grey band */
-}
-
-.lp-cas-nav-th--first {
-  text-align: left;
-  padding-left: 8px;
-  
-}
-
-.lp-cas-nav-th-euro {
-  font-size: 12px;
-  color: #a6a09b;
-  margin-left: 2px;
-}
-
-/* body rows – keep same band color */
-.lp-cas-nav-details-table tbody tr {
-  background: transparent;
-}
-
-/* body cells – all grey */
-.lp-cas-nav-td {
-  padding: 8px 16px;
-  text-align: right;
-  font-weight: 400;
-  color: #1c1917;
-  border: none;
-  background-color: #f3f4f6;  /* full grey band */
-}
-
-.lp-cas-nav-td--label {
-  text-align: left;
-  padding-left: 8px;
-}
-
-/* plus button in NAV row */
-.lp-cas-expand-btn {
-  border: none;
-  background: transparent;
-  padding: 0;
-  margin-right: 8px;
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.lp-cas-plus-icon{
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-}
-
-.lp-cas-plus-icon svg{
-  display: block;
-}
-
-/* responsive padding for grey band */
-@media (max-width: 1024px) {
-  .lp-cas-nav-details {
-    padding: 0 24px 16px 24px;
-  }
+/* LPs mode: remove the huge empty space above the table */
+.lp-cas-breakdown-block--lps {
+  gap: 10px !important;
 }
 
 /* ===========================================
@@ -468,15 +209,6 @@
   .lp-cas-breakdown-block {
     width: 100%;
   }
-
-  .lp-cas-table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .lp-cas-table {
-    min-width: 720px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -499,48 +231,3 @@
     flex: 1;
   }
 }
-/* Adjusted NAV row – same grey as NAV per share dropdown, no zebra */
-.lp-cas-adjusted-row {
-  background-color: #f3f4f6 !important;
-}
-
-.lp-cas-adjusted-row td {
-  background-color: #f3f4f6 !important;
-}
-/* ================================
-   NAV PER SHARE — REMOVE ALL LINES
-   ================================ */
-
-/* kill any borders coming from anywhere */
-.lp-cas-nav-details-table,
-.lp-cas-nav-details-table * {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* also kill separators if they were added as border-bottom */
-.lp-cas-nav-th,
-.lp-cas-nav-td {
-  border-bottom: none !important;
-}
-
-/* optional: remove the grey band bottom line too */
-.lp-cas-nav-details {
-  border-bottom: none !important;
-}
-/* LPs mode: remove the huge empty space above the table */
-.lp-cas-breakdown-block--lps {
-  gap: 10px !important; /* was 22px -> too big */
-}
-
-/* ✅ KPI (first column) values heavier than the rest */
-.lp-cas-table tbody td.lp-cas-kpi-cell {
-  font-weight: 600 !important;
-}
-
-/* keep numbers normal */
-.lp-cas-table tbody td.lp-cas-value-cell {
-  font-weight: 400 !important;
-}
-

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from ..views.lps_statement_views import LimitedPartnerViewSet, LPsFundCommitmentViewSet
+from ..views.lps_statement_views import LimitedPartnerViewSet, LPsFundCommitmentViewSet, CapitalAccountStatementKPIView
 from ..views import ClosingPeriodList, ClosingPeriodDetail, FundClosingListCreate, FundClosingDetail
 
 limited_partner_list = LimitedPartnerViewSet.as_view({
@@ -36,4 +36,5 @@ urlpatterns = [
     path('limited-partners/<int:pk>/', limited_partner_detail),
     path('funds/<int:fund_id>/fund-commitments/', commitment_list, name='fund-commitment-list'),
     path('funds/<int:fund_id>/fund-commitments/<int:pk>/', commitment_detail, name='fund-commitment-detail'),
+    path('funds/<int:fund_id>/cas-kpis/', CapitalAccountStatementKPIView.as_view(), name='cas-kpis'),
 ]

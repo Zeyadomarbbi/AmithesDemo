@@ -1,6 +1,9 @@
 from rest_framework import generics, mixins, viewsets
 from rest_framework.viewsets import ModelViewSet
 from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 from ..serializers.lps_statement_serializers import ClosingPeriodSerializer
 from ..models.reference import ClosingPeriod
@@ -8,6 +11,7 @@ from ..serializers.lps_statement_serializers import FundClosingSerializer
 from ..models.transactions import FundClosing, LPsFundCommitment
 from ..models.core import LimitedPartner
 from ..serializers.lps_statement_serializers import LimitedPartnerSerializer, LPsFundCommitmentSerializer
+from ..services import CapitalAccountService
 
 class ClosingPeriodList(generics.ListAPIView):
     queryset = ClosingPeriod.objects.all()
@@ -71,3 +75,26 @@ class LPsFundCommitmentViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(updated_at=timezone.now())
+
+class CapitalAccountStatementKPIView(APIView):
+    def get(self, request, fund_id):
+        timeframe_id = request.query_params.get('timeframe_id')
+
+        if not timeframe_id:
+            return Response(
+                {"error": "timeframe_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            timeframe_id = int(timeframe_id)
+        except ValueError:
+            return Response(
+                {"error": "timeframe_id must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        service = CapitalAccountService(fund_id=fund_id, timeframe_id=timeframe_id)
+        result  = service.compute()
+
+        return Response(result, status=status.HTTP_200_OK)
