@@ -18,10 +18,11 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/fund-commitments/`);
-      if (!response.ok) throw new Error('Failed to fetch fund commitments');
+      if (!response.ok) {
+          console.error('Commitment 400 detail:', data);
+          throw new Error(data.detail || JSON.stringify(data));
+      }
       const data = await response.json();
-      console.log("💾 HOOK STATE UPDATE: Commitments received from API:", data.length);
-      console.log("💾 FIRST ITEM SAMPLE:", data[0])
       setCommitments([...data]);
     } catch (err) {
       setError(err.message);
@@ -43,7 +44,10 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
       const response = await fetch(
         `${API_BASE_URL}/api/funds/${fundId}/fund-commitments/${commitmentId}/`
       );
-      if (!response.ok) throw new Error('Failed to fetch commitment detail');
+      if (!response.ok) {
+          console.error('Commitment 400 detail:', data);
+          throw new Error(data.detail || JSON.stringify(data));
+      }
       return await response.json();
     } catch (err) {
       setError(err.message);
@@ -74,7 +78,8 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || JSON.stringify(data));
+          console.error('Commitment 400 detail:', data);
+          throw new Error(data.detail || JSON.stringify(data));
       }
 
       setCommitments((prev) => [...prev, { ...data }]);
@@ -108,7 +113,8 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || JSON.stringify(data));
+          console.error('Commitment 400 detail:', data);
+          throw new Error(data.detail || JSON.stringify(data));
       }
 
       setCommitments(prev =>
@@ -141,7 +147,10 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
         { method: 'DELETE' }
       );
 
-      if (!response.ok) throw new Error('Failed to delete commitment');
+      if (!response.ok) {
+          console.error('Commitment 400 detail:', data);
+          throw new Error(data.detail || JSON.stringify(data));
+      }
 
       setCommitments((prev) =>
         prev.filter((c) => c.commitment_id !== commitmentId)

@@ -1,43 +1,50 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlows.jsx
 import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import "./CapitalFlows.css";
 
-import FlowHeader from "./FlowHeader.jsx";
-import FlowFilters from "./FlowFilters.jsx";
-import FlowTable from "./FlowTable.jsx";
-import OperationWizard from "./NewOperation/OperationWizard.jsx";
+import FlowHeader from "./components/CapitalFlowHeader/FlowHeader.jsx";
+import FlowFilters from "./components/CapitalFlowFilters/FlowFilters.jsx";
+import FlowTable from "./components/CapitalFlowTable/FlowTable.jsx";
 
-export default function CapitalFlows({ lps = [] }) {
+import OperationPanel from "./NewOperation/OperationPanel/OperationPanel.jsx";
+
+
+export default function CapitalFlows() {
+  // ✅ get values from parent Outlet context (safe defaults)
+  const outlet = useOutletContext() || {};
+  const lps = outlet.lps || [];
+  const shareClasses = outlet.shareClasses || []; // ✅ NEW (safe)
+  const fundId = outlet.fundId; // ✅ optional (safe if undefined)
+
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
-
-  // wizard state (keep as you have it)
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1);
-
-  // breakdown state (Operations / LPs / Share class)
   const [breakdown, setBreakdown] = useState("operations");
 
+  // ✅ OperationPanel state
+  const [opOpen, setOpOpen] = useState(false);
+  const [opMode, setOpMode] = useState("new"); // "new" | "detail"
+  const [selectedOp, setSelectedOp] = useState(null);
+
   const handleNewOperation = () => {
-    setWizardStep(1);
-    setWizardOpen(true);
+    setSelectedOp(null);
+    setOpMode("new");
+    setOpOpen(true);
   };
 
-  const handleCloseWizard = () => {
-    setWizardOpen(false);
+  const handleSelectOperation = (op) => {
+    setSelectedOp(op);
+    setOpMode("detail");
+    setOpOpen(true);
   };
 
-  const handleNextStep = () => {
-    setWizardStep((prev) => Math.min(prev + 1, 2));
-  };
-
-  const handlePreviousStep = () => {
-    setWizardStep((prev) => (prev === 1 ? 1 : prev - 1));
+  const handleClosePanel = () => {
+    setOpOpen(false);
   };
 
   return (
     <div className="cf-page">
-      {/* Row 1: Search + Breakdown (same line) */}
+      {/* Row 1: Search + Breakdown */}
       <div className="cf-row cf-row--search-breakdown">
         <FlowFilters
           variant="searchOnly"
@@ -56,7 +63,7 @@ export default function CapitalFlows({ lps = [] }) {
         />
       </div>
 
-      {/* Row 2: Filter chips + New operation (same line) */}
+      {/* Row 2: Chips + New operation */}
       <div className="cf-row cf-row--filters-newop">
         <FlowFilters
           variant="chipsOnly"
@@ -75,18 +82,24 @@ export default function CapitalFlows({ lps = [] }) {
         />
       </div>
 
-      {/* table – uses the SAME breakdown state */}
+      {/* Table */}
       <FlowTable
         operationFilter={operationFilter}
         search={search}
         breakdown={breakdown}
+        onSelectOperation={handleSelectOperation}
       />
 
-      {/* wizard modal */}
-      {wizardOpen && (
-        <OperationWizard
-          onClose={handleCloseWizard}
-          lps={lps} // ✅ THIS is the missing link
+      {/* ✅ mount panel ONLY when open */}
+      {opOpen && (
+        <OperationPanel
+          open={opOpen}
+          mode={opMode}
+          operation={selectedOp}
+          lps={lps}
+          shareClasses={shareClasses}  // ✅ NEW
+          fundId={fundId}              // ✅ optional
+          onClose={handleClosePanel}
         />
       )}
     </div>

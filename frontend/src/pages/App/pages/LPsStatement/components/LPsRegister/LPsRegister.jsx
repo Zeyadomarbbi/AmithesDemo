@@ -11,6 +11,8 @@ import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
 import LPDrawer from "./components/LPDrawer/LPDrawer.jsx"
 
 /* Hooks */
+import { useCountries } from "../../../../hooks/Reference/useCountries.js";
+import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods.jsx";
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import { useLimitedPartners } from "../../../../hooks/LPsStatement/useLimitedPartners.jsx";
@@ -137,7 +139,8 @@ export default function LPsRegister() {
   const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
   const { limitedPartners, fetchLimitedPartners, updateLimitedPartner } = useLimitedPartners();
   const { commitments, fetchCommitments, updateCommitment, createCommitment } = useLimitedPartnerFundCommitment(fundId);
-
+  const { countries, isLoading: countriesLoading } = useCountries();
+  const { currencies, isLoading: currenciesLoading } = useCurrencies();
   /* --- Data Loading --- */
   const loadAllData = useCallback(async () => {
     setIsLoadingData(true);
@@ -225,13 +228,14 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
 
   const selectedLPCommitments = useMemo(() => {
     if (!selectedLP || !commitments) return [];
-    return commitments.filter(c => String(c.lp) === String(selectedLP.lp_id));
+    return commitments.filter(c => String(c.lp_id) === String(selectedLP.lp_id));
   }, [selectedLP, commitments]);
-    console.log("🧐 MEMO DEP CHECK:", {
-    commitmentsRef: commitments,
-    lpsRef: limitedPartners,
-    summaryRowsCount: summaryData.summaryRows.length
-  });
+
+  const handleSelectLP = useCallback(async (lp) => {
+    await fetchCommitments();
+    setSelectedLP(lp);
+  }, [fetchCommitments]);
+
   return (
     <div className="lp-register-container">
       {closingsError && <div className="db-error-msg">{closingsError}</div>}
@@ -283,7 +287,7 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
             ownership: "100.00%",
             closingTotals: summaryData.closingTotals
           }}
-          onSelectLP={(lp) => setSelectedLP(lp)}
+          onSelectLP={handleSelectLP}
           onOpenAddPeriod={() => setPeriodModalOpen(true)}
         />
       )}
@@ -291,14 +295,23 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
       {/* --- OVERLAYS --- */}
 
       <LPDrawer 
-        lp={selectedLP} 
-        existingCommitments={selectedLPCommitments}
-        open={isNewLpOpen || !!selectedLP} 
-        onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
-        onSave={handleAddNewLpSuccess}
-        periods={tableColumns} 
+          lp={selectedLP} 
+          existingCommitments={selectedLPCommitments}
+          open={isNewLpOpen || !!selectedLP} 
+          onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
+          onSave={async () => {
+              await Promise.all([fetchLimitedPartners(), fetchCommitments()]);
+              setSelectedLP(null);
+              setIsNewLpOpen(false);
+          }}
+          periods={tableColumns}
+          countries={countries}
+          countriesLoading={countriesLoading}
+          shareClasses={shareClasses}
+          classesLoading={classesLoading}
+          currencies={currencies}
+          currenciesLoading={currenciesLoading}
       />
-
       <AddPeriodModal 
         open={periodModalOpen} 
         onClose={() => setPeriodModalOpen(false)} 

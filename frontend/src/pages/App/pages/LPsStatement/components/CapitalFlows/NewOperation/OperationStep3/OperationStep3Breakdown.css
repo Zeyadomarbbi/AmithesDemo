@@ -1,0 +1,240 @@
+/* frontend/src/pages/App/pages/LPsStatement/components/NewOperation/OperationStep3Breakdown.css */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+/* ROOT */
+.op3-root {
+  margin-top: 24px;
+  font-family: "Inter", sans-serif;
+}
+
+.op3-table-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.op3-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 1220px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+/* column widths (roughly matching Figma) */
+.op3-col-lp {
+  width: 200px;
+}
+.op3-col-commit,
+.op3-col-owner,
+.op3-col-called,
+.op3-col-calledpct,
+.op3-col-shares,
+.op3-col-eq,
+.op3-col-call {
+  width: 140px;
+}
+
+/* ========== TOP STRIP ========== */
+.op3-top-row th {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: left;
+}
+
+.op3-top-info,
+.op3-top-op {
+  background: #0f172a;
+}
+
+.op3-top-breakdown {
+  background: #375a89;
+  position: relative;
+}
+
+.op3-top-plus {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #ffffff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ========== SECOND HEADER ROW ========== */
+
+.op3-head-row th {
+  padding: 8px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.op3-head-lp {
+  background: #f3f4f6;
+}
+
+/* ========== BODY ========== */
+
+.op3-body-row td {
+  padding: 8px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.op3-cell-lp {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.op3-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #375a89;
+  background: #fafaf9;
+}
+
+.op3-lp-name {
+  font-size: 14px;
+  color: #374151;
+}
+
+.op3-body-row.is-alt td {
+  background: #f9fafb;
+}
+
+/* ========== FOOTER (TOTAL) ========== */
+
+.op3-foot-row td {
+  padding: 10px 14px;
+  background: #375a89;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.op3-foot-label {
+  text-align: left;
+}
+
+.op3-foot {
+  text-align: right;
+}
+
+/* ===================================================================== */
+/* ===================== ADDITIONS (NO REMOVALS) ======================== */
+/* ===================================================================== */
+
+.op3-scroll-x {
+  width: 100%;
+  max-width: 1220px;
+  overflow-x: auto;
+}
+
+.op3-table--wide {
+  width: max-content;
+  min-width: 1220px;
+  max-width: none;
+}
+
+/* new column widths */
+.op3-col-class {
+  width: 120px;
+}
+.op3-col-op {
+  width: 140px;
+}
+.op3-col-after {
+  width: 140px;
+}
+.op3-col-undrawn {
+  width: 160px;
+}
+
+/* breakdown after operation blue (same tone) */
+.op3-top-after {
+  background: #375a89;
+}
+
+/* ONLY left sticky (INFORMATION) */
+.op3-sticky-0,
+.op3-sticky-1 {
+  position: sticky;
+  z-index: 4;
+}
+
+.op3-sticky-0 {
+  left: 0;
+}
+.op3-sticky-1 {
+  left: 200px;
+}
+
+/* header sticky backgrounds */
+.op3-head-row .op3-sticky-0,
+.op3-head-row .op3-sticky-1 {
+  background: #f9fafb;
+  z-index: 7;
+}
+
+.op3-head-row .op3-sticky-0.op3-head-lp {
+  background: #f3f4f6;
+}
+
+/* top strip sticky background */
+.op3-top-row .op3-sticky-0 {
+  background: #0f172a;
+  z-index: 8;
+}
+
+/* body sticky backgrounds */
+.op3-body-row .op3-sticky-0,
+.op3-body-row .op3-sticky-1 {
+  background: #ffffff;
+}
+
+.op3-body-row.is-alt .op3-sticky-0,
+.op3-body-row.is-alt .op3-sticky-1 {
+  background: #f9fafb;
+}
+
+/* footer sticky backgrounds */
+.op3-foot-row .op3-sticky-0,
+.op3-foot-row .op3-sticky-1 {
+  background: #375a89;
+  z-index: 9;
+}
+
+/* colors */
+.op3-cell-fetched {
+  color: #000000;
+  font-weight: 600;
+}
+
+.op3-cell-calc {
+  color: #000000;
+  font-weight: 600;
+}
+
+.op3-cell-left {
+  text-align: left;
+}

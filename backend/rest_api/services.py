@@ -86,84 +86,77 @@ class PortfolioKpiService:
         self.timeframe_id = timeframe_id
 
     def compute(self):
-
         timeframe = Timeframe.objects.get(
             fund_id=self.fund_id,
             timeframe_id=self.timeframe_id
         )
-
         effective_date = timeframe.date
-        investments = PortfolioInvestment.objects.filter(
-            fund_id=self.fund_id,
-            is_deleted=False,
-            scenario_id__isnull=True
-        )
-        if not investments.exists():
-            return {
-                "grossIrr": None,
-                "deals": 0,
-                "totalCost": 0,
-            }
 
-        investment_ids = investments.values_list(
-            "investment_id",
-            flat=True
+        # Single evaluation, reused below — no repeated .count()/.exists()
+        investment_ids = list(
+            PortfolioInvestment.objects
+            .filter(
+                fund_id=self.fund_id,
+                is_deleted=False,
+                scenario_id__isnull=True
+            )
+            .values_list("investment_id", flat=True)
         )
-        flows = PortfolioTransactionFlow.objects.filter(
-            portfolio_investment_id__in=investment_ids,
-            scenario_id__isnull=True,
-            date__lte=effective_date,
-            is_deleted=False
+
+        if not investment_ids:
+            return {"grossIrr": None, "deals": 0, "totalCost": 0}
+
+        flows = list(
+            PortfolioTransactionFlow.objects.filter(
+                portfolio_investment_id__in=investment_ids,
+                scenario_id__isnull=True,
+                date__lte=effective_date,
+                is_deleted=False
+            )
         )
-        fair_values = PortfolioFairValueFlow.objects.filter(
-            portfolio_investment_id__in=investment_ids,
-            date__lte=effective_date
+
+        fair_values = (
+            PortfolioFairValueFlow.objects
+            .filter(
+                portfolio_investment_id__in=investment_ids,
+                date__lte=effective_date
+            )
+            .order_by("portfolio_investment_id", "-date")
         )
-        # ---- Build unified cashflow stream ----
 
         cashflow_map = defaultdict(Decimal)
 
-        # Transaction flows
         for flow in flows:
-            cashflow_map[flow.date] += -1*flow.amount
+            cashflow_map[flow.date] += -1 * flow.amount
 
-        # Fair values treated as terminal inflow at effective date
-        # Take latest fair value per investment
         latest_fv_map = {}
+        for fv in fair_values:
+            if fv.portfolio_investment_id not in latest_fv_map:
+                latest_fv_map[fv.portfolio_investment_id] = fv.amount
 
-        for fv in fair_values.order_by("portfolio_investment_id", "-date"):
-            inv_id = fv.portfolio_investment_id
-            if inv_id not in latest_fv_map:
-                latest_fv_map[inv_id] = fv.amount
         for amount in latest_fv_map.values():
             cashflow_map[effective_date] += amount
-        
-        if not cashflow_map:
-            return {
-                "grossIrr": None,
-                "deals": investments.count(),
-                "totalCost": 0,
-            }
 
-        # Sort chronologically
+        deals = len(investment_ids)
+
+        if not cashflow_map:
+            return {"grossIrr": None, "deals": deals, "totalCost": 0}
+
         sorted_dates = sorted(cashflow_map.keys())
         cashflows = [float(cashflow_map[d]) for d in sorted_dates]
         gross_irr = xirr(cashflows, sorted_dates)
-        total_cost = (
-            flows
-            .filter(
-                transaction_type__transaction_name="Investment",
-                is_deleted=False
-            )
-            .aggregate(total=Sum("amount"))["total"]
-            or Decimal("0")
-        )
-        result = {
+
+        total_cost = sum(
+            flow.amount for flow in flows
+            if flow.transaction_type.transaction_name == "Investment"
+        ) or Decimal("0")
+
+        return {
             "grossIrr": float(gross_irr) if gross_irr is not None else None,
-            "deals": investments.count(),
+            "deals": deals,
             "totalCost": float(abs(total_cost)),
         }
-        return result
+
     
 class CapitalAccountService:
     def __init__(self, fund_id: int, timeframe_id: int):

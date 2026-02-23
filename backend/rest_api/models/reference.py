@@ -158,3 +158,22 @@ class PortfolioTransactionType(models.Model):
         managed = False
         ordering = ["transaction_id"]
         db_table = "portfolio_transaction_type"
+
+class LPsOperationType(models.Model):
+    operation_type_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=255, db_column="name")
+    sign_multiplier = models.IntegerField(db_column="sign_multiplier", null=True, blank=True)
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_type"
+
+class LPsOperationFlowType(models.Model):
+    flow_type_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=255, db_column="name")
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flow_type"

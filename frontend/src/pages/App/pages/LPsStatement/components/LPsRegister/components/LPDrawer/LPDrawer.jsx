@@ -8,9 +8,6 @@ import {
 } from "../../../../Icons.jsx";
 
 /* Hooks */
-import { useCountries } from "../../../../../../hooks/Reference/useCountries.js";
-import { useShareClasses } from "../../../../../../hooks/useShareClass.js";
-import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies.js";
 import { useLimitedPartners } from "../../../../../../hooks/LPsStatement/useLimitedPartners.jsx";
 import { useLimitedPartnerFundCommitment } from "../../../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
 
@@ -39,57 +36,61 @@ const EMPTY_TRANCHE = {
   collapsed: false,
 };
 
-export default function LPDrawer({ lp, existingCommitments = [], open, onClose, onSave, periods = [] }) {
+export default function LPDrawer({ 
+    lp, existingCommitments = [], open, onClose, onSave, periods = [],
+    countries = [], countriesLoading = false,
+    shareClasses: dbShareClasses = [], classesLoading = false,
+    currencies = [], currenciesLoading = false,
+}) {
   const { fundId } = useParams();
   const isEdit = !!lp;
-
   /* --- API Hooks --- */
-  const { countries, isLoading: countriesLoading } = useCountries();
-  const { data: dbShareClasses, isLoading: classesLoading } = useShareClasses(fundId);
-  const { currencies, isLoading: currenciesLoading } = useCurrencies();
   const { createLimitedPartner, updateLimitedPartner } = useLimitedPartners();
   const { createCommitment, updateCommitment } = useLimitedPartnerFundCommitment(fundId);
 
   /* --- Form State --- */
   const [form, setForm] = useState(EMPTY_FORM);
   const [tranches, setTranches] = useState([]);
-  
+  console.log("tranches", tranches)
   /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);
 
   /* --- Reset Form on Open --- */
   useEffect(() => {
-    if (!open) return;
-
-    if (isEdit) {
-      setForm({
-        lpName: lp.name || "",
-        address: lp.address || "",
-        city: lp.city || "",
-        zip: lp.zip_code || "",
-        countryId: lp.country_id || lp.country || "",
-        iban: lp.iban || "",
-        bankName: lp.bank_name || "",
-        swift: lp.swift || "",
-      });
+      if (!isEdit) return;
 
       const mappedTranches = existingCommitments.map((c, idx) => ({
-        commitment_id: c.commitment_id,
-        shareClassId: c.share_class || "",
-        currencyId: c.currency || "",
-        commitment: c.commitment_amount ? parseFloat(c.commitment_amount) : "",
-        closingId: c.closing_period || "",
-        collapsed: true,
-        originalIndex: idx
+          commitment_id: c.commitment_id,
+          shareClassId: c.share_class_id || "",
+          currencyId: c.currency_id || "",
+          commitment: c.commitment_amount ? parseFloat(c.commitment_amount) : "",
+          closingId: c.lps_fund_closing_period_id || "",
+          collapsed: true,
+          originalIndex: idx
       }));
       setTranches(mappedTranches);
-    } else {
-      setForm(EMPTY_FORM);
-      setTranches([]);
-      setIsSubmitting(false);
-    }
-  }, [lp, existingCommitments, open, isEdit]);
+  }, [existingCommitments, isEdit]);
+
+  useEffect(() => {
+      if (open && !isEdit) {
+          setForm(EMPTY_FORM);
+          setTranches([]);
+          setIsSubmitting(false);
+      }
+      if (open && isEdit) {
+          setForm({
+              lpName: lp.name || "",
+              address: lp.address || "",
+              city: lp.city || "",
+              zip: lp.zip_code || "",
+              countryId: lp.country_id || lp.country || "",
+              iban: lp.iban || "",
+              bankName: lp.bank_name || "",
+              swift: lp.swift || "",
+          });
+      }
+  }, [open, lp, isEdit]);
 
   /* --- Handlers --- */
   const updateField = (field) => (e) => {
@@ -154,11 +155,11 @@ export default function LPDrawer({ lp, existingCommitments = [], open, onClose, 
         if (!t.shareClassId || !t.currencyId || !t.closingId) return Promise.resolve();
 
         const payload = {
-          lp: currentLpId,
-          fund: parseInt(fundId, 10),
-          share_class: parseInt(t.shareClassId, 10),
-          currency: parseInt(t.currencyId, 10),
-          closing_period: parseInt(t.closingId, 10),
+          lp_id: currentLpId,
+          fund_id: parseInt(fundId, 10),
+          share_class_id: parseInt(t.shareClassId, 10),
+          currency_id: parseInt(t.currencyId, 10),
+          lps_fund_closing_period_id: parseInt(t.closingId, 10),
           commitment_amount: parseFloat(t.commitment)
         };
 

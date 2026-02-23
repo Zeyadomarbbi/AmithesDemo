@@ -119,7 +119,7 @@ class LimitedPartner(models.Model):
         db_column='country_id',
         related_name='limited_partners'
     )
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     address = models.CharField(max_length=255, null=True, blank=True)
     city = models.CharField(max_length=100)
     zip_code = models.CharField(max_length=20)
@@ -132,8 +132,8 @@ class LimitedPartner(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'lps_limited_partner'
         managed = False
+        db_table = 'lps_limited_partner'
         ordering = ['name']
 
 class FundManFeeCommitmentYear(models.Model):

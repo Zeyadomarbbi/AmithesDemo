@@ -13,7 +13,11 @@ export function useLimitedPartners() {
         try {
             const res = await fetch(`${API_BASE_URL}/api/limited-partners/`, {
             });
-            if (!res.ok) throw new Error('Fetch failed');
+            if (!res.ok) {
+                const err = await res.json();
+                console.error(err);
+                throw new Error('Fetch failed');
+            }
             const data = await res.json();
             setLimitedPartners([...data]);
         } catch (err) {
@@ -30,7 +34,11 @@ export function useLimitedPartners() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Create failed');
+        if (!res.ok) {
+            const err = await res.json();
+            console.error(err);
+            throw new Error('Create failed');
+        }
         const data = await res.json();
         setLimitedPartners(prev => [...prev, data]);
         return data;

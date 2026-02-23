@@ -238,91 +238,67 @@ class PortfolioFairValueFlowView(APIView):
     
 
 class BulkPortfolioKpiView(APIView):
-
     def post(self, request):
         fund_ids = request.data.get("fund_ids", [])
         timeframe_id = request.data.get("timeframe_id")
-        
+
         if not isinstance(fund_ids, list) or not fund_ids:
             return Response(
                 {"error": "fund_ids must be non-empty list"},
                 status=400
             )
 
+        empty = {"grossIrr": None, "deals": 0, "totalCost": 0}
+        resolved_timeframes = {}  # fund_id -> timeframe_id
+
+        if not timeframe_id:
+            # Batch: fetch latest timeframe per fund in one query
+            latest_tfs = (
+                Timeframe.objects
+                .filter(fund_id__in=fund_ids)
+                .order_by("fund_id", "-date")
+                .distinct("fund_id")
+            )
+            for tf in latest_tfs:
+                resolved_timeframes[tf.fund_id] = tf.timeframe_id
+        else:
+            resolved_timeframes = {fid: int(timeframe_id) for fid in fund_ids}
+
         results = {}
 
+        # Funds with no timeframe
         for fund_id in fund_ids:
+            if fund_id not in resolved_timeframes:
+                results[str(fund_id)] = empty
+
+        # Batch fetch existing cache rows
+        pairs = [(fid, resolved_timeframes[fid]) for fid in resolved_timeframes]
+        cached_rows = PortfolioKpiCache.objects.filter(
+            fund_id__in=[p[0] for p in pairs]
+        )
+        cache_map = {
+            (row.fund_id, row.timeframe_id): row.payload
+            for row in cached_rows
+        }
+
+        for fund_id, tf_id in pairs:
+            if (fund_id, tf_id) in cache_map:
+                results[str(fund_id)] = cache_map[(fund_id, tf_id)]
+                continue
+
             try:
-                if not timeframe_id:
-                    latest_tf = (
-                        Timeframe.objects
-                        .filter(fund_id=fund_id)
-                        .order_by("-date")
-                        .first()
-                    )
+                service = PortfolioKpiService(fund_id=fund_id, timeframe_id=tf_id)
+                result = service.compute()
 
-                    if not latest_tf:
-                        results[str(fund_id)] = {
-                            "grossIrr": None,
-                            "deals": 0,
-                            "totalCost": 0,
-                        }
-                        continue
-
-                    resolved_timeframe = latest_tf.timeframe_id
-                else:
-                    resolved_timeframe = int(timeframe_id)
-
-                with transaction.atomic():
-                    cached = (
-                        PortfolioKpiCache.objects
-                        .select_for_update()
-                        .filter(
-                            fund_id=fund_id,
-                            timeframe_id=resolved_timeframe
-                        )
-                        .first()
-                    )
-
-                    if cached:
-                        results[str(fund_id)] = cached.payload
-                        continue
-
-                    service = PortfolioKpiService(
-                        fund_id=fund_id,
-                        timeframe_id=resolved_timeframe
-                    )
-
-                    result = service.compute()
-                    print(result)
-                    PortfolioKpiCache.objects.create(
-                        fund_id=fund_id,
-                        timeframe_id=resolved_timeframe,
-                        payload=result
-                    )
-
-                    results[str(fund_id)] = result
-
-            except IntegrityError:
-                cached = PortfolioKpiCache.objects.filter(
+                obj, created = PortfolioKpiCache.objects.get_or_create(
                     fund_id=fund_id,
-                    timeframe_id=resolved_timeframe
-                ).first()
-
-                if cached:
-                    results[str(fund_id)] = cached.payload
-                else:
-                    results[str(fund_id)] = {
-                        "grossIrr": None,
-                        "deals": 0,
-                        "totalCost": 0,
-                    }
+                    timeframe_id=tf_id,
+                    defaults={"payload": result}
+                )
+                # If not created, another request beat us to it — use stored value
+                results[str(fund_id)] = obj.payload if not created else result
 
             except Exception:
-                results[str(fund_id)] = {
-                    "grossIrr": None,
-                    "deals": 0,
-                    "totalCost": 0,
-                }
+                results[str(fund_id)] = empty
 
         return Response(results, status=200)

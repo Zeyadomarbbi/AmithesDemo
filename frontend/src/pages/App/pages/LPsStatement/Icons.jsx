@@ -62,11 +62,25 @@ export const SearchIcon = () => (
     />
   </svg>
 );
-export const PlusIcon = () => (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M5.33333 0C5.70152 0 6 0.298477 6 0.666667V4.66667H10C10.3682 4.66667 10.6667 4.96514 10.6667 5.33333C10.6667 5.70152 10.3682 6 10 6H6V10C6 10.3682 5.70152 10.6667 5.33333 10.6667C4.96514 10.6667 4.66667 10.3682 4.66667 10V6H0.666667C0.298477 6 0 5.70152 0 5.33333C0 4.96514 0.298477 4.66667 0.666667 4.66667H4.66667V0.666667C4.66667 0.298477 4.96514 0 5.33333 0Z" fill="#375A89"/>
-    </svg>
+export const PlusIcon = ({ size = 11, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 11 11"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    {...props}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M5.33333 0C5.70152 0 6 0.298477 6 0.666667V4.66667H10C10.3682 4.66667 10.6667 4.96514 10.6667 5.33333C10.6667 5.70152 10.3682 6 10 6H6V10C6 10.3682 5.70152 10.6667 5.33333 10.6667C4.96514 10.6667 4.66667 10.3682 4.66667 10V6H0.666667C0.298477 6 0 5.70152 0 5.33333C0 4.96514 0.298477 4.66667 0.666667 4.66667H4.66667V0.666667C4.66667 0.298477 4.96514 0 5.33333 0Z"
+      fill="currentColor"
+    />
+  </svg>
 );
+
 export const MinusIcon = (props) => (
   <svg
     width="11"
