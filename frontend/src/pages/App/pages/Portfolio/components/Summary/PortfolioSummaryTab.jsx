@@ -101,6 +101,8 @@ const PortfolioSummaryTab = () => {
   const selectedQuarterObj = quarters.find(
     (q) => Number(q.id) === Number(selectedQuarter)
   );
+  const latestQuarterObj = quarters.length ? quarters[quarters.length - 1] : null;
+  const activeQuarterObj = selectedQuarterObj || latestQuarterObj || null;
 
   /* ===== Investments State ===== */
   const [unrealizedRows, setUnrealizedRows] = useState([]);
@@ -108,15 +110,9 @@ const PortfolioSummaryTab = () => {
   const [unallocatedRows, setUnallocatedRows] = useState([]);
 
   const selectedTimeframeDate =
-    selectedQuarterObj?.rawDate ||
-    selectedQuarterObj?.date ||
-    new Date().toISOString().split("T")[0];
-
-  const effectiveTimeframe = selectedQuarterObj || {
-    rawDate: selectedTimeframeDate,
-    date: selectedTimeframeDate,
-    display_label: "Today",
-  };
+    activeQuarterObj?.rawDate || activeQuarterObj?.date || null;
+  const metricsCutoffDate = selectedTimeframeDate || "9999-12-31";
+  const effectiveTimeframe = activeQuarterObj || null;
 
   const normalizeStatus = (status) => {
     const s = String(status || "").trim().toLowerCase();
@@ -341,14 +337,11 @@ const PortfolioSummaryTab = () => {
             fetchInvestmentFairValues(row.id),
           ]);
 
-          const statusComputed = computeStatusFromFlows(
-            flows,
-            selectedTimeframeDate
-          );
+          const statusComputed = computeStatusFromFlows(flows, metricsCutoffDate);
           const metrics = computeMetricsFromFlows(
             flows,
             fairValues,
-            selectedTimeframeDate
+            metricsCutoffDate
           );
 
           return {
@@ -391,6 +384,7 @@ const PortfolioSummaryTab = () => {
   }, [
     numericFundId,
     selectedTimeframeDate,
+    metricsCutoffDate,
     fetchInvestmentFlows,
     fetchInvestmentFairValues,
     computeStatusFromFlows,
@@ -400,6 +394,17 @@ const PortfolioSummaryTab = () => {
   useEffect(() => {
     loadSummaryData();
   }, [loadSummaryData]);
+
+  useEffect(() => {
+    if (!quarters.length) return;
+    const hasSelected = quarters.some(
+      (q) => Number(q.id) === Number(selectedQuarter)
+    );
+    if (!hasSelected) {
+      const latest = quarters[quarters.length - 1];
+      setSelectedQuarter(Number(latest.id));
+    }
+  }, [quarters, selectedQuarter]);
 
   useEffect(() => {
     if (!numericFundId) return;
@@ -570,11 +575,6 @@ const PortfolioSummaryTab = () => {
             isSingle
             allowAddNew={false}
           />
-          {!selectedQuarter && (
-            <div className="portfolio-filter-indicator">
-              Filtering up to today
-            </div>
-          )}
         </div>
 
         <div className="toolbar-right">
@@ -867,17 +867,7 @@ const PortfolioSummaryTab = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td>---------</td>
-                <td >---------</td>
-              </tr>
+              
               <tr className="portfolio-subtotal-row total-row">
                 <td className="subtotal-name-cell">Total</td>
                 <td />

@@ -1,27 +1,47 @@
-from rest_framework import generics, mixins, viewsets
-from rest_framework.viewsets import ModelViewSet
-from django.utils import timezone
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.db import connection
-from django.http import HttpResponse
-from psycopg2 import OperationalError
-from django.db import transaction, IntegrityError
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from datetime import date
-from django.http import Http404
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
-from ..serializers.lps_statement_serializers import ClosingPeriodSerializer
-from ..models.reference import ClosingPeriod
-from ..serializers.lps_statement_serializers import FundClosingSerializer
-from ..models.transactions import FundClosing, LPsFundCommitment
-from ..models.core import LimitedPartner, Timeframe
-from ..serializers.lps_statement_serializers import LimitedPartnerSerializer, LPsFundCommitmentSerializer
+from django.db import connection, transaction, IntegrityError
+from django.http import Http404, HttpResponse
+from django.utils import timezone
+
+from psycopg2 import OperationalError
+
+from rest_framework import generics, mixins, status, viewsets
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+
+from ..models import (
+    LimitedPartner, 
+    Timeframe,
+    ClosingPeriod,
+    LPsOperationType,
+    LPsOperationDetails,
+    LPsOperationFlowType,
+    LPsOperationFlow,
+    LPsOperationFlowShareClassAllocation,
+    LPsOperationFlowLPAllocation,
+    FundClosing, 
+    LPsFundCommitment,
+    CapitalAccountKpiCache
+)
+
+from ..serializers import (
+    LPsOperationTypeSerializer,
+    LPsOperationDetailsSerializer,
+    LPsOperationFlowTypeSerializer,
+    LPsOperationFlowSerializer,
+    LPsOperationFlowShareClassAllocationSerializer,
+    LPsFlowLPAllocationSerializer,
+    OperationFullCreateSerializer,
+    ClosingPeriodSerializer,
+    FundClosingSerializer,
+    LimitedPartnerSerializer,
+    LPsFundCommitmentSerializer,
+)
+
 from ..services import CapitalAccountService
-from ..models.views import CapitalAccountKpiCache
-from ..models import LPsOperationType, LPsOperationDetails, LPsOperationFlowType, LPsOperationFlow, LPsOperationFlowShareClassAllocation, LPsOperationFlow, LPsOperationFlowShareClassAllocation
-from ..serializers import LPsOperationTypeSerializer, LPsOperationDetailsSerializer, LPsOperationFlowTypeSerializer, LPsOperationFlowSerializer, LPsOperationFlowShareClassAllocationSerializer, OperationFullCreateSerializer
 
 def _table_columns(table_name: str) -> set[str]:
     with connection.cursor() as cursor:
@@ -335,7 +355,7 @@ class FlowTypeList(generics.ListAPIView):
     serializer_class = LPsOperationFlowTypeSerializer
 
 
-class OperationViewSet(viewsets.ModelViewSet):
+class LPsOperationDetailsViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationDetailsSerializer
     queryset = LPsOperationDetails.objects.all()
     lookup_field = 'pk' # Or 'lps_operation_details_id'
@@ -366,49 +386,28 @@ class OperationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         op_id = self.perform_create(serializer)
-        return Response({"operation_id": op_id}, status=status.HTTP_201_CREATED)
+        return Response({"lps_operation_details_id": op_id}, status=status.HTTP_201_CREATED)
 
-class OperationFlowViewSet(viewsets.ModelViewSet):
-    """
-    ✅ Step 2 endpoint:
-      POST /api/operations/<operation_id>/flows/
-
-    IMPORTANT FIX:
-    - prevent DRF from querying the 'operation' FK (which triggers missing column operation_name)
-    - we bind operation_id from URL, so serializer doesn't need operation in payload
-    """
+class LPsOperationFlowViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationFlowSerializer
+    queryset = LPsOperationFlow.objects.all()
+    lookup_field = 'pk'
 
     def get_queryset(self):
-        qs = LPsOperationFlow.objects.all()
-        operation_id = self.kwargs.get("operation_id")
-        if operation_id is not None:
-            qs = qs.filter(operation_id=operation_id)
-        return qs.order_by("operation_flow_id")
-
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        if "operation" in data:
-            data.pop("operation")
-
-        serializer = self.get_serializer(data=data)
-
-        if "operation" in serializer.fields:
-            serializer.fields["operation"].required = False
-            serializer.fields["operation"].allow_null = True
-
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # Must exactly match the name in your path()
+        parent_id = self.kwargs.get("lps_operation_details_id")
+        return self.queryset.filter(lps_operation_details_id=parent_id).prefetch_related("lp_allocations").order_by("operation_flow_id")
 
     def perform_create(self, serializer):
-        operation_id = self.kwargs.get("operation_id")
-        if operation_id is None:
-            raise Http404("operation_id is required")
+        self._process_and_save(serializer)
 
-        vd = getattr(serializer, "validated_data", {}) or {}
+    def perform_update(self, serializer):
+        self._process_and_save(serializer)
+
+    def _process_and_save(self, serializer):
+        vd = serializer.validated_data
+        # Extract the renamed ID from kwargs
+        parent_id = self.kwargs.get("lps_operation_details_id")
 
         safe_alloc = _q6(_normalize_fraction(vd.get("allocation_percentage_of_commitment")))
         safe_pct = _q6(_normalize_fraction(vd.get("input_percentage")))
@@ -421,17 +420,41 @@ class OperationFlowViewSet(viewsets.ModelViewSet):
             allocation_pct=safe_alloc,
         )
 
+        # Django FK naming logic: 
+        # Since your field is lps_operation_details_id, use _id_id to pass a raw integer
         serializer.save(
-            operation_id=int(operation_id),
-            created_at=timezone.now(),
+            lps_operation_details_id_id=int(parent_id),
+            created_at=timezone.now() if self.action == 'create' else serializer.instance.created_at,
             created_by=_created_by_int(self.request),
             allocation_percentage_of_commitment=safe_alloc,
             input_percentage=safe_pct if vd.get("input_type") == "percentage" else vd.get("input_percentage"),
             computed_total_amount=computed_total,
         )
 
+class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
+    serializer_class = LPsFlowLPAllocationSerializer
+    queryset = LPsOperationFlowLPAllocation.objects.all()
+    lookup_field = 'pk'
 
-class OperationAllocationViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        # Nested filtering: Parent -> operation_flow_id
+        flow_id = self.kwargs.get("lp_operation_flow_id")
+        return self.queryset.filter(operation_flow_id=flow_id).order_by("flow_allocation_id")
+
+    def perform_create(self, serializer):
+        self._process_allocation(serializer)
+
+    def perform_update(self, serializer):
+        self._process_allocation(serializer)
+
+    def _process_allocation(self, serializer):
+        flow_id = self.kwargs.get("lp_operation_flow_id")
+        serializer.save(
+            operation_flow_id=int(flow_id),
+            created_by=_created_by_int(self.request)
+        )
+
+class LPsOperationFlowShareClassAllocationViewSet(viewsets.ModelViewSet):
     """
     POST /api/operations/<operation_id>/allocations/
 

@@ -326,6 +326,7 @@ class FundClosing(models.Model):
         db_table = 'lps_fund_closings'
         unique_together = ('fund', 'closing_period')
 
+# Done
 class LPsFundCommitment(models.Model):
     commitment_id = models.AutoField(primary_key=True)
 
@@ -377,6 +378,253 @@ class LPsFundCommitment(models.Model):
         managed = False
         db_table = 'lps_fund_commitments'
 
+
+class LPsOperationDetails(models.Model):
+    """
+    ✅ This MUST exist because your DB FK on lps_operation_flows points to lps_operation_details.
+    """
+    lps_operation_details_id = models.BigAutoField(primary_key=True)
+
+    fund = models.ForeignKey(
+        "Fund",
+        on_delete=models.CASCADE,
+        db_column="fund_id",
+        related_name="lps_operation_details",
+    )
+
+    operation_type = models.ForeignKey(
+        "LPsOperationType",
+        on_delete=models.PROTECT,
+        db_column="operation_type_id",
+        related_name="lps_operation_details",
+    )
+
+    operation_name = models.TextField(db_column="name")
+    operation_number = models.IntegerField(db_column="operation_number")
+    notice_date = models.DateField(db_column="notice_date")
+    due_date = models.DateField(db_column="due_date")
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
+    
+    class Meta:
+        managed = False
+        db_table = "lps_operation_details"
+
+class LPsOperationFlow(models.Model):
+    AMOUNT = "amount"
+    PERCENTAGE = "percentage"
+    
+    INPUT_TYPE_CHOICES = [
+        (AMOUNT, "Amount"),
+        (PERCENTAGE, "Percentage"),
+    ]
+
+    operation_flow_id = models.BigAutoField(primary_key=True)
+    lps_operation_details_id = models.ForeignKey(
+        "LPsOperationDetails",
+        on_delete=models.CASCADE,
+        db_column="lps_operation_details_id",
+        related_name="flows",
+    )
+
+    flow_type = models.ForeignKey(
+        "LPsOperationFlowType",
+        on_delete=models.PROTECT,
+        db_column="flow_type_id",
+        related_name="operation_flows",
+    )
+
+    flow_name = models.TextField(db_column="flow_name")
+    input_type = models.TextField(
+        db_column="input_type",
+        choices=INPUT_TYPE_CHOICES,
+        default=AMOUNT
+    )
+    input_amount = models.DecimalField(
+        db_column="input_amount",
+        max_digits=20,
+        decimal_places=6,
+        null=True,
+        blank=True,
+    )
+
+    input_percentage = models.DecimalField(
+        db_column="input_percentage",
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+
+    allocation_percentage_of_commitment = models.DecimalField(
+        db_column="allocation_percentage_of_commitment",
+        max_digits=10,
+        decimal_places=6,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+    commitment_amount = models.DecimalField(
+        db_column="commitment_amount",
+        max_digits=20,
+        decimal_places=6,
+        default=0,
+    )
+
+    computed_total_amount = models.DecimalField(
+        db_column="computed_total_amount",
+        max_digits=20,
+        decimal_places=6,
+        default=0,
+        null=False,
+        blank=False,
+    )
+
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)
+    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)  # ✅ bigint
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flows"
+
+class LPsOperationFlowLPAllocation(models.Model):
+    lp_flow_allocation_id = models.BigAutoField(primary_key=True)
+    
+    # Parent: Flow
+    operation_flow_id = models.ForeignKey(
+        "LPsOperationFlow",
+        on_delete=models.CASCADE,
+        db_column="operation_flow_id",
+        related_name="lp_allocations"
+    )
+    
+    # Link to LP
+    lp_id = models.ForeignKey(
+        "LimitedPartner",
+        on_delete=models.PROTECT,
+        db_column="lp_id",
+    )
+
+    allocated_amount = models.DecimalField(
+        db_column="allocated_amount",
+        max_digits=20,
+        decimal_places=6,
+        default=0
+    )
+
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flow_lp_allocations"
+
+class LPsOperationFlowShareClassAllocation(models.Model):
+    share_class_allocation_id = models.BigAutoField(primary_key=True)
+    operation_flow = models.ForeignKey(
+        "LPsOperationFlow", 
+        on_delete=models.CASCADE, 
+        related_name="share_class_allocations",
+        db_column="operation_flow_id"
+    )
+    share_class_id = models.IntegerField() # Or ForeignKey to ShareClass model
+    total_allocated_amount = models.DecimalField(max_digits=20, decimal_places=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flow_share_class_allocations"
+
+class LPsOperationFlowShareClassAllocation(models.Model):
+    operation_allocation_id = models.BigAutoField(primary_key=True)
+
+    # If your DB column is literally "operation_id", keep it.
+    # It should reference the operation (lps_operation_details).
+    operation = models.ForeignKey(
+        "LpsOperationDetails",
+        on_delete=models.CASCADE,
+        db_column="operation_id",
+        related_name="allocations",
+    )
+
+    flow = models.ForeignKey(
+        "LPsOperationFlow",
+        on_delete=models.CASCADE,
+        db_column="operation_flow_id",
+        related_name="allocations",
+    )
+
+    lp = models.ForeignKey(
+        "LimitedPartner",
+        on_delete=models.PROTECT,
+        db_column="lp_id",
+        related_name="operation_allocations",
+    )
+
+    share_class = models.ForeignKey(
+        "ShareClass",
+        on_delete=models.PROTECT,
+        db_column="share_class_id",
+        related_name="operation_allocations",
+    )
+
+    commitment_amount = models.DecimalField(
+        db_column="commitment_amount",
+        max_digits=20,
+        decimal_places=6,
+        default=0,
+    )
+
+    capital_call = models.DecimalField(
+        db_column="capital_call",
+        max_digits=20,
+        decimal_places=6,
+        default=0,
+    )
+
+    # ✅ IMPORTANT: you are sending fractions (0..1)
+    called_percentage = models.DecimalField(
+        db_column="called_percentage",
+        max_digits=10,
+        decimal_places=6,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+    )
+
+    shares_issued = models.DecimalField(
+        db_column="shares_issued",
+        max_digits=20,
+        decimal_places=6,
+        default=0,
+    )
+
+class LPsOperationLPAllocation(models.Model):
+    operation_allocation_id = models.BigAutoField(primary_key=True)
+
+    # IMPORTANT: matches your table column exactly
+    lps_operation_details_id = models.BigIntegerField(db_column="lps_operation_details_id")
+
+    lp_id = models.BigIntegerField(db_column="lp_id")
+    share_class_id = models.BigIntegerField(db_column="share_class_id")
+
+    commitment_amount = models.DecimalField(db_column="commitment_amount", max_digits=20, decimal_places=6, default=0)
+    capital_call = models.DecimalField(db_column="capital_call", max_digits=20, decimal_places=6, default=0)
+    called_percentage = models.DecimalField(db_column="called_percentage", max_digits=10, decimal_places=6, default=0)
+    shares_issued = models.DecimalField(db_column="shares_issued", max_digits=20, decimal_places=6, default=0)
+
+    is_deleted = models.BooleanField(db_column="is_deleted", default=False)
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_lp_allocations"
+
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True, null=True, blank=True)
+    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)  # ✅ bigint
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flow_share_class_allocations"
 
 class PortfolioInvestment(models.Model):
     investment_id = models.AutoField(primary_key=True)
@@ -611,204 +859,3 @@ class ScenarioFinancialsProjection(models.Model):
     def category_name(self):
         # Assumes FinancialLineItem has a 'category' FK
         return self.line_item.category.name
-
-class LPsOperationDetails(models.Model):
-    """
-    ✅ This MUST exist because your DB FK on lps_operation_flows points to lps_operation_details.
-    """
-    lps_operation_details_id = models.BigAutoField(primary_key=True)
-
-    fund = models.ForeignKey(
-        "Fund",
-        on_delete=models.CASCADE,
-        db_column="fund_id",
-        related_name="lps_operation_details",
-    )
-
-    operation_type = models.ForeignKey(
-        "LPsOperationType",
-        on_delete=models.PROTECT,
-        db_column="operation_type_id",
-        related_name="lps_operation_details",
-    )
-
-    operation_name = models.TextField(db_column="name")
-    operation_number = models.IntegerField(db_column="operation_number")
-    notice_date = models.DateField(db_column="notice_date")
-    due_date = models.DateField(db_column="due_date")
-    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
-    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
-    
-    class Meta:
-        managed = False
-        db_table = "lps_operation_details"
-
-class LPsOperationFlow(models.Model):
-    AMOUNT = "amount"
-    PERCENTAGE = "percentage"
-    
-    INPUT_TYPE_CHOICES = [
-        (AMOUNT, "Amount"),
-        (PERCENTAGE, "Percentage"),
-    ]
-
-    operation_flow_id = models.BigAutoField(primary_key=True)
-    operation = models.ForeignKey(
-        "LPsOperationDetails",
-        on_delete=models.CASCADE,
-        db_column="lps_operation_details_id",
-        related_name="flows",
-    )
-
-    flow_type = models.ForeignKey(
-        "LPsOperationFlowType",
-        on_delete=models.PROTECT,
-        db_column="flow_type_id",
-        related_name="operation_flows",
-    )
-
-    flow_name = models.TextField(db_column="flow_name")
-    input_type = models.TextField(
-        db_column="input_type",
-        choices=INPUT_TYPE_CHOICES,
-        default=AMOUNT
-    )
-    input_amount = models.DecimalField(
-        db_column="input_amount",
-        max_digits=20,
-        decimal_places=6,
-        null=True,
-        blank=True,
-    )
-
-    input_percentage = models.DecimalField(
-        db_column="input_percentage",
-        max_digits=10,
-        decimal_places=6,
-        null=True,
-        blank=True,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-    )
-
-    allocation_percentage_of_commitment = models.DecimalField(
-        db_column="allocation_percentage_of_commitment",
-        max_digits=10,
-        decimal_places=6,
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-    )
-    commitment_amount = models.DecimalField(
-        db_column="commitment_amount",
-        max_digits=20,
-        decimal_places=6,
-        default=0,
-    )
-
-    computed_total_amount = models.DecimalField(
-        db_column="computed_total_amount",
-        max_digits=20,
-        decimal_places=6,
-        default=0,
-        null=False,
-        blank=False,
-    )
-
-    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True, null=True, blank=True)
-    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)  # ✅ bigint
-
-    class Meta:
-        managed = False
-        db_table = "lps_operation_flows"
-
-
-class LPsOperationFlowShareClassAllocation(models.Model):
-    operation_allocation_id = models.BigAutoField(primary_key=True)
-
-    # If your DB column is literally "operation_id", keep it.
-    # It should reference the operation (lps_operation_details).
-    operation = models.ForeignKey(
-        "LpsOperationDetails",
-        on_delete=models.CASCADE,
-        db_column="operation_id",
-        related_name="allocations",
-    )
-
-    flow = models.ForeignKey(
-        "LpsOperationFlow",
-        on_delete=models.CASCADE,
-        db_column="operation_flow_id",
-        related_name="allocations",
-    )
-
-    lp = models.ForeignKey(
-        "LimitedPartner",
-        on_delete=models.PROTECT,
-        db_column="lp_id",
-        related_name="operation_allocations",
-    )
-
-    share_class = models.ForeignKey(
-        "ShareClass",
-        on_delete=models.PROTECT,
-        db_column="share_class_id",
-        related_name="operation_allocations",
-    )
-
-    commitment_amount = models.DecimalField(
-        db_column="commitment_amount",
-        max_digits=20,
-        decimal_places=6,
-        default=0,
-    )
-
-    capital_call = models.DecimalField(
-        db_column="capital_call",
-        max_digits=20,
-        decimal_places=6,
-        default=0,
-    )
-
-    # ✅ IMPORTANT: you are sending fractions (0..1)
-    called_percentage = models.DecimalField(
-        db_column="called_percentage",
-        max_digits=10,
-        decimal_places=6,
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-    )
-
-    shares_issued = models.DecimalField(
-        db_column="shares_issued",
-        max_digits=20,
-        decimal_places=6,
-        default=0,
-    )
-
-class LPsOperationLPAllocation(models.Model):
-    operation_allocation_id = models.BigAutoField(primary_key=True)
-
-    # IMPORTANT: matches your table column exactly
-    lps_operation_details_id = models.BigIntegerField(db_column="lps_operation_details_id")
-
-    lp_id = models.BigIntegerField(db_column="lp_id")
-    share_class_id = models.BigIntegerField(db_column="share_class_id")
-
-    commitment_amount = models.DecimalField(db_column="commitment_amount", max_digits=20, decimal_places=6, default=0)
-    capital_call = models.DecimalField(db_column="capital_call", max_digits=20, decimal_places=6, default=0)
-    called_percentage = models.DecimalField(db_column="called_percentage", max_digits=10, decimal_places=6, default=0)
-    shares_issued = models.DecimalField(db_column="shares_issued", max_digits=20, decimal_places=6, default=0)
-
-    is_deleted = models.BooleanField(db_column="is_deleted", default=False)
-    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
-    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
-
-    class Meta:
-        managed = False
-        db_table = "lps_operation_lp_allocations"
-
-    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True, null=True, blank=True)
-    created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)  # ✅ bigint
-
-    class Meta:
-        managed = False
-        db_table = "lps_operation_flow_share_class_allocations"

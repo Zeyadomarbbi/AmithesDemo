@@ -6,10 +6,30 @@
     gap: 32px;
 }
 
+.fx-deals-filters-row {
+    display: flex;
+    justify-content: flex-start;
+}
+
 .fx-deals-section {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.fx-deals-investment-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.fx-deals-subtitle {
+    margin: 8px 0;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1C1917;
 }
 
 .fx-deals-title {
@@ -28,6 +48,19 @@
     background: #ffffff;
     overflow: hidden;
     overflow-x: auto;
+    border-radius: 4px;
+}
+
+.fx-deals-table-card-top {
+    border-radius: 4px 4px 0 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fx-deals-table-card-bottom {
+    border-radius: 0 0 4px 4px;
+}
+
+.fx-deals-table-card-single {
     border-radius: 4px;
 }
 

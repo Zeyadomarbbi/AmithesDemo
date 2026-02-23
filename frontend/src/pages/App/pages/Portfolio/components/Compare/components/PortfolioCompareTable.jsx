@@ -31,7 +31,7 @@ const PortfolioCompareTable = ({
               
               {/* Highlighted Difference Column */}
               <th className="col-number" style={{ color: '#374151', fontWeight: 600 }}>
-                Difference 
+                Change in Cost 
                 <span className="header-currency-hint2">({symbol})</span>
                 <SortIcon />
               </th>
@@ -39,24 +39,17 @@ const PortfolioCompareTable = ({
               {/* Dynamic FV Columns */}
               {activeQuarters.map(q => (
                 <th key={`fv-${q.id}`} className="col-number">
-                  Fair value {q.display_label} 
+                  FV {q.display_label} 
                   <span className="header-currency-hint2">({symbol})</span>
                   <SortIcon />
                 </th>
               ))}
               
               <th className="col-number" style={{ color: '#374151', fontWeight: 600 }}>
-                Change 
+                Change in FV 
                 <span className="header-currency-hint2">({symbol})</span>
                 <SortIcon />
               </th>
-
-              {/* Dynamic MOIC Columns */}
-              {activeQuarters.map(q => (
-                <th key={`moic-${q.id}`} className="col-number">
-                  MOIC {q.display_label} <SortIcon />
-                </th>
-              ))}
             </tr>
           </thead>
           <tbody>
@@ -88,13 +81,6 @@ const PortfolioCompareTable = ({
                 <td className="col-number" style={{ fontWeight: 600, color: '#374151' }}>
                   {getDiff(row, 'fv')}
                 </td>
-
-                {/* MOIC Cells */}
-                {activeQuarters.map(q => (
-                  <td key={`moic-${row.id}-${q.id}`} className="col-number">
-                    {row.timeframes[q.id]?.moic ? `${row.timeframes[q.id].moic}x` : "-"}
-                  </td>
-                ))}
               </tr>
             ))}
 
@@ -121,13 +107,6 @@ const PortfolioCompareTable = ({
                 <td className="col-number" style={{ fontWeight: 700 }}>
                    {getDiff(totalRow, 'fv')}
                 </td>
-
-                {/* Total MOIC */}
-                {activeQuarters.map(q => (
-                  <td key={`tot-moic-${q.id}`} className="col-number">
-                     {totalRow.timeframes[q.id]?.moic}x
-                  </td>
-                ))}
             </tr>
           </tbody>
         </table>

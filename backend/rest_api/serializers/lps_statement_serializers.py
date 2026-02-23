@@ -2,7 +2,7 @@ from rest_framework import serializers
 from decimal import Decimal, InvalidOperation
 
 from ..models.reference import ClosingPeriod, LPsOperationFlowType, LPsOperationType
-from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationLPAllocation, LPsOperationFlowShareClassAllocation
+from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationFlowLPAllocation, LPsOperationLPAllocation, LPsOperationFlowShareClassAllocation
 from ..models.core import LimitedPartner
 
 def _to_decimal(v):
@@ -99,52 +99,35 @@ class LPsOperationTypeSerializer(serializers.ModelSerializer):
         model = LPsOperationType
         fields = ["operation_type_id", "name", "sign_multiplier", "created_at"]
 
-class LPsOperationDetailsSerializer(serializers.ModelSerializer):
-    # Aliasing for frontend compatibility if DB columns differ
-    operation_id = serializers.IntegerField(source='lps_operation_details_id', read_only=True)
-    
-    class Meta:
-        model = LPsOperationDetails
-        fields = [
-            "operation_id",
-            "fund_id",
-            "operation_type_id",
-            "operation_name",
-            "operation_number",
-            "notice_date",
-            "due_date",
-            "created_at",
-        ]
-        read_only_fields = ["operation_id", "fund_id", "created_at"]
-
-    def to_representation(self, instance):
-        """
-
-        dynamically during GET operations.
-        """
-        ret = super().to_representation(instance)
-        # Ensure dates are ISO strings automatically handled by DRF DateField
-        return ret
-
 class LPsOperationFlowTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = LPsOperationFlowType
         fields = ["flow_type_id", "name", "created_at"]
 
+class LPsFlowLPAllocationSerializer(serializers.ModelSerializer):
+    # Using IntegerFields for IDs to bypass broken model lookups
+    lp_id = serializers.IntegerField(source='limited_partner_id')
+    
+    class Meta:
+        model = LPsOperationFlowLPAllocation
+        fields = [
+            "lp_flow_allocation_id",
+            "lp_id",
+            "allocated_amount",
+            "created_at",
+            "created_by",
+        ]
+        read_only_fields = ["lp_flow_allocation_id", "created_at"]
+
 class LPsOperationFlowSerializer(serializers.ModelSerializer):
-    """
-    ✅ IMPORTANT FIX:
-    Do NOT validate FK 'operation' by querying the operations table,
-    because your operations table was crashing on missing columns (operation_name).
-    We set operation_id in the VIEW from the URL: /api/operations/<id>/flows/
-    """
-    operation_id = serializers.IntegerField(write_only=True, required=False)
+    lps_operation_details_id = serializers.IntegerField(write_only=True, required=False)
+    lp_allocations = LPsFlowLPAllocationSerializer(many=True, read_only=True)
 
     class Meta:
         model = LPsOperationFlow
         fields = [
             "operation_flow_id",
-            "operation_id",  # ✅ input only (view will set it anyway)
+            "lps_operation_details_id",
             "flow_type_id",
             "flow_name",
             "input_type",
@@ -155,8 +138,9 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
             "computed_total_amount",
             "created_at",
             "created_by",
+            "lp_allocations",  # ✅ Include the child field here
         ]
-        read_only_fields = ["operation_flow_id", "computed_total_amount", "created_at"]
+        read_only_fields = ["operation_flow_id", "lps_operation_details_id", "created_at"]
 
     def validate_input_percentage(self, value):
         d = _to_decimal(value)
@@ -172,6 +156,35 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
         if value not in ["amount", "percentage"]:
             raise serializers.ValidationError("input_type must be either 'amount' or 'percentage'.")
         return value
+    
+class LPsOperationDetailsSerializer(serializers.ModelSerializer):
+    # Aliasing for frontend compatibility if DB columns differ
+    flows = LPsOperationFlowSerializer(many=True, read_only=True)
+    class Meta:
+        model = LPsOperationDetails
+        fields = [
+            "lps_operation_details_id",
+            "fund_id",
+            "operation_type_id",
+            "operation_name",
+            "operation_number",
+            "notice_date",
+            "due_date",
+            "flows",
+            "created_at",
+        ]
+        read_only_fields = ["lps_operation_details_id", "fund_id", "created_at"]
+
+    def to_representation(self, instance):
+        """
+
+        dynamically during GET operations.
+        """
+        ret = super().to_representation(instance)
+        # Ensure dates are ISO strings automatically handled by DRF DateField
+        return ret
+
+
 
 
 class LPsOperationFlowShareClassAllocationSerializer(serializers.ModelSerializer):

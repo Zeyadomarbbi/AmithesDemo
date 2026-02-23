@@ -32,12 +32,12 @@ def invalidate_on_waterfall_envelopes(sender, instance, **kwargs):
 def invalidate_on_waterfall_envelope_rules(sender, instance, **kwargs):
     _invalidate_capital_account_cache(instance.envelope.fund_waterfall_steps.fund_id)
 
-# Share class changes
+# # Share class changes
 @receiver([post_save, post_delete], sender=ShareClass)
 def invalidate_on_share_class(sender, instance, **kwargs):
     _invalidate_capital_account_cache(instance.fund_id)
 
-# Financial entries
+# # Financial entries
 @receiver([post_save, post_delete], sender=FinancialEntry)
 def invalidate_on_financial_entries(sender, instance, **kwargs):
     fund_id = instance.line_item.fund_id

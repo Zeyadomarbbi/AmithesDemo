@@ -1,11 +1,19 @@
-import React, { useState, useMemo } from "react";
-import { useOutletContext, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from 'react-router-dom';
 import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
 
 // Hooks and Components
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
-import { useTimeframes, apiRowToQuarter, saveNewTimeframe, useTimeframeNavigation } from '../../../../hooks/Core/useTimeframes';
 import { ChevronDownIcon } from "../../icons.jsx";
+import {
+  buildTotalRow,
+  diffBetweenNewestAndOldest,
+  formatCompareMoney,
+  getCompareColumnOptions,
+  getCompareValueByColumn,
+  useCompareRows,
+  useCompareTimeframes,
+} from "./comparebackwork";
 
 // Sub-components
 import PortfolioCompareTable from "./components/PortfolioCompareTable";
@@ -13,118 +21,89 @@ import PortfolioCompareChart from "./components/PortfolioCompareChart";
 
 import "./PortfolioCompareTab.css";
 
-// --- Helpers ---
-const formatMoney = (val) => {
-  if (val === undefined || val === null) return "-";
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal', maximumFractionDigits: 0 }).format(val).replace(/,/g, " ");
-};
-
 const PortfolioCompareTab = ({ onSelectInvestment }) => {
   const { fundId } = useOutletContext();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
-
-  // URL State
-  const queryParams = new URLSearchParams(location.search);
-  const selectedTimeframeIds = queryParams.get("timeframes")?.split(",").map(Number).filter(id => !isNaN(id)) || [];
-  const selectedCount = selectedTimeframeIds.length;
+  const {
+    quarters,
+    isLoading,
+    selectedTimeframeIds,
+    activeQuarters,
+    handleToggleTimeframe,
+    handleSaveTimeframe,
+  } = useCompareTimeframes(fundId, 2);
 
   // Local UI State
-  const [selectedInvestmentId, setSelectedInvestmentId] = useState("all");
+  const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
   const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
   
-  // --- Chart Metric State ('fv' or 'cost') ---
-  const [chartMetric, setChartMetric] = useState("fv");
-
-  // --- REMOVED DEFAULT SELECTION EFFECT ---
-  // The component now starts with empty selection [] unless URL has params.
-  const { toggleTimeframe } = useTimeframeNavigation(location, navigate);
-  const handleSaveNew = async (newTimeframe) => {
-      try {
-          const formatted = await saveNewTimeframe(fundId, newTimeframe);
-          setQuarters(prev => [...prev, formatted]);
-          toggleTimeframe(selectedTimeframeIds, formatted.id);
-      } catch (error) {
-          console.error("Compare Tab: Persistence error:", error);
-      }
-  };
-
-  const handleToggleTimeframe = (id) => {
-    toggleTimeframe(selectedTimeframeIds, id);
-};
+  const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
 
   // --- DATA PROCESSING ---
 
-  // 1. Get Active Quarters sorted by Date (Newest first)
-  const activeQuarters = useMemo(() => {
-    return quarters
-      .filter(q => selectedTimeframeIds.includes(q.id))
-      .sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date)); 
-  }, [quarters, selectedTimeframeIds]);
-
   // 2. Resolve Investment Data
-  const fundInvestments = PORTFOLIO_COMPARE_DATA[fundId] || [];
+  const fallbackInvestments = PORTFOLIO_COMPARE_DATA[fundId] || [];
+  const { rows: compareRows, isLoading: isCompareLoading } = useCompareRows(
+    fundId,
+    activeQuarters,
+    fallbackInvestments
+  );
+  const fundInvestments = compareRows;
+
+  useEffect(() => {
+    if (!fundInvestments.length) return;
+    setSelectedInvestmentIds((prev) =>
+      prev.filter((id) =>
+        fundInvestments.some((inv) => String(inv.id) === String(id))
+      )
+    );
+  }, [fundInvestments]);
   
   // 3. Filter Rows
   const visibleRows = useMemo(() => {
-    if (selectedInvestmentId === "all") return fundInvestments;
-    return fundInvestments.filter(inv => String(inv.id) === String(selectedInvestmentId));
-  }, [fundInvestments, selectedInvestmentId]);
+    if (selectedInvestmentIds.length === 0) return fundInvestments;
+    return fundInvestments.filter((inv) =>
+      selectedInvestmentIds.some((id) => String(id) === String(inv.id))
+    );
+  }, [fundInvestments, selectedInvestmentIds]);
 
   // 4. Calculate Total Row
   const totalRow = useMemo(() => {
-    const totals = { name: "Total", isTotal: true, timeframes: {} };
-    activeQuarters.forEach(q => {
-      let costSum = 0;
-      let fvSum = 0;
-      visibleRows.forEach(row => {
-        const tfData = row.timeframes[q.id] || {};
-        costSum += (tfData.cost || 0);
-        fvSum += (tfData.fv || 0);
-      });
-      totals.timeframes[q.id] = { cost: costSum, fv: fvSum, moic: costSum ? (fvSum / costSum).toFixed(2) : 0 };
-    });
-    return totals;
+    return buildTotalRow(visibleRows, activeQuarters);
   }, [visibleRows, activeQuarters]);
 
-  // Helper: Diff = Newest - Oldest
-  const getDiff = (row, key) => {
-    // If fewer than 2 quarters are selected, we cannot calculate a difference
-    if (activeQuarters.length < 2) return "-";
-    
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
-    
-    const newestVal = row.timeframes[newestId]?.[key] || 0;
-    const oldestVal = row.timeframes[oldestId]?.[key] || 0;
-    return formatMoney(newestVal - oldestVal);
-  };
-
   // --- CHART DATA CALCULATION ---
+  const compareOptions = useMemo(
+    () => getCompareColumnOptions(activeQuarters),
+    [activeQuarters]
+  );
+
+  const effectiveCompareColumn =
+    selectedCompareColumn && compareOptions.some((opt) => opt.key === selectedCompareColumn)
+      ? selectedCompareColumn
+      : compareOptions[0]?.key || null;
+
   const chartData = useMemo(() => {
-    if (activeQuarters.length < 2) return [];
-
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
-
-    return visibleRows.map(row => {
-        const newestVal = row.timeframes[newestId]?.[chartMetric] || 0;
-        const oldestVal = row.timeframes[oldestId]?.[chartMetric] || 0;
-        const delta = newestVal - oldestVal;
-
-        return {
-            name: row.name,
-            value: Number((delta / 1000000).toFixed(2)) 
-        };
+    if (!effectiveCompareColumn) return [];
+    return visibleRows.map((row) => {
+      const value = getCompareValueByColumn(row, effectiveCompareColumn, activeQuarters);
+      return {
+        name: row.name,
+        value: Number((value / 1000000).toFixed(2)),
+      };
     });
-  }, [activeQuarters, visibleRows, chartMetric]);
+  }, [activeQuarters, effectiveCompareColumn, visibleRows]);
 
 
-  const activeInvLabel = selectedInvestmentId === "all" 
-    ? "All Investments" 
-    : fundInvestments.find(i => String(i.id) === String(selectedInvestmentId))?.name || "Select";
+  const activeInvLabel = (() => {
+    if (selectedInvestmentIds.length === 0) return "All Investments";
+    if (selectedInvestmentIds.length === 1) {
+      return (
+        fundInvestments.find((i) => String(i.id) === String(selectedInvestmentIds[0]))?.name ||
+        "1 Investment"
+      );
+    }
+    return `Investments (${selectedInvestmentIds.length})`;
+  })();
 
   return (
     <section className="compare-section">
@@ -148,16 +127,22 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
                 <div className="quarter-dropdown">
                     <div className="quarter-list">
                         <div 
-                            className={`quarter-item ${selectedInvestmentId === 'all' ? 'selected' : ''}`}
-                            onClick={() => { setSelectedInvestmentId("all"); setIsInvDropdownOpen(false); }}
+                            className={`quarter-item ${selectedInvestmentIds.length === 0 ? 'selected' : ''}`}
+                            onClick={() => { setSelectedInvestmentIds([]); setIsInvDropdownOpen(false); }}
                         >
                             <span className="item-label-bold">All Investments</span>
                         </div>
                         {fundInvestments.map((inv) => (
                             <div 
                                 key={inv.id} 
-                                className={`quarter-item ${String(selectedInvestmentId) === String(inv.id) ? 'selected' : ''}`}
-                                onClick={() => { setSelectedInvestmentId(inv.id); setIsInvDropdownOpen(false); }}
+                                className={`quarter-item ${selectedInvestmentIds.some(id => String(id) === String(inv.id)) ? 'selected' : ''}`}
+                                onClick={() => {
+                                  setSelectedInvestmentIds((prev) =>
+                                    prev.some((id) => String(id) === String(inv.id))
+                                      ? prev.filter((id) => String(id) !== String(inv.id))
+                                      : [...prev, inv.id]
+                                  );
+                                }}
                             >
                                 <span className="item-label-bold">{inv.name}</span>
                             </div>
@@ -173,7 +158,7 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
             options={quarters}
             selected={selectedTimeframeIds}
             onChange={handleToggleTimeframe}
-            onSaveNew={handleSaveNew}
+            onSaveNew={handleSaveTimeframe}
             isLoading={isLoading}
             isSingle={false}
             maxSelections={2}
@@ -186,14 +171,15 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
         visibleRows={visibleRows}
         totalRow={totalRow}
         onSelectInvestment={onSelectInvestment}
-        formatMoney={formatMoney}
-        getDiff={getDiff}
+        formatMoney={formatCompareMoney}
+        getDiff={(row, key) => diffBetweenNewestAndOldest(row, key, activeQuarters)}
       />
 
       <PortfolioCompareChart 
         chartData={chartData}
-        metric={chartMetric}
-        setMetric={setChartMetric}
+        options={compareOptions}
+        selectedKey={effectiveCompareColumn}
+        setSelectedKey={setSelectedCompareColumn}
       />
     </section>
   );

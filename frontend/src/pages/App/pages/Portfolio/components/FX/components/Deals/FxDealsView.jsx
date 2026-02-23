@@ -1,118 +1,220 @@
-import { useFundData } from "../../../../../../hooks/Core/FundContext"; 
-import { FX_DEALS_DATA } from "../../../../portfolioData";
+import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
+import {
+  calculateDealTableTotals,
+  formatFxValue,
+  parseFxValue,
+  resolveImpactKeys,
+} from "../../FXbackwork";
 import { SortIcon } from "../../Icons";
 import "./FxDealsView.css";
 
-// --- HELPERS ---
+const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
 
-const parseValue = (val) => {
-  if (!val || val === "-") return 0;
-  // Removes spaces and ensures negative signs are attached correctly
-  return parseFloat(val.replace(/\s/g, "").replace("−", "-"));
+const buildTimeframeColumns = (selectedTimeframes, impactKeys) => {
+  if (selectedTimeframes.length) {
+    const impactMap = new Map(impactKeys.map((key) => [key.toLowerCase(), key]));
+    return selectedTimeframes.map((timeframe) => {
+      const fallbackImpactKey = `impact${normalizeLabel(timeframe.display_label)}`;
+      const expected = fallbackImpactKey.toLowerCase();
+      const impactKey = impactMap.get(expected) || fallbackImpactKey;
+      return {
+        id: timeframe.id,
+        label: timeframe.display_label,
+        impactKey,
+      };
+    });
+  }
+
+  if (!impactKeys.length) {
+    return [];
+  }
+
+  if (!selectedTimeframes.length) {
+    return impactKeys.map((key) => ({
+      id: key,
+      label: key.replace("impact", "Impact ").replace(/(\d{4})$/, " $1"),
+      impactKey: key,
+    }));
+  }
+  return [];
 };
 
-const formatValue = (num) => {
-  if (num === 0) return "-";
-  // Formats back to standard display: "12 000 000" or "- 5 785"
-  const formatted = new Intl.NumberFormat("en-US").format(Math.abs(num)).replace(/,/g, " ");
-  return num < 0 ? `- ${formatted}` : formatted;
+const resolveFxAsOfValue = (row, timeframeLabel) => {
+  const token = normalizeLabel(timeframeLabel);
+  const candidates = [
+    `fxAsOf${token}`,
+    `fx_as_of_${token}`,
+    `fx${token}`,
+  ];
+  const matchedKey = candidates.find((key) => row?.[key] !== undefined && row?.[key] !== null);
+  return matchedKey ? row[matchedKey] : row.fxRate;
 };
 
-const InvestmentTable = ({ title, rows, symbol }) => {
-  // Filter out any rows that might be legacy "total" types from the dataset
-  const dataRows = rows.filter(r => r.type !== "total");
+const FxDealsSubTable = ({
+  rows,
+  timeframeColumns,
+  symbol,
+  primaryValueLabel,
+  primaryValueCellResolver,
+  totalPrimaryValue = 0,
+  showTotal = false,
+  totals = null,
+  tablePart = "top",
+}) => (
+  <div className={`fx-deals-table-card fx-deals-table-card-${tablePart}`}>
+    <table className="fx-deals-table">
+      <thead>
+        <tr>
+          <th>Date <SortIcon /></th>
+          <th className="col-number">{primaryValueLabel} <SortIcon /></th>
+          <th>Currency <SortIcon /></th>
+          <th className="col-number">FX at date <SortIcon /></th>
+          {timeframeColumns.map((column) => (
+            <th key={`fx-${column.id}`} className="col-number">
+              FX as of {column.label}
+            </th>
+          ))}
+          {timeframeColumns.map((column) => (
+            <th key={`impact-${column.id}`} className="col-number">
+              Impact {column.label} (e)
+              <span className="header-currency-hint">({symbol})</span>
+            </th>
+          ))}
+          <th className="col-number">
+            Impact since inception €
+            <span className="header-currency-hint">({symbol})</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.id}>
+            <td>{row.date}</td>
+            <td className="col-number">{primaryValueCellResolver(row)}</td>
+            <td>{row.currency}</td>
+            <td className="col-number">{row.fxRate}</td>
+            {timeframeColumns.map((column) => (
+              <td key={`row-fx-${row.id}-${column.id}`} className="col-number">
+                {resolveFxAsOfValue(row, column.label)}
+              </td>
+            ))}
+            {timeframeColumns.map((column) => (
+              <td key={`row-impact-${row.id}-${column.id}`} className="col-number">
+                {row[column.impactKey]}
+              </td>
+            ))}
+            <td className="col-number">{row.impactInception}</td>
+          </tr>
+        ))}
 
-  const impactKeys = Object.keys(dataRows[0] || {}).filter(
-    key => key.startsWith("impact") && key !== "impactInception"
+        {showTotal && totals && (
+          <tr className="fx-total-row">
+            <td className="fx-total-label">Total</td>
+            <td className="col-number">{formatFxValue(totalPrimaryValue)}</td>
+            <td></td>
+            <td></td>
+            {timeframeColumns.map((column) => (
+              <td key={`total-fx-${column.id}`} className="col-number"></td>
+            ))}
+            {timeframeColumns.map((column) => (
+              <td key={`total-impact-${column.id}`} className="col-number">
+                {formatFxValue(totals.impactTotals[column.impactKey])}
+              </td>
+            ))}
+            <td className="col-number">{formatFxValue(totals.totalInception)}</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+);
+
+const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
+  const costRows = rows?.costRows || [];
+  const fvRows = rows?.fvRows || [];
+  const impactKeys = resolveImpactKeys(fvRows.length ? fvRows : costRows, selectedTimeframes);
+  const timeframeColumns = buildTimeframeColumns(selectedTimeframes, impactKeys);
+  const fvTotals = calculateDealTableTotals(
+    fvRows,
+    timeframeColumns.map((col) => col.impactKey)
   );
-
-  // --- CALCULATIONS ---
-
-  const totalFlow = dataRows.reduce((acc, row) => acc + parseValue(row.flow), 0);
-  const totalInception = dataRows.reduce((acc, row) => acc + parseValue(row.impactInception), 0);
-  
-  const impactTotals = impactKeys.reduce((acc, key) => {
-    acc[key] = dataRows.reduce((sum, row) => sum + parseValue(row[key]), 0);
-    return acc;
-  }, {});
-
-  const formatHeader = (key) => {
-    return key
-      .replace("impact", "Impact ")
-      .replace(/(\d{4})$/, " $1"); 
-  };
+  const totalFairValue = fvTotals.totalFlow;
 
   return (
     <section className="fx-deals-section">
       <h2 className="fx-deals-title">{title}</h2>
-      <div className="fx-deals-table-card">
-        <table className="fx-deals-table">
-          <thead>
-            <tr>
-              <th>Date <SortIcon /></th>
-              <th className="col-number">Flow (LC) <SortIcon /></th>
-              <th>Currency <SortIcon /></th>
-              <th className="col-number">FX Rate <SortIcon /></th>
-              {impactKeys.map(key => (
-                <th key={key} className="col-number">
-                  {formatHeader(key)} 
-                  <span className="header-currency-hint">({symbol})</span>
-                </th>
-              ))}
-              <th className="col-number">Impact Inception 
-                <span className="header-currency-hint">({symbol})</span>
-                </th>
-            </tr>
-          </thead>
-          <tbody>
-            {dataRows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.date}</td>
-                <td className="col-number">{row.flow}</td>
-                <td>{row.currency}</td>
-                <td className="col-number">{row.fxRate}</td>
-                {impactKeys.map(key => (
-                  <td key={key} className="col-number">{row[key]}</td>
-                ))}
-                <td className="col-number">{row.impactInception}</td>
-              </tr>
-            ))}
-            
-            {/* FRONTEND CALCULATED TOTAL ROW */}
-            <tr className="fx-total-row">
-              <td className="fx-total-label">Total</td>
-              <td className="col-number">{formatValue(totalFlow)}</td>
-              <td></td>
-              <td></td>
-              {impactKeys.map(key => (
-                <td key={key} className="col-number">{formatValue(impactTotals[key])}</td>
-              ))}
-              <td className="col-number">{formatValue(totalInception)}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="fx-deals-investment-tables">
+        <div>
+          <h3 className="fx-deals-subtitle">FX on cost</h3>
+          <FxDealsSubTable
+            rows={costRows}
+            timeframeColumns={timeframeColumns}
+            symbol={symbol}
+            primaryValueLabel="Cost LC"
+            primaryValueCellResolver={(row) =>
+              formatFxValue(Math.abs(parseFxValue(row.flow)))
+            }
+            tablePart="top"
+          />
+        </div>
+
+        <div>
+          <h3 className="fx-deals-subtitle">FX on FV</h3>
+          <FxDealsSubTable
+            rows={fvRows}
+            timeframeColumns={timeframeColumns}
+            symbol={symbol}
+            primaryValueLabel="Fair Value on date (e)"
+            primaryValueCellResolver={(row) => row.fairValueOnDate}
+            totalPrimaryValue={totalFairValue}
+            showTotal
+            totals={fvTotals}
+            tablePart="bottom"
+          />
+        </div>
       </div>
     </section>
   );
 };
 
-const FxDealsView = ({ fundId }) => {
-  const { funds, isLoading } = useFundData();
+const FxDealsView = ({ fundId, shared }) => {
+  const {
+    quarters,
+    isLoading: isTimeframesLoading,
+    selectedTimeframeIds,
+    debouncedSelectedTimeframes,
+    handleToggleTimeframe,
+    handleSaveTimeframe,
+    dealsInvestments,
+    isDealsLoading,
+    symbol = "EUR",
+    isFundsLoading,
+  } = shared;
 
-  if (isLoading) return null;
-
-  const currentFund = funds.find(f => String(f.id) === String(fundId));
-  const symbol = currentFund?.currencySymbol || "€";
-  const investments = FX_DEALS_DATA[fundId] || FX_DEALS_DATA[Number(fundId)] || [];
+  if (isFundsLoading || isDealsLoading) return null;
+  const investments = dealsInvestments;
 
   return (
     <div className="fx-deals-container">
+      <div className="fx-deals-filters-row">
+        <QuarterSelector
+          options={quarters}
+          selected={selectedTimeframeIds}
+          onChange={handleToggleTimeframe}
+          onSaveNew={handleSaveTimeframe}
+          isLoading={isTimeframesLoading}
+          isSingle={false}
+          
+        />
+      </div>
+
       {investments.map((inv, index) => (
-        <InvestmentTable 
-          key={`${fundId}-inv-${index}`} 
-          title={inv.title} 
-          rows={inv.rows}
+        <InvestmentTable
+          key={`${fundId}-inv-${index}`}
+          title={inv.title}
+          rows={inv}
           symbol={symbol}
+          selectedTimeframes={debouncedSelectedTimeframes}
         />
       ))}
     </div>

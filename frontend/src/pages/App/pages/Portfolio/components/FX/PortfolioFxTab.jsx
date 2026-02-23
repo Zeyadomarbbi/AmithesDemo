@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useOutletContext } from 'react-router-dom';
+import { useFundData } from "../../../../hooks/Core/FundContext";
+import { FX_DEALS_DATA } from "../../portfolioData";
+import { useFxDealsRows, useFxDealsTimeframes } from "./FXbackwork";
 import FxDealsView from "./components/Deals/FxDealsView";
 import FxPortfolioView from "./components/Portfolio/FxPortfolioView";
 import FxChartsView from "./components/Charts/FxChartsView";
@@ -7,12 +10,31 @@ import "./PortfolioFxTab.css";
 
 const PortfolioFxTab = () => {
   const { fundId } = useOutletContext();
+  const { funds, isLoading: isFundsLoading } = useFundData();
   const [fxBreakdown, setFxBreakdown] = useState("deals");
+  const timeframesState = useFxDealsTimeframes(fundId);
+  const fallbackInvestments = useMemo(
+    () => FX_DEALS_DATA[fundId] || FX_DEALS_DATA[Number(fundId)] || [],
+    [fundId]
+  );
+  const { investments: dealsInvestments, isLoading: isDealsLoading } =
+    useFxDealsRows(fundId, timeframesState.quarters, fallbackInvestments);
+
+  const currentFund = funds.find((f) => String(f.id) === String(fundId));
+  const symbol = currentFund?.currencySymbol || "EUR";
+
+  const shared = {
+    ...timeframesState,
+    dealsInvestments,
+    isDealsLoading,
+    symbol,
+    isFundsLoading,
+  };
 
   const views = {
-    deals: <FxDealsView fundId={fundId} />, // Pass fundId here
-    portfolio: <FxPortfolioView fundId={fundId} />,
-    charts: <FxChartsView fundId={fundId} />
+    deals: <FxDealsView fundId={fundId} shared={shared} />,
+    portfolio: <FxPortfolioView fundId={fundId} shared={shared} />,
+    charts: <FxChartsView fundId={fundId} shared={shared} />
   };
 
   return (
