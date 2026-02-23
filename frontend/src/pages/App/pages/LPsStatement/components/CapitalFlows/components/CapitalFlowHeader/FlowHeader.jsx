@@ -4,8 +4,6 @@ import "./FlowHeader.css";
 import { PlusIcon } from "../../../../Icons.jsx";
 
 
-
-
 export default function FlowHeader({
   onNewOperation,
   operationFilter,

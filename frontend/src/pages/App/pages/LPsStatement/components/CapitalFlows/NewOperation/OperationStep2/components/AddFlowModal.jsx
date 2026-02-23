@@ -2,27 +2,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./AddFlowModal.css";
 
-// ✅ use your existing hook (already points to /api/lps-statement/flow-types/)
-import { useFlowTypes } from "/src/pages/App/hooks/LPsStatement/useFlowTypes.js";
-
-export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
+export default function AddFlowModal({ 
+  onClose, 
+  onSave, 
+  isSaving = false, 
+  flowTypes = [], 
+  isLoadingTypes = false 
+}) {
   const [flowName, setFlowName] = useState("");
-
-  // ✅ store BOTH id + name
   const [flowTypeId, setFlowTypeId] = useState("");
   const [flowTypeName, setFlowTypeName] = useState("");
-
   const [alignAll, setAlignAll] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
 
-  const { flowTypes, fetchFlowTypes, isLoading, error } = useFlowTypes();
-
-  useEffect(() => {
-    // fetch DB flow types when modal opens
-    fetchFlowTypes?.().catch(() => {});
-  }, [fetchFlowTypes]);
-
-  // Normalize DB list to a consistent shape
+  // Normalize data from props
   const options = useMemo(() => {
     const arr = Array.isArray(flowTypes) ? flowTypes : [];
     return arr
@@ -35,7 +28,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
       .filter(Boolean);
   }, [flowTypes]);
 
-  // Set default selection once options load
+  // Handle default selection when options are available
   useEffect(() => {
     if (!flowTypeId && options.length > 0) {
       setFlowTypeId(options[0].id);
@@ -43,22 +36,21 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
     }
   }, [options, flowTypeId]);
 
-  const selectedLabel = flowTypeName || "Choose flow type";
-
   const handleSave = () => {
-    if (!onSave) return;
+    if (!onSave || !flowName.trim() || !flowTypeId) return;
 
     onSave({
       flowName: flowName.trim(),
-      flowTypeId: flowTypeId ? Number(flowTypeId) : null, // ✅ integer for backend
-      flowTypeName: flowTypeName || "", // ✅ UI display
+      flowTypeId: Number(flowTypeId),
+      flowTypeName: flowTypeName || "",
       alignAll,
     });
 
     if (onClose) onClose();
   };
 
-  const disabled = Boolean(isSaving) || Boolean(isLoading);
+  const disabled = isSaving || isLoadingTypes;
+  const selectedLabel = flowTypeName || "Choose flow type";
 
   return (
     <div className="af-backdrop">
@@ -69,7 +61,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
             className="af-close"
             onClick={onClose}
             type="button"
-            disabled={disabled}
+            disabled={isSaving}
           >
             ×
           </button>
@@ -84,12 +76,12 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
               value={flowName}
               onChange={(e) => setFlowName(e.target.value)}
               disabled={disabled}
+              autoFocus
             />
           </div>
 
           <div className="af-field">
             <label className="af-label">Type of flow*</label>
-
             <div className="af-select-wrap">
               <button
                 type="button"
@@ -100,7 +92,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
                 disabled={disabled}
               >
                 <span>
-                  {isLoading ? "Loading..." : selectedLabel}
+                  {isLoadingTypes ? "Loading types..." : selectedLabel}
                 </span>
                 <span className="af-select-arrow">▾</span>
               </button>
@@ -112,7 +104,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
                       key={opt.id}
                       type="button"
                       className={`af-select-option ${
-                        opt.id === String(flowTypeId) ? "is-selected" : ""
+                        opt.id === flowTypeId ? "is-selected" : ""
                       }`}
                       onClick={() => {
                         setFlowTypeId(opt.id);
@@ -124,7 +116,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
                     </button>
                   ))}
 
-                  {options.length === 0 && (
+                  {options.length === 0 && !isLoadingTypes && (
                     <div className="af-select-option" style={{ cursor: "default" }}>
                       No flow types found
                     </div>
@@ -132,12 +124,6 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
                 </div>
               )}
             </div>
-
-            {error?.message && (
-              <div style={{ marginTop: 8, color: "#b42318", fontSize: 12 }}>
-                {error.message}
-              </div>
-            )}
           </div>
 
           <label className="af-checkbox">
@@ -156,7 +142,7 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
             className="af-btn af-btn--secondary"
             onClick={onClose}
             type="button"
-            disabled={disabled}
+            disabled={isSaving}
           >
             Cancel
           </button>
@@ -165,13 +151,9 @@ export default function AddFlowModal({ onClose, onSave, isSaving = false }) {
             className="af-btn af-btn--primary"
             onClick={handleSave}
             type="button"
-            disabled={
-              disabled ||
-              !flowTypeId ||
-              !String(flowName || "").trim()
-            }
+            disabled={disabled || !flowTypeId || !flowName.trim()}
           >
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

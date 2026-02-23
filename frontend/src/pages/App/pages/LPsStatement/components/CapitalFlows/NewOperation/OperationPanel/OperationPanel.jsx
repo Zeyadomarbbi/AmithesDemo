@@ -1,98 +1,70 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewOperation/OperationPanel.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import "./OperationPanel.css";
-
 import OperationStep1 from "../OperationStep1/OperationStep1.jsx";
 import OperationStep2 from "../OperationStep2/OperationStep2.jsx";
 import OperationStep3Breakdown from "../OperationStep3/OperationStep3Breakdown.jsx";
 import OperationStep4 from "../OperationStep4/OperationStep4.jsx";
-
 import { CloseIcon } from "../../../../Icons.jsx";
 import { useOperationTypes } from "/src/pages/App/hooks/LPsStatement/useOperationTypes.js";
+import { useOperationDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
+import "./OperationPanel.css";
 
-/** -------------------------
- * LOCAL-FIRST API
- * Always call relative "/api/..." so it works locally.
- * ------------------------- */
-function apiUrl(path) {
-  const p = String(path || "");
-  const pp = p.startsWith("/") ? p : `/${p}`;
-  return `/api${pp}`;
-}
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    credentials: "include",
-  });
-
-  const text = await res.text();
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text || null;
-  }
-
-  if (!res.ok) {
-    // show DRF validation errors nicely
-    let msg = `Request failed (${res.status})`;
-    if (data && typeof data === "object") {
-      msg = JSON.stringify(data);
-    } else if (typeof data === "string" && data.trim()) {
-      msg = data;
-    }
-
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    err.url = url;
-    throw err;
-  }
-
-  return data;
-}
-
-/** ✅ Date -> YYYYMMDD integer (matches your DRF "notice_date_id" fields) */
+/** Date -> YYYYMMDD integer */
 function toDateId(d) {
   if (!d) return null;
-
-  // dayjs-like objects
   if (typeof d === "object") {
     if (typeof d.toDate === "function") d = d.toDate();
     else if (d.$d) d = d.$d;
   }
-
   const dt = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(dt.getTime())) return null;
-
   const y = dt.getFullYear();
   const m = dt.getMonth() + 1;
   const day = dt.getDate();
-  return y * 10000 + m * 100 + day; // YYYYMMDD
+  return y * 10000 + m * 100 + day;
 }
 
-/** optional extra compatibility: also provide YYYY-MM-DD (won’t hurt) */
 function toIsoDate(d) {
   if (!d) return null;
-
   if (typeof d === "object") {
     if (typeof d.toDate === "function") d = d.toDate();
     else if (d.$d) d = d.$d;
   }
-
   const dt = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(dt.getTime())) return null;
-
   const y = dt.getFullYear();
   const m = String(dt.getMonth() + 1).padStart(2, "0");
   const day = String(dt.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+/** Normalize any date-like value to a plain JS Date */
+function toPlainDate(d) {
+  if (!d) return null;
+  if (typeof d === "object") {
+    if (typeof d.toDate === "function") return d.toDate();
+    if (d.$d) return d.$d;
+  }
+  const dt = d instanceof Date ? d : new Date(d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+/**
+ * Compute total_fund_commitment:
+ * sum commitment_amount where due_date >= closing_period_date
+ */
+function computeTotalFundCommitment(commitments, dueDate) {
+  const dueDateObj = toPlainDate(dueDate);
+  if (!dueDateObj) return 0;
+  const safe = Array.isArray(commitments) ? commitments : [];
+  return safe.reduce((sum, c) => {
+    const closing = c?.closing_period_date ? new Date(c.closing_period_date) : null;
+    if (!closing || Number.isNaN(closing.getTime())) return sum;
+    if (dueDateObj >= closing) {
+      return sum + parseFloat(c?.commitment_amount || 0);
+    }
+    return sum;
+  }, 0);
 }
 
 const EMPTY_STEP2_DRAFT = {
@@ -104,12 +76,13 @@ const EMPTY_STEP2_DRAFT = {
 
 export default function OperationPanel({
   open,
-  mode = "new", // "new" | "detail"
+  mode = "new",
   operation = null,
   lps = [],
   shareClasses = [],
   fundId,
   onClose,
+  commitments,
 }) {
   if (!open) return null;
 
@@ -118,16 +91,19 @@ export default function OperationPanel({
   const [step, setStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Step 1 fields
+  // ── Step 1 fields ──────────────────────────────────────────────────────────
   const [operationName, setOperationName] = useState("");
-  const [operationType, setOperationType] = useState(""); // operation_type_id (string)
+  const [operationType, setOperationType] = useState("");
   const [noticeDate, setNoticeDate] = useState(null);
   const [dueDate, setDueDate] = useState(null);
 
-  // DB ids
+  // Computed at Step 1, carried forward for final save
+  const [totalFundCommitment, setTotalFundCommitment] = useState(0);
+
+  // DB id — set after final save
   const [operationId, setOperationId] = useState(null);
 
-  // Step 2 draft + result
+  // ── Step 2 draft + result ──────────────────────────────────────────────────
   const [step2Draft, setStep2Draft] = useState({ ...EMPTY_STEP2_DRAFT });
   const [step2Result, setStep2Result] = useState({
     operationTypeId: "",
@@ -145,6 +121,7 @@ export default function OperationPanel({
   const [step1Error, setStep1Error] = useState(null);
 
   const { operationTypes, fetchOperationTypes } = useOperationTypes();
+  const { createOperation } = useOperationDetails(fundId);
 
   useEffect(() => {
     if (open) fetchOperationTypes?.().catch(() => {});
@@ -154,102 +131,42 @@ export default function OperationPanel({
     setShowSuccess(false);
     setStep(1);
     setStep1Error(null);
+    setTotalFundCommitment(0);
 
     if (isDetail) {
-      setOperationId(operation?.operation_id ?? operation?.id ?? null);
-      setOperationName(operation?.operation_name ?? operation?.label ?? "");
+      setOperationId(operation?.lps_operation_details_id ?? operation?.operation_id ?? operation?.id ?? null);
+      setOperationName(operation?.name ?? operation?.operation_name ?? "");
       setOperationType(String(operation?.operation_type ?? ""));
       setNoticeDate(null);
       setDueDate(null);
-
       setStep2Draft({ ...EMPTY_STEP2_DRAFT });
-      setStep2Result({
-        operationTypeId: "",
-        operationTypeName: "",
-        flows: [],
-        perLp: {},
-      });
+      setStep2Result({ operationTypeId: "", operationTypeName: "", flows: [], perLp: {} });
     } else {
       setOperationId(null);
       setOperationName("");
       setOperationType("");
       setNoticeDate(null);
       setDueDate(null);
-
       setStep2Draft({ ...EMPTY_STEP2_DRAFT });
-      setStep2Result({
-        operationTypeId: "",
-        operationTypeName: "",
-        flows: [],
-        perLp: {},
-      });
+      setStep2Result({ operationTypeId: "", operationTypeName: "", flows: [], perLp: {} });
     }
   }, [open, isDetail, operation]);
 
   const operationTypeName = useMemo(() => {
     const arr = Array.isArray(operationTypes) ? operationTypes : [];
-    const found = arr.find(
-      (t) => String(t?.operation_type_id) === String(operationType)
-    );
+    const found = arr.find((t) => String(t?.operation_type_id) === String(operationType));
     return found?.name || "";
   }, [operationTypes, operationType]);
 
-  /**
-   * ✅ Create operation in DB (Step1 -> Step2)
-   * FIX:
-   * - correct URL: /api/funds/<fund_id>/operations/
-   * - send "fund" + "notice_date_id" + "due_date_id"
-   */
-  const createOperationIfNeeded = async () => {
-    if (operationId) return operationId;
-
+  // ── Step 1 validation — no DB call yet ────────────────────────────────────
+  const validateStep1 = () => {
     if (!fundId) throw new Error("fundId is missing.");
-    if (!String(operationName || "").trim())
-      throw new Error("Operation name is required.");
+    if (!String(operationName || "").trim()) throw new Error("Operation name is required.");
     if (!operationType) throw new Error("Operation type is required.");
     if (!noticeDate) throw new Error("Notice date is required.");
     if (!dueDate) throw new Error("Due date is required.");
-
-    const notice_date_id = toDateId(noticeDate);
-    const due_date_id = toDateId(dueDate);
-
-    if (!notice_date_id) throw new Error("Notice date is invalid.");
-    if (!due_date_id) throw new Error("Due date is invalid.");
-
-    const url = apiUrl(`/funds/${fundId}/operations/`);
-
-    const payload = {
-      // ✅ DRF form shows Fund field -> include it
-      fund: Number(fundId),
-
-      // ✅ operation fields
-      operation_name: String(operationName).trim(),
-
-      // ✅ usually serializer field name is "operation_type"
-      operation_type: Number(operationType),
-
-      // ✅ matches DRF form: "Notice date id" / "Due date id"
-      notice_date_id,
-      due_date_id,
-
-      // ✅ harmless compatibility aliases (DRF ignores unknown keys)
-      fund_id: Number(fundId),
-      operation_type_id: Number(operationType),
-      notice_date: toIsoDate(noticeDate),
-      due_date: toIsoDate(dueDate),
-    };
-
-    const data = await fetchJson(url, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    const newId = data?.operation_id ?? data?.id ?? null;
-    if (!newId)
-      throw new Error("Operation created but response missing operation_id.");
-
-    setOperationId(newId);
-    return newId;
+    if (!toDateId(noticeDate)) throw new Error("Notice date is invalid.");
+    if (!toDateId(dueDate)) throw new Error("Due date is invalid.");
   };
 
   const handleStep2Next = (payload = {}) => {
@@ -262,12 +179,42 @@ export default function OperationPanel({
     setStep(3);
   };
 
+  /**
+   * Called by Step 3 when it has total_operation_amount + overall_percentage_of_commitment.
+   * This is the single point where we POST to the database.
+   */
+  const handleFinalSave = async ({ totalOperationAmount, overallPercentageOfCommitment }) => {
+    const newId = await createOperation({
+      operation_name: String(operationName).trim(),
+      operation_type: Number(operationType),
+      operation_type_id: Number(operationType),
+      notice_date: toIsoDate(noticeDate),
+      due_date: toIsoDate(dueDate),
+      total_fund_commitment: totalFundCommitment,
+      total_operation_amount: totalOperationAmount,
+      overall_percentage_of_commitment: overallPercentageOfCommitment,
+    });
+
+    setOperationId(newId);
+    return newId;
+  };
+
   const handleNext = async () => {
     if (step === 1) {
       setSavingStep1(true);
       setStep1Error(null);
       try {
-        await createOperationIfNeeded();
+        validateStep1();
+        const computed = computeTotalFundCommitment(commitments, dueDate);
+        setTotalFundCommitment(computed);
+        console.log("[Step 1 → Step 2]", {
+          operation_name: String(operationName).trim(),
+          operation_type: operationType,
+          operation_type_name: operationTypeName,
+          notice_date: toIsoDate(noticeDate),
+          due_date: toIsoDate(dueDate),
+          total_fund_commitment: computed,
+        });
         setStep(2);
       } catch (e) {
         setStep1Error(e);
@@ -318,8 +265,6 @@ export default function OperationPanel({
   );
 
   const safeLps = Array.isArray(lps) ? lps : [];
-  const safeShareClasses = Array.isArray(shareClasses) ? shareClasses : [];
-
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -336,7 +281,6 @@ export default function OperationPanel({
               setDueDate={setDueDate}
               operationTypes={operationTypes || []}
             />
-
             {step1Error && (
               <div style={{ marginTop: 10, color: "#b42318", fontSize: 12, whiteSpace: "pre-wrap" }}>
                 {step1Error.message}
@@ -349,8 +293,7 @@ export default function OperationPanel({
         return (
           <OperationStep2
             ref={step2Ref}
-            lps={safeLps}
-            shareClasses={safeShareClasses}
+            lps={lps}
             fundId={fundId}
             operationId={operationId}
             operationType={operationTypeName}
@@ -359,6 +302,9 @@ export default function OperationPanel({
             onNext={handleStep2Next}
             draft={step2Draft}
             setDraft={setStep2Draft}
+            commitments={commitments}
+            totalFundCommitment={totalFundCommitment}
+            dueDate={dueDate}
           />
         );
 
@@ -370,6 +316,8 @@ export default function OperationPanel({
             operationId={operationId}
             step2Result={step2Result}
             operationType={operationTypeName}
+            totalFundCommitment={totalFundCommitment}
+            onFinalSave={handleFinalSave}
           />
         );
 

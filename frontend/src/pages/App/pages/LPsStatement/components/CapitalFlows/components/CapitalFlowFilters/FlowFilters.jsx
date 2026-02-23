@@ -1,6 +1,6 @@
 import React from "react";
 import "./FlowFilters.css";
-import SearchBox from "/src/components/SearchBox/SearchBox.jsx";
+import SearchBar from "../../../../../../../../components/SearchBar/SearchBar";
 
 export default function FlowFilters({
   operationFilter,
@@ -25,7 +25,7 @@ export default function FlowFilters({
           SEARCH BAR
       ========================== */}
       {showSearch && (
-        <SearchBox
+        <SearchBar
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by operation..."

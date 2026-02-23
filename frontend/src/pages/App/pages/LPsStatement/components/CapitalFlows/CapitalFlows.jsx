@@ -1,13 +1,12 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlows.jsx
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import "./CapitalFlows.css";
 
 import FlowHeader from "./components/CapitalFlowHeader/FlowHeader.jsx";
 import FlowFilters from "./components/CapitalFlowFilters/FlowFilters.jsx";
 import FlowTable from "./components/CapitalFlowTable/FlowTable.jsx";
-
 import OperationPanel from "./NewOperation/OperationPanel/OperationPanel.jsx";
+import "./CapitalFlows.css";
 
 
 export default function CapitalFlows() {
@@ -16,7 +15,9 @@ export default function CapitalFlows() {
   const lps = outlet.lps || [];
   const shareClasses = outlet.shareClasses || []; // ✅ NEW (safe)
   const fundId = outlet.fundId; // ✅ optional (safe if undefined)
-
+  const commitments = outlet.commitments;
+  console.log("commitments", commitments)
+  console.log("lps", lps)
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
   const [breakdown, setBreakdown] = useState("operations");
@@ -100,6 +101,7 @@ export default function CapitalFlows() {
           shareClasses={shareClasses}  // ✅ NEW
           fundId={fundId}              // ✅ optional
           onClose={handleClosePanel}
+          commitments={commitments}
         />
       )}
     </div>

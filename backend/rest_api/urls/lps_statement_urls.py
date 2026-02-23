@@ -14,9 +14,8 @@ from ..views.lps_statement_views import (LimitedPartnerViewSet, LPsFundCommitmen
     LPsOperationDetailsViewSet,
     LPsOperationFlowViewSet,
     LPsFlowLPAllocationViewSet,
-    
-    LPsOperationFlowShareClassAllocationViewSet,
-    OperationFullCreate,
+    LPsOperationLPSummaryViewSet,
+    # OperationFullCreate,
 
     # ✅ Step 3
     OperationStep3Preview,
@@ -88,17 +87,17 @@ lp_allocation_detail = LPsFlowLPAllocationViewSet.as_view({
 })
 
 # ✅ Step 2: Allocations
-allocation_list = LPsOperationFlowShareClassAllocationViewSet.as_view({
-    "get": "list",
-    "post": "create",
-})
+# allocation_list = LPsOperationFlowShareClassAllocationViewSet.as_view({
+#     "get": "list",
+#     "post": "create",
+# })
 
-allocation_detail = LPsOperationFlowShareClassAllocationViewSet.as_view({
-    "get": "retrieve",
-    "put": "update",
-    "patch": "partial_update",
-    "delete": "destroy",
-})
+# allocation_detail = LPsOperationFlowShareClassAllocationViewSet.as_view({
+#     "get": "retrieve",
+#     "put": "update",
+#     "patch": "partial_update",
+#     "delete": "destroy",
+# })
 
 urlpatterns = [
     path('closing-periods/', ClosingPeriodList.as_view(), name='closing-period-list'),
@@ -117,22 +116,18 @@ urlpatterns = [
     # Step 2 (flows)
     path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/", operation_flow_list, name="operation-flow-list"),
     path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:pk>/", operation_flow_detail, name="operation-flow-detail"),
-    path(
-        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/", 
-        allocation_list, 
-        name="flow-allocation-list"
-    ),
-    path(
-        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/<int:pk>/", 
-        allocation_detail, 
-        name="flow-allocation-detail"
-    ),
+    path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/", lp_allocation_list, name="flow-allocation-list"),
+    path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/<int:pk>/", lp_allocation_detail, name="flow-allocation-detail"),
     # Step 2 (allocations)
-    path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/allocations/", allocation_list, name="operation-allocation-list"),
-    path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/allocations/<int:pk>/", allocation_detail, name="operation-allocation-detail"),
-
+    # path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/allocations/", allocation_list, name="operation-allocation-list"),
+    # path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/allocations/<int:pk>/", allocation_detail, name="operation-allocation-detail"),
+    path(
+        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/", 
+        LPsOperationLPSummaryViewSet.as_view({'get': 'list'}), 
+        name="operation-lp-summary"
+    ),
     # One-shot create (Step 1 + Step 2)
-    path("funds/<int:fund_id>/operations/full-create/", OperationFullCreate.as_view(), name="operation-full-create"),
+    # path("funds/<int:fund_id>/operations/full-create/", OperationFullCreate.as_view(), name="operation-full-create"),
 
     # ✅ Step 3
     path("operations/<int:operation_id>/step3-preview/", OperationStep3Preview.as_view(), name="operation-step3-preview"),

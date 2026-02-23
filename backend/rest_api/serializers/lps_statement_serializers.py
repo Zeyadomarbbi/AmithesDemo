@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from decimal import Decimal, InvalidOperation
+from django.db.models import Sum
 
 from ..models.reference import ClosingPeriod, LPsOperationFlowType, LPsOperationType
-from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationFlowLPAllocation, LPsOperationLPAllocation, LPsOperationFlowShareClassAllocation
+from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationFlowLPAllocation, LPsOperationLPAllocation
 from ..models.core import LimitedPartner
 
 def _to_decimal(v):
@@ -85,13 +86,41 @@ class LimitedPartnerSerializer(serializers.ModelSerializer):
 
 
 class LPsFundCommitmentSerializer(serializers.ModelSerializer):
+    # Access the 'date' field from the related FundClosing model
+    closing_period_date = serializers.DateField(
+        source='lps_fund_closing_period_id.date', 
+        read_only=True
+    )
+    
+    # Optional: also grab the name if needed for frontend parity
+    closing_name = serializers.CharField(
+        source='lps_fund_closing_period_id.closing_period.closing_name', 
+        read_only=True
+    )
+
     class Meta:
         model = LPsFundCommitment
-        fields = '__all__'
-        read_only_fields = ['commitment_id', 'created_at', 'updated_at']
+        fields = [
+            'commitment_id',
+            'lp_id',
+            'fund_id',
+            'share_class_id',
+            'currency_id',
+            'lps_fund_closing_period_id',
+            'closing_period_date',  # ✅ Added
+            'closing_name',         # ✅ Added
+            'commitment_amount',
+            'created_at',
+            'updated_at',
+            'created_by',
+            'is_deleted'
+        ]
+        read_only_fields = ['commitment_id', 'created_at', 'updated_at', 'closing_period_date', 'closing_name']
 
     def create(self, validated_data):
-        validated_data['created_by'] = None
+        # Using the request user if available, otherwise None as per your logic
+        request = self.context.get('request')
+        validated_data['created_by'] = request.user.id if request and request.user.is_authenticated else None
         return super().create(validated_data)
     
 class LPsOperationTypeSerializer(serializers.ModelSerializer):
@@ -122,7 +151,7 @@ class LPsFlowLPAllocationSerializer(serializers.ModelSerializer):
 class LPsOperationFlowSerializer(serializers.ModelSerializer):
     lps_operation_details_id = serializers.IntegerField(write_only=True, required=False)
     lp_allocations = LPsFlowLPAllocationSerializer(many=True, read_only=True)
-
+    share_class_allocations = serializers.SerializerMethodField()
     class Meta:
         model = LPsOperationFlow
         fields = [
@@ -138,9 +167,28 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
             "computed_total_amount",
             "created_at",
             "created_by",
-            "lp_allocations",  # ✅ Include the child field here
+            "lp_allocations",
+            "share_class_allocations"
         ]
         read_only_fields = ["operation_flow_id", "lps_operation_details_id", "created_at"]
+
+    def get_share_class_allocations(self, obj):
+        fund_id = obj.lps_operation_details_id.fund_id
+        aggregates = (
+            obj.lp_allocations
+            .filter(lp_id__fund_commitments__fund_id=fund_id) # ✅ Filter by current fund
+            .values('lp_id__fund_commitments__share_class_id')
+            .annotate(total_allocated_amount=Sum('allocated_amount'))
+            .order_by('lp_id__fund_commitments__share_class_id')
+        )
+
+        return [
+            {
+                "share_class_id": item['lp_id__fund_commitments__share_class_id'],
+                "total_allocated_amount": item['total_allocated_amount']
+            }
+            for item in aggregates if item['lp_id__fund_commitments__share_class_id']
+        ]
 
     def validate_input_percentage(self, value):
         d = _to_decimal(value)
@@ -170,6 +218,9 @@ class LPsOperationDetailsSerializer(serializers.ModelSerializer):
             "operation_number",
             "notice_date",
             "due_date",
+            "total_fund_commitment",
+            "total_operation_amount",
+            "overall_percentage_of_commitment",
             "flows",
             "created_at",
         ]
@@ -187,31 +238,31 @@ class LPsOperationDetailsSerializer(serializers.ModelSerializer):
 
 
 
-class LPsOperationFlowShareClassAllocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LPsOperationFlowShareClassAllocation
-        fields = [
-            "operation_allocation_id",
+# class LPsOperationFlowShareClassAllocationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = LPsOperationFlowShareClassAllocation
+#         fields = [
+#             "operation_allocation_id",
 
-            # keep as-is (if it works in your DB)
-            "operation",
+#             # keep as-is (if it works in your DB)
+#             "operation",
 
-            "flow",
-            "lp",
-            "share_class",
-            "commitment_amount",
-            "capital_call",
-            "called_percentage",
-            "shares_issued",
-            "created_at",
-            "created_by",
-        ]
-        read_only_fields = ["operation_allocation_id", "created_at"]
+#             "flow",
+#             "lp",
+#             "share_class",
+#             "commitment_amount",
+#             "capital_call",
+#             "called_percentage",
+#             "shares_issued",
+#             "created_at",
+#             "created_by",
+#         ]
+#         read_only_fields = ["operation_allocation_id", "created_at"]
 
-    def validate_called_percentage(self, value):
-        d = _to_decimal(value)
-        d = _normalize_fraction(d, "called_percentage")
-        return d if d is not None else Decimal("0")
+#     def validate_called_percentage(self, value):
+#         d = _to_decimal(value)
+#         d = _normalize_fraction(d, "called_percentage")
+#         return d if d is not None else Decimal("0")
 
 
 # =========================
@@ -278,4 +329,4 @@ class LPsOperationLpAllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = LPsOperationLPAllocation
         fields = "__all__"
-        read_only_fields = ["operation_allocation_id", "created_at"]
+        read_only_fields = ["lp_operation_allocation_id", "created_at"]

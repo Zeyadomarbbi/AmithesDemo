@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.db import connection, transaction, IntegrityError
 from django.http import Http404, HttpResponse
 from django.utils import timezone
-
+from django.db.models import Sum
 from psycopg2 import OperationalError
 
 from rest_framework import generics, mixins, status, viewsets
@@ -20,8 +20,8 @@ from ..models import (
     LPsOperationDetails,
     LPsOperationFlowType,
     LPsOperationFlow,
-    LPsOperationFlowShareClassAllocation,
     LPsOperationFlowLPAllocation,
+    LPsOperationLPAllocation,
     FundClosing, 
     LPsFundCommitment,
     CapitalAccountKpiCache
@@ -32,8 +32,8 @@ from ..serializers import (
     LPsOperationDetailsSerializer,
     LPsOperationFlowTypeSerializer,
     LPsOperationFlowSerializer,
-    LPsOperationFlowShareClassAllocationSerializer,
     LPsFlowLPAllocationSerializer,
+    LPsOperationLpAllocationSerializer,
     OperationFullCreateSerializer,
     ClosingPeriodSerializer,
     FundClosingSerializer,
@@ -394,9 +394,16 @@ class LPsOperationFlowViewSet(viewsets.ModelViewSet):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        # Must exactly match the name in your path()
         parent_id = self.kwargs.get("lps_operation_details_id")
-        return self.queryset.filter(lps_operation_details_id=parent_id).prefetch_related("lp_allocations").order_by("operation_flow_id")
+        return (
+            self.queryset
+            .filter(lps_operation_details_id=parent_id)
+            .prefetch_related(
+                "lp_allocations",
+                "lp_allocations__lp_id__fund_commitments"  # ✅ Use related_name here
+            )
+            .order_by("operation_flow_id")
+        )
 
     def perform_create(self, serializer):
         self._process_and_save(serializer)
@@ -454,139 +461,165 @@ class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
             created_by=_created_by_int(self.request)
         )
 
-class LPsOperationFlowShareClassAllocationViewSet(viewsets.ModelViewSet):
+class LPsOperationLPSummaryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    POST /api/operations/<operation_id>/allocations/
-
-    IMPORTANT FIX:
-    - drop 'operation' from payload and make it optional to avoid FK lookup
-    - bind operation_id from URL always
+    Returns an aggregate of all flows for a specific operation, grouped by LP.
+    Endpoint: /api/funds/<fund_id>/operations/<lps_operation_details_id>/lp-summary/
     """
-    serializer_class = LPsOperationFlowShareClassAllocationSerializer
+    serializer_class = LPsOperationLpAllocationSerializer
+    queryset = LPsOperationLPAllocation.objects.all()
 
-    def get_queryset(self):
-        qs = LPsOperationFlowShareClassAllocation.objects.all()
-        operation_id = self.kwargs.get("operation_id")
-        if operation_id is not None:
-            qs = qs.filter(operation_id=operation_id)
-        return qs.order_by("operation_allocation_id")
-
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        if "operation" in data:
-            data.pop("operation")
-
-        serializer = self.get_serializer(data=data)
-
-        if "operation" in serializer.fields:
-            serializer.fields["operation"].required = False
-            serializer.fields["operation"].allow_null = True
-
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    def perform_create(self, serializer):
-        operation_id = self.kwargs.get("operation_id")
-        if operation_id is None:
-            raise Http404("operation_id is required")
-
-        serializer.save(
-            operation_id=int(operation_id),
-            created_at=timezone.now(),
-            created_by=_created_by_int(self.request),
+    def list(self, request, *args, **kwargs):
+        op_id = self.kwargs.get("lps_operation_details_id")
+        
+        # Aggregating data from the Flow Allocations table
+        # We join: FlowAllocation -> Flow -> Operation
+        summary = (
+            LPsOperationFlowLPAllocation.objects
+            .filter(operation_flow_id__lps_operation_details_id=op_id)
+            .values('lp_id', 'lp_id__name') # Assuming LimitedPartner has a name field
+            .annotate(
+                total_allocated=Sum('allocated_amount'),
+                # Add other sums here if needed
+            )
+            .order_by('lp_id')
         )
 
+        return Response(summary)
 
-class OperationFullCreate(APIView):
-    """
-    POST /api/funds/<fund_id>/operations/full-create/
-    Creates operation (lps_operation_details) then flows + allocations.
-    """
+# class LPsOperationFlowShareClassAllocationViewSet(viewsets.ModelViewSet):
+#     """
+#     POST /api/operations/<operation_id>/allocations/
 
-    def post(self, request, fund_id: int):
-        serializer = OperationFullCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+#     IMPORTANT FIX:
+#     - drop 'operation' from payload and make it optional to avoid FK lookup
+#     - bind operation_id from URL always
+#     """
+#     serializer_class = LPsOperationFlowShareClassAllocationSerializer
 
-        now = timezone.now()
-        created_by = _created_by_int(request)
+#     def get_queryset(self):
+#         qs = LPsOperationFlowShareClassAllocation.objects.all()
+#         operation_id = self.kwargs.get("operation_id")
+#         if operation_id is not None:
+#             qs = qs.filter(operation_id=operation_id)
+#         return qs.order_by("operation_allocation_id")
 
-        # raw for ISO date aliases / safe defaults
-        raw = request.data if isinstance(request.data, dict) else {}
+#     def create(self, request, *args, **kwargs):
+#         data = request.data.copy()
+#         if "operation" in data:
+#             data.pop("operation")
 
-        with transaction.atomic():
-            op_id = _insert_operation_details(
-                fund_id=int(fund_id),
-                payload={
-                    "operation_type_id": data["operation_type_id"],
-                    "operation_name": data["operation_name"],
-                    "notice_date_id": data.get("notice_date_id") or raw.get("notice_date_id"),
-                    "due_date_id": data.get("due_date_id") or raw.get("due_date_id"),
-                    "notice_date": raw.get("notice_date"),
-                    "due_date": raw.get("due_date"),
-                    # ✅ ensure NOT NULL for trigger
-                    "total_operation_amount": raw.get("total_operation_amount") or raw.get("total_amount") or 0,
-                    "overall_percentage_of_commitment": raw.get("overall_percentage_of_commitment") or raw.get("overall_pct") or 0,
-                },
-                request=request,
-            )
+#         serializer = self.get_serializer(data=data)
 
-            created_flow_ids = []
+#         if "operation" in serializer.fields:
+#             serializer.fields["operation"].required = False
+#             serializer.fields["operation"].allow_null = True
 
-            for f in data["flows"]:
-                safe_alloc = _q6(_normalize_fraction(f.get("allocation_percentage_of_commitment", 0)))
-                safe_pct = _q6(_normalize_fraction(f.get("input_percentage")))
+#         serializer.is_valid(raise_exception=True)
+#         self.perform_create(serializer)
 
-                computed_total = _compute_total_amount(
-                    input_type=f.get("input_type"),
-                    input_amount=f.get("input_amount"),
-                    input_percentage=safe_pct,
-                    commitment_amount=f.get("commitment_amount"),
-                    allocation_pct=safe_alloc,
-                )
+#         headers = self.get_success_headers(serializer.data)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-                flow = LPsOperationFlow.objects.create(
-                    operation_id=op_id,
-                    flow_type_id=f["flow_type_id"],
-                    flow_name=f["flow_name"],
-                    input_type=f["input_type"],
-                    input_amount=f.get("input_amount"),
-                    input_percentage=safe_pct if f.get("input_type") == "percentage" else f.get("input_percentage"),
-                    allocation_percentage_of_commitment=safe_alloc,
-                    commitment_amount=f.get("commitment_amount", 0),
-                    computed_total_amount=computed_total,
-                    created_at=now,
-                    created_by=created_by,
-                )
-                created_flow_ids.append(flow.operation_flow_id)
+#     def perform_create(self, serializer):
+#         operation_id = self.kwargs.get("operation_id")
+#         if operation_id is None:
+#             raise Http404("operation_id is required")
 
-                allocations = f.get("allocations", []) or []
-                if allocations:
-                    objs = []
-                    for a in allocations:
-                        objs.append(
-                            LPsOperationFlowShareClassAllocation(
-                                operation_id=op_id,
-                                operation_flow_id=flow.operation_flow_id,
-                                lp_id=a["lp_id"],
-                                share_class_id=a["share_class_id"],
-                                commitment_amount=a["commitment_amount"],
-                                capital_call=a["capital_call"],
-                                called_percentage=_q6(_normalize_fraction(a["called_percentage"])),
-                                shares_issued=a["shares_issued"],
-                                created_at=now,
-                                created_by=created_by,
-                            )
-                        )
-                    LPsOperationFlowShareClassAllocation.objects.bulk_create(objs)
+#         serializer.save(
+#             operation_id=int(operation_id),
+#             created_at=timezone.now(),
+#             created_by=_created_by_int(self.request),
+#         )
 
-            return Response(
-                {"operation_id": op_id, "created_flow_ids": created_flow_ids},
-                status=status.HTTP_201_CREATED,
-            )
+
+# class OperationFullCreate(APIView):
+#     """
+#     POST /api/funds/<fund_id>/operations/full-create/
+#     Creates operation (lps_operation_details) then flows + allocations.
+#     """
+
+#     def post(self, request, fund_id: int):
+#         serializer = OperationFullCreateSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         data = serializer.validated_data
+
+#         now = timezone.now()
+#         created_by = _created_by_int(request)
+
+#         # raw for ISO date aliases / safe defaults
+#         raw = request.data if isinstance(request.data, dict) else {}
+
+#         with transaction.atomic():
+#             op_id = _insert_operation_details(
+#                 fund_id=int(fund_id),
+#                 payload={
+#                     "operation_type_id": data["operation_type_id"],
+#                     "operation_name": data["operation_name"],
+#                     "notice_date_id": data.get("notice_date_id") or raw.get("notice_date_id"),
+#                     "due_date_id": data.get("due_date_id") or raw.get("due_date_id"),
+#                     "notice_date": raw.get("notice_date"),
+#                     "due_date": raw.get("due_date"),
+#                     # ✅ ensure NOT NULL for trigger
+#                     "total_operation_amount": raw.get("total_operation_amount") or raw.get("total_amount") or 0,
+#                     "overall_percentage_of_commitment": raw.get("overall_percentage_of_commitment") or raw.get("overall_pct") or 0,
+#                 },
+#                 request=request,
+#             )
+
+#             created_flow_ids = []
+
+#             for f in data["flows"]:
+#                 safe_alloc = _q6(_normalize_fraction(f.get("allocation_percentage_of_commitment", 0)))
+#                 safe_pct = _q6(_normalize_fraction(f.get("input_percentage")))
+
+#                 computed_total = _compute_total_amount(
+#                     input_type=f.get("input_type"),
+#                     input_amount=f.get("input_amount"),
+#                     input_percentage=safe_pct,
+#                     commitment_amount=f.get("commitment_amount"),
+#                     allocation_pct=safe_alloc,
+#                 )
+
+#                 flow = LPsOperationFlow.objects.create(
+#                     operation_id=op_id,
+#                     flow_type_id=f["flow_type_id"],
+#                     flow_name=f["flow_name"],
+#                     input_type=f["input_type"],
+#                     input_amount=f.get("input_amount"),
+#                     input_percentage=safe_pct if f.get("input_type") == "percentage" else f.get("input_percentage"),
+#                     allocation_percentage_of_commitment=safe_alloc,
+#                     commitment_amount=f.get("commitment_amount", 0),
+#                     computed_total_amount=computed_total,
+#                     created_at=now,
+#                     created_by=created_by,
+#                 )
+#                 created_flow_ids.append(flow.operation_flow_id)
+
+#                 allocations = f.get("allocations", []) or []
+#                 if allocations:
+#                     objs = []
+#                     for a in allocations:
+#                         objs.append(
+#                             LPsOperationFlowShareClassAllocation(
+#                                 operation_id=op_id,
+#                                 operation_flow_id=flow.operation_flow_id,
+#                                 lp_id=a["lp_id"],
+#                                 share_class_id=a["share_class_id"],
+#                                 commitment_amount=a["commitment_amount"],
+#                                 capital_call=a["capital_call"],
+#                                 called_percentage=_q6(_normalize_fraction(a["called_percentage"])),
+#                                 shares_issued=a["shares_issued"],
+#                                 created_at=now,
+#                                 created_by=created_by,
+#                             )
+#                         )
+#                     LPsOperationFlowShareClassAllocation.objects.bulk_create(objs)
+
+#             return Response(
+#                 {"operation_id": op_id, "created_flow_ids": created_flow_ids},
+#                 status=status.HTTP_201_CREATED,
+#             )
 
 
 # ======================================================
