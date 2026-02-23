@@ -413,6 +413,7 @@ export default function OperationPanel({
             operationType={operationTypeName}
             totalFundCommitment={totalFundCommitment}
             onFinalSave={handleFinalSave}
+            commitments={commitments}
           />
         );
 

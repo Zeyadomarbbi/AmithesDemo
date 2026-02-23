@@ -215,7 +215,10 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     lps = [],
     step2Result,
     operationType,
-    operationId = null, // ✅ passed from OperationPanel
+    operationId = null,
+    totalFundCommitment = 0,
+    onFinalSave,
+    commitments = [],   // ← add
   },
   ref
 ) {
@@ -232,7 +235,16 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   const [preview, setPreview] = useState(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState(null);
+  const committedLpIds = useMemo(() => {
+    return new Set((Array.isArray(commitments) ? commitments : []).map((c) => String(c.lp_id)));
+  }, [commitments]);
 
+  const filteredLps = useMemo(() => {
+    return (Array.isArray(lps) ? lps : []).filter((lp) => {
+      const id = String(lp?.lp_id ?? lp?.id ?? "");
+      return committedLpIds.has(id);
+    });
+  }, [lps, committedLpIds]);
   // ✅ Load preview in ALL envs (local-friendly)
   useEffect(() => {
     if (!operationId) return;
@@ -314,7 +326,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
    * - In non-distribution: keep your existing Called/Undrawn style.
    */
   const rows = useMemo(() => {
-    const arr = Array.isArray(lps) ? lps : [];
+    const arr = filteredLps;
 
     return arr.map((lp, idx) => {
       const rawId = lp?.lp_id ?? lp?.id ?? lp?.lpId ?? `${idx}`;
@@ -429,7 +441,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
         },
       };
     });
-  }, [lps, perLp, flows, getPreviewRow, distMode]);
+  }, [filteredLps, perLp, flows, getPreviewRow, distMode]);
 
   /**
    * Non-distribution operation columns (keep as-is)
