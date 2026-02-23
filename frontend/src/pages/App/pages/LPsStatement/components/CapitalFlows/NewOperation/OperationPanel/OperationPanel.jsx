@@ -7,6 +7,10 @@ import OperationStep4 from "../OperationStep4/OperationStep4.jsx";
 import { CloseIcon } from "../../../../Icons.jsx";
 import { useOperationTypes } from "/src/pages/App/hooks/LPsStatement/useOperationTypes.js";
 import { useOperationDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
+import { useCapitalFlowLPOperationAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
+import { useCapitalFlowLPFlowAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPFlowAllocation.js";
+import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
+
 import "./OperationPanel.css";
 
 /** Date -> YYYYMMDD integer */
@@ -175,7 +179,17 @@ export default function OperationPanel({
       operationTypeName: operationTypeName || payload.operationTypeName || "",
       flows: payload.flows || [],
       perLp: payload.perLp || {},
+      total_operation_amount: payload.grandTotal ?? 0,
+      overall_percentage_of_commitment: payload.grandPercent ?? 0,
     });
+
+    console.log("[Step 2 → Step 3]", {
+      total_operation_amount: payload.grandTotal ?? 0,
+      overall_percentage_of_commitment: payload.grandPercent ?? 0,
+      flows: payload.flows,
+      perLp: payload.perLp,
+    });
+
     setStep(3);
   };
 
@@ -183,19 +197,71 @@ export default function OperationPanel({
    * Called by Step 3 when it has total_operation_amount + overall_percentage_of_commitment.
    * This is the single point where we POST to the database.
    */
-  const handleFinalSave = async ({ totalOperationAmount, overallPercentageOfCommitment }) => {
+  const handleFinalSave = async () => {
+    const { flows, perLp, total_operation_amount, overall_percentage_of_commitment } = step2Result;
+
+    // ── 1. Create operation ──────────────────────────────────────────────────
     const newId = await createOperation({
       operation_name: String(operationName).trim(),
       operation_type: Number(operationType),
-      operation_type_id: Number(operationType),
+      notice_date_id: toDateId(noticeDate),
+      due_date_id: toDateId(dueDate),
       notice_date: toIsoDate(noticeDate),
       due_date: toIsoDate(dueDate),
       total_fund_commitment: totalFundCommitment,
-      total_operation_amount: totalOperationAmount,
-      overall_percentage_of_commitment: overallPercentageOfCommitment,
+      total_operation_amount,
+      overall_percentage_of_commitment,
     });
-
     setOperationId(newId);
+
+    // ── 2. Create flows + flow LP allocations ────────────────────────────────
+    const flowIdMap = {}; // local flow id → operation_flow_id from DB
+
+    for (const flow of flows) {
+      const flowTotal = step2Draft.flowTotals?.[flow.id] ?? null;
+      const alloc = totalFundCommitment > 0 && flowTotal !== null
+        ? flowTotal / totalFundCommitment : 0;
+
+      const createdFlow = await createFlow(fundId, newId, {
+        operation: newId,
+        flow_type: Number(flow.flowTypeId),
+        flow_name: flow.label,
+        input_type: isEqualization ? "percentage" : "amount",
+        input_amount: isEqualization ? null : flowTotal,
+        input_percentage: isEqualization ? flowTotal : null,
+        computed_total_amount: flowTotal,
+        allocation_percentage_of_commitment: alloc,
+      });
+
+      const opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
+      flowIdMap[flow.id] = opFlowId;
+
+      // ── 3. Flow LP allocations ─────────────────────────────────────────────
+      for (const [lpId, lpData] of Object.entries(perLp)) {
+        const allocatedAmount = lpData.flows?.[flow.id] ?? null;
+        if (allocatedAmount === null) continue;
+
+        await createFlowLPAllocation(fundId, newId, opFlowId, {
+          operation_flow: opFlowId,
+          lp: Number(lpId),
+          allocated_amount: allocatedAmount,
+        });
+      }
+    }
+
+    // ── 4. Operation LP allocations ──────────────────────────────────────────
+    for (const [lpId, lpData] of Object.entries(perLp)) {
+      await createOperationLPAllocation(fundId, newId, {
+        operation: newId,
+        lp: Number(lpId),
+        share_class: lpData.shareClassId ? Number(lpData.shareClassId) : null,
+        commitment_amount: lpData.commitmentNumber ?? 0,
+        capital_call: lpData.mainAmount ?? 0,
+        called_percentage: lpData.calledPct ?? 0,
+        shares_issued: lpData.sharesIssued ?? 0,
+      });
+    }
+
     return newId;
   };
 

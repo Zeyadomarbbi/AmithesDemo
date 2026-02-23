@@ -6,7 +6,7 @@ from django.http import Http404, HttpResponse
 from django.utils import timezone
 from django.db.models import Sum
 from psycopg2 import OperationalError
-
+from rest_framework.decorators import action
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -461,31 +461,42 @@ class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
             created_by=_created_by_int(self.request)
         )
 
-class LPsOperationLPSummaryViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Returns an aggregate of all flows for a specific operation, grouped by LP.
-    Endpoint: /api/funds/<fund_id>/operations/<lps_operation_details_id>/lp-summary/
-    """
+class LPsOperationLpAllocationViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationLpAllocationSerializer
     queryset = LPsOperationLPAllocation.objects.all()
+    lookup_field = 'pk'
 
-    def list(self, request, *args, **kwargs):
+    def get_queryset(self):
+        # Ensure we only see allocations for the specific operation in the URL
         op_id = self.kwargs.get("lps_operation_details_id")
-        
-        # Aggregating data from the Flow Allocations table
-        # We join: FlowAllocation -> Flow -> Operation
-        summary = (
-            LPsOperationFlowLPAllocation.objects
-            .filter(operation_flow_id__lps_operation_details_id=op_id)
-            .values('lp_id', 'lp_id__name') # Assuming LimitedPartner has a name field
-            .annotate(
-                total_allocated=Sum('allocated_amount'),
-                # Add other sums here if needed
-            )
-            .order_by('lp_id')
+        return self.queryset.filter(
+            lps_operation_details_id=op_id, 
+            is_deleted=False
+        ).order_by("lp_id")
+
+    def perform_create(self, serializer):
+        op_id = self.kwargs.get("lps_operation_details_id")
+        serializer.save(
+            lps_operation_details_id=op_id,
+            created_by=_created_by_int(self.request)
         )
 
-        return Response(summary)
+    @action(detail=False, methods=['get'], url_path='summary')
+    def summary(self, request, *args, **kwargs):
+        """
+        Calculates the aggregate totals from child flows.
+        Access via: GET .../lp-allocations/summary/
+        """
+        op_id = self.kwargs.get("lps_operation_details_id")
+        
+        summary_data = (
+            LPsOperationFlowLPAllocation.objects
+            .filter(operation_flow_id__lps_operation_details_id=op_id)
+            .values('lp_id', 'lp_id__name')
+            .annotate(total_allocated=Sum('allocated_amount'))
+            .order_by('lp_id')
+        )
+        return Response(summary_data)
 
 # class LPsOperationFlowShareClassAllocationViewSet(viewsets.ModelViewSet):
 #     """

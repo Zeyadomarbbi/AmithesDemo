@@ -529,54 +529,50 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const submitToNext = useCallback(async () => {
     if (typeof onNext !== "function") return;
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await persistFlows();
-      const perLpOut = {};
-      const calledPctDecimal =
-        grandPercent !== null && Number.isFinite(grandPercent) ? grandPercent / 100 : null;
-      for (const r of rows) {
-        const pct = r.ownershipPct;
-        const rowFlows = {};
-        for (const f of flows) {
-          const t = flowTotals[f.id];
-          rowFlows[f.id] =
-            (t !== null && t !== undefined && Number.isFinite(t) &&
-             pct !== null && pct !== undefined && Number.isFinite(pct))
-              ? t * pct : null;
-        }
-        perLpOut[r.id] = {
-          mainAmount: totalsByRowId[r.id],
-          calledPct: calledPctDecimal,
-          sharesIssued: sharesIssuedByRowId[r.id],
-          flows: rowFlows,
-          eqAmount: isEqualization ? eqByRowId[r.id] : null,
-          eqTargetPct: isEqualization ? eqTargetPct : null,
-        };
+
+    const perLpOut = {};
+    const calledPctDecimal =
+      grandPercent !== null && Number.isFinite(grandPercent) ? grandPercent / 100 : null;
+
+    for (const r of rows) {
+      const pct = r.ownershipPct;
+      const rowFlows = {};
+      for (const f of flows) {
+        const t = flowTotals[f.id];
+        rowFlows[f.id] =
+          t !== null && t !== undefined && Number.isFinite(t) &&
+          pct !== null && pct !== undefined && Number.isFinite(pct)
+            ? t * pct : null;
       }
-      onNext({
-        operationType: operationType || "Distribution",
-        flows: flows.map((f) => ({
-          id: f.id,
-          label: f.label,
-          flowType: f.flowType,
-          operation_flow_id: f.operation_flow_id || null,
-          flowTypeId: f?.data?.flowTypeId ?? null,
-        })),
-        perLp: perLpOut,
-      });
-    } catch (e) {
-      setSaveError(e);
-      throw e;
-    } finally {
-      setIsSaving(false);
+    perLpOut[r.id] = {
+      mainAmount: totalsByRowId[r.id],
+      calledPct: calledPctDecimal,
+      sharesIssued: sharesIssuedByRowId[r.id],
+      flows: rowFlows,
+      commitmentNumber: r.commitmentNumber,  // ← add
+      shareClassId: r.shareClassId,          // ← add
+      eqAmount: isEqualization ? eqByRowId[r.id] : null,
+      eqTargetPct: isEqualization ? eqTargetPct : null,
+    };
     }
+
+    onNext({
+      operationType: operationType || "Distribution",
+      flows: flows.map((f) => ({
+        id: f.id,
+        label: f.label,
+        flowType: f.flowType,
+        flowTypeId: f?.data?.flowTypeId ?? null,
+      })),
+      perLp: perLpOut,
+      grandTotal,
+      grandPercent,
+    });
   }, [
     onNext, operationType, flows, flowTotals, rows, totalsByRowId,
-    grandPercent, sharesIssuedByRowId, persistFlows, isEqualization,
-    eqByRowId, eqTargetPct,
+    grandPercent, sharesIssuedByRowId, isEqualization, eqByRowId, eqTargetPct,
   ]);
+
 
   useImperativeHandle(ref, () => ({ submitToNext }), [submitToNext]);
 
