@@ -7,7 +7,7 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
   const [error, setError] = useState(null);
 
   // URL matches your Django nested path
-  const baseUrl = `${API_BASE_URL}/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
+  const baseUrl = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
 
   // Internal helper for native fetch logic
   const handleRequest = async (url, options = {}) => {
@@ -44,11 +44,12 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
   }, [baseUrl, flowId]);
 
   // POST: Create a single LP allocation
-  const createAllocation = async (payload) => {
+  const createAllocation = async (operationId, flowId, payload) => {
+    const url = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
     setIsLoading(true);
     setError(null);
     try {
-      const response = await handleRequest(baseUrl, {
+      const response = await handleRequest(url, {
         method: 'POST',
         body: JSON.stringify(payload),
       });

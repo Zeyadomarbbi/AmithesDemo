@@ -14,7 +14,7 @@ from ..views.lps_statement_views import (LimitedPartnerViewSet, LPsFundCommitmen
     LPsOperationDetailsViewSet,
     LPsOperationFlowViewSet,
     LPsFlowLPAllocationViewSet,
-    LPsOperationLPSummaryViewSet,
+    LPsOperationLPAllocationViewSet,
     # OperationFullCreate,
 
     # ✅ Step 3
@@ -86,6 +86,10 @@ lp_allocation_detail = LPsFlowLPAllocationViewSet.as_view({
     'delete': 'destroy'
 })
 
+lp_operation_summary = LPsOperationLPAllocationViewSet.as_view({
+    'get': 'summary'
+})
+
 # ✅ Step 2: Allocations
 # allocation_list = LPsOperationFlowShareClassAllocationViewSet.as_view({
 #     "get": "list",
@@ -118,11 +122,28 @@ urlpatterns = [
     path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:pk>/", operation_flow_detail, name="operation-flow-detail"),
     path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/", lp_allocation_list, name="flow-allocation-list"),
     path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/flows/<int:operation_flow_id>/lp_allocations/<int:pk>/", lp_allocation_detail, name="flow-allocation-detail"),
+    path("funds/<int:fund_id>/lp-allocations/", LPsOperationLPAllocationViewSet.as_view({'get': 'list_by_fund'}), name="fund-lp-allocation-list"),
+    path("funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/", LPsOperationLPAllocationViewSet.as_view({'get': 'list', 'post': 'create'}), name="operation-lp-allocation-list"),
     path(
-        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/", 
-        LPsOperationLPSummaryViewSet.as_view({'get': 'list'}), 
-        name="operation-lp-summary"
+        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/summary/", 
+        lp_operation_summary, 
+        name="operation-lp-allocation-summary"
     ),
+    path(
+        "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/<int:pk>/", 
+        LPsOperationLPAllocationViewSet.as_view({
+            'get': 'retrieve', 
+            'put': 'update', 
+            'patch': 'partial_update', 
+            'delete': 'destroy'
+        }), 
+        name="operation-lp-allocation-detail"
+    ),
+    # path(
+    #     "funds/<int:fund_id>/operations/<int:lps_operation_details_id>/lp-allocations/", 
+    #     LPsOperationLPSummaryViewSet.as_view({'get': 'list'}), 
+    #     name="operation-lp-summary"
+    # ),
     
     # One-shot create (Step 1 + Step 2)
     # path("funds/<int:fund_id>/operations/full-create/", OperationFullCreate.as_view(), name="operation-full-create"),

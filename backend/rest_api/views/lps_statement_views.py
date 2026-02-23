@@ -461,11 +461,22 @@ class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
             created_by=_created_by_int(self.request)
         )
 
-class LPsOperationLpAllocationViewSet(viewsets.ModelViewSet):
+class LPsOperationLPAllocationViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationLpAllocationSerializer
     queryset = LPsOperationLPAllocation.objects.all()
     lookup_field = 'pk'
 
+    @action(detail=False, methods=['get'], url_path='lp-allocations')
+    def list_by_fund(self, request, fund_id=None, *args, **kwargs):
+        allocations = LPsOperationLPAllocation.objects.filter(
+            lps_operation_details_id__in=LPsOperationDetails.objects.filter(
+                fund_id=fund_id
+            ).values_list('lps_operation_details_id', flat=True),
+            is_deleted=False
+        ).order_by('lp_id', '-lps_operation_details_id')
+        serializer = self.get_serializer(allocations, many=True)
+        return Response(serializer.data)
+    
     def get_queryset(self):
         # Ensure we only see allocations for the specific operation in the URL
         op_id = self.kwargs.get("lps_operation_details_id")

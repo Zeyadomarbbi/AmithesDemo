@@ -6,7 +6,7 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const baseUrl = `${API_BASE_URL}/funds/${fundId}/operations/${operationId}/flows/`;
+  const baseUrl = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/`;
 
   // Helper for repetitive fetch logic
   const handleRequest = async (url, options = {}) => {
@@ -43,11 +43,12 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   }, [baseUrl]);
 
   // POST: Create a new flow
-  const createFlow = async (flowData) => {
+  const createFlow = async (operationId, flowData) => {
+    const url = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/`;
     setIsLoading(true);
     setError(null);
     try {
-      const response = await handleRequest(baseUrl, {
+      const response = await handleRequest(url, {
         method: 'POST',
         body: JSON.stringify(flowData),
       });
