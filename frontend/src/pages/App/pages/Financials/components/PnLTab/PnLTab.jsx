@@ -15,6 +15,7 @@ import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimef
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
 import PnLTax from "./PnLTables/PnLTax.jsx";
+import { API_BASE_URL } from "../../../../hooks/useApi.js";
 import "./PnL.css";
 
 /* -----------------------------
@@ -26,7 +27,7 @@ async function apiFetchPnL(fundId, timeframeIds = []) {
       ? `?timeframe_ids=${timeframeIds.join(",")}`
       : "";
 
-  const r = await fetch(`/api/pnl/${fundId}/${qs}`, {
+  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/${qs}`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -39,7 +40,7 @@ async function apiFetchPnL(fundId, timeframeIds = []) {
 }
 
 async function apiUpsertPnLValue(fundId, { lineItemId, timeframeId, amount }) {
-  const r = await fetch(`/api/pnl/${fundId}/value/`, {
+  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/value/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -57,14 +58,12 @@ async function apiUpsertPnLValue(fundId, { lineItemId, timeframeId, amount }) {
   return r.json();
 }
 
-// ✅ NEW: create a line item in DB for custom rows
-// backend endpoint you will add: POST /api/pnl/<fund_id>/line-item/
 async function apiCreatePnLLineItem(fundId, { category, name }) {
-  const r = await fetch(`/api/pnl/${fundId}/line-item/`, {
+  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/line-item/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      category: String(category || "").toLowerCase(), // "income" | "expense" | "tax"
+      category: String(category || "").toLowerCase(),
       name: String(name || "").trim(),
     }),
   });
@@ -74,7 +73,7 @@ async function apiCreatePnLLineItem(fundId, { category, name }) {
     throw new Error(`PnL line-item create failed (${r.status}): ${txt}`);
   }
 
-  return r.json(); // expects { line_item_id, name, category_id, fund_id }
+  return r.json();
 }
 
 /* -----------------------------
@@ -347,7 +346,7 @@ const PnLTab = () => {
       form.append("quarters", JSON.stringify(selectedTimeframeIds || []));
 
       const res = await fetch(
-        `/api/funds/${encodeURIComponent(effectiveFundId)}/financials/pnl/upload`,
+        `${API_BASE_URL}/api/funds/${encodeURIComponent(effectiveFundId)}/financials/pnl/upload`,
         { method: "POST", body: form }
       );
 
