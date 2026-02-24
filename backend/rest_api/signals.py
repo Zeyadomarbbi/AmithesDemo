@@ -57,7 +57,11 @@ def invalidate_on_operation_details(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=LPsOperationLPAllocation)
 def invalidate_on_operation_allocations(sender, instance, **kwargs):
-    _invalidate_capital_account_cache(instance.operation_details.fund_id)
+    try:
+        op = LPsOperationDetails.objects.get(pk=instance.lps_operation_details_id)
+        _invalidate_capital_account_cache(op.fund_id)
+    except LPsOperationDetails.DoesNotExist:
+        pass
 
 def _invalidate_cache_for_investments(investment_ids):
     fund_ids = (

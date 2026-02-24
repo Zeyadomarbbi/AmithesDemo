@@ -2,129 +2,46 @@
 import React, { useState } from "react";
 import "./OperationStep4.css";
 
-/* ------------------------------------------------------------------
-   INLINE SVG PREVIEW CARD (from your Figma SVG)
--------------------------------------------------------------------*/
-const TemplatePreviewSvg = () => (
-  <svg
-    width="311"
-    height="105"
-    viewBox="0 0 311 105"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect width="311" height="104.32" rx="8" fill="white" />
-    <rect
-      x="0.5"
-      y="0.5"
-      width="310"
-      height="103.32"
-      rx="7.5"
-      stroke="#CCCDCE"
-      strokeOpacity="0.5"
-    />
-    <path
-      d="M15.6165 22.1406V20.8182H23.4964V22.1406H20.3196V31H18.7884V22.1406H15.6165ZM27.4422 31.1541C26.6898 31.1541 26.0419 30.9934 25.4983 30.6719C24.9581 30.3471 24.5405 29.8913 24.2455 29.3047C23.9538 28.7147 23.808 28.0237 23.808 27.2315C23.808 26.4493 23.9538 25.7599 24.2455 25.1634C24.5405 24.5668 24.9514 24.1011 25.4784 23.7663C26.0087 23.4316 26.6285 23.2642 27.3378 23.2642C27.7687 23.2642 28.1863 23.3355 28.5906 23.478C28.995 23.6205 29.3579 23.8442 29.6794 24.1491C30.0009 24.4541 30.2545 24.8501 30.4401 25.3374C30.6257 25.8213 30.7185 26.4096 30.7185 27.1023V27.6293H24.6482V26.5156H29.2618C29.2618 26.1245 29.1823 25.7782 29.0232 25.4766C28.8641 25.1716 28.6404 24.9313 28.352 24.7557C28.067 24.58 27.7322 24.4922 27.3477 24.4922C26.9301 24.4922 26.5655 24.5949 26.254 24.8004C25.9458 25.0026 25.7071 25.2678 25.5381 25.5959C25.3724 25.9207 25.2895 26.2737 25.2895 26.6548V27.5249C25.2895 28.0353 25.379 28.4695 25.558 28.8274C25.7403 29.1854 25.9938 29.4588 26.3186 29.6477C26.6434 29.8333 27.0229 29.9261 27.4571 29.9261C27.7388 29.9261 27.9957 29.8864 28.2277 29.8068C28.4597 29.724 28.6602 29.6013 28.8293 29.4389C28.9983 29.2765 29.1276 29.076 29.2171 28.8374L30.624 29.0909C30.5113 29.5052 30.3092 29.8681 30.0175 30.1797C29.7291 30.4879 29.3662 30.7282 28.9287 30.9006C28.4945 31.0696 27.999 31.1541 27.4422 31.1541ZM32.5078 31V23.3636H33.9347V24.6065H34.0291C34.1882 24.1856 34.4484 23.8575 34.8097 23.6222C35.1709 23.3835 35.6035 23.2642 36.1072 23.2642C36.6177 23.2642 37.0452 23.3835 37.3899 23.6222C37.7379 23.8608 37.9948 24.1889 38.1605 24.6065H38.2401C38.4223 24.1989 38.7124 23.8741 39.1101 23.6321C39.5078 23.3868 39.9818 23.2642 40.532 23.2642C41.2247 23.2642 41.7898 23.4813 42.2273 23.9155C42.6681 24.3497 42.8885 25.0043 42.8885 25.8793V31H41.402V26.0185C41.402 25.5014 41.2611 25.1269 40.9794 24.8949C40.6977 24.6629 40.3613 24.5469 39.9702 24.5469C39.4863 24.5469 39.1101 24.696 38.8416 24.9943C38.5731 25.2893 38.4389 25.6688 38.4389 26.1328V31H36.9574V25.924C36.9574 25.5097 36.8281 25.1766 36.5696 24.9247C36.3111 24.6728 35.9747 24.5469 35.5604 24.5469C35.2786 24.5469 35.0185 24.6214 34.7798 24.7706C34.5445 24.9164 34.3539 25.1203 34.2081 25.3821C34.0656 25.6439 33.9943 25.9472 33.9943 26.2919V31H32.5078Z"
-      fill="#1C1917"
-    />
-    <path
-      d="M45.0209 33.8636V23.3636H46.4726V24.6016H46.5968C46.683 24.4425 46.8073 24.2585 46.9697 24.0497C47.1321 23.8409 47.3575 23.6586 47.6459 23.5028C47.9342 23.3438 48.3154 23.2642 48.7893 23.2642C49.4058 23.2642 49.956 23.42 50.4399 23.7315C50.9238 24.0431 51.3033 24.4922 51.5784 25.0788C51.8568 25.6655 51.996 26.3714 51.996 27.1967C51.996 28.022 51.8584 28.7296 51.5834 29.3196C51.3083 29.9062 50.9304 30.3587 50.4498 30.6768C49.9692 30.9917 49.4207 31.1491 48.8042 31.1491C48.3402 31.1491 47.9607 31.0713 47.6657 30.9155C47.3741 30.7597 47.1454 30.5774 46.9797 30.3686C46.8139 30.1598 46.6863 29.9742 46.5968 29.8118H46.5074V33.8636H45.0209Z"
-      fill="#1C1917"
-    />
-  </svg>
-);
+function fmtMoney(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "-";
+  return num.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtPct(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "-";
+  const pct = Math.abs(num) <= 1 ? num * 100 : num;
+  return `${pct.toFixed(2)}%`;
+}
+
+function initialsFromName(name = "") {
+  return String(name).trim().split(/\s+/).filter(Boolean)
+    .slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "LP";
+}
 
 /* ------------------------------------------------------------------
-   DATA FOR LPs TABLE + TEMPLATE LIST
+   TEMPLATE LIST (static — template linking is future scope)
 -------------------------------------------------------------------*/
-
-// LPs table rows (LPs List tab)
-const LPS_ROWS = [
-  {
-    id: 1,
-    initials: "OR",
-    name: "Ophéa Real",
-    shareClass: "Class A1",
-    calledAmount: "2 500 000",
-    templateLabel: "Template CCC",
-    isLinkOnly: false,
-    linkedIcons: ["doc", "pdf"],
-    selected: true,
-  },
-  {
-    id: 2,
-    initials: "CV",
-    name: "CV Partners",
-    shareClass: "Class A2",
-    calledAmount: "2 500 000",
-    templateLabel: "Link template",
-    isLinkOnly: true,
-    linkedIcons: ["doc", "pdf"],
-    selected: false,
-  },
-  {
-    id: 3,
-    initials: "SC",
-    name: "SA Capital",
-    shareClass: "Class B",
-    calledAmount: "2 500 000",
-    templateLabel: "Template CCC",
-    isLinkOnly: false,
-    linkedIcons: ["doc", "pdf"],
-    selected: false,
-  },
-];
-
-// Template cards (Template tab)
 const TEMPLATE_ROWS = [
-  {
-    id: 1,
-    name: "Template CCC",
-    description: "Description courte",
-    tags: ["OR", "HR", "MT", "JZ", "OF +5"],
-  },
-  {
-    id: 2,
-    name: "Template AAA",
-    description: "Class A1",
-    tags: ["OR", "HR", "MT", "JZ", "OF +5"],
-  },
-  {
-    id: 3,
-    name: "Template BBB",
-    description: "Class B",
-    tags: ["OR", "HR", "MT", "JZ", "OF +5"],
-  },
-  {
-    id: 4,
-    name: "Template BBB",
-    description: "Class B",
-    tags: ["OR", "HR", "MT", "JZ", "OF +5"],
-  },
+  { id: 1, name: "Template CCC", description: "Description courte", tags: ["OR", "HR", "MT", "JZ", "OF +5"] },
+  { id: 2, name: "Template AAA", description: "Class A1",            tags: ["OR", "HR", "MT", "JZ", "OF +5"] },
+  { id: 3, name: "Template BBB", description: "Class B",             tags: ["OR", "HR", "MT", "JZ", "OF +5"] },
+  { id: 4, name: "Template BBB", description: "Class B",             tags: ["OR", "HR", "MT", "JZ", "OF +5"] },
 ];
 
 /* ---------- DOC + PDF SMALL ICONS FOR ACTION COLUMN ---------- */
-
 const DocFileIcon = () => (
-  <svg
-    width="22"
-    height="20"
-    viewBox="0 0 22 20"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M9.07031 0.75H15.0098L20.3203 6.06055V16C20.3203 17.7949 18.8652 19.25 17.0703 19.25H9.07031C7.27539 19.25 5.82031 17.7949 5.82031 16V4C5.82031 2.20507 7.27539 0.75 9.07031 0.75Z"
-      stroke="#D0D5DD"
-      strokeWidth="1.5"
+      stroke="#D0D5DD" strokeWidth="1.5"
     />
     <path
       d="M15.0703 0.25V2C15.0703 4.20914 16.8612 6 19.0703 6H20.8203"
-      stroke="#D0D5DD"
-      strokeWidth="1.5"
+      stroke="#D0D5DD" strokeWidth="1.5"
     />
     <rect y="7.26562" width="18.64" height="7.77144" rx="1.3549" fill="#155EEF" />
-    {/* (paths for the DOC letters inside – unchanged) */}
   </svg>
 );
 
@@ -132,16 +49,9 @@ const PdfFileIcon = () => (
   <span className="op4-file-badge-pdf">PDF</span>
 );
 
-/* ---------- EXTRACT ICON (your 12x15 SVG) ---------- */
-
+/* ---------- EXTRACT ICON ---------- */
 const ExtractIcon = () => (
-  <svg
-    width="12"
-    height="15"
-    viewBox="0 0 12 15"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       fillRule="evenodd"
       clipRule="evenodd"
@@ -154,49 +64,107 @@ const ExtractIcon = () => (
 /* ------------------------------------------------------------------
    MAIN COMPONENT
 -------------------------------------------------------------------*/
+export default function OperationStep4({
+  operationName = "",
+  operationTypeName = "",
+  noticeDate = null,
+  dueDate = null,
+  totalFundCommitment = 0,
+  step2Result = {},
+  lps = [],
+  isSaving = false,
+  saveError = null,
+}) {
+  const [activeTab, setActiveTab] = useState("lps");
 
-export default function OperationStep4() {
-  const [activeTab, setActiveTab] = useState("lps"); // "lps" | "template"
-  const totalCalled = "7 500 000";
+  // ── Build LP name lookup ──────────────────────────────────────────────────
+  const lpNameById = {};
+  (Array.isArray(lps) ? lps : []).forEach((lp) => {
+    const id = String(lp?.lp_id ?? lp?.id ?? "");
+    if (id) lpNameById[id] = lp?.name ?? lp?.fullName ?? null;
+  });
 
-  // simple handler to open file picker when clicking Upload new template
+  // ── Build real LP rows from step2Result.perLp ─────────────────────────────
+  const lpRows = Object.entries(step2Result?.perLp || {}).map(([lpId, lpData]) => {
+    const name = lpNameById[lpId] ?? `LP ${lpId}`;
+    return {
+      id: lpId,
+      initials: initialsFromName(name),
+      name,
+      shareClass: lpData?.shareClassId ? `Class ${lpData.shareClassId}` : "—",
+      calledAmount: fmtMoney(lpData?.mainAmount ?? 0),
+      calledPct: fmtPct(lpData?.calledPct ?? 0),
+      sharesIssued: lpData?.sharesIssued != null
+        ? Number(lpData.sharesIssued).toLocaleString("fr-FR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+        : "—",
+      selected: true,
+      isLinkOnly: true,
+      templateLabel: "Link template",
+      linkedIcons: ["doc", "pdf"],
+    };
+  });
+
+  const grandTotal = fmtMoney(step2Result?.total_operation_amount ?? 0);
+
   const handleUploadClick = () => {
-    const input = document.getElementById("op4-upload-input");
-    if (input) {
-      input.click();
-    }
+    document.getElementById("op4-upload-input")?.click();
   };
 
   return (
     <div className="op4-wrapper">
-      {/* hidden input used by the upload button */}
-      <input
-        id="op4-upload-input"
-        type="file"
-        style={{ display: "none" }}
-      />
+      {/* hidden file input */}
+      <input id="op4-upload-input" type="file" style={{ display: "none" }} />
+
+      {/* ── Operation summary strip ───────────────────────────────────────── */}
+      <div className="op4-summary-strip">
+        <div className="op4-summary-item">
+          <span className="op4-summary-label">Operation</span>
+          <span className="op4-summary-value">{operationName || "—"}</span>
+        </div>
+        <div className="op4-summary-item">
+          <span className="op4-summary-label">Type</span>
+          <span className="op4-summary-value">{operationTypeName || "—"}</span>
+        </div>
+        <div className="op4-summary-item">
+          <span className="op4-summary-label">Notice date</span>
+          <span className="op4-summary-value">{noticeDate || "—"}</span>
+        </div>
+        <div className="op4-summary-item">
+          <span className="op4-summary-label">Due date</span>
+          <span className="op4-summary-value">{dueDate || "—"}</span>
+        </div>
+        <div className="op4-summary-item">
+          <span className="op4-summary-label">Total amount</span>
+          <span className="op4-summary-value">€ {grandTotal}</span>
+        </div>
+      </div>
+
+      {/* ── Save status messages ──────────────────────────────────────────── */}
+      {saveError?.message && (
+        <div style={{ margin: "8px 0", color: "#b42318", fontSize: 12 }}>
+          {saveError.message}
+        </div>
+      )}
+      {isSaving && (
+        <div style={{ margin: "8px 0", color: "#667085", fontSize: 12 }}>
+          Saving operation…
+        </div>
+      )}
 
       {/* ================== TOP RIGHT TOGGLE ================== */}
       <div className="op4-top-row">
-        {/* NEW: wrapper so button is under the tabs on the right */}
         <div className="op4-top-right">
           <div className="op4-toggle-group">
             <button
               type="button"
-              className={
-                "op4-toggle-btn" +
-                (activeTab === "lps" ? " op4-toggle-btn--active" : "")
-              }
+              className={"op4-toggle-btn" + (activeTab === "lps" ? " op4-toggle-btn--active" : "")}
               onClick={() => setActiveTab("lps")}
             >
               LPs List
             </button>
             <button
               type="button"
-              className={
-                "op4-toggle-btn" +
-                (activeTab === "template" ? " op4-toggle-btn--active" : "")
-              }
+              className={"op4-toggle-btn" + (activeTab === "template" ? " op4-toggle-btn--active" : "")}
               onClick={() => setActiveTab("template")}
             >
               Template
@@ -204,14 +172,8 @@ export default function OperationStep4() {
           </div>
 
           {activeTab === "template" && (
-            <button
-              className="op4-upload-btn"
-              type="button"
-              onClick={handleUploadClick}
-            >
-              <span className="op4-upload-icon" aria-hidden="true">
-                ↑
-              </span>
+            <button className="op4-upload-btn" type="button" onClick={handleUploadClick}>
+              <span className="op4-upload-icon" aria-hidden="true">↑</span>
               Upload new template
             </button>
           )}
@@ -220,7 +182,7 @@ export default function OperationStep4() {
 
       {/* ================== CONTENT BY TAB ================== */}
       {activeTab === "lps" ? (
-        /* ---------- LPs LIST TABLE (your old view) ---------- */
+        /* ---------- LPs LIST TABLE ---------- */
         <div className="op4-table-wrapper">
           <div className="op4-table">
             {/* header row */}
@@ -228,98 +190,69 @@ export default function OperationStep4() {
               <div className="op4-cell op4-cell-check">
                 <input type="checkbox" />
               </div>
-
               <div className="op4-cell op4-cell-lp">
                 <span className="op4-header-text">LPs</span>
               </div>
-
               <div className="op4-cell op4-cell-share-class">
                 <span className="op4-header-text">Share Class</span>
                 <span className="op4-sort-icon">◇</span>
               </div>
-
               <div className="op4-cell op4-cell-called">
                 <span className="op4-header-text">Called Amount (€)</span>
                 <span className="op4-sort-icon">◇</span>
               </div>
-
               <div className="op4-cell op4-cell-linked">
                 <span className="op4-header-text">Linked to</span>
               </div>
-
               <div className="op4-cell op4-cell-action">
                 <span className="op4-header-text">Action</span>
               </div>
             </div>
 
-            {/* body rows */}
-            {LPS_ROWS.map((row) => (
+            {/* body rows — real data from step2Result */}
+            {lpRows.length === 0 && (
+              <div style={{ padding: "16px", color: "#667085", fontSize: 13 }}>
+                No LP data available.
+              </div>
+            )}
+
+            {lpRows.map((row) => (
               <div
                 key={row.id}
-                className={
-                  "op4-row op4-row-body" +
-                  (row.selected ? " op4-row-selected" : "")
-                }
+                className={"op4-row op4-row-body" + (row.selected ? " op4-row-selected" : "")}
               >
                 <div className="op4-cell op4-cell-check">
                   <input type="checkbox" defaultChecked={row.selected} />
                 </div>
-
                 <div className="op4-cell op4-cell-lp">
                   <div className="op4-lp-pill">{row.initials}</div>
-                  <button className="op4-lp-name" type="button">
-                    {row.name}
-                  </button>
+                  <button className="op4-lp-name" type="button">{row.name}</button>
                 </div>
-
                 <div className="op4-cell op4-cell-share-class">
                   <span className="op4-class-pill">{row.shareClass}</span>
                 </div>
-
                 <div className="op4-cell op4-cell-called">
                   <span className="op4-number">{row.calledAmount}</span>
                 </div>
-
                 <div className="op4-cell op4-cell-linked">
-                  {!row.isLinkOnly ? (
-                    <button type="button" className="op4-linked-btn">
-                      <span className="op4-linked-icon" aria-hidden="true" />
-                      <span className="op4-linked-label">
-                        {row.templateLabel}
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="op4-linked-btn op4-linked-btn-link"
-                    >
-                      <span
-                        className="op4-linked-link-icon"
-                        aria-hidden="true"
-                      >
-                        ⛓
-                      </span>
-                      <span className="op4-linked-label">
-                        {row.templateLabel}
-                      </span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className={"op4-linked-btn" + (row.isLinkOnly ? " op4-linked-btn-link" : "")}
+                  >
+                    <span className={row.isLinkOnly ? "op4-linked-link-icon" : "op4-linked-icon"} aria-hidden="true">
+                      {row.isLinkOnly ? "⛓" : ""}
+                    </span>
+                    <span className="op4-linked-label">{row.templateLabel}</span>
+                  </button>
                 </div>
-
                 <div className="op4-cell op4-cell-action">
                   {row.linkedIcons.includes("doc") && (
-                    <button
-                      type="button"
-                      className="op4-file-icon op4-file-icon-doc"
-                    >
+                    <button type="button" className="op4-file-icon op4-file-icon-doc">
                       <DocFileIcon />
                     </button>
                   )}
                   {row.linkedIcons.includes("pdf") && (
-                    <button
-                      type="button"
-                      className="op4-file-icon op4-file-icon-pdf"
-                    >
+                    <button type="button" className="op4-file-icon op4-file-icon-pdf">
                       <PdfFileIcon />
                     </button>
                   )}
@@ -330,28 +263,22 @@ export default function OperationStep4() {
             {/* total bar */}
             <div className="op4-total-row">
               <div className="op4-total-label">Total</div>
-              <div className="op4-total-value">{totalCalled}</div>
+              <div className="op4-total-value">€ {grandTotal}</div>
             </div>
           </div>
         </div>
       ) : (
-        /* ---------- TEMPLATE PAGE (NO RIGHT EMPTY BOX) ---------- */
+        /* ---------- TEMPLATE PAGE ---------- */
         <div className="op4-template-layout">
-          {/* Left column: search + list of template cards */}
           <div className="op4-template-left">
             <div className="op4-template-search-wrapper">
-              <span className="op4-template-search-icon" aria-hidden="true">
-                🔍
-              </span>
-              <input
-                className="op4-template-search-input"
-                placeholder="Search by template..."
-              />
+              <span className="op4-template-search-icon" aria-hidden="true">🔍</span>
+              <input className="op4-template-search-input" placeholder="Search by template..." />
             </div>
 
             <label className="op4-template-select-all">
               <input type="checkbox" />
-              <span>Select all (4)</span>
+              <span>Select all ({TEMPLATE_ROWS.length})</span>
             </label>
 
             <div className="op4-template-list">
@@ -360,51 +287,28 @@ export default function OperationStep4() {
                   <div className="op4-template-card-main">
                     <div className="op4-template-text">
                       <div className="op4-template-name">{tpl.name}</div>
-                      <div className="op4-template-desc">
-                        {tpl.description}
-                      </div>
+                      <div className="op4-template-desc">{tpl.description}</div>
                       <div className="op4-template-tags-row">
                         {tpl.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="op4-template-tag-pill"
-                          >
-                            {tag}
-                          </span>
+                          <span key={tag} className="op4-template-tag-pill">{tag}</span>
                         ))}
                       </div>
                     </div>
-
                     <div className="op4-template-actions">
-                      {/* Extract button with your new icon */}
-                      <button
-                        type="button"
-                        className="op4-extract-btn"
-                      >
-                        <span
-                          className="op4-extract-doc-icon"
-                          aria-hidden="true"
-                        >
+                      <button type="button" className="op4-extract-btn">
+                        <span className="op4-extract-doc-icon" aria-hidden="true">
                           <ExtractIcon />
                         </span>
                         <span>Extract</span>
                       </button>
-
-                      <button
-                        type="button"
-                        className="op4-more-btn"
-                        aria-label="More"
-                      >
-                        ⋮
-                      </button>
+                      <button type="button" className="op4-more-btn" aria-label="More">⋮</button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* ✅ Removed the right preview column so the empty box disappears */}
+          {/* ✅ No right preview column — empty box removed */}
         </div>
       )}
     </div>

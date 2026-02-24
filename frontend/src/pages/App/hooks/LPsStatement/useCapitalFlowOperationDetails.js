@@ -13,7 +13,8 @@ async function fetchJson(url, options = {}) {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
-    credentials: 'include',
+    // removed credentials: 'include' — causes CORS preflight failure
+    // when backend returns wildcard Access-Control-Allow-Origin: *
   });
 
   const text = await res.text();
@@ -37,20 +38,6 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
-/**
- * useOperationDetails
- *
- * CRUD for lps_operation_details scoped to a fund.
- *
- * Save strategy:
- *   State accumulates across Steps 1–3 in OperationPanel.
- *   A single createOperation() POST fires at the final step
- *   with the full assembled payload:
- *     operation_name, operation_type, notice_date_id, due_date_id,
- *     total_fund_commitment,             <- computed at Step 1
- *     total_operation_amount,            <- collected at Step 3
- *     overall_percentage_of_commitment   <- collected at Step 3
- */
 export function useOperationDetails(fundId) {
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,10 +67,6 @@ export function useOperationDetails(fundId) {
   }, [fundId]);
 
   // ── CREATE ────────────────────────────────────────────────────────────────
-  /**
-   * Single POST with full payload assembled from all steps.
-   * @returns {number} lps_operation_details_id
-   */
   const createOperation = useCallback(async (payload) => {
     if (!fundId) throw new Error('fundId is missing.');
     setError(null);

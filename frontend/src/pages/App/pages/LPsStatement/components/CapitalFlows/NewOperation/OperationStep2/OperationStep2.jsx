@@ -10,6 +10,7 @@ import { useOutletContext } from "react-router-dom";
 import AddFlowModal from "./components/AddFlowModal.jsx";
 import { useShareClasses } from "../../../../../../hooks/useShareClass.js"
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
+import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
 import "./OperationStep2.css";
 
 const LPS_W = 340;
@@ -18,61 +19,6 @@ const FLOW_W = 220;
 const EQ_W = 220;
 const BLUEBOX_SIDE_PADDING = 28;
 
-/** -------------------------
- * API helpers
- * ------------------------- */
-const RUNTIME =
-  (typeof window !== "undefined" && window.__RUNTIME_CONFIG__) || {};
-const API_BASE_RAW =
-  RUNTIME.API_BASE_URL || import.meta.env.VITE_API_BASE_URL || "";
-const API_PREFIX_RAW =
-  RUNTIME.API_PREFIX || import.meta.env.VITE_API_PREFIX || "";
-const API_BASE = String(API_BASE_RAW).replace(/\/$/, "");
-const API_PREFIX = String(API_PREFIX_RAW).replace(/\/$/, "");
-
-function joinUrl(a, b) {
-  const aa = String(a || "").replace(/\/$/, "");
-  const bb = String(b || "").replace(/^\//, "");
-  if (!aa) return `/${bb}`;
-  if (!bb) return aa;
-  return `${aa}/${bb}`;
-}
-
-function apiUrl(path) {
-  const p = String(path || "");
-  const pp = p.startsWith("/") ? p : `/${p}`;
-  const prefix = API_PREFIX || "/api";
-  if (!API_BASE) return joinUrl(prefix, pp);
-  return joinUrl(joinUrl(API_BASE, prefix), pp);
-}
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    credentials: "include",
-  });
-  const text = await res.text();
-  let data = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text || null;
-  }
-  if (!res.ok) {
-    const msg =
-      (data && data.detail) ||
-      (data && data.error) ||
-      (typeof data === "string" ? data : "") ||
-      `Request failed (${res.status})`;
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    err.url = url;
-    throw err;
-  }
-  return data;
-}
 
 /** -------------------------
  * Parse/format helpers
@@ -160,6 +106,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     fetchAllAllocations = null,
     operationTypeId,
     operationTypeName,
+    operationNumber,
     onNext,
     draft,
     setDraft,
@@ -177,13 +124,47 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const { data: shareClasses = [] } = useShareClasses(fundId);
   const { flowTypes, fetchFlowTypes, isLoading: isLoadingTypes } = useFlowTypes();
+  const { flows: fetchedFlows, fetchFlows } = useCapitalFlowFlowDetails(fundId, operationId);
   useEffect(() => {
     fetchAllAllocations?.().catch(() => {});
   }, [fetchAllAllocations]);
   useEffect(() => {
     fetchFlowTypes?.().catch(() => {});
   }, [fetchFlowTypes]);
+  useEffect(() => {
+    if (operationId) fetchFlows().catch(() => {});
+  }, [operationId, fetchFlows]);
+  useEffect(() => {
+    if (!fetchedFlows?.length || flows.length > 0) return;
 
+    const loadedFlows = [];
+    const loadedTotals = {};
+    const loadedInputs = {};
+
+    fetchedFlows.forEach((f) => {
+      const fid = String(f.operation_flow_id);
+      const amount = Number(f.computed_total_amount || f.input_amount || 0);
+
+      loadedFlows.push({
+        id: fid,
+        label: f.flow_name,
+        flowType: f.flow_name, 
+        data: { flowTypeId: f.flow_type_id, ...f },
+        operation_flow_id: f.operation_flow_id,
+      });
+      loadedTotals[fid] = amount;
+      loadedInputs[fid] = amount.toString();
+    });
+
+    if (typeof setDraft === "function") {
+      setDraft((prev) => ({
+        ...(prev || EMPTY_DRAFT),
+        flows: loadedFlows,
+        flowTotals: loadedTotals,
+        flowTotalInputs: loadedInputs,
+      }));
+    }
+  }, [fetchedFlows]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
@@ -193,7 +174,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const flowTotalInputs = safeDraft.flowTotalInputs ?? {};
   const flowTotals = safeDraft.flowTotals ?? {};
   const eqTargetInput = safeDraft.eqTargetInput ?? "";
-
   // ── Derive filtered commitments (due_date >= closing_period_date) ──────────
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
@@ -209,6 +189,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       return closing && !Number.isNaN(closing.getTime()) && due >= closing;
     });
   }, [commitments, dueDate]);
+
   const commitmentByLpId = {};
   for (const c of filteredCommitments) {
     const id = String(c.lp_id);
@@ -225,14 +206,46 @@ const OperationStep2 = forwardRef(function OperationStep2(
   // ── Derive LP rows directly from filtered commitments ─────────────────────
   // Each commitment has: lp_id, share_class_id, commitment_amount, closing_name
   // We group by lp_id and sum commitment_amounts
-  const lpRows = useMemo(() => {
+
+  const historicalData = useMemo(() => {
+    const byLp = {};
+    const byClass = {};
+    const currentOpNum = operationNumber !== null ? Number(operationNumber) : Infinity;
+
+    for (const alloc of existingAllocations) {
+      const allocOpNum = Number(alloc.operation_number ?? 0);
+      if (allocOpNum >= currentOpNum) continue;
+
+      const lpId = String(alloc.lp_id ?? "");
+      const scId = String(alloc.share_class_id ?? "");
+      const called = parseFloat(alloc.capital_call || 0);
+      const commit = parseFloat(alloc.commitment_amount || 0);
+
+      if (lpId) {
+        if (!byLp[lpId]) byLp[lpId] = { calledAmount: 0, commitmentAmount: 0, opNum: -1 };
+        byLp[lpId].calledAmount += called;
+        if (allocOpNum > byLp[lpId].opNum) {
+          byLp[lpId].commitmentAmount = commit;
+          byLp[lpId].opNum = allocOpNum;
+        }
+      }
+
+      if (scId) {
+        if (!byClass[scId]) byClass[scId] = { calledAmount: 0 };
+        byClass[scId].calledAmount += called;
+      }
+    }
+    return { byLp, byClass };
+  }, [existingAllocations, operationNumber]);
+  
+const lpRows = useMemo(() => {
     const nameById = new Map();
     (Array.isArray(lps) ? lps : []).forEach((lp) => {
       const id = String(lp?.lp_id ?? lp?.id ?? "");
       const name = lp?.name ?? lp?.fullName ?? lp?.lpName ?? null;
       if (id && name) nameById.set(id, name);
     });
-
+    console.log("filteredCommitments", filteredCommitments)
     const byLp = new Map();
     for (const c of filteredCommitments) {
       const id = String(c.lp_id);
@@ -242,11 +255,13 @@ const OperationStep2 = forwardRef(function OperationStep2(
           lp_id: c.lp_id,
           name: nameById.get(id) ?? `LP ${c.lp_id}`,
           commitmentAmount: 0,
+          calledAmount: 0,
           share_class_id: c.share_class_id ?? null,
         });
       }
       const entry = byLp.get(id);
       entry.commitmentAmount += parseFloat(c.commitment_amount || 0);
+      entry.calledAmount += parseFloat(c.called_amount || c.capital_called || 0);
       if (c.share_class_id) entry.share_class_id = c.share_class_id;
     }
 
@@ -264,7 +279,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
         ownershipPct,
         shareClassId: r.share_class_id ? String(r.share_class_id) : null,
         commitmentNumber: r.commitmentAmount,
-        calledAmountNumber: 0,
+        calledAmountNumber: historicalData.byLp[r.id]?.calledAmount || 0,
       };
     });
   }, [filteredCommitments, totalFundCommitment, lps]);
@@ -290,7 +305,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       if (id) scLookup.set(id, sc?.share_class_name ?? sc?.name ?? `Class ${id}`);
     });
 
-    return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
+  return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
       const name = scLookup.get(scId) ?? `Class ${scId}`;
       const initials = name.replace(/class\s*/i, "").trim().slice(0, 2).toUpperCase() || "SC";
       const ownershipPct = total > 0 ? commitmentAmount / total : null;
@@ -302,10 +317,10 @@ const OperationStep2 = forwardRef(function OperationStep2(
         ownershipPct,
         shareClassKey: scId,
         commitmentNumber: commitmentAmount,
-        calledAmountNumber: 0,
+        calledAmountNumber: historicalData.byClass[scId]?.calledAmount || 0,
       };
     });
-  }, [filteredCommitments, totalFundCommitment, shareClasses]);
+  }, [filteredCommitments, totalFundCommitment, shareClasses, historicalData]);
 
   const rows = breakdown === "share-class" ? shareClassRows : lpRows;
 
@@ -398,33 +413,88 @@ const OperationStep2 = forwardRef(function OperationStep2(
     setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
     setFlowTotals((prev) => ({ ...prev, [flowId]: parseMoney(raw) }));
   };
+  const eqTargetPct = useMemo(() => {
+    const f = parsePercent(eqTargetInput);
+    return f !== null && Number.isFinite(f) ? f : null;
+  }, [eqTargetInput]);
+
+
+  const eqByRowId = useMemo(() => {
+    if (!isEqualization) return {};
+    const out = {};
+    for (const r of rows) {
+      if (eqTargetPct === null || !Number.isFinite(eqTargetPct)) { out[r.id] = null; continue; }
+      const commit = Number(r?.commitmentNumber || 0);
+      const called = Number(historicalData[r.id]?.calledAmount || r?.calledAmountNumber || 0);
+      if (!Number.isFinite(commit)) { out[r.id] = null; continue; }
+      out[r.id] = (eqTargetPct * commit) - called;
+    }
+    return out;
+  }, [isEqualization, rows, eqTargetPct, historicalData]);
 
   /** Totals per row */
-  const totalsByRowId = useMemo(() => {
+const totalsByRowId = useMemo(() => {
     const map = {};
     const flowIds = flows.map((f) => f.id);
+    
     for (const r of rows) {
       const pct = r.ownershipPct;
-      if (pct === null || pct === undefined || !Number.isFinite(pct)) { map[r.id] = null; continue; }
       let sum = 0;
       let hasAny = false;
-      for (const fid of flowIds) {
-        const t = flowTotals[fid];
-        if (t !== null && t !== undefined && Number.isFinite(t)) { sum += t * pct; hasAny = true; }
+      
+      if (pct !== null && pct !== undefined && Number.isFinite(pct)) {
+        for (const fid of flowIds) {
+          const t = flowTotals[fid];
+          if (t !== null && t !== undefined && Number.isFinite(t)) { 
+            sum += t * pct; 
+            hasAny = true; 
+          }
+        }
       }
+
+      if (isEqualization) {
+        const eqVal = eqByRowId[r.id];
+        if (eqVal !== null && eqVal !== undefined && Number.isFinite(eqVal)) {
+          sum += eqVal;
+          hasAny = true;
+        }
+      }
+
       map[r.id] = hasAny ? sum : null;
     }
     return map;
-  }, [rows, flows, flowTotals]);
+  }, [rows, flows, flowTotals, isEqualization, eqByRowId]);
 
-  const grandTotal = useMemo(() => {
-    let sum = 0; let any = false;
-    for (const f of flows) {
-      const t = flowTotals[f.id];
-      if (t !== null && t !== undefined && Number.isFinite(t)) { sum += t; any = true; }
+    const eqGrandTotal = useMemo(() => {
+    if (!isEqualization) return null;
+    let sum = 0;
+    let any = false;
+    for (const r of rows) {
+      const v = eqByRowId[r.id];
+      if (v !== null && Number.isFinite(v)) { sum += v; any = true; }
     }
     return any ? sum : null;
-  }, [flows, flowTotals]);
+  }, [isEqualization, rows, eqByRowId]);
+
+  const grandTotal = useMemo(() => {
+    let sum = 0; 
+    let any = false;
+    
+    for (const f of flows) {
+      const t = flowTotals[f.id];
+      if (t !== null && t !== undefined && Number.isFinite(t)) { 
+        sum += t; 
+        any = true; 
+      }
+    }
+    
+    if (isEqualization && eqGrandTotal !== null && Number.isFinite(eqGrandTotal)) {
+      sum += eqGrandTotal;
+      any = true;
+    }
+    
+    return any ? sum : null;
+  }, [flows, flowTotals, isEqualization, eqGrandTotal]);
 
   const flowPercents = useMemo(() => {
     const map = {};
@@ -442,24 +512,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
       ? (grandTotal / totalCommitment) * 100
       : null;
 
-  const eqTargetPct = useMemo(() => {
-    const f = parsePercent(eqTargetInput);
-    return f !== null && Number.isFinite(f) ? f : null;
-  }, [eqTargetInput]);
-
-  const eqByRowId = useMemo(() => {
-    if (!isEqualization) return {};
-    const out = {};
-    for (const r of rows) {
-      if (eqTargetPct === null || !Number.isFinite(eqTargetPct)) { out[r.id] = null; continue; }
-      const commit = Number(r?.commitmentNumber || 0);
-      const called = Number(r?.calledAmountNumber || 0);
-      if (!Number.isFinite(commit)) { out[r.id] = null; continue; }
-      out[r.id] = eqTargetPct * commit - called;
-    }
-    return out;
-  }, [isEqualization, rows, eqTargetPct]);
-
   /** Share class nominal value lookup for shares issued */
   const shareClassLookup = useMemo(() => {
     const byId = new Map();
@@ -467,7 +519,11 @@ const OperationStep2 = forwardRef(function OperationStep2(
     (Array.isArray(shareClasses) ? shareClasses : []).forEach((sc) => {
       const id = sc?.share_class_id ?? sc?.id ?? sc?.shareClassId ?? sc?.share_class ?? null;
       const name = sc?.share_class_name ?? sc?.name ?? sc?.shareClassName ?? sc?.share_class_label ?? null;
-      const nominal = getNominalValueFromShareClass(sc);
+      
+      const nominal = typeof getNominalValueFromShareClass === "function" 
+        ? getNominalValueFromShareClass(sc) 
+        : (sc?.nominal_value ?? null);
+
       if (id !== null && id !== undefined) byId.set(String(id), nominal);
       if (name) {
         byName.set(String(name).toLowerCase().trim(), nominal);
@@ -477,106 +533,11 @@ const OperationStep2 = forwardRef(function OperationStep2(
     });
     return { byId, byName };
   }, [shareClasses]);
-  const prevCommitmentByLpId = useMemo(() => {
-    const map = {};
-    for (const alloc of existingAllocations) {
-      const id = String(alloc.lp_id ?? alloc.lp ?? "");
-      const prev = parseFloat(alloc.commitment_amount || 0);
-      const opId = alloc.operation ?? alloc.lps_operation_details_id ?? 0;
-      if (!map[id] || opId > map[id].opId) {
-        map[id] = { commitmentAmount: prev, opId };
-      }
-    }
-    return map;
-  }, [existingAllocations]);
 
-  const sharesIssuedByRowId = useMemo(() => {
-    const out = {};
-    for (const r of rows) {
-      const mainAmount = totalsByRowId[r.id];
-      if (mainAmount === null || !Number.isFinite(mainAmount)) { out[r.id] = null; continue; }
 
-      const scKey = breakdown === "share-class"
-        ? (r.shareClassKey ?? r.name ?? null)
-        : (r.shareClassId ?? null);
-      if (!scKey) { out[r.id] = null; continue; }
-
-      const raw = String(scKey).trim();
-      if (!raw || raw === "-") { out[r.id] = null; continue; }
-
-      // Nominal value lookup
-      let nominal = shareClassLookup.byId.get(raw);
-      if (nominal === null || nominal === undefined) {
-        const lc = raw.toLowerCase();
-        nominal =
-          shareClassLookup.byName.get(lc) ??
-          shareClassLookup.byName.get(lc.replace(/^class\s+/, "")) ??
-          shareClassLookup.byName.get(`class ${lc.replace(/^class\s+/, "")}`);
-      }
-      if (!Number.isFinite(nominal) || nominal <= 0) { out[r.id] = null; continue; }
-
-      // Pro rata check from share class data
-      const scObj = (Array.isArray(shareClasses) ? shareClasses : []).find(
-        (sc) => String(sc?.share_class_id ?? sc?.id ?? "") === raw
-      );
-      const isProRata = scObj?.issuance_method === "Pro Rata Called Amount";
-      if (isProRata) {
-        const currentCommitment = r.commitmentNumber ?? 0;
-        const prevCommitment = prevCommitmentByLpId[r.id]?.commitmentAmount ?? 0;
-        const delta = currentCommitment - prevCommitment;
-        out[r.id] = delta > 0 && nominal > 0 ? delta / nominal : 0;
-      } else {
-        out[r.id] = mainAmount / nominal;
-      }
-    }
-    return out;
-  }, [rows, totalsByRowId, breakdown, shareClassLookup, shareClasses]);
-
-  /** Persist flows to DB */
-  const persistFlows = useCallback(async () => {
-    if (!operationId) throw new Error("Missing operationId (Step 1 must be saved first).");
-    const toCreate = flows.filter((f) => !f?.operation_flow_id);
-    const roundMoney = (val, decimals = 2) => {
-      if (val === null || val === undefined) return null;
-      const n = Number(val);
-      return Number.isFinite(n) ? Number(n.toFixed(decimals)) : null;
-    };
-    const clampDecimal = (val, decimals = 6) => {
-      if (val === null || val === undefined) return 0;
-      const n = Number(val);
-      if (!Number.isFinite(n)) return 0;
-      return Number(Math.min(Math.max(n, 0), 1).toFixed(decimals));
-    };
-    for (const f of toCreate) {
-      const total = flowTotals[f.id];
-      const inputAmount = (total !== null && total !== undefined && Number.isFinite(total))
-        ? roundMoney(total, 2) : null;
-      const flowTypeId = f?.data?.flowTypeId ?? f?.data?.flow_type_id ?? null;
-      if (!flowTypeId) throw new Error(`Flow "${f.label}" is missing flowTypeId.`);
-      const rawAlloc = totalCommitment > 0 && inputAmount !== null ? inputAmount / totalCommitment : 0;
-      const payload = {
-        operation: Number(operationId),
-        flow_type: Number(flowTypeId),
-        flow_name: (f?.data?.flowName || f?.label || "").trim() || "Flow",
-        input_type: "amount",
-        input_amount: inputAmount,
-        input_percentage: null,
-        allocation_percentage_of_commitment: clampDecimal(rawAlloc, 6),
-        commitment_amount: roundMoney(totalCommitment || 0, 2),
-      };
-      const url = apiUrl(`/operations/${operationId}/flows/`);
-      const created = await fetchJson(url, { method: "POST", body: JSON.stringify(payload) });
-      const newOpFlowId = created?.operation_flow_id ?? created?.id ?? created?.pk ?? null;
-      if (!newOpFlowId) throw new Error("Flow created but response missing operation_flow_id.");
-      setFlows((prev) =>
-        (prev || []).map((x) => x.id === f.id ? { ...x, operation_flow_id: newOpFlowId } : x)
-      );
-    }
-  }, [flows, flowTotals, operationId, totalCommitment, setFlows]);
-
+  console.log("historical", historicalData)
   const submitToNext = useCallback(async () => {
     if (typeof onNext !== "function") return;
-
     const perLpOut = {};
     const calledPctDecimal =
       grandPercent !== null && Number.isFinite(grandPercent) ? grandPercent / 100 : null;
@@ -591,17 +552,61 @@ const OperationStep2 = forwardRef(function OperationStep2(
           pct !== null && pct !== undefined && Number.isFinite(pct)
             ? t * pct : null;
       }
-    perLpOut[r.id] = {
-      mainAmount: totalsByRowId[r.id],
-      calledPct: calledPctDecimal,
-      sharesIssued: sharesIssuedByRowId[r.id],
-      flows: rowFlows,
-      commitmentNumber: commitmentByLpId[r.id]?.commitmentNumber ?? r.commitmentNumber ?? 0,
-      shareClassId: commitmentByLpId[r.id]?.shareClassId ?? r.shareClassId ?? null,
-      eqAmount: isEqualization ? eqByRowId[r.id] : null,
-      eqTargetPct: isEqualization ? eqTargetPct : null,
-    };
+
+      const mainAmount = totalsByRowId[r.id];
+      const scKey = breakdown === "share-class" ? (r.shareClassKey ?? r.name ?? null) : (r.shareClassId ?? null);
+      const raw = scKey ? String(scKey).trim() : null;
+
+      const scObj = (Array.isArray(shareClasses) ? shareClasses : []).find(
+        (sc) => String(sc?.share_class_id ?? sc?.id ?? "") === raw
+      );
+
+      let nominalVal = typeof getNominalValueFromShareClass === "function" && scObj
+        ? getNominalValueFromShareClass(scObj)
+        : scObj?.nominal_value;
+
+      if (nominalVal == null && raw && raw !== "-") {
+        nominalVal = shareClassLookup.byId.get(raw);
+        if (nominalVal == null) {
+          const lc = raw.toLowerCase();
+          nominalVal =
+            shareClassLookup.byName.get(lc) ??
+            shareClassLookup.byName.get(lc.replace(/^class\s+/, "")) ??
+            shareClassLookup.byName.get(`class ${lc.replace(/^class\s+/, "")}`);
+        }
+      }
+
+      const nomNum = parseFloat(nominalVal);
+      const issuanceMethod = scObj?.issuance_method;
+      let computedShares = null;
+
+      if (!Number.isFinite(nomNum) || nomNum <= 0) {
+        computedShares = null;
+      } else if (issuanceMethod === "PRO_RATA_CALLED") {
+        computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+      } else {
+        const currentCommitment = r.commitmentNumber ?? 0;
+        const prevCommitment = breakdown === "share-class" 
+          ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0) 
+          : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
+        
+        const delta = currentCommitment - prevCommitment;
+        computedShares = delta > 0 ? delta / nomNum : 0;
+      }
+
+      perLpOut[r.id] = {
+        mainAmount: totalsByRowId[r.id],
+        calledPct: calledPctDecimal,
+        sharesIssued: computedShares,
+        flows: rowFlows,
+        commitmentNumber: commitmentByLpId[r.id]?.commitmentNumber ?? r.commitmentNumber ?? 0,
+        shareClassId: commitmentByLpId[r.id]?.shareClassId ?? r.shareClassId ?? null,
+        eqAmount: isEqualization ? eqByRowId[r.id] : null,
+        eqTargetPct: isEqualization ? eqTargetPct : null,
+      };
     }
+
+    console.log("FINAL PAYLOAD:", perLpOut);
 
     onNext({
       operationType: operationType || "Distribution",
@@ -617,14 +622,18 @@ const OperationStep2 = forwardRef(function OperationStep2(
     });
   }, [
     onNext, operationType, flows, flowTotals, rows, totalsByRowId,
-    grandPercent, sharesIssuedByRowId, isEqualization, eqByRowId, eqTargetPct,
+    grandPercent, isEqualization, eqByRowId, eqTargetPct,
+    breakdown, shareClassLookup, shareClasses, historicalData
   ]);
 
 
   useImperativeHandle(ref, () => ({ submitToNext }), [submitToNext]);
 
   const saveErrorMsg = saveError?.message ? String(saveError.message) : null;
-
+  const eqGrandTotalPct = useMemo(() => {
+      if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
+      return (eqGrandTotal / totalCommitment) * 100;
+    }, [isEqualization, eqGrandTotal, totalCommitment]);
   return (
     <>
       {saveErrorMsg && (
@@ -809,18 +818,13 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {isEqualization && (
               <div className="op2-footer-cell">
                 <div className="op2-footer-total-input">
-                  <span className="op2-footer-euro">%</span>
-                  <input
-                    className="op2-footer-input"
-                    value={eqTargetInput}
-                    onChange={(e) => setEqTargetInput(e.target.value)}
-                    inputMode="decimal"
-                    placeholder=""
-                    disabled={isSaving}
-                  />
+                  <span className="op2-footer-euro">€</span>
+                  <span className="op2-footer-dash">
+                    {eqGrandTotal === null ? "-" : formatMoney(eqGrandTotal)}
+                  </span>
                 </div>
                 <div className="op2-footer-percent">
-                  = {eqTargetPct === null ? "-%" : formatPct(eqTargetPct * 100)}
+                  = {eqGrandTotalPct === null ? "-%" : formatPct(eqGrandTotalPct)}
                 </div>
               </div>
             )}

@@ -33,7 +33,7 @@ from ..serializers import (
     LPsOperationFlowTypeSerializer,
     LPsOperationFlowSerializer,
     LPsFlowLPAllocationSerializer,
-    LPsOperationLpAllocationSerializer,
+    LPsOperationLPAllocationSerializer,
     OperationFullCreateSerializer,
     ClosingPeriodSerializer,
     FundClosingSerializer,
@@ -365,21 +365,20 @@ class LPsOperationDetailsViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(fund_id=self.kwargs.get('fund_id')).order_by('-pk')
 
     def perform_create(self, serializer):
-        # Maintains your raw insert logic but keeps viewset clean
         raw = self.request.data
         fund_id = self.kwargs.get('fund_id')
         
+        # Explicitly include the field in the payload
         op_id = _insert_operation_details(
             fund_id=int(fund_id),
             payload={
                 **serializer.validated_data,
+                "total_fund_commitment": serializer.validated_data.get("total_fund_commitment"),
                 "total_operation_amount": raw.get("total_operation_amount", 0),
                 "overall_percentage_of_commitment": raw.get("overall_percentage_of_commitment", 0),
             },
             request=self.request
         )
-        # We manually set the ID for the response if needed, 
-        # but perform_create usually expects a save()
         return op_id
 
     def create(self, request, *args, **kwargs):
@@ -445,8 +444,8 @@ class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Nested filtering: Parent -> operation_flow_id
-        flow_id = self.kwargs.get("lp_operation_flow_id")
-        return self.queryset.filter(operation_flow_id=flow_id).order_by("flow_allocation_id")
+        flow_id = self.kwargs.get("operation_flow_id")
+        return self.queryset.filter(operation_flow_id=flow_id).order_by("lp_flow_allocation_id")
 
     def perform_create(self, serializer):
         self._process_allocation(serializer)
@@ -455,42 +454,69 @@ class LPsFlowLPAllocationViewSet(viewsets.ModelViewSet):
         self._process_allocation(serializer)
 
     def _process_allocation(self, serializer):
-        flow_id = self.kwargs.get("lp_operation_flow_id")
-        serializer.save(
-            operation_flow_id=int(flow_id),
-            created_by=_created_by_int(self.request)
+        flow_id = self.kwargs.get("operation_flow_id")
+        instance = LPsOperationFlowLPAllocation(
+            operation_flow_id_id=int(flow_id),
+            lp_id_id=int(serializer.validated_data["lp_id_id"]),
+            allocated_amount=serializer.validated_data["allocated_amount"],
         )
+        instance.save()
+        serializer.instance = instance
 
 class LPsOperationLPAllocationViewSet(viewsets.ModelViewSet):
-    serializer_class = LPsOperationLpAllocationSerializer
+    serializer_class = LPsOperationLPAllocationSerializer
     queryset = LPsOperationLPAllocation.objects.all()
     lookup_field = 'pk'
 
     @action(detail=False, methods=['get'], url_path='lp-allocations')
     def list_by_fund(self, request, fund_id=None, *args, **kwargs):
-        allocations = LPsOperationLPAllocation.objects.filter(
-            lps_operation_details_id__in=LPsOperationDetails.objects.filter(
-                fund_id=fund_id
-            ).values_list('lps_operation_details_id', flat=True),
-            is_deleted=False
-        ).order_by('lp_id', '-lps_operation_details_id')
+        allocations = (
+            LPsOperationLPAllocation.objects
+            .select_related("lps_operation_details")
+            .filter(
+                lps_operation_details__fund_id=fund_id,
+                is_deleted=False
+            )
+            .order_by('lp_id', '-lps_operation_details__lps_operation_details_id')
+        )
         serializer = self.get_serializer(allocations, many=True)
         return Response(serializer.data)
     
     def get_queryset(self):
         # Ensure we only see allocations for the specific operation in the URL
         op_id = self.kwargs.get("lps_operation_details_id")
-        return self.queryset.filter(
-            lps_operation_details_id=op_id, 
-            is_deleted=False
-        ).order_by("lp_id")
+        return (
+            self.queryset
+            .select_related("lps_operation_details")
+            .filter(
+                lps_operation_details_id=op_id,
+                is_deleted=False
+            )
+            .order_by("lp_id")
+        )
 
     def perform_create(self, serializer):
         op_id = self.kwargs.get("lps_operation_details_id")
-        serializer.save(
-            lps_operation_details_id=op_id,
-            created_by=_created_by_int(self.request)
-        )
+        data = serializer.validated_data
+
+        existing = LPsOperationLPAllocation.objects.filter(
+            lp_id=data["lp_id"],
+            share_class_id=data["share_class_id"],
+        ).first()
+
+        if existing:
+            existing.capital_call = (existing.capital_call or 0) + data["capital_call"]
+            existing.called_percentage = (existing.called_percentage or 0) + data["called_percentage"]
+            existing.shares_issued = (existing.shares_issued or 0) + data["shares_issued"]
+            existing.commitment_amount = data["commitment_amount"]
+            existing.lps_operation_details_id = op_id
+            existing.save()
+            serializer.instance = existing
+        else:
+            serializer.save(
+                lps_operation_details_id=op_id,
+                created_by=_created_by_int(self.request)
+            )
 
     @action(detail=False, methods=['get'], url_path='summary')
     def summary(self, request, *args, **kwargs):

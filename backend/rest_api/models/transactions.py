@@ -399,12 +399,12 @@ class LPsOperationDetails(models.Model):
     )
 
     operation_name = models.TextField(db_column="name")
-    operation_number = models.IntegerField(db_column="operation_number")
+    operation_number = models.IntegerField(db_column="operation_number", null=True, blank=True)
     notice_date = models.DateField(db_column="notice_date")
     due_date = models.DateField(db_column="due_date")
     total_fund_commitment = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     total_operation_amount = models.DecimalField(max_digits=20, decimal_places=6, default=0)
-    overall_percentage_of_commitment = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    overall_percentage_of_commitment = models.DecimalField(max_digits=20, decimal_places=20, default=0)
     created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
     created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
     
@@ -518,7 +518,12 @@ class LPsOperationFlowLPAllocation(models.Model):
 
 class LPsOperationLPAllocation(models.Model):
     lp_operation_allocation_id = models.BigAutoField(primary_key=True)
-    lps_operation_details_id = models.BigIntegerField(db_column="lps_operation_details_id")
+    lps_operation_details = models.ForeignKey(
+        "LPsOperationDetails",
+        on_delete=models.DO_NOTHING,
+        db_column="lps_operation_details_id",
+        related_name="lp_allocations",
+    )
 
     lp_id = models.BigIntegerField(db_column="lp_id")
     share_class_id = models.BigIntegerField(db_column="share_class_id")
@@ -529,7 +534,7 @@ class LPsOperationLPAllocation(models.Model):
     shares_issued = models.DecimalField(db_column="shares_issued", max_digits=20, decimal_places=6, default=0)
 
     is_deleted = models.BooleanField(db_column="is_deleted", default=False)
-    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)
     created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
 
     class Meta:

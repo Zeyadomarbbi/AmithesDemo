@@ -1,31 +1,46 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlows.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 
-import FlowHeader from "./components/CapitalFlowHeader/FlowHeader.jsx";
-import FlowFilters from "./components/CapitalFlowFilters/FlowFilters.jsx";
-import FlowTable from "./components/CapitalFlowTable/FlowTable.jsx";
+import FlowHeader from "./FlowHeader.jsx";
+import FlowFilters from "./FlowFilters.jsx";
+import FlowTable from "./FlowTable.jsx";
 import OperationPanel from "./NewOperation/OperationPanel/OperationPanel.jsx";
+import { useOperationDetails } from "/src/pages/App/hooks/LPsStatement/useCapitalFlowOperationDetails.js";
+import { useCapitalFlowLPOperationAllocation } from "/src/pages/App/hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
 import "./CapitalFlows.css";
 
-
 export default function CapitalFlows() {
-  // ✅ get values from parent Outlet context (safe defaults)
   const outlet = useOutletContext() || {};
   const lps = outlet.lps || [];
-  const shareClasses = outlet.shareClasses || []; // ✅ NEW (safe)
-  const fundId = outlet.fundId; // ✅ optional (safe if undefined)
+  const shareClasses = outlet.shareClasses || [];
+  const fundId = outlet.fundId;
   const commitments = outlet.commitments;
-  console.log("commitments", commitments)
-  console.log("lps", lps)
+
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
   const [breakdown, setBreakdown] = useState("operations");
 
-  // ✅ OperationPanel state
+  // ── OperationPanel state ───────────────────────────────────────────────────
   const [opOpen, setOpOpen] = useState(false);
-  const [opMode, setOpMode] = useState("new"); // "new" | "detail"
+  const [opMode, setOpMode] = useState("new");
   const [selectedOp, setSelectedOp] = useState(null);
+
+  // ── Real data ──────────────────────────────────────────────────────────────
+  const { operations, fetchOperations } = useOperationDetails(fundId);
+  const {
+    allocations: lpAllocations,
+    fetchAllAllocations,
+  } = useCapitalFlowLPOperationAllocation(fundId, null);
+  const loadData = useCallback(() => {
+    if (!fundId) return;
+    fetchOperations().catch(() => {});
+    fetchAllAllocations().catch(() => {});
+  }, [fundId, fetchOperations, fetchAllAllocations]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleNewOperation = () => {
     setSelectedOp(null);
@@ -41,6 +56,8 @@ export default function CapitalFlows() {
 
   const handleClosePanel = () => {
     setOpOpen(false);
+    // Refresh table after closing panel (new operation may have been saved)
+    loadData();
   };
 
   return (
@@ -54,7 +71,6 @@ export default function CapitalFlows() {
           search={search}
           setSearch={setSearch}
         />
-
         <FlowHeader
           variant="breakdownOnly"
           onNewOperation={handleNewOperation}
@@ -73,7 +89,6 @@ export default function CapitalFlows() {
           search={search}
           setSearch={setSearch}
         />
-
         <FlowHeader
           variant="buttonOnly"
           onNewOperation={handleNewOperation}
@@ -83,23 +98,26 @@ export default function CapitalFlows() {
         />
       </div>
 
-      {/* Table */}
+      {/* Table — receives real data */}
       <FlowTable
         operationFilter={operationFilter}
         search={search}
         breakdown={breakdown}
         onSelectOperation={handleSelectOperation}
+        operations={operations}
+        lpAllocations={lpAllocations}
+        lps={lps}
+
       />
 
-      {/* ✅ mount panel ONLY when open */}
       {opOpen && (
         <OperationPanel
           open={opOpen}
           mode={opMode}
           operation={selectedOp}
           lps={lps}
-          shareClasses={shareClasses}  // ✅ NEW
-          fundId={fundId}              // ✅ optional
+          shareClasses={shareClasses}
+          fundId={fundId}
           onClose={handleClosePanel}
           commitments={commitments}
         />

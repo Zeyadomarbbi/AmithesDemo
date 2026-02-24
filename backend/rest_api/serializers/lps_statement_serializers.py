@@ -134,9 +134,8 @@ class LPsOperationFlowTypeSerializer(serializers.ModelSerializer):
         fields = ["flow_type_id", "name", "created_at"]
 
 class LPsFlowLPAllocationSerializer(serializers.ModelSerializer):
-    # Using IntegerFields for IDs to bypass broken model lookups
-    lp_id = serializers.IntegerField(source='limited_partner_id')
-    
+    lp_id = serializers.IntegerField(source='lp_id_id')
+
     class Meta:
         model = LPsOperationFlowLPAllocation
         fields = [
@@ -144,14 +143,14 @@ class LPsFlowLPAllocationSerializer(serializers.ModelSerializer):
             "lp_id",
             "allocated_amount",
             "created_at",
-            "created_by",
         ]
         read_only_fields = ["lp_flow_allocation_id", "created_at"]
-
+    
 class LPsOperationFlowSerializer(serializers.ModelSerializer):
     lps_operation_details_id = serializers.IntegerField(write_only=True, required=False)
     lp_allocations = LPsFlowLPAllocationSerializer(many=True, read_only=True)
     share_class_allocations = serializers.SerializerMethodField()
+    flow_type_id = serializers.IntegerField(write_only=True)
     class Meta:
         model = LPsOperationFlow
         fields = [
@@ -206,14 +205,16 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
         return value
     
 class LPsOperationDetailsSerializer(serializers.ModelSerializer):
-    # Aliasing for frontend compatibility if DB columns differ
     flows = LPsOperationFlowSerializer(many=True, read_only=True)
+    operation_type_id = serializers.IntegerField()
+    operation_type_name = serializers.ReadOnlyField(source='operation_type.name')
     class Meta:
         model = LPsOperationDetails
         fields = [
             "lps_operation_details_id",
             "fund_id",
             "operation_type_id",
+            "operation_type_name",
             "operation_name",
             "operation_number",
             "notice_date",
@@ -225,15 +226,6 @@ class LPsOperationDetailsSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["lps_operation_details_id", "fund_id", "created_at"]
-
-    def to_representation(self, instance):
-        """
-
-        dynamically during GET operations.
-        """
-        ret = super().to_representation(instance)
-        # Ensure dates are ISO strings automatically handled by DRF DateField
-        return ret
 
 
 
@@ -325,8 +317,12 @@ class OperationFullCreateSerializer(serializers.Serializer):
     flows = FlowCreateItemSerializer(many=True, required=True)
 
 
-class LPsOperationLpAllocationSerializer(serializers.ModelSerializer):
+class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
+    operation_number = serializers.IntegerField(
+        source="lps_operation_details.operation_number",
+        read_only=True
+    )
+
     class Meta:
         model = LPsOperationLPAllocation
         fields = "__all__"
-        read_only_fields = ["lp_operation_allocation_id", "created_at"]

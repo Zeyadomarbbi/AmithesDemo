@@ -10,6 +10,8 @@ import {
   Cell,
 } from "recharts";
 import { parseFxValue } from "../../FXbackwork";
+import { ChevronDownIcon } from "../../Icons";
+import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import "./FxChartsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
@@ -21,14 +23,53 @@ const FxChartsView = ({ shared }) => {
     isDealsLoading,
     isTimeframesLoading,
     isFundsLoading,
+    selectedTimeframeIds,
+    debouncedSelectedTimeframes,
+    handleToggleTimeframe,
+    handleSaveTimeframe,
     symbol = "EUR",
   } = shared;
 
   if (isFundsLoading || isTimeframesLoading || isDealsLoading) return null;
 
-  const chartData = quarters.map((timeframe) => {
+  const [selectedInvestmentKey, setSelectedInvestmentKey] = React.useState("all");
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+
+  const investmentOptions = React.useMemo(
+    () => [
+      { key: "all", label: "All Investments" },
+      ...dealsInvestments.map((investment, index) => ({
+        key: String(index),
+        label: investment.title || `Investment #${index + 1}`,
+      })),
+    ],
+    [dealsInvestments]
+  );
+
+  React.useEffect(() => {
+    const stillValid = investmentOptions.some((opt) => opt.key === selectedInvestmentKey);
+    if (!stillValid) setSelectedInvestmentKey("all");
+  }, [investmentOptions, selectedInvestmentKey]);
+
+  const filteredInvestments = React.useMemo(() => {
+    if (selectedInvestmentKey === "all") return dealsInvestments;
+    const idx = Number(selectedInvestmentKey);
+    if (!Number.isFinite(idx)) return dealsInvestments;
+    return dealsInvestments[idx] ? [dealsInvestments[idx]] : dealsInvestments;
+  }, [dealsInvestments, selectedInvestmentKey]);
+
+  const selectedLabel =
+    investmentOptions.find((opt) => opt.key === selectedInvestmentKey)?.label ||
+    "All Investments";
+
+  const activeTimeframes =
+    debouncedSelectedTimeframes && debouncedSelectedTimeframes.length
+      ? debouncedSelectedTimeframes
+      : quarters;
+
+  const chartData = activeTimeframes.map((timeframe) => {
     const impactKey = `impact${normalizeLabel(timeframe.display_label)}`;
-    const totalImpact = dealsInvestments.reduce((sum, investment) => {
+    const totalImpact = filteredInvestments.reduce((sum, investment) => {
       const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
       const perInvestment = fvRows.reduce(
         (rowSum, row) => rowSum + parseFxValue(row[impactKey]),
@@ -43,7 +84,7 @@ const FxChartsView = ({ shared }) => {
     };
   });
 
-  const totalInception = dealsInvestments.reduce((sum, investment) => {
+  const totalInception = filteredInvestments.reduce((sum, investment) => {
     const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
     return (
       sum +
@@ -64,6 +105,45 @@ const FxChartsView = ({ shared }) => {
       <div className="fx-charts-card">
         <div className="fx-charts-header">
           <div className="fx-charts-title">FX Gains / Losses (m{symbol})</div>
+          <div className="fx-charts-controls">
+            <div className="limits-period-wrapper fx-charts-timeframes">
+              <QuarterSelector
+                options={quarters}
+                selected={selectedTimeframeIds}
+                onChange={handleToggleTimeframe}
+                onSaveNew={handleSaveTimeframe}
+                isLoading={isTimeframesLoading}
+                isSingle={false}
+              />
+            </div>
+
+            <div className="dropdown-container">
+              <div
+                className={`dropdown-btn ${isDropdownOpen ? "active" : ""}`}
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+              >
+                <span>{selectedLabel}</span>
+                <ChevronDownIcon />
+              </div>
+
+              {isDropdownOpen && (
+                <div className="custom-dropdown-menu">
+                  {investmentOptions.map((option) => (
+                    <div
+                      key={option.key}
+                      className={`dropdown-item ${selectedInvestmentKey === option.key ? "active" : ""}`}
+                      onClick={() => {
+                        setSelectedInvestmentKey(option.key);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div className="fx-charts-container">
           <ResponsiveContainer width="100%" height={300}>

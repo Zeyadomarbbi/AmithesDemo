@@ -14,17 +14,13 @@ export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
   const handleRequest = async (url, options = {}) => {
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers: { 'Content-Type': 'application/json', ...options.headers },
     });
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error: ${response.status}`);
+      const msg = errorData.detail || JSON.stringify(errorData);
+      throw new Error(msg);
     }
-
     if (response.status === 204) return null;
     return response.json();
   };
@@ -77,6 +73,7 @@ export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
   // POST: Create a new operation-level allocation record
   const createAllocation = async (operationId, payload) => {
     const url = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/lp-allocations/`;
+    console.log("[createOperationLPAllocation] payload:", payload);
     setIsLoading(true);
     setError(null);
     try {
@@ -87,6 +84,7 @@ export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
       setAllocations((prev) => [...prev, res]);
       return res;
     } catch (err) {
+      console.error("[createOperationLPAllocation] error:", err.message);
       setError(err.message);
       throw err;
     } finally {

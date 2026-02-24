@@ -22,7 +22,7 @@ import PortfolioCompareChart from "./components/PortfolioCompareChart";
 import "./PortfolioCompareTab.css";
 
 const PortfolioCompareTab = ({ onSelectInvestment }) => {
-  const { fundId } = useOutletContext();
+  const { fundId, portfolioDataset } = useOutletContext();
   const {
     quarters,
     isLoading,
@@ -45,17 +45,22 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   const { rows: compareRows, isLoading: isCompareLoading } = useCompareRows(
     fundId,
     activeQuarters,
-    fallbackInvestments
+    fallbackInvestments,
+    portfolioDataset
   );
   const fundInvestments = compareRows;
 
   useEffect(() => {
     if (!fundInvestments.length) return;
-    setSelectedInvestmentIds((prev) =>
-      prev.filter((id) =>
+    setSelectedInvestmentIds((prev) => {
+      const next = prev.filter((id) =>
         fundInvestments.some((inv) => String(inv.id) === String(id))
-      )
-    );
+      );
+      if (next.length === prev.length && next.every((id, idx) => String(id) === String(prev[idx]))) {
+        return prev;
+      }
+      return next;
+    });
   }, [fundInvestments]);
   
   // 3. Filter Rows

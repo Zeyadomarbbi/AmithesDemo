@@ -20,8 +20,10 @@
 
 .fx-charts-header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     position: relative;
-    height: 30px;
+    min-height: 36px;
     margin-bottom: 20px;
 }
 
@@ -31,7 +33,7 @@
 }
 
 .fx-charts-title {
-    position: absolute;
+    position: static;
     font-family: 'Inter';
     font-style: normal;
     font-weight: 700;
@@ -39,6 +41,16 @@
     line-height: 25px;
     color: #030229;
     opacity: 0.7;
+}
+
+.fx-charts-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fx-charts-timeframes {
+    min-width: 220px;
 }
 
 /* --- DROPDOWN CONTAINER --- */
@@ -126,6 +138,17 @@
 
 @media (max-width: 900px) {
   .fx-charts-filters-row {
+    flex-wrap: wrap;
+  }
+
+  .fx-charts-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .fx-charts-controls {
+    width: 100%;
     flex-wrap: wrap;
   }
 }

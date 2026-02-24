@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Cell,
   ReferenceLine,
 } from "recharts";
@@ -21,6 +20,20 @@ const PortfolioCompareChart = ({
   const selectedOption = options.find((opt) => opt.key === selectedKey) || null;
   const selectedLabel = selectedOption?.label || "Select Column";
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const containerRef = React.useRef(null);
+  const [chartWidth, setChartWidth] = React.useState(900);
+
+  React.useEffect(() => {
+    if (!containerRef.current || typeof ResizeObserver === "undefined") return undefined;
+
+    const observer = new ResizeObserver((entries) => {
+      const nextWidth = Math.max(320, Math.floor(entries[0]?.contentRect?.width || 0));
+      setChartWidth((prev) => (Math.abs(prev - nextWidth) > 1 ? nextWidth : prev));
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section className="compare-chart-section">
@@ -63,39 +76,42 @@ const PortfolioCompareChart = ({
           </div>
         </div>
 
-        <div className="compare-chart-container">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                dy={10}
-                interval={0}
-              />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} />
-              <Tooltip
-                cursor={{ fill: "#F9FAFB" }}
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-                formatter={(value) => [`${value} mEUR`, selectedLabel]}
-              />
-              <ReferenceLine y={0} stroke="#E5E7EB" />
-              <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={40}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.value >= 0 ? "#818CF8" : "#EF4444"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="compare-chart-container" ref={containerRef}>
+          <BarChart
+            width={chartWidth}
+            height={300}
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#9CA3AF", fontSize: 12 }}
+              dy={10}
+              interval={0}
+            />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+            <Tooltip
+              cursor={{ fill: "#F9FAFB" }}
+              contentStyle={{
+                borderRadius: "8px",
+                border: "none",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+              formatter={(value) => [`${value} mEUR`, selectedLabel]}
+            />
+            <ReferenceLine y={0} stroke="#E5E7EB" />
+            <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={40}>
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.value >= 0 ? "#818CF8" : "#EF4444"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
         </div>
       </div>
     </section>

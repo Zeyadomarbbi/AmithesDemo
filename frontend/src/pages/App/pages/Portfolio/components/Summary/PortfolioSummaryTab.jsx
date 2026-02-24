@@ -87,7 +87,7 @@ const safeXirr = (cashflows) => {
 
 /* ================= Component ================= */
 const PortfolioSummaryTab = () => {
-  const { fundId } = useOutletContext();
+  const { fundId, portfolioDataset } = useOutletContext();
   const numericFundId = Number(fundId);
   const [toast, setToast] = useState(null);
 
@@ -153,22 +153,28 @@ const PortfolioSummaryTab = () => {
   });
 
   const fetchInvestmentFlows = useCallback(async (investmentId) => {
+    const preloaded = portfolioDataset?.flowsByInvestment?.[investmentId];
+    if (Array.isArray(preloaded)) return preloaded;
+
     const res = await fetch(
       `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/${investmentId}/flows/`
     );
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : [];
-  }, [numericFundId]);
+  }, [numericFundId, portfolioDataset]);
 
   const fetchInvestmentFairValues = useCallback(async (investmentId) => {
+    const preloaded = portfolioDataset?.fairValuesByInvestment?.[investmentId];
+    if (Array.isArray(preloaded)) return preloaded;
+
     const res = await fetch(
       `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/${investmentId}/fair-values/`
     );
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : [];
-  }, [numericFundId]);
+  }, [numericFundId, portfolioDataset]);
 
   const computeStatusFromFlows = useCallback((flows, date) => {
     try {
@@ -301,32 +307,12 @@ const PortfolioSummaryTab = () => {
   const loadSummaryData = useCallback(async () => {
     if (!numericFundId) return;
     try {
-      const withDateUrl = selectedTimeframeDate
-        ? `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/?date=${encodeURIComponent(
-            selectedTimeframeDate
-          )}`
-        : `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/`;
-
-      let res = await fetch(withDateUrl);
-      if (!res.ok && selectedTimeframeDate) {
-        res = await fetch(
-          `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/`
-        );
-      }
-      if (!res.ok) throw new Error("Failed to fetch investments");
-      const payload = await res.json();
-
-      const hasGrouped =
-        payload?.unrealized || payload?.realized || payload?.unallocated;
-
-      const flattened =
-        hasGrouped
-          ? [
-              ...(payload.unrealized || []),
-              ...(payload.realized || []),
-              ...(payload.unallocated || []),
-            ]
-          : (Array.isArray(payload) ? payload : payload?.rows || []);
+      const preloadedInvestments = Array.isArray(portfolioDataset?.investments)
+        ? portfolioDataset.investments
+        : [];
+      const flattened = preloadedInvestments.length
+        ? preloadedInvestments
+        : [];
 
       const rows = flattened.map(normalizeRow);
 
@@ -385,6 +371,7 @@ const PortfolioSummaryTab = () => {
     numericFundId,
     selectedTimeframeDate,
     metricsCutoffDate,
+    portfolioDataset,
     fetchInvestmentFlows,
     fetchInvestmentFairValues,
     computeStatusFromFlows,
@@ -512,6 +499,9 @@ const PortfolioSummaryTab = () => {
       return;
     }
 
+    if (typeof portfolioDataset?.refresh === "function") {
+      await portfolioDataset.refresh();
+    }
     await loadSummaryData();
   };
 
@@ -898,7 +888,12 @@ const PortfolioSummaryTab = () => {
           timeframe={effectiveTimeframe}
           fundId={numericFundId}
           onClose={() => setSelectedInvestment(null)}
-          onSaved={loadSummaryData}
+          onSaved={async () => {
+            if (typeof portfolioDataset?.refresh === "function") {
+              await portfolioDataset.refresh();
+            }
+            await loadSummaryData();
+          }}
         />
       )}
 

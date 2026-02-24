@@ -8,6 +8,22 @@ const toNumber = (value) => {
 };
 
 const toSafeArray = (value) => (Array.isArray(value) ? value : []);
+const toQuarterDate = (q) => q?.rawDate || q?.date || "";
+const buildQuartersKey = (quarters = []) =>
+  quarters.map((q) => `${Number(q?.id) || 0}:${toQuarterDate(q)}`).join("|");
+const buildRowsSignature = (rows = [], quarters = []) =>
+  rows
+    .map((row) => {
+      const base = `${row?.id ?? ""}:${row?.name ?? ""}`;
+      const tf = quarters
+        .map((q) => {
+          const v = row?.timeframes?.[q.id] || {};
+          return `${q.id}:${toNumber(v.cost)}:${toNumber(v.fv)}`;
+        })
+        .join(",");
+      return `${base}|${tf}`;
+    })
+    .join(";");
 
 const canonicalType = (value) => {
   const t = String(value || "").trim().toLowerCase();
@@ -122,9 +138,20 @@ export const useCompareTimeframes = (fundId, maxSelections = 2) => {
   };
 };
 
-export const useCompareRows = (fundId, activeQuarters = [], fallbackRows = []) => {
+export const useCompareRows = (
+  fundId,
+  activeQuarters = [],
+  fallbackRows = [],
+  preloadedDataset = null
+) => {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const preloadedInvestments = preloadedDataset?.investments;
+  const preloadedFlows = preloadedDataset?.flowsByInvestment;
+  const preloadedFairValues = preloadedDataset?.fairValuesByInvestment;
+  const preloadedLoadedAt = preloadedDataset?.loadedAt;
+  const preloadedIsLoading = preloadedDataset?.isLoading;
+  const activeQuartersKey = useMemo(() => buildQuartersKey(activeQuarters), [activeQuarters]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -132,6 +159,55 @@ export const useCompareRows = (fundId, activeQuarters = [], fallbackRows = []) =
     const load = async () => {
       if (!fundId) {
         setRows([]);
+        return;
+      }
+
+      if (preloadedIsLoading) {
+        setIsLoading(true);
+        return;
+      }
+
+      const preloadedRows = toSafeArray(preloadedInvestments);
+      if (preloadedRows.length || preloadedLoadedAt) {
+        const mapped = preloadedRows.map((inv) => {
+          const investmentId = Number(inv.investment_id ?? inv.id);
+          const flows = toSafeArray(preloadedFlows?.[investmentId]);
+          const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
+
+          const timeframes = activeQuarters.reduce((acc, q) => {
+            const cutoff = q.rawDate || q.date;
+            acc[q.id] = {
+              cost: costAsOfDate(flows, cutoff),
+              fv: fvAsOfDate(fairValues, cutoff),
+            };
+            return acc;
+          }, {});
+
+          return {
+            id: investmentId,
+            name: inv.name || `Investment #${investmentId}`,
+            sector: inv.sector || "",
+            timeframes,
+          };
+        });
+
+        const filtered = mapped.filter((row) =>
+          activeQuarters.length === 0
+            ? true
+            : activeQuarters.some((q) => {
+                const tf = row.timeframes[q.id] || {};
+                return toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0;
+              })
+        );
+
+        if (!isCancelled) {
+          setRows((prev) => {
+            const prevSig = buildRowsSignature(prev, activeQuarters);
+            const nextSig = buildRowsSignature(filtered, activeQuarters);
+            return prevSig === nextSig ? prev : filtered;
+          });
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -183,10 +259,22 @@ export const useCompareRows = (fundId, activeQuarters = [], fallbackRows = []) =
               })
         );
 
-        if (!isCancelled) setRows(filtered);
+        if (!isCancelled) {
+          setRows((prev) => {
+            const prevSig = buildRowsSignature(prev, activeQuarters);
+            const nextSig = buildRowsSignature(filtered, activeQuarters);
+            return prevSig === nextSig ? prev : filtered;
+          });
+        }
       } catch (error) {
         console.error("Failed to load compare rows:", error);
-        if (!isCancelled) setRows(fallbackRows);
+        if (!isCancelled) {
+          setRows((prev) => {
+            const prevSig = buildRowsSignature(prev, activeQuarters);
+            const nextSig = buildRowsSignature(fallbackRows, activeQuarters);
+            return prevSig === nextSig ? prev : fallbackRows;
+          });
+        }
       } finally {
         if (!isCancelled) setIsLoading(false);
       }
@@ -197,7 +285,16 @@ export const useCompareRows = (fundId, activeQuarters = [], fallbackRows = []) =
     return () => {
       isCancelled = true;
     };
-  }, [fundId, activeQuarters, fallbackRows]);
+  }, [
+    fundId,
+    activeQuartersKey,
+    fallbackRows,
+    preloadedInvestments,
+    preloadedFlows,
+    preloadedFairValues,
+    preloadedLoadedAt,
+    preloadedIsLoading,
+  ]);
 
   return { rows, isLoading };
 };

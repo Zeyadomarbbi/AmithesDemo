@@ -9,74 +9,6 @@ import React, {
 } from "react";
 import "./OperationStep3Breakdown.css";
 
-/** -------------------------
- * API (local-friendly like Step2)
- * ------------------------- */
-const RUNTIME =
-  (typeof window !== "undefined" && window.__RUNTIME_CONFIG__) || {};
-
-const API_BASE_RAW = RUNTIME.API_BASE_URL || import.meta.env.VITE_API_BASE_URL || "";
-const API_PREFIX_RAW = RUNTIME.API_PREFIX || import.meta.env.VITE_API_PREFIX || "";
-
-const API_BASE = String(API_BASE_RAW).replace(/\/$/, "");
-const API_PREFIX = String(API_PREFIX_RAW).replace(/\/$/, "");
-
-function joinUrl(a, b) {
-  const aa = String(a || "").replace(/\/$/, "");
-  const bb = String(b || "").replace(/^\//, "");
-  if (!aa) return `/${bb}`;
-  if (!bb) return aa;
-  return `${aa}/${bb}`;
-}
-
-function apiUrl(path) {
-  const p = String(path || "");
-  const pp = p.startsWith("/") ? p : `/${p}`;
-
-  // ✅ safe local default
-  const prefix = API_PREFIX || "/api";
-
-  if (!API_BASE) {
-    return joinUrl(prefix, pp); // "/api/operations/.."
-  }
-
-  return joinUrl(joinUrl(API_BASE, prefix), pp);
-}
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    credentials: "include",
-  });
-
-  const text = await res.text();
-  let data = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text || null;
-  }
-
-  if (!res.ok) {
-    const msg =
-      (data && data.detail) ||
-      (data && data.error) ||
-      (typeof data === "string" ? data : "") ||
-      `Request failed (${res.status})`;
-
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    err.url = url;
-    throw err;
-  }
-
-  return data;
-}
 
 /** -------------------------
  * Helpers
@@ -98,7 +30,6 @@ function fmtMoney(n) {
   });
 }
 
-/** expects fraction (0..1), prints xx.xx% */
 function fmtPctFraction(frac) {
   if (frac === null || frac === undefined || frac === "") return "";
   const num = Number(frac);
@@ -151,7 +82,6 @@ function getLpCommitmentNumber(lp) {
   return parseMoney(lp?.commitment) || 0;
 }
 
-/** Prefer "primary" share class if sharesRows exist */
 function getPrimaryShareClassId(lp) {
   const rows = Array.isArray(lp?.sharesRows) ? lp.sharesRows : [];
   if (rows.length) {
@@ -189,25 +119,11 @@ function getPrimaryShareClassId(lp) {
   return direct !== null && direct !== undefined ? Number(direct) : null;
 }
 
-/** main amount from Step2 */
 function getMainAmountFromStep2(step2Row = {}) {
   if (step2Row.mainAmount !== undefined) return step2Row.mainAmount;
   if (step2Row.capitalCall !== undefined) return step2Row.capitalCall;
   if (step2Row.distribution !== undefined) return step2Row.distribution;
   return null;
-}
-
-/** -------------------------
- * Step 3 APIs
- * ------------------------- */
-async function fetchStep3Preview(operationId) {
-  const url = apiUrl(`/operations/${operationId}/step3-preview/`);
-  return fetchJson(url);
-}
-
-async function confirmStep3(operationId) {
-  const url = apiUrl(`/operations/${operationId}/lp-allocations/confirm/`);
-  return fetchJson(url, { method: "POST", body: JSON.stringify({}) });
 }
 
 const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
@@ -216,9 +132,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     step2Result,
     operationType,
     operationId = null,
+    operationNumber,
     totalFundCommitment = 0,
     onFinalSave,
-    commitments = [],   // ← add
+    commitments = [],
+    existingAllocations = [], 
+    dueDate = null,
   },
   ref
 ) {
@@ -232,9 +151,6 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   const [saveError, setSaveError] = useState(null);
   const [savedOnce, setSavedOnce] = useState(false);
 
-  const [preview, setPreview] = useState(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewError, setPreviewError] = useState(null);
   const committedLpIds = useMemo(() => {
     return new Set((Array.isArray(commitments) ? commitments : []).map((c) => String(c.lp_id)));
   }, [commitments]);
@@ -245,177 +161,112 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
       return committedLpIds.has(id);
     });
   }, [lps, committedLpIds]);
-  // ✅ Load preview in ALL envs (local-friendly)
-  useEffect(() => {
-    if (!operationId) return;
 
-    let alive = true;
-    setIsLoadingPreview(true);
-    setPreviewError(null);
-
-    fetchStep3Preview(operationId)
-      .then((data) => {
-        if (!alive) return;
-        setPreview(data || null);
-      })
-      .catch((e) => {
-        if (!alive) return;
-        setPreviewError(e);
-      })
-      .finally(() => {
-        if (!alive) return;
-        setIsLoadingPreview(false);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [operationId]);
-
-  // ✅ helper to read preview row by lp/shareClass (shareClass stays internal only)
-  const getPreviewRow = useCallback(
-    (lpIdNum, shareClassIdNum) => {
-      const byKey = preview?.by_key || null;
-      if (!byKey) return null;
-
-      const lpN = Number(lpIdNum);
-      if (!Number.isFinite(lpN)) return null;
-
-      // if share class missing, infer from preview keys for this LP (highest commitment)
-      if (
-        shareClassIdNum === null ||
-        shareClassIdNum === undefined ||
-        shareClassIdNum === ""
-      ) {
-        const prefix = `${lpN}:`;
-        let best = null;
-        let bestCommit = -Infinity;
-
-        Object.entries(byKey).forEach(([k, v]) => {
-          if (!k.startsWith(prefix)) return;
-          const parts = String(k).split(":");
-          const sc = Number(parts[1]);
-          const commit = Number(v?.commitment_amount ?? 0);
-
-          if (!Number.isFinite(sc)) return;
-          if (commit > bestCommit) {
-            bestCommit = commit;
-            best = v;
-          }
-        });
-
-        return best || null;
-      }
-
-      const scN = Number(shareClassIdNum);
-      if (!Number.isFinite(scN)) return null;
-
-      const key = `${lpN}:${scN}`;
-      return byKey[key] || null;
-    },
-    [preview]
-  );
 
   /**
-   * ✅ Build table rows:
-   * - In Distribution mode: use labels like your screenshot:
-   *   Distributed before / % / Shares before
-   *   Distribution / % / Shares redeemed (0 for now)
-   *   Distributed after / % / Shares after (PLUS)
-   *
-   * - In non-distribution: keep your existing Called/Undrawn style.
+   * Build "before" totals from existingAllocations (all previous operations).
+   * Aggregates capital_call and shares_issued per LP across all past operations.
    */
+  const beforeByLp = useMemo(() => {
+    const map = {};
+    const safe = Array.isArray(existingAllocations) ? existingAllocations : [];
+    const currentOpNum = operationNumber != null ? Number(operationNumber) : Infinity;
+
+    safe.forEach((alloc) => {
+      if (Number(alloc?.operation_number ?? 0) >= currentOpNum) {
+        return;
+      }
+
+      const lpId = String(alloc?.lp_id ?? "");
+      if (!lpId) return;
+
+      if (!map[lpId]) {
+        map[lpId] = { capitalCall: 0, sharesIssued: 0 };
+      }
+
+      map[lpId].capitalCall += Number(alloc?.capital_call ?? 0);
+      map[lpId].sharesIssued += Number(alloc?.shares_issued ?? 0);
+    });
+
+    return map;
+  }, [existingAllocations, operationNumber]);
   const rows = useMemo(() => {
-    const arr = filteredLps;
+    // Build a map of LPs that have a commitment passing the filter
+    const lpMap = new Map(); // lp_id -> LP object
+    const safeLps = Array.isArray(lps) ? lps : [];
+
+    const safeCommitments = Array.isArray(commitments) ? commitments : [];
+
+    safeCommitments.forEach((c) => {
+      const lpIdStr = String(c.lp_id);
+      // Skip commitments outside due date (replicate filteredCommitments)
+      const closing = c?.closing_period_date ? new Date(c.closing_period_date) : null;
+      if (!closing || isNaN(closing.getTime()) || closing > dueDate) return;
+
+      // Only add LP once
+      if (!lpMap.has(lpIdStr)) {
+        const lpObj = safeLps.find((lp) => String(lp?.lp_id ?? lp?.id ?? "") === lpIdStr);
+        if (lpObj) lpMap.set(lpIdStr, lpObj);
+      }
+    });
+
+    const arr = Array.from(lpMap.values());
 
     return arr.map((lp, idx) => {
-      const rawId = lp?.lp_id ?? lp?.id ?? lp?.lpId ?? `${idx}`;
-      const lpIdStr = String(rawId);
-      const lpIdNum = Number(rawId);
-
-      const name =
-        lp?.name ??
-        lp?.fullName ??
-        lp?.lpName ??
-        lp?.label ??
-        "";
+      const lpIdStr = String(lp?.lp_id ?? lp?.id ?? `${idx}`);
+      const name = lp?.name ?? lp?.fullName ?? lp?.lpName ?? lp?.label ?? "";
 
       const shareClassId = getPrimaryShareClassId(lp);
-      const commitmentAmount = getLpCommitmentNumber(lp) || 0;
+
+      // Get commitment from the filtered commitments
+      const lpCommitmentRecord = safeCommitments.find(
+        (c) => String(c.lp_id) === lpIdStr && new Date(c.closing_period_date) <= dueDate
+      );
+      const commitmentAmount = Number(lpCommitmentRecord?.commitment_amount ?? getLpCommitmentNumber(lp)) || 0;
 
       const step2 = perLp?.[lpIdStr] || {};
       const mainAmountNum = Number(getMainAmountFromStep2(step2) || 0);
 
-      const p = getPreviewRow(lpIdNum, shareClassId);
-
-      // NOTE: backend fields are still named "before_called/after_called" etc.
-      // In Distribution mode we just DISPLAY them as "distributed".
-      const beforeAmount = Number(p?.before_called ?? 0);
-      const beforeShares = Number(p?.before_shares ?? 0);
-
-      const sharesRedeemed = 0; // ✅ per your request (for now)
+      const aggBefore = beforeByLp[lpIdStr] || { capitalCall: 0, sharesIssued: 0 };
+      const beforeAmount = Number(aggBefore.capitalCall);
+      const beforeShares = Number(aggBefore.sharesIssued);
 
       if (distMode) {
-        // Distributed after = distributed before + distribution
-        const distributedAfter = Number(p?.after_called ?? (beforeAmount + mainAmountNum));
+        const distributedAfter = beforeAmount + mainAmountNum;
         const pctBefore = commitmentAmount > 0 ? beforeAmount / commitmentAmount : 0;
         const pctOp = commitmentAmount > 0 ? mainAmountNum / commitmentAmount : 0;
         const pctAfter = commitmentAmount > 0 ? distributedAfter / commitmentAmount : 0;
-
-        // ✅ Shares after is PLUS (before + redeemed). Redeemed=0 for now.
-        const sharesAfter = Number(p?.after_shares ?? (beforeShares + sharesRedeemed));
+        const sharesAfter = beforeShares; // adjust if needed
 
         return {
           id: lpIdStr,
           initials: lp?.initials || initialsFromName(name),
           name,
-
-          // before
           beforeA: fmtMoney(beforeAmount),
           beforePct: fmtPctFraction(pctBefore),
           beforeShares: fmtShares(beforeShares),
-
-          // operation
           opAmount: fmtMoney(mainAmountNum),
           opPct: fmtPctFraction(pctOp),
-          opSharesRedeemed: fmtShares(sharesRedeemed),
-
-          // after
           afterA: fmtMoney(distributedAfter),
           afterPct: fmtPctFraction(pctAfter),
           afterShares: fmtShares(sharesAfter),
         };
       }
 
-      // -------------------------
-      // Non-distribution (keep existing behavior)
-      // -------------------------
-      const beforeCalled = beforeAmount;
-      const beforePct = Number(p?.before_pct ?? (commitmentAmount > 0 ? beforeCalled / commitmentAmount : 0));
-      const beforeSharesNon = beforeShares;
-
-      const afterCalled = Number(
-        p?.after_called ?? (beforeCalled + (Number(mainAmountNum) || 0))
-      );
-      const afterPct = Number(
-        p?.after_pct ?? (commitmentAmount > 0 ? afterCalled / commitmentAmount : 0)
-      );
-
+      // Non-distribution
+      const afterCalled = beforeAmount + mainAmountNum;
+      const afterPct = commitmentAmount > 0 ? afterCalled / commitmentAmount : 0;
       const sharesIssued = Number(step2?.sharesIssued || 0);
-      const afterSharesNon = Number(p?.after_shares ?? (beforeSharesNon + sharesIssued));
+      const afterSharesNon = beforeShares + sharesIssued;
+      const undrawn = commitmentAmount - afterCalled;
 
-      const undrawn = Number(
-        p?.undrawn ?? (commitmentAmount - afterCalled)
-      );
-
-      // Keep existing "operation" columns with flows
       const step2Flows = step2?.flows || {};
+      const opCalledPct = commitmentAmount > 0 ? mainAmountNum / commitmentAmount : 0;
       const op = {
         mainAmount: fmtMoney(mainAmountNum),
-        calledPct: fmtPctFraction(step2?.calledPct ?? null),
+        calledPct: fmtPctFraction(opCalledPct),
         sharesIssued: fmtShares(step2?.sharesIssued ?? null),
       };
-
       flows.forEach((f) => {
         op[f.id] = fmtMoney(step2Flows[f.id]);
       });
@@ -424,15 +275,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
         id: lpIdStr,
         initials: lp?.initials || initialsFromName(name),
         name,
-
         before: {
-          calledBefore: fmtMoney(beforeCalled),
-          calledPctBefore: fmtPctFraction(beforePct),
-          sharesBefore: fmtShares(beforeSharesNon),
+          calledBefore: fmtMoney(beforeAmount),
+          calledPctBefore: fmtPctFraction(beforeAmount / commitmentAmount),
+          sharesBefore: fmtShares(beforeShares),
         },
-
         op,
-
         after: {
           calledAfter: fmtMoney(afterCalled),
           calledPctAfter: fmtPctFraction(afterPct),
@@ -441,14 +289,11 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
         },
       };
     });
-  }, [filteredLps, perLp, flows, getPreviewRow, distMode]);
+  }, [lps, commitments, perLp, flows, distMode, beforeByLp, dueDate]);
 
-  /**
-   * Non-distribution operation columns (keep as-is)
-   */
+
   const baseOpCols = useMemo(() => {
     if (distMode) return [];
-    // your previous labels
     return [
       { key: "mainAmount", label: "Amount (€)" },
       { key: "calledPct", label: "% Called" },
@@ -456,10 +301,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     ];
   }, [distMode]);
 
-  const flowOpCols = useMemo(() => {
-    if (distMode) return [];
-    return flows.map((f) => ({ key: f.id, label: f.label }));
-  }, [flows, distMode]);
+  const flowOpCols = useMemo(() => [], []);
 
   const opCols = useMemo(() => {
     if (distMode) return [];
@@ -467,7 +309,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   }, [baseOpCols, flowOpCols, distMode]);
 
   const submitToNext = useCallback(async () => {
-    if (!operationId) throw new Error("Missing operationId.");
+    if (!onFinalSave) throw new Error("onFinalSave not provided.");
 
     setIsSaving(true);
     setSaveError(null);
@@ -475,11 +317,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     try {
       if (savedOnce) return;
 
-      await confirmStep3(operationId);
-
-      const fresh = await fetchStep3Preview(operationId);
-      setPreview(fresh || null);
-
+      await onFinalSave();
       setSavedOnce(true);
     } catch (e) {
       setSaveError(e);
@@ -487,34 +325,22 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     } finally {
       setIsSaving(false);
     }
-  }, [operationId, savedOnce]);
+  }, [onFinalSave, savedOnce]);
 
   useImperativeHandle(ref, () => ({ submitToNext }), [submitToNext]);
 
   const saveErrorMsg = saveError?.message ? String(saveError.message) : null;
-  const previewErrMsg = previewError?.message ? String(previewError.message) : null;
 
   // =========================
-  // ✅ DISTRIBUTION TABLE
+  // DISTRIBUTION TABLE
   // =========================
   if (distMode) {
     return (
       <div className="op3-root">
-        {previewErrMsg && (
-          <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
-            Preview error: {previewErrMsg}
-          </div>
-        )}
 
         {saveErrorMsg && (
           <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
             {saveErrorMsg}
-          </div>
-        )}
-
-        {isLoadingPreview && (
-          <div style={{ marginBottom: 10, color: "#667085", fontSize: 12 }}>
-            Loading previous allocations…
           </div>
         )}
 
@@ -523,18 +349,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
             <table className="op3-table op3-table--wide">
               <colgroup>
                 <col className="op3-col-lp" />
-
-                {/* before */}
                 <col className="op3-col-called" />
                 <col className="op3-col-calledpct" />
                 <col className="op3-col-shares" />
-
-                {/* operation */}
                 <col className="op3-col-op" />
                 <col className="op3-col-op" />
                 <col className="op3-col-op" />
-
-                {/* after */}
                 <col className="op3-col-after" />
                 <col className="op3-col-after" />
                 <col className="op3-col-after" />
@@ -545,18 +365,15 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                   <th className="op3-top op3-top-info op3-sticky-0" colSpan={1}>
                     INFORMATION
                   </th>
-
                   <th className="op3-top op3-top-breakdown" colSpan={3}>
                     BREAKDOWN BEFORE OPERATION
                     <button type="button" className="op3-top-plus" disabled={isSaving}>
                       +
                     </button>
                   </th>
-
                   <th className="op3-top op3-top-op" colSpan={3}>
                     OPERATION
                   </th>
-
                   <th className="op3-top op3-top-after" colSpan={3}>
                     BREAKDOWN AFTER OPERATION
                   </th>
@@ -564,15 +381,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
                 <tr className="op3-head-row">
                   <th className="op3-head op3-head-lp op3-sticky-0">LPs</th>
-
                   <th className="op3-head">Distributed before (€)</th>
                   <th className="op3-head">% Distributed before</th>
                   <th className="op3-head">Shares before</th>
-
                   <th className="op3-head">Distribution (€)</th>
                   <th className="op3-head">% Distribution</th>
                   <th className="op3-head">Shares redeemed</th>
-
                   <th className="op3-head">Distributed after (€)</th>
                   <th className="op3-head">% Distributed after</th>
                   <th className="op3-head">Shares after</th>
@@ -588,15 +402,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                         <div className="op3-avatar">{row.initials}</div>
                         <span className="op3-lp-name">{row.name}</span>
                       </td>
-
                       <td className="op3-cell-calc">{row.beforeA}</td>
                       <td className="op3-cell-calc">{row.beforePct}</td>
                       <td className="op3-cell-calc">{row.beforeShares}</td>
-
                       <td className="op3-cell-fetched">{row.opAmount}</td>
                       <td className="op3-cell-fetched">{row.opPct}</td>
                       <td className="op3-cell-fetched">{row.opSharesRedeemed}</td>
-
                       <td className="op3-cell-calc">{row.afterA}</td>
                       <td className="op3-cell-calc">{row.afterPct}</td>
                       <td className="op3-cell-calc">{row.afterShares}</td>
@@ -611,11 +422,9 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                   <td className="op3-foot op3-cell-calc"></td>
                   <td className="op3-foot op3-cell-calc"></td>
                   <td className="op3-foot op3-cell-calc"></td>
-
                   <td className="op3-foot op3-cell-fetched"></td>
                   <td className="op3-foot op3-cell-fetched"></td>
                   <td className="op3-foot op3-cell-fetched"></td>
-
                   <td className="op3-foot op3-cell-calc"></td>
                   <td className="op3-foot op3-cell-calc"></td>
                   <td className="op3-foot op3-cell-calc"></td>
@@ -629,15 +438,10 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   }
 
   // =========================
-  // ✅ NON-DISTRIBUTION TABLE (UNCHANGED STRUCTURE)
+  // NON-DISTRIBUTION TABLE
   // =========================
   return (
     <div className="op3-root">
-      {previewErrMsg && (
-        <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
-          Preview error: {previewErrMsg}
-        </div>
-      )}
 
       {saveErrorMsg && (
         <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
@@ -645,26 +449,18 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
         </div>
       )}
 
-      {isLoadingPreview && (
-        <div style={{ marginBottom: 10, color: "#667085", fontSize: 12 }}>
-          Loading previous allocations…
-        </div>
-      )}
 
       <div className="op3-table-wrapper">
         <div className="op3-scroll-x">
           <table className="op3-table op3-table--wide">
             <colgroup>
               <col className="op3-col-lp" />
-
               <col className="op3-col-called" />
               <col className="op3-col-calledpct" />
               <col className="op3-col-shares" />
-
               {opCols.map((c) => (
                 <col key={c.key} className="op3-col-op" />
               ))}
-
               <col className="op3-col-after" />
               <col className="op3-col-after" />
               <col className="op3-col-after" />
@@ -676,18 +472,15 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                 <th className="op3-top op3-top-info op3-sticky-0" colSpan={1}>
                   INFORMATION
                 </th>
-
                 <th className="op3-top op3-top-breakdown" colSpan={3}>
                   BREAKDOWN BEFORE OPERATION
                   <button type="button" className="op3-top-plus" disabled={isSaving}>
                     +
                   </button>
                 </th>
-
                 <th className="op3-top op3-top-op" colSpan={opCols.length}>
                   OPERATION
                 </th>
-
                 <th className="op3-top op3-top-after" colSpan={4}>
                   BREAKDOWN AFTER OPERATION
                 </th>
@@ -695,17 +488,14 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
               <tr className="op3-head-row">
                 <th className="op3-head op3-head-lp op3-sticky-0">LPs</th>
-
                 <th className="op3-head">Called before (€)</th>
                 <th className="op3-head">% Called before</th>
                 <th className="op3-head">Shares before</th>
-
                 {opCols.map((c) => (
                   <th key={c.key} className="op3-head">
                     {c.label}
                   </th>
                 ))}
-
                 <th className="op3-head">Called after (€)</th>
                 <th className="op3-head">% Called after</th>
                 <th className="op3-head">Shares after</th>
@@ -722,17 +512,14 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                       <div className="op3-avatar">{row.initials}</div>
                       <span className="op3-lp-name">{row.name}</span>
                     </td>
-
                     <td className="op3-cell-calc">{row.before.calledBefore}</td>
                     <td className="op3-cell-calc">{row.before.calledPctBefore}</td>
                     <td className="op3-cell-calc">{row.before.sharesBefore}</td>
-
                     {opCols.map((c) => (
                       <td key={c.key} className="op3-cell-fetched">
                         {row.op?.[c.key] ?? ""}
                       </td>
                     ))}
-
                     <td className="op3-cell-calc">{row.after.calledAfter}</td>
                     <td className="op3-cell-calc">{row.after.calledPctAfter}</td>
                     <td className="op3-cell-calc">{row.after.sharesAfter}</td>
@@ -745,15 +532,12 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
             <tfoot>
               <tr className="op3-foot-row">
                 <td className="op3-foot-label op3-sticky-0">Total</td>
-
                 <td className="op3-foot op3-cell-calc"></td>
                 <td className="op3-foot op3-cell-calc"></td>
                 <td className="op3-foot op3-cell-calc"></td>
-
                 {opCols.map((c) => (
                   <td key={c.key} className="op3-foot op3-cell-fetched"></td>
                 ))}
-
                 <td className="op3-foot op3-cell-calc"></td>
                 <td className="op3-foot op3-cell-calc"></td>
                 <td className="op3-foot op3-cell-calc"></td>

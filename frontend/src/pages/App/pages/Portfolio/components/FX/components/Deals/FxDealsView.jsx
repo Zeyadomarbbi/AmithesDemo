@@ -50,6 +50,36 @@ const resolveFxAsOfValue = (row, timeframeLabel) => {
   return matchedKey ? row[matchedKey] : row.fxRate;
 };
 
+const toDateValue = (value) => {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const getLatestRowByCutoff = (rows = [], selectedTimeframes = []) => {
+  const validRows = rows
+    .filter((row) => row?.rawDate || row?.date)
+    .map((row) => ({ row, date: toDateValue(row.rawDate || row.date) }))
+    .filter((item) => item.date);
+
+  if (!validRows.length) return [];
+
+  const cutoffCandidates = selectedTimeframes
+    .map((tf) => toDateValue(tf.rawDate || tf.date))
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+  const cutoff = cutoffCandidates.length
+    ? cutoffCandidates[cutoffCandidates.length - 1]
+    : null;
+
+  const eligible = cutoff
+    ? validRows.filter((item) => item.date <= cutoff)
+    : validRows;
+
+  const targetPool = eligible.length ? eligible : validRows;
+  const latest = targetPool.sort((a, b) => a.date - b.date)[targetPool.length - 1];
+  return latest ? [latest.row] : [];
+};
+
 const FxDealsSubTable = ({
   rows,
   timeframeColumns,
@@ -68,7 +98,6 @@ const FxDealsSubTable = ({
           <th>Date <SortIcon /></th>
           <th className="col-number">{primaryValueLabel} <SortIcon /></th>
           <th>Currency <SortIcon /></th>
-          <th className="col-number">FX at date <SortIcon /></th>
           {timeframeColumns.map((column) => (
             <th key={`fx-${column.id}`} className="col-number">
               FX as of {column.label}
@@ -92,7 +121,6 @@ const FxDealsSubTable = ({
             <td>{row.date}</td>
             <td className="col-number">{primaryValueCellResolver(row)}</td>
             <td>{row.currency}</td>
-            <td className="col-number">{row.fxRate}</td>
             {timeframeColumns.map((column) => (
               <td key={`row-fx-${row.id}-${column.id}`} className="col-number">
                 {resolveFxAsOfValue(row, column.label)}
@@ -111,7 +139,6 @@ const FxDealsSubTable = ({
           <tr className="fx-total-row">
             <td className="fx-total-label">Total</td>
             <td className="col-number">{formatFxValue(totalPrimaryValue)}</td>
-            <td></td>
             <td></td>
             {timeframeColumns.map((column) => (
               <td key={`total-fx-${column.id}`} className="col-number"></td>
@@ -132,10 +159,14 @@ const FxDealsSubTable = ({
 const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
   const costRows = rows?.costRows || [];
   const fvRows = rows?.fvRows || [];
-  const impactKeys = resolveImpactKeys(fvRows.length ? fvRows : costRows, selectedTimeframes);
+  const latestFvRows = getLatestRowByCutoff(fvRows, selectedTimeframes);
+  const impactKeys = resolveImpactKeys(
+    latestFvRows.length ? latestFvRows : costRows,
+    selectedTimeframes
+  );
   const timeframeColumns = buildTimeframeColumns(selectedTimeframes, impactKeys);
   const fvTotals = calculateDealTableTotals(
-    fvRows,
+    latestFvRows,
     timeframeColumns.map((col) => col.impactKey)
   );
   const totalFairValue = fvTotals.totalFlow;
@@ -161,7 +192,7 @@ const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
         <div>
           <h3 className="fx-deals-subtitle">FX on FV</h3>
           <FxDealsSubTable
-            rows={fvRows}
+            rows={latestFvRows}
             timeframeColumns={timeframeColumns}
             symbol={symbol}
             primaryValueLabel="Fair Value on date (e)"

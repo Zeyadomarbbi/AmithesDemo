@@ -46,6 +46,7 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
   // POST: Create a single LP allocation
   const createAllocation = async (operationId, flowId, payload) => {
     const url = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
+    console.log("[createFlowLPAllocation] payload:", payload);
     setIsLoading(true);
     setError(null);
     try {

@@ -147,8 +147,4 @@ urlpatterns = [
     
     # One-shot create (Step 1 + Step 2)
     # path("funds/<int:fund_id>/operations/full-create/", OperationFullCreate.as_view(), name="operation-full-create"),
-
-    # ✅ Step 3
-    path("operations/<int:operation_id>/step3-preview/", OperationStep3Preview.as_view(), name="operation-step3-preview"),
-    path("operations/<int:operation_id>/lp-allocations/confirm/", OperationStep3Confirm.as_view(), name="operation-step3-confirm"),
 ]

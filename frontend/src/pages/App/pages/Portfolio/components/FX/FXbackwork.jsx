@@ -81,11 +81,52 @@ const getFxAsOfDate = (sortedFlows, cutoffDate) => {
   return sortedFlows[0].__fx;
 };
 
-const subtractOneYear = (dateValue) => {
+const getQuarterIndex = (dateValue) => {
   const d = new Date(dateValue);
   if (Number.isNaN(d.getTime())) return null;
-  d.setFullYear(d.getFullYear() - 1);
-  return d;
+  return Math.floor(d.getMonth() / 3);
+};
+
+const getYearAndQuarter = (dateValue) => {
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return null;
+  return { year: d.getFullYear(), quarter: getQuarterIndex(d) };
+};
+
+const getQuarterEndDate = (year, quarterIndex) => {
+  if (!Number.isFinite(year) || !Number.isFinite(quarterIndex)) return null;
+  return new Date(year, quarterIndex * 3 + 3, 0);
+};
+
+const getQuarterAnchorDate = (dateValue) => {
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return null;
+  const q = getQuarterIndex(d);
+  return getQuarterEndDate(d.getFullYear(), q);
+};
+
+const getSameQuarterLastYearEndDate = (dateValue) => {
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return null;
+  const q = getQuarterIndex(d);
+  return getQuarterEndDate(d.getFullYear() - 1, q);
+};
+
+const getFxForExactQuarter = (rowsWithFx, referenceDate) => {
+  if (!rowsWithFx.length) return null;
+  const target = getYearAndQuarter(referenceDate);
+  if (!target) return null;
+
+  const matched = rowsWithFx
+    .filter((row) => row?.__date)
+    .filter((row) => {
+      const yq = getYearAndQuarter(row.__date);
+      return yq && yq.year === target.year && yq.quarter === target.quarter;
+    })
+    .sort((a, b) => a.__date - b.__date);
+
+  if (!matched.length) return null;
+  return matched[matched.length - 1].__fx;
 };
 
 export const resolveImpactKeys = (rows = [], selectedTimeframes = []) => {
@@ -141,12 +182,20 @@ const buildFxRowFromFlow = ({
   flow,
   investment,
   allFlows,
+  allFairValues = [],
   selectedTimeframes,
 }) => {
-  const costLc = -Math.abs(parseFxValue(flow.amount_lc));
-  const sortedFlows = getSortedFlowsWithFx(allFlows);
-  const oldestFx = sortedFlows.length ? sortedFlows[0].__fx : null;
-  const latestFx = sortedFlows.length ? sortedFlows[sortedFlows.length - 1].__fx : null;
+  const costLc = Math.abs(parseFxValue(flow.amount_lc));
+  const sortedFairValueFx = getSortedFlowsWithFx(
+    allFairValues.map((fv) => ({ date: fv.date, fx_rate: fv.fx_rate }))
+  );
+  const sortedFxTimeline = sortedFairValueFx;
+  const oldestFx = sortedFxTimeline.length ? sortedFxTimeline[0].__fx : null;
+  const latestFx = sortedFxTimeline.length
+    ? sortedFxTimeline[sortedFxTimeline.length - 1].__fx
+    : null;
+  const fxAtInvestmentDate = getFxForExactQuarter(sortedFxTimeline, flow.date);
+  const hasInvestmentDateFx = Number.isFinite(fxAtInvestmentDate) && fxAtInvestmentDate > 0;
 
   const row = {
     id: flow.flow_id ?? flow.id ?? `${investment.investment_id}-${flow.date}`,
@@ -155,7 +204,7 @@ const buildFxRowFromFlow = ({
     date: formatDateDisplay(flow.date),
     flow: formatFxValue(costLc),
     currency: investment.currency_code || "-",
-    fxRate: formatFxRate(flow.fx_rate),
+    fxRate: formatFxRate(hasInvestmentDateFx ? fxAtInvestmentDate : null),
     impactInception:
       oldestFx && latestFx
         ? formatFxValue(costLc / latestFx - costLc / oldestFx)
@@ -167,22 +216,18 @@ const buildFxRowFromFlow = ({
     const fxAsOfKey = toFxAsOfKeyForQuarter(timeframe.display_label);
 
     const timeframeDate = timeframe.rawDate || timeframe.date;
-    const latestFlow = pickLatestByDate(allFlows, timeframeDate);
-    const fxAtDate = getFxAsOfDate(sortedFlows, timeframeDate);
-    const oneYearBefore = subtractOneYear(timeframeDate);
-    const fxOneYearBefore = oneYearBefore
-      ? getFxAsOfDate(sortedFlows, oneYearBefore)
+    const timeframeQuarterDate = getQuarterAnchorDate(timeframeDate) || timeframeDate;
+    const fxAtDate = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
+    const sameQuarterLastYearDate = getSameQuarterLastYearEndDate(timeframeDate);
+    const fxOneYearBefore = sameQuarterLastYearDate
+      ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearDate)
       : oldestFx;
 
     row[impactKey] =
       fxAtDate && fxOneYearBefore
         ? formatFxValue(costLc / fxAtDate - costLc / fxOneYearBefore)
         : "-";
-    row[fxAsOfKey] = fxAtDate
-      ? formatFxRate(fxAtDate)
-      : latestFlow
-        ? formatFxRate(latestFlow.fx_rate)
-        : "-";
+    row[fxAsOfKey] = fxAtDate ? formatFxRate(fxAtDate) : "-";
   });
 
   return row;
@@ -196,13 +241,14 @@ const buildFxRowFromFairValue = ({
   selectedTimeframes,
 }) => {
   const fairValueLc = parseFxValue(fairValue.amount_lc);
+  const fairValueEur = Number(fairValue.amount);
+  const fairValueDisplay = Number.isFinite(fairValueEur) && fairValueEur !== 0
+    ? fairValueEur
+    : fairValueLc;
   const sortedFairValueFx = getSortedFlowsWithFx(
     allFairValues.map((fv) => ({ date: fv.date, fx_rate: fv.fx_rate }))
   );
-  const sortedFallbackFlowFx = getSortedFlowsWithFx(fallbackFlows);
-  const sortedFxTimeline = sortedFairValueFx.length
-    ? sortedFairValueFx
-    : sortedFallbackFlowFx;
+  const sortedFxTimeline = sortedFairValueFx;
   const oldestFx = sortedFxTimeline.length ? sortedFxTimeline[0].__fx : null;
   const latestFx = sortedFxTimeline.length
     ? sortedFxTimeline[sortedFxTimeline.length - 1].__fx
@@ -213,7 +259,7 @@ const buildFxRowFromFairValue = ({
     type: "row",
     rawDate: fairValue.date || null,
     date: formatDateDisplay(fairValue.date),
-    fairValueOnDate: formatFxValue(fairValueLc),
+    fairValueOnDate: formatFxValue(fairValueDisplay),
     currency: investment.currency_code || "-",
     fxRate: formatFxRate(fairValue.fx_rate),
     impactInception:
@@ -228,12 +274,13 @@ const buildFxRowFromFairValue = ({
     const fairValueKey = toFairValueKeyForQuarter(timeframe.display_label);
 
     const timeframeDate = timeframe.rawDate || timeframe.date;
-    const fxAtDate = getFxAsOfDate(sortedFxTimeline, timeframeDate);
-    const oneYearBefore = subtractOneYear(timeframeDate);
-    const fxOneYearBefore = oneYearBefore
-      ? getFxAsOfDate(sortedFxTimeline, oneYearBefore)
+    const timeframeQuarterDate = getQuarterAnchorDate(timeframeDate) || timeframeDate;
+    const fxAtDate = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
+    const sameQuarterLastYearDate = getSameQuarterLastYearEndDate(timeframeDate);
+    const fxOneYearBefore = sameQuarterLastYearDate
+      ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearDate)
       : oldestFx;
-    const latestFairValue = pickLatestByDate(allFairValues, timeframeDate);
+    const latestFairValue = pickLatestByDate(allFairValues, timeframeQuarterDate);
 
     row[impactKey] =
       fxAtDate && fxOneYearBefore
@@ -248,9 +295,19 @@ const buildFxRowFromFairValue = ({
   return row;
 };
 
-export const useFxDealsRows = (fundId, selectedTimeframes = [], fallbackData = []) => {
+export const useFxDealsRows = (
+  fundId,
+  selectedTimeframes = [],
+  fallbackData = [],
+  preloadedDataset = null
+) => {
   const [investments, setInvestments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const preloadedInvestments = preloadedDataset?.investments;
+  const preloadedFlows = preloadedDataset?.flowsByInvestment;
+  const preloadedFairValues = preloadedDataset?.fairValuesByInvestment;
+  const preloadedLoadedAt = preloadedDataset?.loadedAt;
+  const preloadedIsLoading = preloadedDataset?.isLoading;
 
   useEffect(() => {
     let isCancelled = false;
@@ -258,6 +315,57 @@ export const useFxDealsRows = (fundId, selectedTimeframes = [], fallbackData = [
     const load = async () => {
       if (!fundId) {
         setInvestments([]);
+        return;
+      }
+
+      const preloadedRows = toSafeArray(preloadedInvestments);
+      if (preloadedIsLoading) {
+        setIsLoading(true);
+        return;
+      }
+      if (preloadedRows.length) {
+        const byInvestment = preloadedRows.map((investment) => {
+          const investmentId = Number(investment.investment_id ?? investment.id);
+          const flows = toSafeArray(preloadedFlows?.[investmentId]);
+          const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
+
+          const flowRows = flows.map((flow) =>
+            buildFxRowFromFlow({
+              flow,
+              investment,
+              allFlows: flows,
+              allFairValues: fairValues,
+              selectedTimeframes,
+            })
+          );
+          const fairValueRows = fairValues.map((fairValue) =>
+            buildFxRowFromFairValue({
+              fairValue,
+              investment,
+              allFairValues: fairValues,
+              fallbackFlows: flows,
+              selectedTimeframes,
+            })
+          );
+
+          return {
+            title: investment.name || `Investment #${investmentId}`,
+            costRows: flowRows,
+            fvRows: fairValueRows,
+          };
+        });
+
+        if (!isCancelled) {
+          setInvestments(byInvestment);
+          setIsLoading(false);
+        }
+        return;
+      }
+      if (preloadedLoadedAt) {
+        if (!isCancelled) {
+          setInvestments([]);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -296,6 +404,7 @@ export const useFxDealsRows = (fundId, selectedTimeframes = [], fallbackData = [
                 flow,
                 investment,
                 allFlows: flows,
+                allFairValues: fairValues,
                 selectedTimeframes,
               })
             );
@@ -342,7 +451,16 @@ export const useFxDealsRows = (fundId, selectedTimeframes = [], fallbackData = [
     return () => {
       isCancelled = true;
     };
-  }, [fundId, fallbackData, selectedTimeframes]);
+  }, [
+    fundId,
+    fallbackData,
+    selectedTimeframes,
+    preloadedInvestments,
+    preloadedFlows,
+    preloadedFairValues,
+    preloadedLoadedAt,
+    preloadedIsLoading,
+  ]);
 
   return { investments, isLoading };
 };

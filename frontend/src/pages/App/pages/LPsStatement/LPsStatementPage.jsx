@@ -95,17 +95,14 @@ export default function LPsStatementPage() {
     const lpList = Array.isArray(limitedPartners) ? limitedPartners : [];
     const commList = Array.isArray(commitments) ? commitments : [];
 
-    // sumByLp: lpId -> totalCommitment
-    const sumByLp = new Map();
+    // only keep LPs with a commitment in this fund
+    const committedLpIds = new Set(commList.map(c => String(c.lp_id)));
 
-    // sumByLpAndClass: `${lpId}__${shareClassId}` -> totalCommitment
+    const sumByLp = new Map();
     const sumByLpAndClass = new Map();
 
     for (const c of commList) {
-      const lpIdRaw = c?.lp;
-      if (lpIdRaw === null || lpIdRaw === undefined) continue;
-
-      const lpKey = String(lpIdRaw);
+      const lpKey = String(c?.lp_id);
       const scKey = String(c?.share_class ?? "-");
       const amt = toNum(c?.commitment_amount);
 
@@ -117,45 +114,38 @@ export default function LPsStatementPage() {
 
     const fundTotal = Array.from(sumByLp.values()).reduce((a, b) => a + b, 0);
 
-    return lpList.map((lp, idx) => {
-      const rawId = pickLpId(lp, `lp_${idx}`);
-      const id = String(rawId);
+    return lpList
+      .filter(lp => committedLpIds.has(String(pickLpId(lp, "")))) // filter by fund commitments
+      .map((lp, idx) => {
+        const rawId = pickLpId(lp, `lp_${idx}`);
+        const id = String(rawId);
 
-      const name = pickLpName(lp);
+        const name = pickLpName(lp);
+        const commitmentTotal = sumByLp.get(id) || 0;
 
-      const commitmentTotal = sumByLp.get(id) || 0;
+        const classIds = new Set();
+        for (const c of commList) {
+          if (String(c?.lp_id) !== id) continue;
+          classIds.add(String(c?.share_class ?? "-"));
+        }
 
-      // build unique share class rows for this LP
-      const classIds = new Set();
-      for (const c of commList) {
-        if (String(c?.lp) !== id) continue;
-        classIds.add(String(c?.share_class ?? "-"));
-      }
+        const sharesRows = Array.from(classIds).map(scId => {
+          const key = `${id}__${scId}`;
+          return { type: scId, commitment: sumByLpAndClass.get(key) || 0 };
+        });
 
-      const sharesRows = Array.from(classIds).map((scId) => {
-        const key = `${id}__${scId}`;
-        const classSum = sumByLpAndClass.get(key) || 0;
+        const ownershipPercent = fundTotal > 0 ? (commitmentTotal / fundTotal) * 100 : 0;
 
-        // Step2 supports: r.type OR r.shareClass OR r.class
-        // we store numeric id as "type" for now (we can map to names later using useShareClasses)
         return {
-          type: scId,
-          commitment: classSum, // keep number, Step2 parses fine
+          id,
+          lp_id: rawId,
+          name,
+          commitment: commitmentTotal,
+          ownershipPercent,
+          sharesRows,
+          raw: lp,
         };
       });
-
-      const ownershipPercent = fundTotal > 0 ? (commitmentTotal / fundTotal) * 100 : 0;
-
-      return {
-        id,                 // ✅ used in Step2 rows + Step3 keys
-        lp_id: rawId,       // ✅ keeps compatibility with existing code
-        name,               // ✅ fixes "Unknown" display
-        commitment: commitmentTotal,
-        ownershipPercent,   // percent 0..100 (Step2 parsePercent handles it)
-        sharesRows,
-        raw: lp,            // keep original untouched (safe)
-      };
-    });
   }, [limitedPartners, commitments]);
 
   // redirect base tab
@@ -165,7 +155,6 @@ export default function LPsStatementPage() {
   ) {
     return <Navigate to="lps-register" replace />;
   }
-
   return (
     <div className="lp-page">
       <div className="lp-page-container">

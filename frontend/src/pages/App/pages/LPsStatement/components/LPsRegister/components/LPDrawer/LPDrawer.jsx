@@ -51,7 +51,6 @@ export default function LPDrawer({
   /* --- Form State --- */
   const [form, setForm] = useState(EMPTY_FORM);
   const [tranches, setTranches] = useState([]);
-  console.log("tranches", tranches)
   /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);

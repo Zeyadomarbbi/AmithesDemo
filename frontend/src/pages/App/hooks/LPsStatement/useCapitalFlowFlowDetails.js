@@ -12,18 +12,13 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   const handleRequest = async (url, options = {}) => {
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers: { 'Content-Type': 'application/json', ...options.headers },
     });
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error: ${response.status}`);
+      const msg = errorData.detail || JSON.stringify(errorData);
+      throw new Error(msg);
     }
-
-    // No content for DELETE
     if (response.status === 204) return null;
     return response.json();
   };
@@ -55,6 +50,7 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
       setFlows((prev) => [...prev, response]);
       return response;
     } catch (err) {
+      console.error("[createFlow] 400 error:", err.message, "payload:", flowData);
       setError(err.message);
       throw err;
     } finally {
