@@ -1,0 +1,153 @@
+/* SRTable.css - Unified table styles for Shares and Operations */
+
+/* =========================================
+   1. CONTAINER
+   ========================================= */
+.sr-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.4rem;
+  letter-spacing: 0.01em;
+  animation: fadeIn 0.4s ease-out;
+  gap: 48px;
+  /* removed height: 100% */
+}
+
+/* =========================================
+   2. TABLES
+   ========================================= */
+.sr-table-wrapper {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.sr-table-wrapper.mt-large {
+    width: 62%;
+    margin-left: auto;
+    margin-right: auto;
+    align-self: center;
+}
+
+.sr-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  box-sizing: border-box;
+  
+}
+
+.sr-table th,
+.sr-table td {
+  padding: 0.75rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.4rem;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  vertical-align: middle;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* --- HEADERS --- */
+.sr-table th {
+  font-weight: 600;
+  color: #E2E8F0;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* --- DATA CELLS --- */
+.sr-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- TABLE 1 (fluid) --- */
+.sr-table:not(.performance-table) .th-label,
+.sr-table:not(.performance-table) .td-label {
+  width: 25%;
+}
+
+.sr-table:not(.performance-table) .th-val,
+.sr-table:not(.performance-table) .td-val {
+  width: 18.75%;
+}
+
+/* --- TABLE 2 (fluid 62% width) --- */
+.performance-table .th-label,
+.performance-table .td-label {
+  width: 38.7%;
+}
+
+.performance-table .th-val,
+.performance-table .td-val {
+  width: 30.6%;
+}
+
+/* --- STYLING COLORS AND BORDERS --- */
+.sr-table .th-val,
+.sr-table .td-val {
+  color: #E2E8F0;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
+
+
+.sr-table th span {
+  font-size: 0.6875rem;
+  color: #94A3B8;
+  font-weight: 400;
+  margin-left: 0.125rem;
+  white-space: nowrap;
+}
+
+.sr-table td.td-label {
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.sr-table:not(.performance-table) th:nth-child(even),
+.sr-table:not(.performance-table) td:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.sr-table:not(.performance-table) th:nth-child(odd),
+.sr-table:not(.performance-table) td:nth-child(odd) {
+  background-color: transparent;
+}
+
+.performance-table th:nth-child(2),
+.performance-table td:nth-child(2) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.performance-table th:nth-child(1),
+.performance-table td:nth-child(1) {
+  background-color: transparent;
+}
+
+.sr-table:not(.performance-table) td,
+.performance-table td.td-label,
+.performance-table td:nth-child(2),
+.performance-table td:nth-child(3) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.row-fund td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

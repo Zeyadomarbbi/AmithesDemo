@@ -1,0 +1,35 @@
+import React, { useState } from 'react';
+import { SearchIcon } from '../Icons';
+import './SearchBar.css';
+
+function SearchBar({ placeholder, onSearch, className, containerClassName }) {
+  const [query, setQuery] = useState('');
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+    if (onSearch) onSearch(value);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && onSearch) onSearch(query);
+  };
+
+  return (
+    <div className={containerClassName ?? 'search-bar'}>
+      <div className="search-bar__icon-wrapper">
+        <SearchIcon />
+      </div>
+      <input
+        type="text"
+        className={`search-bar__input${className ? ` ${className}` : ''}`}
+        placeholder={placeholder}
+        value={query}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
+      />
+    </div>
+  );
+}
+
+export default SearchBar;

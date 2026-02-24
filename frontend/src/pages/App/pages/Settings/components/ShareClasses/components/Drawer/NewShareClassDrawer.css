@@ -123,6 +123,61 @@
   color: #375A89;
 }
 
+.share-class-field-input--with-icon {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  width: 100%; /* Changed from 519px for responsiveness within drawer */
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  position: relative;
+}
+
+.field-input-inner {
+  flex: 1;
+  order: 1;
+  border: none;
+  outline: none; /* Removes default black focus border */
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  
+  /* Typography */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917; /* Darker for readability */
+}
+
+.field-input-inner::placeholder {
+  color: #797979;
+}
+
+.share-class-field-input--with-icon svg,
+.share-class-field-input--with-icon .CurrencyIcon {
+  order: 2;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: #375A89; /* Matches your Icon (Stroke) spec */
+}
+
+/* Remove Arrows from Number Input (Chrome, Safari, Edge, Opera) */
+.field-input-inner::-webkit-outer-spin-button,
+.field-input-inner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
 .share-drawer-back,
 .share-drawer-close {
   border: none;
@@ -454,6 +509,23 @@
 
   /* Optional: Hover state for better UX */
   transition: background-color 0.2s ease;
+}
+
+.share-drawer-footer-btn--save:disabled,
+.share-drawer-footer-btn--save.btn-blocked {
+  background-color: #e2e8f0 !important; /* Light grey */
+  color: #94a3b8 !important;            /* Muted text */
+  cursor: not-allowed !important;       /* Blocked cursor icon */
+  border: 1px solid #cbd5e1 !important;
+  opacity: 0.7;
+  pointer-events: none;                 /* Completely unclickable */
+}
+
+/* Optional: remove hover effects when blocked */
+.share-drawer-footer-btn--save.btn-blocked:hover {
+  background-color: #e2e8f0 !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* --- Mobile Response --- */

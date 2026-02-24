@@ -1,53 +1,100 @@
-import React from 'react';
-import './Distributions.css';
-import { SortIcon } from '../Icons'; 
+import React, { useEffect } from 'react';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+import { useScenarioFFDistribution } from './useScenarioFFDistribution'; // Ensure path is correct
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import { SortIcon } from '../Icons'; 
+import './Distributions.css';
 
-const Distributions = ({ data }) => { // Accepts data prop
+const Distributions = ({ fundId, scenarioId, refreshTrigger }) => {
+  // 1. Move Data Logic Here
+  const { 
+    distributions, 
+    loading, 
+    error,
+    refresh 
+  } = useScenarioFFDistribution(fundId, scenarioId);
 
-  // Helper: Convert "DD/MM/YYYY" string to Date object
+  const formatNumber = useNumberFormatter();
+  const formatPercentage = usePercentageFormatter();
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
-    const [day, month, year] = dateStr.split('/');
+    const [year, month, day] = dateStr.split('-');
     return new Date(year, month - 1, day);
   };
 
-  const handleDateChange = (rowId, newDate) => {
-    console.log("Update parent logic here");
+  // 2. Listen for Parent Refresh Signal
+  useEffect(() => {
+    if (refreshTrigger > 0 && refresh) {
+      refresh();
+    }
+  }, [refreshTrigger, refresh]);
+
+  const calculateDividendsAndInterests = (row) => {
+    const dividends = parseFloat(row.dividends || 0);
+    const interests = parseFloat(row.interests || 0);
+    return dividends + interests;
   };
+
+  if (loading) {
+    return (
+      <div className="all-ops-container">
+        <div className="table-responsive-wrapper">
+          <div style={{ padding: '40px', textAlign: 'center' }}>Loading distributions...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="all-ops-container">
+        <div className="table-responsive-wrapper">
+          <div style={{ padding: '40px', textAlign: 'center', color: '#d32f2f' }}>Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!distributions || distributions.length === 0) {
+    return (
+      <div className="all-ops-container">
+        <div className="table-responsive-wrapper">
+          <div style={{ padding: '40px', textAlign: 'center' }}>No distributions found</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="all-ops-container"> 
-      <div className="table-responsive-wrapper">   
+      <div className="table-responsive-wrapper">    
         <table className="ops-table">
           <thead>
             <tr>
               <th className="th-left"><div className="th-content">Date <SortIcon className="sort-icon" /></div></th>
               <th className="th-right"><div className="th-content right">Flows <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
               <th className="th-right"><div className="th-content right">Divestment <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
-              <th className="th-right"><div className="th-content right">Dividends <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
-              <th className="th-right"><div className="th-content right">Recycling <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
+              <th className="th-right"><div className="th-content right">Dividends & Interests <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
               <th className="th-right"><div className="th-content right">Other <span className="header-hint">(€)</span> <SortIcon className="sort-icon" /></div></th>
               <th className="th-right"><div className="th-content right">% Distributed <SortIcon className="sort-icon" /></div></th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => (
-              <tr key={row.id}>
-                <td className="td-date">
-                  <DateInputWithPicker 
+            {distributions.map((row) => (
+              <tr key={row.summary_id}>
+                <td className="td-date">                              
+                  <DateInputWithPicker
                     initialDate={parseDateString(row.date)}
-                    onDateChange={(newDate) => handleDateChange(row.id, newDate)}
+                    onDateChange={(date) => handleDateChange(row, date)}
                     isSingle={true}
+                    disabled={true}
                   />
                 </td>
-                
-                <td className="td-right">{row.flow}</td>
-                <td className="td-right">{row.divestment || '-'}</td>
-                <td className="td-right">{row.dividends || '-'}</td>
-                <td className="td-right">{row.recycling || '-'}</td>
-                <td className="td-right">{row.other || '-'}</td>
-                <td className="td-right">{row.distPercent || '0.00%'}</td>
+                <td className="td-right">{formatNumber(row.flows)}</td>
+                <td className="td-right">{formatNumber(row.divestment)}</td>
+                <td className="td-right">{formatNumber(calculateDividendsAndInterests(row))}</td>
+                <td className="td-right">{formatNumber(row.other)}</td>
+                <td className="td-right">{formatPercentage(row.pct_distributed)}</td>
               </tr>
             ))}
           </tbody>

@@ -1,7 +1,10 @@
 import React from "react";
 import FundCard from "./FundCard";
 
-export default function FundList({ funds = [], onCardClick }) {
+export default function FundList({ 
+  funds = [], 
+  onCardClick, 
+}) {
   return (
     <div className="funds-grid">
       {funds.map((fund) => (

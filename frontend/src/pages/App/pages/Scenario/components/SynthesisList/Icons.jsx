@@ -45,3 +45,9 @@ export const MinusIcon = () => (
     <path fill-rule="evenodd" clip-rule="evenodd" d="M0 0.666667C0 0.298477 0.298477 0 0.666667 0H10C10.3682 0 10.6667 0.298477 10.6667 0.666667C10.6667 1.03486 10.3682 1.33333 10 1.33333H0.666667C0.298477 1.33333 0 1.03486 0 0.666667Z" fill="#375A89"/>
     </svg>
 );
+
+export const CloseIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M9.33333 1L1 9.33333M1 1L9.33333 9.33333" stroke="#375A89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+);

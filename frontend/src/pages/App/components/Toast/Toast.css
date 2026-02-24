@@ -1,0 +1,135 @@
+/* dim background behind toast */
+.pop-up-toast-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.35); 
+  z-index: 999; 
+}
+
+/* main card */
+.pop-up-toast {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  width: 401px;
+  min-height: 80px;
+  padding: 16px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 12px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* left side: icon + text */
+.pop-up-toast-main {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pop-up-toast-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.pop-up-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pop-up-toast-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.pop-up-toast-message {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+/* close button (X) */
+.pop-up-toast-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #375a89;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Layout adjustment for Prompt */
+.prompt-variant {
+    flex-direction: row;
+    align-items: flex-start;
+    width: 420px;
+}
+
+.pop-up-toast-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.prompt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.prompt-btn-cancel {
+    background: #FAFAF9;
+    border: none;
+    color: #7B7D7E;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 6px 16px;
+}
+
+.prompt-btn-confirm {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: white;
+}
+
+.prompt-btn-error {
+    background-color: #ef4444; /* Red for deletion */
+}
+
+.prompt-btn-success {
+    background-color: #F7A93B; /* Orange for generic actions */
+}
+
+/* responsive: smaller width on phones */
+@media (max-width: 480px) {
+  .pop-up-toast {
+    width: calc(100% - 32px);
+  }
+}

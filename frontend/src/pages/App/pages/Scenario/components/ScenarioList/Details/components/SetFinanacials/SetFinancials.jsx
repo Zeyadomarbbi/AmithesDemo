@@ -1,44 +1,144 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FinancialTable from './FinancialTable/FinancialTable';
 import ManagementFees from './ManagementFees/ManagementFees';
+import { useScenarioFinancialsProjections } from './utils/useScenarioFinancialsProjections.js';
+import Toast from '../../../../../../../components/Toast/Toast'; 
 import DDFees from './DDFees/DDFees';
-import { CloseIcon, DownloadIcon, PlusIcon } from './Icons';
+import { DownloadIcon, PlusIcon, MinusIcon } from './Icons';
 import './SetFinancials.css';
 
-function SetFinancials({ scenarioId, realizedYears = [2024, 2025] }) {
-  const [activeTab, setActiveTab] = useState(null);
-  const [years, setYears] = useState(() => {
-    const realized = realizedYears.map(y => ({ year: String(y), type: 'realized' }));
-    const lastRealized = Math.max(...realizedYears);
-    const projected = Array.from({ length: 6 }, (_, i) => ({
-      year: String(lastRealized + i + 1),
-      type: 'projected'
-    }));
-    return [...realized, ...projected];
-  });
+function SetFinancials({ fundId, scenarioId }) {
+  // 1. Fetch Data + CRUD Operations
 
+  const { 
+    gridData, 
+    years: apiYears, 
+    loading, 
+    refresh,
+    put,
+    patch,
+    post 
+  } = useScenarioFinancialsProjections(fundId, scenarioId);
+  console.log("gridData", gridData)
+  const [years, setYears] = useState([]);
+  const [activeTab, setActiveTab] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [localChanges, setLocalChanges] = useState({}); // Track unsaved edits
+  const [toast, setToast] = useState(null);
+
+  // 2. Automatic Timeline Calculation
+  useEffect(() => {
+    if (!loading && apiYears.length > 0 && gridData.length > 0) {
+      const minYear = Math.min(...apiYears);
+      const maxDataYear = Math.max(...apiYears);
+      
+      let maxRealizedYear = 0;
+      gridData.forEach(row => {
+        Object.entries(row.values).forEach(([year, val]) => {
+          if (val.status === 'Realized' && parseInt(year) > maxRealizedYear) {
+            maxRealizedYear = parseInt(year);
+          }
+        });
+      });
+
+      const startYear = minYear; 
+      // Show only 10 years total by default
+      const endYear = Math.min(maxDataYear, startYear + 10);
+
+      const newYears = [];
+      for (let y = startYear; y <= endYear; y++) {
+        newYears.push({
+          year: String(y),
+          type: y <= maxRealizedYear ? 'realized' : 'projected'
+        });
+      }
+      
+      setYears(newYears);
+    }
+  }, [apiYears, gridData, loading]);
   const handleClose = () => setActiveTab(null);
 
   const addProjectedYear = () => {
+    if (years.length === 0) return;
+    
+    const startYear = parseInt(years[0].year);
     const lastYear = parseInt(years[years.length - 1].year);
+    const maxAllowedYear = startYear + 16;
+
+    if (lastYear >= maxAllowedYear) return;
+
     const newYear = { year: String(lastYear + 1), type: 'projected' };
     setYears(prev => [...prev, newYear]);
   };
 
-  const [isSaving, setIsSaving] = useState(false);
+  const removeProjectedYear = () => {
+    if (years.length === 0) return;
 
-  // Implement handleSave
+    const lastIndex = years.length - 1;
+    if (years[lastIndex].type === 'projected') {
+      setYears(prev => prev.slice(0, -1));
+    }
+  };
+
+  // 3. Track Cell Edits
+  const handleCellChange = (lineItemId, year, newAmount) => {
+    console.log('Cell changed:', { lineItemId, year, newAmount }); // ADD THIS
+    const key = `${lineItemId}_${year}`;
+    setLocalChanges(prev => ({
+      ...prev,
+      [key]: { lineItemId, year: parseInt(year), amount: newAmount }
+    }));
+  };
+
+  // 4. Save All Changes
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Placeholder for future API integration
-    console.log('Saving financials for scenario:', scenarioId, 'Years:', years);
-    
-    // Simulate network latency
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsSaving(false);
+    try {
+      const changes = Object.values(localChanges);
+      
+      for (const change of changes) {
+        const { lineItemId, year, amount } = change;
+        
+        // Find if projection exists
+        const row = gridData.find(r => r.line_item_id === lineItemId);
+        const existingCell = row?.values[year];
+        
+        if (existingCell?.id) {
+          // Update existing
+          await patch(existingCell.id, { amount });
+        } else {
+          // Create new
+          await post({
+            line_item: lineItemId,
+            year: year,
+            amount: amount
+          });
+        }
+      }
+      
+      setLocalChanges({}); // Clear after save
+      await refresh();
+      
+      setToast({
+        type: 'success',
+        title: 'Changes saved',
+        message: `${changes.length} projection${changes.length > 1 ? 's' : ''} updated successfully`
+      });
+      
+    } catch (err) {
+      console.error("Save failed", err);
+      setToast({
+        type: 'error',
+        title: 'Save failed',
+        message: 'Unable to save changes. Please try again.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const hasUnsavedChanges = Object.keys(localChanges).length > 0;
 
   return (
     <div className="sf-financials-page-layout">
@@ -71,46 +171,73 @@ function SetFinancials({ scenarioId, realizedYears = [2024, 2025] }) {
             <span className="sf-legend-text sf-realized">Realized</span>
             <span className="sf-legend-text sf-projected">Projected</span>
           </div>
+          <div className="sf-fin-timeline-actions" style={{ display: 'flex', gap: '8px' }}>
             <button className="sf-view-badge" onClick={addProjectedYear}>
               <PlusIcon />
               <span>Add Projected Year</span>
             </button>
+            <button className="sf-view-badge" onClick={removeProjectedYear}>
+              <MinusIcon />
+              <span>Remove Projected Year</span>
+            </button>
+          </div>
         </div>
 
         <div className="sf-fin-content-wrapper">
-          <FinancialTable scenarioId={scenarioId} years={years} />
-        </div>
-      </div>
-
-      <div className="sf-footer">
-        <div className="sf-actions">
-          <button 
-            className="sf-btn-save" 
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
+           {loading && years.length === 0 ? (
+             <div className="sf-loading-state">Loading Financials...</div>
+           ) : (
+             <FinancialTable 
+              years={years} 
+              rows={gridData}
+              localChanges={localChanges}
+              onCellChange={handleCellChange}
+            />
+           )}
         </div>
       </div>
 
       {activeTab === 'management' && (
         <div className="sf-overlay fullscreen">
-          <button className="sf-overlay-floating-close" onClick={handleClose}>
-            <CloseIcon />
-          </button>
           <div className="sf-overlay-content">
-            <ManagementFees />
+            <ManagementFees 
+              fundId={fundId} 
+              scenarioId={scenarioId}
+              onClose={handleClose} 
+            />
           </div>
         </div>
       )}
 
       {activeTab === 'diligence' && (
         <div className="sf-overlay modal">
-          <div className="sf-modal-content">
-            <DDFees onClose={handleClose} />
-          </div>
+          <DDFees 
+            fundId={fundId} 
+            scenarioId={scenarioId} 
+            onClose={handleClose} 
+          />
         </div>
+      )}
+      <div className="sf-footer">
+        <div className="sf-actions">
+          <button 
+            className="sf-btn-save" 
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+          >
+            {isSaving ? "Saving..." : hasUnsavedChanges ? `Save (${Object.keys(localChanges).length})` : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
       )}
     </div>
   );

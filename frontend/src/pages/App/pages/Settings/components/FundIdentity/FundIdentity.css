@@ -2,12 +2,12 @@
   display: flex;
   flex: 1; 
   flex-direction: column;
-  min-height: 100%; /* CHANGED: from height to min-height */
+  min-height: 100%;
   width: 100%;
   background-color: #FFFFFF;
 }
 
-.fund-identity-settings-form {
+.fund-identity-form {
   display: grid;
   grid-template-columns: repeat(4, 1fr); 
   gap: 24px 16px;
@@ -15,29 +15,31 @@
   width: 100%;
 }
 
-/* Base field container */
-.form-field {
+.fund-identity-field {
   grid-column: span 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Row 4 - Full Width Strategy */
-.form-field--full {
+.fund-identity-field--full {
   grid-column: 1 / -1;
 }
 
-.field-label {
+.fund-identity-label {
   font-size: 0.8rem;
   color: var(--fs-label);
   margin-bottom: 0.4rem;
   font-weight: 500;
 }
 
-/* Consistent Input Wrapper */
-.field-input {
+.fund-identity-required {
+  color: red;
+  margin-left: 2px;
+}
+
+.fund-identity-input {
   position: relative;
-  background: var(--fs-input-bg);
+  background: #FFFFFF;
   border: 1px solid var(--fs-border-soft);
   border-radius: 4px;
   width: 100%;
@@ -47,43 +49,27 @@
   align-items: center;
 }
 
-/* Remove "static-field" specific overrides to keep them looking like inputs */
-.field-input.static-field {
-  padding: 0.65rem 0.75rem;
-  color: var(--fs-text-main);
-  background: #fdfdfd; /* Subtly different to indicate read-only */
-}
-
-/* Internal padding for actual input elements */
-.field-input-inner {
+.fund-identity-input-inner {
   width: 100%;
   height: 100%;
   border: none;
   background: transparent;
   font-size: 0.9rem;
   outline: none;
+  padding: 0 12px;
 }
 
-.field-select.placeholder-active {
-  color: #9ca3af; /* Your --fs-placeholder color */
+.fund-identity-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2rem;
 }
 
-/* Ensure dropdown options themselves stay dark/main text color */
-.field-select option {
-  color: var(--fs-text-main);
-  background-color: #ffffff;
-}
-
-/* Optional: Gray out the first option specifically if it's visible in the list */
-.field-select option[value=""][disabled] {
-  display: none;
-}
-
-/* Custom Chevron Styling */
-.nf-select-chevron {
+.fund-identity-select-chevron {
   position: absolute;
   right: 14px;
-  top: calc(50% - 6px); /* Centers the 8x8 diamond vertically */
+  top: calc(50% - 6px);
   width: 8px;
   height: 8px;
   border-right: 2px solid #375A89;
@@ -93,16 +79,9 @@
   z-index: 2;
 }
 
-/* Hide default browser arrow */
-.field-select {
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  padding-right: 2rem; /* Make room for the chevron */
-}
-
-.fund-identity-settings-form .date-input-container .input-trigger {
-  background-color: var(--fs-input-bg) !important; /* Forces light gray background */
+/* Date Picker Overrides */
+.fund-identity-form .date-input-container .input-trigger {
+  background-color: var(--fs-input-bg) !important;
   border: 1px solid var(--fs-border-soft) !important;
   border-radius: 4px !important;
   height: 40px !important;
@@ -114,33 +93,13 @@
   justify-content: space-between !important;
 }
 
-/* 2. Style the text inside the trigger */
-.fund-identity-settings-form .date-input-container .selected-date-text {
-  color: #1f2933 !important; /* Force matches --fs-text-main */
+.fund-identity-form .date-input-container .selected-date-text {
+  color: #1f2933 !important;
   opacity: 1 !important;
 }
 
-/* 3. Handle Placeholder state (gray out if date is missing/default) */
-.fund-identity-settings-form .date-input-container .input-trigger.placeholder-active .selected-date-text {
-  color: #ffffff !important;
-}
-
-/* 4. Match hover/active borders to the rest of the form */
-.fund-identity-settings-form .date-input-container .input-trigger.active {
-  border-color: var(--fs-accent) !important;
-  background: var(--fs-input-bg) !important;
-}
-
-/* 5. Icon Alignment */
-.fund-identity-settings-form .date-input-container .input-trigger svg {
-  width: 14px !important;
-  height: 14px !important;
-  flex-shrink: 0 !important;
-}
-
-/* Footer Save Button */
 .fund-identity-footer {
-  margin-top: auto;     /* This will now push successfully to the bottom */
+  margin-top: auto;
   background: #fff;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
   padding: 24px 0;

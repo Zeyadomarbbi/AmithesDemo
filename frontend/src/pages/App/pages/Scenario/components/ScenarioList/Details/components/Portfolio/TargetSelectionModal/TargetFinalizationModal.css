@@ -1,0 +1,319 @@
+/* =========================================
+   1. MODAL WRAPPER & OVERLAY
+   ========================================= */
+.trgt-finalization-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.trgt-finalization-container {
+    position: relative;
+    padding: 32px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Floating Close Button */
+.trgt-finalization-close-icon {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    transition: background 0.2s;
+    z-index: 10;
+}
+
+.trgt-finalization-close-icon:hover {
+    background: #F3F4F6;
+}
+
+/* =========================================
+   2. HEADER
+   ========================================= */
+.trgt-finalization-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    padding-right: 40px; /* space for close button */
+}
+
+.trgt-finalization-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 28px;
+    color: #111827;
+    margin: 0;
+}
+
+.trgt-finalization-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    font-weight: normal;
+}
+
+/* =========================================
+   3. BODY
+   ========================================= */
+.trgt-finalization-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.trgt-finalization-section {
+    width: 100%;
+}
+
+.trgt-finalization-section-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.trgt-finalization-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #F3F4F6;
+    color: #375A89;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 1px 8px;
+}
+
+/* =========================================
+   4. TABLE SYSTEM
+   ========================================= */
+.trgt-finalization-table-container {
+    width: 100%;
+    background: #fff;
+    overflow-x: auto;
+}
+
+.trgt-finalization-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+.trgt-finalization-table thead th:nth-child(1) { width: 50%; }
+.trgt-finalization-table thead th:nth-child(2) { width: 25%; }
+.trgt-finalization-table thead th:nth-child(3) { width: 25%; }
+
+.trgt-finalization-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.trgt-finalization-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #F3F4F6;
+    overflow: hidden;
+}
+
+.trgt-finalization-row-gray {
+    background-color: #FAFAF9 !important;
+}
+
+/* Name Block */
+.trgt-finalization-name-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.trgt-finalization-name-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1C1917;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.trgt-finalization-name-sub {
+    font-weight: 400;
+    font-size: 12px;
+    color: #375A89;
+}
+
+/* =========================================
+   5. INPUT & UTILITIES
+   ========================================= */
+.trgt-finalization-input {
+    padding: 8px 0;
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C1917;
+    cursor: default;
+    outline: none;
+}
+
+.trgt-finalization-input-highlight {
+    color: #F59E0B;
+    font-weight: 600;
+}
+
+.trgt-finalization-td-left { text-align: left !important; }
+.trgt-finalization-td-center { text-align: center !important; }
+
+.trgt-finalization-cell-empty {
+    text-align: center;
+    padding: 40px !important;
+    color: #9CA3AF;
+}
+
+/* =========================================
+   6. FOOTER & BUTTONS
+   ========================================= */
+.trgt-finalization-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.trgt-finalization-btn-cancel {
+    flex: 1;
+    padding: 10px 16px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #475569;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.trgt-finalization-btn-cancel:hover:not(:disabled) {
+    background: #F1F5F9;
+}
+
+.trgt-finalization-btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.trgt-finalization-btn-save {
+    flex: 1;
+    padding: 10px 16px;
+    background: #F59E0B;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.trgt-finalization-btn-save:hover:not(:disabled) {
+    background: #D97706;
+}
+
+.trgt-finalization-btn-save:disabled {
+    background: rgba(245, 158, 11, 0.5);
+    cursor: not-allowed;
+}
+
+/* =========================================
+   7. RESPONSIVE
+   ========================================= */
+@media (max-width: 640px) {
+    .trgt-finalization-container {
+        padding: 20px 16px;
+        width: 95%;
+        border-radius: 6px;
+    }
+
+    .trgt-finalization-header {
+        margin-bottom: 16px;
+        padding-right: 36px;
+    }
+
+    .trgt-finalization-title {
+        font-size: 16px;
+        line-height: 24px;
+    }
+
+    .trgt-finalization-close-icon {
+        top: 16px;
+        right: 16px;
+    }
+
+    .trgt-finalization-table thead th:nth-child(1) { width: 45%; }
+    .trgt-finalization-table thead th:nth-child(2) { width: 27.5%; }
+    .trgt-finalization-table thead th:nth-child(3) { width: 27.5%; }
+
+    .trgt-finalization-table thead th,
+    .trgt-finalization-table td {
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    .trgt-finalization-name-label {
+        font-size: 13px;
+    }
+
+    .trgt-finalization-name-sub {
+        font-size: 11px;
+    }
+
+    .trgt-finalization-input {
+        font-size: 13px;
+    }
+
+    .trgt-finalization-footer {
+        margin-top: 16px;
+        gap: 8px;
+    }
+
+    .trgt-finalization-btn-cancel,
+    .trgt-finalization-btn-save {
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+}

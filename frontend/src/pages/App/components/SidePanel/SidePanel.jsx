@@ -17,6 +17,7 @@ function SidePanel() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { funds } = useFundData();
+  // useActiveFund now pulls from Context (Sticky State)
   const activeFundId = useActiveFund();
   
   const location = useLocation();
@@ -28,15 +29,20 @@ function SidePanel() {
     : 'dashboard';
 
   const filteredFunds = useMemo(() => {
-    return funds.filter(fund => 
+    return (funds || []).filter(fund => 
       fund.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       fund.code?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [funds, searchQuery]);
 
-  const currentFund = funds.length > 0 
-    ? (funds.find(f => f.id.toString() === activeFundId?.toString()) || funds[0]) 
-    : { name: 'Loading...', id: '' }; 
+  // Find fund based on the sticky activeFundId from context
+  const currentFund = useMemo(() => 
+    (funds && activeFundId) 
+      ? funds.find(f => f.id.toString() === activeFundId.toString()) 
+      : null,
+  [funds, activeFundId]);
+
+  const hasActiveFund = !!currentFund;
 
   const handleSwitchFund = (newFundId) => {
     navigate(`/funds/${newFundId}/${currentSection}`);
@@ -56,15 +62,19 @@ function SidePanel() {
           <div className="fund-selector-container">
             <div className="fund-selector-button">
               <div className="fund-info-section">
-                <span className="side-panel-fund-name">{currentFund.name}</span>
+                <span className="side-panel-fund-name">
+                  {currentFund ? currentFund.name : 'Select a fund'}
+                </span>
                 
-                <Link 
-                  to={currentFund.id ? `/funds/${currentFund.id}/settings` : '#'} 
-                  className="fund-setup-row"
-                >
-                  <SettingsIcon />
-                  <span className="fund-setup">Fund setup</span>
-                </Link>
+                {hasActiveFund && (
+                  <Link 
+                    to={`/funds/${currentFund.id}/settings`} 
+                    className="fund-setup-row"
+                  >
+                    <SettingsIcon />
+                    <span className="fund-setup">Fund setup</span>
+                  </Link>
+                )}
               </div>
 
               <div 
@@ -92,12 +102,6 @@ function SidePanel() {
                   />
                 </div>
 
-                <div className="dropdown-action-row">
-                  <Link to="/all-funds" className="see-all-funds-link">
-                    See all funds
-                  </Link>
-                </div>
-
                 <div className="dropdown-scroll">
                   {filteredFunds.length > 0 ? (
                     filteredFunds.map(fund => (
@@ -122,25 +126,28 @@ function SidePanel() {
             )}
           </div>
 
-          <nav className="side-panel-nav">
-            <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
-              <DashboardIcon /> <span>Dashboard</span>
-            </NavLink>
-            <NavLink to={`/funds/${activeFundId}/lps-statement`} className="nav-item">
-              <LPsIcon /> <span>LPs Statement</span>
-            </NavLink>
-            <NavLink to={`/funds/${activeFundId}/portfolio`} className="nav-item">
-              <PortfolioIcon /> <span>Portfolio</span>
-            </NavLink>
-            <NavLink to={`/funds/${activeFundId}/financials`} className="nav-item">
-              <FinancialsIcon /> <span>Financials</span>
-            </NavLink>
-            <NavLink to={`/funds/${activeFundId}/scenario-dashboard`} className="nav-item">
-              <ScenariosIcon /> <span>Scenarios</span>
-            </NavLink>
-          </nav>
+          {/* This section remains visible even on All Funds page if a fund was previously selected */}
+          {hasActiveFund && (
+            <nav className="side-panel-nav">
+              <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
+                <DashboardIcon /> <span>Dashboard</span>
+              </NavLink>
+              <NavLink to={`/funds/${activeFundId}/lps-statement`} className="nav-item">
+                <LPsIcon /> <span>LPs Statement</span>
+              </NavLink>
+              <NavLink to={`/funds/${activeFundId}/portfolio`} className="nav-item">
+                <PortfolioIcon /> <span>Portfolio</span>
+              </NavLink>
+              <NavLink to={`/funds/${activeFundId}/financials`} className="nav-item">
+                <FinancialsIcon /> <span>Financials</span>
+              </NavLink>
+              <NavLink to={`/funds/${activeFundId}/scenario-dashboard`} className="nav-item">
+                <ScenariosIcon /> <span>Scenarios</span>
+              </NavLink>
+            </nav>
+          )}
           
-          <div className="sidebar-separator"></div>
+          {hasActiveFund && <div className="sidebar-separator"></div>}
 
         </div>
       </div>

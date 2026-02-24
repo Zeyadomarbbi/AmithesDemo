@@ -9,16 +9,16 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const handleSave = () => {
-        if (!name || !description) return;
+        // .trim() prevents saving if the user only entered spaces
+        if (!name.trim() || !description.trim()) return;
 
-        // Collect and send data to the parent's onSave function
         const scenarioData = {
-            name: name,
-            description: description,
+            name: name.trim(),
+            description: description.trim(),
             author: author,
         };
         
-        onSave(scenarioData); // Execute parent's save logic
+        onSave(scenarioData);
     };
 
   return (
@@ -66,7 +66,7 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
           <button 
                 className="btn-save-add-scenario" 
                 onClick={handleSave}
-                disabled={!name || !description} // Disable until fields are populated
+                disabled={!name.trim() || !description.trim()} // Disable until fields are populated
             >
             Save
           </button>

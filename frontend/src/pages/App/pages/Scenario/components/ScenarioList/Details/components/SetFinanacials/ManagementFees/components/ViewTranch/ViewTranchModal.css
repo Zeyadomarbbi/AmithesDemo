@@ -1,0 +1,150 @@
+/* =========================================
+   1. MODAL WRAPPER & OVERLAY
+   ========================================= */
+.man-fee-tranches-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.man-fee-tranches-modal-content-wide {
+    position: relative;
+    padding: 32px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    width: 850px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Floating Close Button */
+.man-fee-tranches-modal-close-icon {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    transition: background 0.2s;
+    z-index: 10;
+}
+
+.man-fee-tranches-modal-close-icon:hover {
+    background: #F3F4F6;
+}
+
+/* =========================================
+   2. TABLE SYSTEM (Portfolio Style)
+   ========================================= */
+.scenario-pf-table-container {
+    width: 100%;
+    background: #fff;
+    overflow-x: auto;
+}
+
+.scenario-pf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+.scenario-pf-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.scenario-pf-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+/* Stripe Style */
+.scenario-pf-gray {
+    background-color: #FAFAF9 !important;
+}
+
+/* Name Block Typography */
+.scenario-pf-name-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.scenario-pf-name-block .label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1C1917;
+}
+
+.scenario-pf-name-block .sub {
+    font-weight: 400;
+    font-size: 12px;
+    color: #375A89;
+}
+
+/* =========================================
+   3. INPUT & UTILITIES
+   ========================================= */
+.man-fee-scenario-pf-input {
+    padding: 8px 0;
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C1917;
+    cursor: default;
+    outline: none;
+}
+
+.scenario-pf-left { text-align: left !important; }
+.scenario-pf-center { text-align: center !important; }
+
+.man-fee-tranches-text-btn-red {
+    color: #DC2626;
+    background: transparent;
+    border: none;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.man-fee-tranches-text-btn-red:hover {
+    background: #FEF2F2;
+}
+
+/* =========================================
+   4. SUMMARY ROW
+   ========================================= */
+.scenario-pf-summary-row td {
+    background-color: #375A89 !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    padding: 12px;
+}
+
+.man-fee-tranches-cell-empty {
+    text-align: center;
+    padding: 40px !important;
+    color: #9CA3AF;
+}

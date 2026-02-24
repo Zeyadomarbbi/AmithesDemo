@@ -1,21 +1,64 @@
 from rest_framework.views import APIView
+from rest_framework import viewsets
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from django.db import connection
+from django.db.models import Q
+import math
+import traceback
 
-from ..models.transactions import *
-from ..serializers.scenario_serializers import *
+from ..models.mappings import MapSynthesisScenario
+from ..models.views import (
+    ViewMasterManFees, 
+    ViewMasterScenarioGains, 
+    ScenarioFundflowsDistributionSummary, 
+    ScenarioFundflowsCapitalcallSummary, 
+    ViewScenarioFundflowsAllOperations,
+    
+)
+from ..models.transactions import (
+    ScenarioList, 
+    ScenarioSynthesis, 
+    PortfolioInvestment, 
+    PortfolioTransactionFlow, 
+    ScenarioPortfolioProjection, 
+    ScenarioDueDiligenceFee, 
+    ManFeeTranche,
+    ScenarioFinancialsProjection
+)
+from ..serializers.scenario_serializers import (
+    ScenarioSerializer, 
+    ScenarioSynthesisSerializer, 
+    ScenarioPortfolioProjectionSerializer, 
+    ScenarioDueDiligenceFeeSerializer, 
+    ManFeeTrancheSerializer,
+    ViewMasterManFeesSerializer,
+    ViewMasterScenarioGainsSerializer,
+    ScenarioFinancialsProjectionSerializer,
+    ScenarioFundflowsDistributionSummarySerializer,
+    ScenarioFundflowsCapitalcallSummarySerializer,
+    ViewScenarioFundflowsAllOperationsSerializer
+)
+from ..serializers.portfolio_serializers import PortfolioInvestmentSerializer, PortfolioTransactionFlowSerializer
+from ..services import WaterfallService, SensitivityService, TargetModeService, SynthesisKPIService
 
 class FundScenarioListView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:
-            scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+            scenario = get_object_or_404(
+                ScenarioList, 
+                pk=pk, 
+                fund_id=fund_id, 
+                is_deleted=False
+            )
             serializer = ScenarioSerializer(scenario)
             return Response(serializer.data)
         
-        qs = ScenarioList.objects.filter(fund_id=fund_id, is_deleted=False).order_by("-created_at")
+        qs = ScenarioList.objects.filter(fund_id=fund_id, is_deleted=False)
         serializer = ScenarioSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -47,24 +90,38 @@ class FundScenarioListView(APIView):
         return Response(serializer.data)
 
     def delete(self, request, fund_id, pk):
-        """
-        Implements Soft Delete as per new model schema.
-        """
         scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id)
-        scenario.is_deleted = True
-        scenario.save()
+        force = request.query_params.get('force') == 'true'
+
+        affected = MapSynthesisScenario.objects.filter(scenario_id=pk).select_related('synthesis')
+
+        if affected.exists() and not force:
+            names = list(affected.values_list('synthesis__synthesis_name', flat=True))
+            return Response(
+                {"detail": "Scenario is used in one or more syntheses.", "syntheses": names},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        if force:
+            synthesis_ids = list(affected.values_list('synthesis_id', flat=True))
+            ScenarioSynthesis.objects.filter(synthesis_id__in=synthesis_ids).delete()
+
+        scenario.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class FundScenarioSynthesisView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:
             synthesis = get_object_or_404(
-                ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False
+                ScenarioSynthesis.objects.prefetch_related('scenario_mappings'),
+                pk=pk, fund_id=fund_id, is_deleted=False
             )
             serializer = ScenarioSynthesisSerializer(synthesis)
             return Response(serializer.data)
         
-        qs = ScenarioSynthesis.objects.filter(fund_id=fund_id, is_deleted=False)
+        qs = ScenarioSynthesis.objects.prefetch_related('scenario_mappings').filter(
+            fund_id=fund_id, is_deleted=False
+        )
         serializer = ScenarioSynthesisSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -82,7 +139,10 @@ class FundScenarioSynthesisView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def put(self, request, fund_id, pk):
-        synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id, is_deleted=False)
+        synthesis = get_object_or_404(
+            ScenarioSynthesis.objects.prefetch_related('scenario_mappings'),
+            pk=pk, fund_id=fund_id, is_deleted=False
+        )
         serializer = ScenarioSynthesisSerializer(synthesis, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -90,6 +150,491 @@ class FundScenarioSynthesisView(APIView):
 
     def delete(self, request, fund_id, pk):
         synthesis = get_object_or_404(ScenarioSynthesis, pk=pk, fund_id=fund_id)
-        synthesis.is_deleted = True
-        synthesis.save()
+        synthesis.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class ScenarioPortfolioInvestmentViewSet(ModelViewSet):
+    serializer_class = PortfolioInvestmentSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_id = self.kwargs.get('scenario_pk')
+
+        # Use Q objects to fetch BOTH the specific scenario deals AND the base fund deals
+        return PortfolioInvestment.objects.filter(
+            Q(scenario_id=scenario_id) | Q(scenario_id__isnull=True),
+            fund_id=fund_id,
+            is_deleted=False
+        ).prefetch_related('transaction_flows').order_by("-created_at")
+
+    def perform_create(self, serializer):
+        # Automatically injects the scenario_id from the URL
+        created_by = None
+        if self.request.user and self.request.user.is_authenticated:
+            created_by = self.request.user.username
+
+        serializer.save(
+            fund_id=self.kwargs.get('fund_id'),
+            scenario_id=self.kwargs.get('scenario_pk'),
+            created_by=created_by
+        )
+
+class ScenarioTransactionFlowViewSet(ModelViewSet):
+    serializer_class = PortfolioTransactionFlowSerializer
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        return PortfolioTransactionFlow.objects.filter(
+            Q(scenario_id=scenario_id) | Q(scenario_id__isnull=True),
+            portfolio_investment_id=self.kwargs.get('investment_id'),
+            portfolio_investment__fund_id=self.kwargs.get('fund_id'),
+            is_deleted=False
+        ).order_by('date')
+
+    def perform_create(self, serializer):
+        investment = get_object_or_404(
+            PortfolioInvestment, 
+            investment_id=self.kwargs.get('investment_id'), 
+            fund_id=self.kwargs.get('fund_id')
+        )
+
+        created_by = None
+        if self.request.user and self.request.user.is_authenticated:
+            created_by = self.request.user.username
+
+        next_index = (
+            PortfolioTransactionFlow.objects.filter(portfolio_investment=investment).count() + 1
+        )
+        flow_name = f"#flow {next_index}"
+
+        serializer.save(
+            portfolio_investment=investment,
+            scenario_id=self.kwargs.get('scenario_pk'),
+            flow_name=flow_name,
+            created_by=created_by
+        )
+        
+class ScenarioPortfolioProjectionViewSet(ModelViewSet):
+    serializer_class = ScenarioPortfolioProjectionSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        return ScenarioPortfolioProjection.objects.filter(
+            fund_id=fund_id,
+            scenario_id=scenario_id
+        ).select_related('investment')
+    
+class ManFeeTrancheViewSet(ModelViewSet):
+    serializer_class = ManFeeTrancheSerializer
+
+    def get_queryset(self):
+        scenario_pk = self.kwargs.get('scenario_pk')
+        return ManFeeTranche.objects.filter(scenario_id=scenario_pk).select_related('share_class')
+
+    def perform_create(self, serializer):
+        # Optional: You can force the scenario_id from the URL here if needed
+        serializer.save()
+    
+class ScenarioDueDiligenceFeeViewSet(ModelViewSet):
+    queryset = ScenarioDueDiligenceFee.objects.all().select_related('investment', 'scenario')
+    serializer_class = ScenarioDueDiligenceFeeSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['scenario_id', 'fund_id']
+
+    def get_queryset(self):
+        # Captures the scenario_pk from your URL path:
+        # funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/
+        scenario_pk = self.kwargs.get('scenario_pk')
+        fund_id = self.kwargs.get('fund_id')
+        
+        return ScenarioDueDiligenceFee.objects.filter(
+            scenario_id=scenario_pk, 
+            fund_id=fund_id
+        ).select_related('investment_id')
+
+    def perform_create(self, serializer):
+        # The trigger will handle amount calculations automatically
+        # upon insertion of the record.
+        serializer.save()
+
+    def perform_update(self, serializer):
+        # Updating entry_fee_pct or exit_fee_pct triggers the 
+        # BEFORE UPDATE trigger (fn_recalc_dd_on_input)
+        serializer.save()
+
+class ViewMasterManFeesViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ViewMasterManFeesSerializer
+
+    def get_queryset(self):
+        fund_id = self.kwargs.get('fund_id')
+        scenario_pk = self.kwargs.get('scenario_pk')
+        
+        return ViewMasterManFees.objects.filter(
+            fund_id=fund_id,
+            scenario_id=scenario_pk
+        )
+    
+class ViewMasterScenarioGainsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ViewMasterScenarioGainsSerializer
+
+    def get_queryset(self):
+        scenario_pk = self.kwargs.get('scenario_pk')
+        return ViewMasterScenarioGains.objects.filter(scenario_id=scenario_pk)
+    
+class ScenarioFinancialsProjectionViewSet(viewsets.ModelViewSet):
+    serializer_class = ScenarioFinancialsProjectionSerializer
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        return ScenarioFinancialsProjection.objects.filter(
+            scenario_id=scenario_id
+        ).select_related('line_item', 'line_item__category')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        fund_id = self.kwargs.get('fund_id')
+        
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT last_realized_year FROM view_fund_realized_cutoff WHERE fund_id = %s", 
+                [fund_id]
+            )
+            row = cursor.fetchone()
+            last_realized = row[0] if row else 0
+            
+        context['last_realized_year'] = last_realized
+        return context
+    
+class ScenarioFundflowsDistributionSummaryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset for scenario distribution summary.
+    Automatically ordered by date.
+    """
+    serializer_class = ScenarioFundflowsDistributionSummarySerializer
+    http_method_names = ['get', 'head', 'options']  # Read-only
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        if scenario_id:
+            return ScenarioFundflowsDistributionSummary.objects.filter(
+                scenario_id=scenario_id
+            ).order_by('date')
+        
+        return ScenarioFundflowsDistributionSummary.objects.none()
+    
+class ScenarioFundflowsCapitalcallSummaryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for capital call summary.
+    - List/Retrieve: Returns all visible capital calls (filters out hidden placeholders)
+    - Create: Add custom projected date
+    - Update: Modify date for user-inserted entries
+    - Delete: Remove user-inserted projected entries
+    """
+    serializer_class = ScenarioFundflowsCapitalcallSummarySerializer
+
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_pk')
+        
+        if scenario_id:
+            # Filter out hidden placeholders
+            return ScenarioFundflowsCapitalcallSummary.objects.filter(
+                scenario_id=scenario_id
+            ).exclude(
+                source_type='projected_placeholder',
+                is_user_inserted=False
+            ).order_by('date')
+        
+        return ScenarioFundflowsCapitalcallSummary.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        """Create a new projected custom date entry"""
+        data = request.data.copy()
+        data['source_type'] = 'projected_custom'
+        data['is_user_inserted'] = True
+        
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """Update only user-inserted entries"""
+        instance = self.get_object()
+        
+        # Only allow updates to user-inserted entries
+        if not instance.is_user_inserted and instance.source_type != 'projected_custom':
+            return Response(
+                {'error': 'Cannot modify system-generated entries'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete only user-inserted projected entries"""
+        instance = self.get_object()
+        
+        # Only allow deletion of user-inserted custom entries
+        if not instance.is_user_inserted or instance.source_type != 'projected_custom':
+            return Response(
+                {'error': 'Cannot delete system-generated entries'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)
+    
+class ViewScenarioFundflowsAllOperationsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset for all fund flow operations (capital calls + distributions).
+    Excludes hidden 'projected_placeholder' entries.
+    """
+    serializer_class = ViewScenarioFundflowsAllOperationsSerializer
+    # Tell DRF to use all_operations_id for single object lookups (detail views)
+    lookup_field = 'all_operations_id'
+    
+    def get_queryset(self):
+        scenario_id = self.kwargs.get('scenario_id')
+        fund_id = self.kwargs.get('fund_id')
+        
+        queryset = ViewScenarioFundflowsAllOperations.objects.all()
+        
+        if scenario_id:
+            queryset = queryset.filter(scenario_id=scenario_id)
+        if fund_id:
+            queryset = queryset.filter(fund_id=fund_id)
+            
+        # Exclude the placeholder rows
+        queryset = queryset.exclude(source_type='projected_placeholder')
+            
+        # Ensure consistent ordering by date, then by ID to prevent pagination jitter
+        return queryset.order_by('date', 'all_operations_id')
+    
+def _safe_float(value, field_name="value"):
+    """
+    Converts a value to float, rejecting complex numbers and non-finite results.
+    Raises ValueError with a descriptive message.
+    """
+    if isinstance(value, complex):
+        raise ValueError(
+            f"Numerical instability: '{field_name}' produced a complex number ({value}). "
+            "This usually means the cashflow series has no real IRR solution."
+        )
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Cannot convert '{field_name}' to float: {value!r}. Original: {e}")
+
+    if math.isnan(result):
+        raise ValueError(f"'{field_name}' resolved to NaN — cashflow series is degenerate.")
+    if math.isinf(result):
+        raise ValueError(f"'{field_name}' resolved to Infinity — likely zero investment cost.")
+
+    return result
+
+
+
+def _safe_float(value, field_name="value"):
+    if isinstance(value, complex):
+        raise ValueError(
+            f"'{field_name}' produced a complex number ({value}). "
+            "The cashflow series has no real IRR solution."
+        )
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Cannot convert '{field_name}' to float: {value!r}. Original: {e}")
+    if math.isnan(result):
+        raise ValueError(f"'{field_name}' resolved to NaN — cashflow series is degenerate.")
+    if math.isinf(result):
+        raise ValueError(f"'{field_name}' resolved to Infinity — likely zero investment cost.")
+    return result
+
+
+def _is_valid_kpi_type(kpi_type):
+    exact = {'fund_irr_net', 'fund_tvpi', 'fund_total_distributed'}
+    prefixes = ('irr_', 'tvpi_', 'total_distributed_')
+    return kpi_type in exact or any(kpi_type.startswith(p) for p in prefixes)
+
+
+def _check_data_exists(fund_id, scenario_id, unlocked_ids):
+    found_ids = set(
+        ScenarioPortfolioProjection.objects.filter(
+            scenario_id=scenario_id,
+            investment_id__in=unlocked_ids
+        ).values_list('investment_id', flat=True)
+    )
+    missing = set(unlocked_ids) - found_ids
+    if missing:
+        return False, f"Investment IDs not found in scenario {scenario_id}: {sorted(missing)}", status.HTTP_404_NOT_FOUND
+
+    has_calls = ScenarioFundflowsCapitalcallSummary.objects.filter(
+        fund_id=fund_id, scenario_id=scenario_id
+    ).exclude(source_type='projected_placeholder', is_user_inserted=False).exists()
+    if not has_calls:
+        return False, "No capital call data found for this fund/scenario.", status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    has_dists = ScenarioFundflowsDistributionSummary.objects.filter(
+        fund_id=fund_id, scenario_id=scenario_id
+    ).exclude(source_type='projected_placeholder').exists()
+    if not has_dists:
+        return False, "No distribution data found for this fund/scenario.", status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    return True, None, None
+    
+class ScenarioWaterfallView(APIView):
+    def get(self, request, fund_id, scenario_id):
+        try:
+            service = WaterfallService(fund_id=fund_id, scenario_id=scenario_id)
+            results = service.run_simulation()
+            
+            if results is None:
+                return Response(
+                    {"detail": "No operations found for this scenario."}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response(results, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            # In production, use a logger here
+            print(f"Error generating waterfall: {e}")
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ScenarioSensitivityView(APIView):
+    def post(self, request, fund_id, scenario_id):
+        data = request.data
+        investment_id = data.get('investment_id')
+        moic_inputs = data.get('moic_inputs', [])
+        duration_inputs = data.get('duration_inputs', [])
+
+        if not investment_id:
+            return Response({"error": "investment_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(moic_inputs) != 5 or len(duration_inputs) != 5:
+            return Response(
+                {"error": "Exactly 5 MOIC and 5 Duration inputs are required."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Enforce numeric types
+            moic_inputs = [float(m) for m in moic_inputs]
+            duration_inputs = [float(d) for d in duration_inputs]
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Invalid numeric data in inputs."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            service = SensitivityService(
+                fund_id=fund_id,
+                scenario_id=scenario_id,
+                investment_id=investment_id
+            )
+            
+            # This generates the dictionary containing portfolio_irr, fund_irr_net, etc.
+            result_matrix = service.generate_matrices(moic_inputs, duration_inputs)
+            # The hook expects the matrices wrapped in a 'matrix' key
+            return Response({"matrix": result_matrix}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc() # Useful for debugging server-side errors
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class TargetModePreviewView(APIView):
+
+    def post(self, request, fund_id, scenario_id):
+        # --- 1. Input Validation ---
+        target_kpi_type = request.data.get('target_kpi_type')
+        target_kpi_value = request.data.get('target_kpi_value')
+        unlocked_ids = request.data.get('unlocked_ids', [])
+
+        if not target_kpi_type:
+            return Response({"error": "Missing 'target_kpi_type'."}, status=status.HTTP_400_BAD_REQUEST)
+        if target_kpi_value is None:
+            return Response({"error": "Missing 'target_kpi_value'."}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(unlocked_ids, list) or not unlocked_ids:
+            return Response({"error": "'unlocked_ids' must be a non-empty list."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not _is_valid_kpi_type(target_kpi_type):
+            return Response(
+                {"error": f"Invalid 'target_kpi_type': '{target_kpi_type}'. "
+                          "Expected one of: fund_irr_net, fund_tvpi, fund_total_distributed, "
+                          "or a prefixed share-class variant (irr_*, tvpi_*, total_distributed_*)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_val_float = _safe_float(target_kpi_value, 'target_kpi_value')
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- 2. Data Existence Pre-flight ---
+        ok, err_msg, err_status = _check_data_exists(fund_id, scenario_id, unlocked_ids)
+        if not ok:
+            return Response({"error": err_msg}, status=err_status)
+
+        # --- 3. Execute ---
+        try:
+            service = TargetModeService(fund_id=fund_id, scenario_id=scenario_id)
+            result = service.calculate_preview(target_kpi_type, target_val_float, unlocked_ids)
+            return Response(result, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        except TypeError as e:
+            msg = str(e)
+            if 'complex' in msg:
+                return Response(
+                    {"error": "Numerical instability — IRR produced a complex result. "
+                              "Check for zero-cost investments or degenerate cashflow timelines."},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY
+                )
+            return Response({"error": f"Type error during calculation: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except ZeroDivisionError:
+            return Response(
+                {"error": "Division by zero — likely a zero total commitment or zero-cost investment."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
+
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": "Unexpected calculation failure.", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+class ScenarioSynthesisKPIView(APIView):
+    def get(self, request, fund_id, synthesis_id):
+        try:
+            # Fetch the synthesis and its linked scenarios
+            synthesis = ScenarioSynthesis.objects.get(
+                synthesis_id=synthesis_id, 
+                fund_id=fund_id
+            )
+            
+            # Preserve order: important for mapping indices on the frontend
+            scenario_ids = list(synthesis.scenario_mappings.order_by('scenario_id').values_list('scenario_id', flat=True))
+            
+            if not scenario_ids:
+                return Response([], status=status.HTTP_200_OK)
+
+            # Initialize Service and Generate KPI Matrix
+            service = SynthesisKPIService(fund_id=fund_id, scenario_ids=scenario_ids)
+            kpis = service.generate_synthesis_matrix()
+            return Response(kpis, status=status.HTTP_200_OK)
+            
+        except ScenarioSynthesis.DoesNotExist:
+            return Response({"error": "Synthesis not found"}, status=status.HTTP_404_NOT_FOUND)

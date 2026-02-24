@@ -1,311 +1,196 @@
-// src/pages/App/pages/LPsStatement/LPsStatementPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-
-// main UI (tabs + table)
-import LPsStatement, { INITIAL_LPS } from "./components/LpRegister/LPsStatement.jsx";
-
-// modals / drawers
-import AddTransferModal from "./components/LpRegister/AddTransferModal.jsx";
-import NewLPDrawer from "./components/LpRegister/NewLPDrawer.jsx";
-import LPDetailsDrawer from "./components/LpRegister/LPDetailsDrawer.jsx";
-
-// main CSS for this page (tabs, toolbar, table, etc.)
+// frontend/src/pages/App/pages/LPsStatement/LPsStatementPage.jsx
+import React, { useEffect, useCallback, useMemo, useState } from "react";
+import {
+  Outlet,
+  useParams,
+  NavLink,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import "./LPsStatementPage.css";
 
+/* Hooks (DO NOT CHANGE THEIR FILES) */
+import { useLimitedPartners } from "/src/pages/App/hooks/LPsStatement/useLimitedPartners.jsx";
+import { useLimitedPartnerFundCommitment } from "/src/pages/App/hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+
+const TABS = [
+  { label: "LPs Register", path: "lps-register" },
+  { label: "Capital flows", path: "capital-flows" },
+  { label: "Capital Account Statement", path: "capital-account-statement" },
+  { label: "Limits", path: "lps-limits" },
+];
+
 /* ---------- helpers ---------- */
-
-function getClassColor(shareType) {
-  if (!shareType) return "tag-purple";
-  const val = String(shareType).toLowerCase();
-  if (val.includes("a1")) return "tag-purple";
-  if (val.includes("a2")) return "tag-green";
-  if (val.includes("b")) return "tag-yellow";
-  return "tag-purple";
+function toNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function parseAmount(value) {
-  if (value === null || value === undefined) return 0;
-  const cleaned = String(value).replace(/[^\d.-]/g, "");
-  return Number(cleaned) || 0;
+function pickLpId(lp, fallback) {
+  const raw = lp?.lp_id ?? lp?.id ?? lp?.pk ?? lp?.lpId ?? null;
+  return raw === null || raw === undefined ? fallback : raw;
 }
 
-function formatAmount(num) {
-  const n = Number(num) || 0;
-  return n.toLocaleString("fr-FR");
-}
+function pickLpName(lp) {
+  const raw =
+    lp?.name ??
+    lp?.lp_name ??
+    lp?.limited_partner_name ??
+    lp?.limitedPartnerName ??
+    lp?.partner_name ??
+    lp?.full_name ??
+    lp?.fullName ??
+    lp?.label ??
+    lp?.title ??
+    "";
 
-function initialsFromName(name = "") {
-  return String(name)
-    .split(" ")
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function normalizeLpRegisterResponse(rows) {
-  if (!Array.isArray(rows)) return [];
-
-  const looksLikeUiShape = rows.some(
-    (x) => x && (x.initials || x.sharesRows || x.commitment)
-  );
-
-  if (looksLikeUiShape) {
-    return rows.map((lp) => ({
-      id: lp.id ?? lp.lp_id ?? `lp-${Math.random().toString(16).slice(2)}`,
-      initials: lp.initials ?? initialsFromName(lp.name ?? lp.lp_name ?? ""),
-      name: lp.name ?? lp.lp_name ?? "",
-      class: lp.class ?? lp.share_class ?? "",
-      classColor: lp.classColor ?? getClassColor(lp.class ?? lp.share_class ?? ""),
-      commitment: lp.commitment ?? "",
-      ownership: lp.ownership ?? "0.00%",
-      periodValues: lp.periodValues ?? {},
-      sharesRows: Array.isArray(lp.sharesRows) ? lp.sharesRows : [],
-      ...lp,
-    }));
-  }
-
-  const byLp = new Map();
-
-  for (const r of rows) {
-    const lpId = r.lp_id ?? r.id;
-    if (!lpId) continue;
-
-    const lpName = r.lp_name ?? r.name ?? "";
-    const shareClass =
-      r.share_class_name ?? r.share_class ?? r.share_type ?? "";
-    const closing = r.period_name ?? r.closing_period ?? r.closing ?? "";
-    const commitmentAmount = r.commitment_amount ?? r.commitment ?? "";
-    const currencySymbol = r.currency_symbol ?? "";
-
-    if (!byLp.has(lpId)) {
-      byLp.set(lpId, {
-        id: lpId,
-        initials: initialsFromName(lpName),
-        name: lpName,
-        class: shareClass || "Class A1",
-        classColor: getClassColor(shareClass || "Class A1"),
-        commitment: "0",
-        ownership: "0.00%",
-        periodValues: {},
-        sharesRows: [],
-      });
-    }
-
-    const lp = byLp.get(lpId);
-
-    if (shareClass || commitmentAmount || closing) {
-      const rowCommitment =
-        commitmentAmount === "" ||
-        commitmentAmount === null ||
-        commitmentAmount === undefined
-          ? ""
-          : `${commitmentAmount} ${currencySymbol}`.trim();
-
-      lp.sharesRows.push({
-        id: `row-${lpId}-${Math.random().toString(16).slice(2)}`,
-        type: shareClass || "-",
-        currency: r.currency_name ?? r.currency ?? "",
-        commitment: rowCommitment,
-        closing: closing || "",
-        classColor: getClassColor(shareClass),
-      });
-
-      if (closing && rowCommitment) lp.periodValues[closing] = rowCommitment;
-    }
-  }
-
-  return Array.from(byLp.values()).map((lp) => {
-    const total = (lp.sharesRows || []).reduce(
-      (acc, sr) => acc + parseAmount(sr.commitment),
-      0
-    );
-    return { ...lp, commitment: formatAmount(total) };
-  });
-}
-
-// stable key for merging
-function lpKey(lp) {
-  return String(lp?.id ?? lp?.lp_id ?? lp?.name ?? "");
+  const s = String(raw || "").trim();
+  return s || "—";
 }
 
 export default function LPsStatementPage() {
   const { fundId } = useParams();
-  const fundKey = (fundId ?? "1").toString();
+  const location = useLocation();
 
-  const [lpsByFund, setLpsByFund] = useState({});
-  const lps = useMemo(
-    () => lpsByFund[fundKey] ?? INITIAL_LPS,
-    [lpsByFund, fundKey]
-  );
+  const [isLoadingLps, setIsLoadingLps] = useState(false);
 
-  const setLps = (updater) => {
-    setLpsByFund((prev) => {
-      const current = prev[fundKey] ?? INITIAL_LPS;
-      const next = typeof updater === "function" ? updater(current) : updater;
-      return { ...prev, [fundKey]: next };
-    });
-  };
+  // ✅ LP identity list
+  const { limitedPartners, fetchLimitedPartners } = useLimitedPartners();
 
-  // selection + modals
-  const [selectedLP, setSelectedLP] = useState(null);
-  const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const [isNewLpOpen, setIsNewLpOpen] = useState(false);
+  // ✅ Commitments list (fund-scoped)
+  const {
+    commitments,
+    loading: isLoadingCommitments,
+    fetchCommitments,
+  } = useLimitedPartnerFundCommitment(fundId);
 
-  const [drawerPeriods, setDrawerPeriods] = useState([]);
+  // ✅ reload everything needed for calculations
+  const reloadAll = useCallback(async () => {
+    if (!fundId) return;
 
-  const handleSelectLP = (lp) => setSelectedLP(lp);
-  const handleCloseDetails = () => setSelectedLP(null);
+    setIsLoadingLps(true);
+    try {
+      await Promise.all([fetchLimitedPartners(), fetchCommitments()]);
+    } catch (e) {
+      console.error("Failed to load LPs/Commitments:", e);
+    } finally {
+      setIsLoadingLps(false);
+    }
+  }, [fundId, fetchLimitedPartners, fetchCommitments]);
 
-  const handleOpenNewLp = (open, incomingPeriods) => {
-    setIsNewLpOpen(!!open);
-    setDrawerPeriods(Array.isArray(incomingPeriods) ? incomingPeriods : []);
-  };
-
-  // ✅ LOAD LP REGISTER FOR THIS FUND (but DO NOT overwrite local added LPs)
   useEffect(() => {
-    let ignore = false;
+    reloadAll();
+  }, [reloadAll]);
 
-    async function load() {
-      try {
-        const res = await fetch(`/api/funds/${fundKey}/lp-register/`, {
-          headers: { Accept: "application/json" },
-        });
+  /**
+   * ✅ NORMALIZED LPs for Step2/Step3 calculations
+   * Shape:
+   *  {
+   *    id, lp_id, name,
+   *    commitment, ownershipPercent,
+   *    sharesRows: [{ type, commitment }]
+   *  }
+   */
+  const lps = useMemo(() => {
+    const lpList = Array.isArray(limitedPartners) ? limitedPartners : [];
+    const commList = Array.isArray(commitments) ? commitments : [];
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // only keep LPs with a commitment in this fund
+    const committedLpIds = new Set(commList.map(c => String(c.lp_id)));
 
-        const json = await res.json();
-        const normalized = normalizeLpRegisterResponse(json);
+    const sumByLp = new Map();
+    const sumByLpAndClass = new Map();
 
-        if (ignore) return;
+    for (const c of commList) {
+      const lpKey = String(c?.lp_id);
+      const scKey = String(c?.share_class ?? "-");
+      const amt = toNum(c?.commitment_amount);
 
-        setLpsByFund((prev) => {
-          const current = prev[fundKey] ?? [];
-          if (current.length === 0) {
-            // first load
-            return { ...prev, [fundKey]: normalized };
-          }
+      sumByLp.set(lpKey, (sumByLp.get(lpKey) || 0) + amt);
 
-          // merge: keep current (local) + add missing from server
-          const seen = new Set(current.map(lpKey));
-          const merged = [...current];
-          for (const s of normalized) {
-            const k = lpKey(s);
-            if (!k) continue;
-            if (!seen.has(k)) merged.push(s);
-          }
-          return { ...prev, [fundKey]: merged };
-        });
-      } catch (e) {
-        // ✅ no red UI, just log for debugging
-        console.error("LP register fetch failed:", e);
-      }
+      const k = `${lpKey}__${scKey}`;
+      sumByLpAndClass.set(k, (sumByLpAndClass.get(k) || 0) + amt);
     }
 
-    load();
-    return () => {
-      ignore = true;
-    };
-  }, [fundKey]);
+    const fundTotal = Array.from(sumByLp.values()).reduce((a, b) => a + b, 0);
 
-  const handleAddNewLp = (data) => {
-    if (!data?.lpName) return;
+    return lpList
+      .filter(lp => committedLpIds.has(String(pickLpId(lp, "")))) // filter by fund commitments
+      .map((lp, idx) => {
+        const rawId = pickLpId(lp, `lp_${idx}`);
+        const id = String(rawId);
 
-    const rows = Array.isArray(data.sharesRows) ? data.sharesRows : [];
-    const shareClass = rows[0]?.type || "Class A1";
+        const name = pickLpName(lp);
+        const commitmentTotal = sumByLp.get(id) || 0;
 
-    const periodValues = {};
-    let totalCommitment = 0;
-
-    rows.forEach((r) => {
-      const key = String(r?.closing || "").trim();
-      const val = String(r?.commitment || "").trim();
-      if (!key || !val) return;
-
-      periodValues[key] = val;
-      totalCommitment += parseAmount(val);
-    });
-
-    const newLp = {
-      id: `lp-${Date.now()}`,
-      initials: initialsFromName(data.lpName),
-      name: data.lpName,
-      class: shareClass,
-      classColor: getClassColor(shareClass),
-
-      commitment: formatAmount(totalCommitment),
-      ownership: "0.00%",
-
-      periodValues,
-      sharesRows: rows,
-
-      address: data.address,
-      city: data.city,
-      zip: data.zip,
-      country: data.country,
-      iban: data.iban,
-      bank: data.bankName,
-      bic: data.swift,
-    };
-
-    setLps((prev) => [...prev, newLp]);
-    setIsNewLpOpen(false);
-  };
-
-  const handleAddTransfer = (transfer) => {
-    if (!transfer) return;
-    const { amount, fromLpName, toLpName } = transfer;
-    if (!amount || !fromLpName || !toLpName) return;
-
-    setLps((prev) =>
-      prev.map((lp) => {
-        if (lp.name === fromLpName) {
-          const current = parseAmount(lp.commitment);
-          return { ...lp, commitment: formatAmount(current - amount) };
+        const classIds = new Set();
+        for (const c of commList) {
+          if (String(c?.lp_id) !== id) continue;
+          classIds.add(String(c?.share_class ?? "-"));
         }
-        if (lp.name === toLpName) {
-          const current = parseAmount(lp.commitment);
-          return { ...lp, commitment: formatAmount(current + amount) };
-        }
-        return lp;
-      })
-    );
 
-    setIsTransferOpen(false);
-  };
+        const sharesRows = Array.from(classIds).map(scId => {
+          const key = `${id}__${scId}`;
+          return { type: scId, commitment: sumByLpAndClass.get(key) || 0 };
+        });
 
+        const ownershipPercent = fundTotal > 0 ? (commitmentTotal / fundTotal) * 100 : 0;
+
+        return {
+          id,
+          lp_id: rawId,
+          name,
+          commitment: commitmentTotal,
+          ownershipPercent,
+          sharesRows,
+          raw: lp,
+        };
+      });
+  }, [limitedPartners, commitments]);
+
+  // redirect base tab
+  if (
+    location.pathname.endsWith("/lps-statement") ||
+    location.pathname.endsWith("/lps-statement/")
+  ) {
+    return <Navigate to="lps-register" replace />;
+  }
   return (
-    <>
-      <LPsStatement
-        lps={lps}
-        setLps={setLps}
-        onOpenTransfer={() => setIsTransferOpen(true)}
-        onOpenNewLp={handleOpenNewLp}
-        onSelectLP={handleSelectLP}
-      />
+    <div className="lp-page">
+      <div className="lp-page-container">
+        <div className="lp-page-header">
+          <h1 className="lp-page-title">LPs Statement</h1>
 
-      <AddTransferModal
-        open={isTransferOpen}
-        onClose={() => setIsTransferOpen(false)}
-        lp={selectedLP}
-        lps={lps}
-        onSave={handleAddTransfer}
-      />
+          <div className="lp-page-tabs-container">
+            <div className="lp-page-tabs">
+              {TABS.map((tab) => (
+                <NavLink
+                  key={tab.path}
+                  to={tab.path}
+                  className={({ isActive }) =>
+                    `lp-page-tab ${isActive ? "lp-page-tab--active" : ""}`
+                  }
+                >
+                  {tab.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
 
-      <NewLPDrawer
-        open={isNewLpOpen}
-        onClose={() => setIsNewLpOpen(false)}
-        onSave={handleAddNewLp}
-        periods={drawerPeriods}
-      />
-
-      <LPDetailsDrawer
-        lp={selectedLP}
-        open={!!selectedLP}
-        onClose={handleCloseDetails}
-      />
-    </>
+        <div className="lp-page-content-area">
+          <Outlet
+            context={{
+              fundId,
+              lps, // ✅ normalized for Operation Step2/3 + can be used by LPsRegister if you want
+              limitedPartnersRaw: limitedPartners, // ✅ raw hook output (in case other pages rely on original fields)
+              commitments, // ✅ fund commitments list
+              reloadAll, // ✅ refresh LPs + commitments
+              isLoadingLps: isLoadingLps || isLoadingCommitments,
+            }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

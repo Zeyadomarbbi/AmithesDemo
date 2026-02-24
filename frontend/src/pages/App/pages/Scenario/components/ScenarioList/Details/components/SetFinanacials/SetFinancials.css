@@ -4,17 +4,20 @@
   display: flex;
   flex-direction: column;
   background-color: #FFFFFF;
-  overflow: hidden;
+  overflow-y: auto; /* CHANGED: changed from hidden to auto */
   z-index: 1;
+  position: relative;
 }
 
 .sf-financials-main-content {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible; /* CHANGED: removed overflow-y: auto */
   padding: 24px 40px;
   width: 100%;
   box-sizing: border-box;
+  /* Ensures content pushes the footer down */
+  min-height: fit-content; 
+  padding-bottom: 48px;
 }
 
 .sf-fin-toolbar {
@@ -171,29 +174,8 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.sf-overlay-floating-close {
-  position: absolute;
-  top: 32px;
-  right: 32px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background 0.2s ease;
-  z-index: 10000;
-  font-size: 20px;
-  font-weight: bold;
-  color: #374151;
-}
-
-.sf-overlay-floating-close:hover {
-  background: #F3F4F6;
-}
-
 .sf-overlay-content {
   width: 100%;
-  height: 100%;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -201,7 +183,11 @@
 }
 
 .sf-footer {
-  margin-top: auto;     /* This will now push successfully to the bottom */
+  /* CHANGED: Removed position: sticky and margin-top: auto */
+  position: static; 
+  flex-shrink: 0; /* Prevents footer from being crushed */
+  margin-top: 0;
+  
   background: #fff;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
   padding: 24px 40px;

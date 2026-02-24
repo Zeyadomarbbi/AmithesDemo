@@ -1,0 +1,151 @@
+/* ============= TABLE LAYOUT ============= */
+
+.lp-table-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.lp-table-container {
+  flex: 1;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-x: auto;
+}
+
+.lp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+}
+
+.lp-table thead th {
+  padding: 12px 14px;
+  font-weight: 600;
+  color: #212833;
+  border-bottom: 1px solid #e6e9f1;
+  white-space: nowrap;
+  background: #f9fafb;
+}
+
+.th-left {
+  text-align: left;
+}
+
+.th-right {
+  text-align: right;
+}
+
+.sort-icon {
+  display: inline-block;
+  width: 10px;
+  height: 12px;
+  margin-left: 4px;
+  position: relative;
+}
+
+/* body rows */
+.lp-table tbody tr:nth-child(odd),
+.lp-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+.lp-table tbody tr:hover {
+  background-color: #f3f6ff;
+}
+
+.lp-table tbody tr {
+  border-bottom: 1px solid #edf0f7;
+}
+
+.lp-table tbody td {
+  padding: 14px 14px;
+  border-bottom: none;
+  color: #2b2f38;
+  white-space: nowrap;
+}
+
+.td-left {
+  text-align: left;
+}
+
+.td-right {
+  text-align: right;
+}
+
+.lp-row-clickable {
+  cursor: pointer;
+}
+
+/* LP avatar + name */
+.lp-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: #375a89;
+}
+
+.lp-name {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* total row */
+.lp-total-row td {
+  padding: 10px 14px;
+  background: #254a7b;
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+}
+
+/* + New Period button (updated) */
+.side-plus-btn {
+  margin-top: 4px;
+  height: 32px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(55, 90, 137, 0.2);
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #375a89;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  width: auto;
+}
+
+.side-plus-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}

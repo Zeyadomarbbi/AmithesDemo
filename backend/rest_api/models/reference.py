@@ -75,9 +75,105 @@ class FinancialCategory(models.Model):
     sign_multiplier = models.IntegerField()
 
     class Meta:
-        db_table = 'financial_category'
         managed = False
-        ordering = ['category_id']
+        db_table = "financial_category"
+        ordering = ["category_id"]
 
     def __str__(self):
         return self.name
+
+
+class FinancialLineItem(models.Model):
+    """
+    financial_line_item
+    UNIQUE(fund_id, category_id, name)
+    """
+    line_item_id = models.AutoField(primary_key=True)
+
+    fund_id = models.IntegerField(db_column="fund_id")
+
+    category = models.ForeignKey(
+        'FinancialCategory', # Assuming FinancialCategory is defined or imported
+        db_column="category_id",
+        on_delete=models.PROTECT,
+        related_name="line_items",
+    )
+
+    name = models.CharField(max_length=100)
+    
+    # --- NEW ADDITION START ---
+    class SpecialField(models.TextChoices):
+        # Existing (automated in financials)
+        REALIZED_GAIN = 'REALIZED_GAIN', 'Realized Gain'
+        UNREALIZED_GAIN = 'UNREALIZED_GAIN', 'Unrealized Gain'
+        MANAGEMENT_FEES = 'MANAGEMENT_FEES', 'Management Fees'
+        DD_FEES = 'DD_FEES', 'Due Diligence Fees'
+        
+        # New (for capital call mapping)
+        STRUCTURING_FEES = 'STRUCTURING_FEES', 'Structuring Fees'
+        OPEX = 'OPEX', 'Opex/Administration Fees'
+        OTHER_EXPENSES = 'OTHER_EXPENSES', 'Other Expenses'
+
+    special_field = models.CharField(
+        max_length=50,
+        choices=SpecialField.choices,
+        null=True,
+        blank=True,
+        db_column="special_field"
+    )
+
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    created_by = models.IntegerField(null=True, blank=True)
+
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "financial_line_item"
+        ordering = ["line_item_id"]
+
+    def __str__(self):
+        return f"{self.fund_id} | {self.category_id} | {self.name}"
+    
+class ClosingPeriod(models.Model):
+    closing_id = models.AutoField(primary_key=True)
+    closing_name = models.CharField(max_length=255)
+    closing_code = models.CharField(max_length=10)
+    closing_sequence = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'closing_period'
+        ordering = ["closing_name"]
+        managed = False
+
+class PortfolioTransactionType(models.Model):
+    transaction_id = models.AutoField(primary_key=True)
+    transaction_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        ordering = ["transaction_id"]
+        db_table = "portfolio_transaction_type"
+
+class LPsOperationType(models.Model):
+    operation_type_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=255, db_column="name")
+    sign_multiplier = models.IntegerField(db_column="sign_multiplier", null=True, blank=True)
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_type"
+
+class LPsOperationFlowType(models.Model):
+    flow_type_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=255, db_column="name")
+    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "lps_operation_flow_type"

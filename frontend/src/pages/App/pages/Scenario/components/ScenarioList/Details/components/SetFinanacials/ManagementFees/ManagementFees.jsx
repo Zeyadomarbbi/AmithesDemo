@@ -1,184 +1,171 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useMasterManFees } from './utils/useScenarioMasterManFee.js'; // Adjust path
+import { PlusIcon, CloseIcon } from '../Icons'; 
+import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
+import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+
 import './ManagementFees.css';
-import { SortIcon } from '../Icons'; 
 
-const parseValue = (value) => {
-    if (!value) return 0;
-    const cleanValue = String(value).replace(/\s/g, ''); 
-    if (cleanValue === '-' || cleanValue === '' || isNaN(cleanValue)) return 0;
-    return parseFloat(cleanValue);
-};
+const ManagementFees = ({ fundId, scenarioId, onClose }) => {
+    // 1. Hook Integration (No more hardcoded 2024/15)
+    const formatNumber = useNumberFormatter();
+    const { pivotedData, columns, loading, refresh } = useMasterManFees(fundId, scenarioId);
+    // ------------------
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-const initialRows = [
-    // --- SHARES SECTION ---
-    { label: 'Shares A1', type: 'data', v2024: '300 000', v2025: '500 000', v2026: '500 000', v2027: '300 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Shares A2', type: 'data', v2024: '1 500 000', v2025: '2 000 000', v2026: '2 000 000', v2027: '1 500 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Shares B', type: 'data', v2024: '50 000', v2025: '250 000', v2026: '250 000', v2027: '50 000', v2028: '-', v2029: '-', v2030: '-', v2031: '-' },
-    
-    { label: 'Total on commitment', type: 'total-band' },
+    // 2. Data Processing (Transpose Logic remains the same)
+    const { years, commitmentRows, costRows, dataByYear } = useMemo(() => {
+        if (!pivotedData.length) return { years: [], commitmentRows: [], costRows: [], dataByYear: {} };
 
-    // --- INVESTMENTS SECTION ---
-    { label: 'Investment #1', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '150 000', v2028: '150 000', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Investment #2', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '120 000', v2028: '120 000', v2029: '-', v2030: '-', v2031: '-' },
-    { label: 'Investment #3', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '130 000', v2028: '130 000', v2029: '130 000', v2030: '-', v2031: '-' },
-    { label: 'Investment #4', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '150 000', v2028: '150 000', v2029: '150 000', v2030: '150 000', v2031: '-' },
-    { label: 'Investment #5', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '100 000', v2028: '100 000', v2029: '100 000', v2030: '100 000', v2031: '-' },
-    { label: 'Investment #6', type: 'data', v2024: '-', v2025: '-', v2026: '-', v2027: '50 000', v2028: '50 000', v2029: '50 000', v2030: '50 000', v2031: '50 000' },
+        const yearsList = pivotedData.map(d => d.year);
+        
+        const yearMap = {};
+        pivotedData.forEach(row => { yearMap[row.year] = row; });
 
-    { label: 'Total on cost', type: 'total-band' },
+        const commCols = columns.filter(c => c.type === 'Share Class' || c.type === 'Tranche');
+        const portCols = columns.filter(c => c.type === 'Portfolio');
 
-    // --- GRAND TOTAL ---
-    { label: 'Total', type: 'total-band' }
-];
+        return {
+            years: yearsList,
+            commitmentRows: commCols,
+            costRows: portCols,
+            dataByYear: yearMap
+        };
+    }, [pivotedData, columns]);
 
-const years = [
-    { year: '2024', type: 'realised' },
-    { year: '2025', type: 'realised' },
-    { year: '2026', type: 'projected' },
-    { year: '2027', type: 'projected' },
-    { year: '2028', type: 'projected' },
-    { year: '2029', type: 'projected' },
-    { year: '2030', type: 'projected' },
-    { year: '2031', type: 'projected' },
-];
-
-const ManagementFees = () => {
-    const [rows, setRows] = useState(() => {
-        return initialRows.map(row => {
-            const newRow = { ...row };
-            if (row.type === 'data') {
-                years.forEach(({ year }) => {
-                    const key = `v${year}`;
-                    newRow[key] = row[key] || ''; 
-                });
-            }
-            return newRow;
-        });
-    });
-
-    // --- Helpers ---
-    const formatNumber = (num) => {
-        if (num === 0) return '-'; 
-        return num.toLocaleString('en-US').replace(/,/g, ' '); 
+    // Helper: Calculate Totals
+    const getColumnTotal = (year, rowDefinitions) => {
+        if (!dataByYear[year]) return 0;
+        return rowDefinitions.reduce((sum, colDef) => {
+            const val = dataByYear[year][colDef.key] || 0;
+            return sum + val;
+        }, 0);
     };
 
-    const calculateColumnTotal = (yearKey, rowsToSum) => {
-        let sum = 0;
-        rowsToSum.forEach(row => {
-            sum += parseValue(row[yearKey]);
-        });
-        return formatNumber(sum);
+    const handleModalClose = () => {
+        setIsAddModalOpen(false);
+        setIsViewModalOpen(false);
+        refresh(); 
     };
 
-    const getGroupedRows = () => {
-        const commitmentIndex = rows.findIndex(r => r.label === 'Total on commitment');
-        const costIndex = rows.findIndex(r => r.label === 'Total on cost');
-        const sharesRows = rows.slice(0, commitmentIndex);
-        const investmentRows = rows.slice(commitmentIndex + 1, costIndex);
-        return { sharesRows, investmentRows };
-    };
-
-    const getYearValue = (row, year) => {
-        const key = `v${year}`;
-        if (row.type === 'total-band') {
-            const { sharesRows, investmentRows } = getGroupedRows();
-            if (row.label === 'Total on commitment') return calculateColumnTotal(key, sharesRows);
-            if (row.label === 'Total on cost') return calculateColumnTotal(key, investmentRows);
-            if (row.label === 'Total') {
-                const sumShares = parseValue(calculateColumnTotal(key, sharesRows));
-                const sumInvest = parseValue(calculateColumnTotal(key, investmentRows));
-                return formatNumber(sumShares + sumInvest);
-            }
-        }
-        return row[key] || '';
-    };
-
-    const handleProjectedChange = (e, rowIndex, year) => {
-        if (e.key === 'Enter') {
-            const newValue = e.target.value;
-            setRows(prev => prev.map((row, i) => 
-                i === rowIndex ? { ...row, [`v${year}`]: newValue } : row
-            ));
-            e.target.blur();
-        }
-    };
+    if (loading && years.length === 0) {
+        return <div className="mf-table-container"><div className="p-10 text-center">Loading Financials...</div></div>;
+    }
 
     return (
         <div className="mf-table-container">
+            <button className="mf-close-action" onClick={onClose}>
+                <CloseIcon />
+            </button>
+
+            <div className="mf-action-header">
+                <button className="mf-btn-base mf-btn-view" onClick={() => setIsViewModalOpen(true)}>
+                    View tranches
+                </button>
+                <button className="mf-btn-base mf-btn-add" onClick={() => setIsAddModalOpen(true)}>
+                    <PlusIcon />
+                    Add tranche
+                </button>
+            </div>
+
             <table className="mf-table">
                 <thead>
                     <tr>
                         <th className="th-label col-mf">
                             <div className="th-wrapper mf-wrapper">
                                 <span>Management fees</span>
-                                <SortIcon className="sort-icon" />
                             </div>
                         </th>
-                        
-                        {years.map((y) => {
-                            // Determine text color based on type
-                            const isProjected = y.type === 'projected';
-                            const headerClass = isProjected ? 'text-blue' : 'text-black';
-
-                            return (
-                                <th key={y.year} className={`col-year ${y.type}`}>
-                                    <div className="th-wrapper year-wrapper">
-                                        <div className="th-stack">
-                                            {/* Top Line: Year + Currency + Sort */}
-                                            <div className="th-top">
-                                                <span className={`year ${headerClass}`}>{y.year}</span>
-                                                <span className="currency-indicator">(€)</span>
-                                                <SortIcon className="sort-icon" />
-                                            </div>
-                                            {/* Bottom Line: Type */}
-                                            <div className={`th-bottom ${headerClass}`}>
-                                                {y.type}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </th>
-                            )
-                        })}
-
+                        {years.map((year) => (
+                            <th key={year} className="col-year">
+                                <div className="th-wrapper year-wrapper">
+                                    <span className="year-label">{year}</span>
+                                    <span className="currency-indicator">(€)</span>
+                                </div>
+                            </th>
+                        ))}
                         <th className="col-total"></th>
                     </tr>
                 </thead>
+                
+                {/* SECTION 1: COMMITMENT BASIS */}
                 <tbody>
-                    {rows.map((row, index) => {
-                        const isTotalRow = row.type === 'total-band';
-                        // REMOVED: isReadOnly check so all projected cells are inputs
-                        
-                        return (
-                            <tr key={index} className={isTotalRow ? 'row-total' : 'row-standard'}>
-                                <td className="cell-label">
-                                    {row.label}
+                    {commitmentRows.map((colDef) => (
+                        <tr key={colDef.key} className="row-standard">
+                            <td className="cell-label">{colDef.label}</td>
+                            {years.map((year) => (
+                                <td key={year} className="cell-data-readonly">
+                                    {formatNumber(dataByYear[year]?.[colDef.key])}
                                 </td>
-
-                                {years.map((y) => {
-                                    const value = getYearValue(row, y.year);
-                                    
-                                    if (y.type === 'realised' || isTotalRow) {
-                                        return <td key={y.year} className={isTotalRow ? "cell-total-val" : "cell-realised"}>{value}</td>;
-                                    } else {
-                                        // Projected columns -> Always Input
-                                        return (
-                                            <td key={y.year} className="cell-projected">
-                                                <input 
-                                                    key={`${index}-${y.year}-${value}`} 
-                                                    className="proj-input" 
-                                                    defaultValue={value} 
-                                                    onKeyDown={(e) => handleProjectedChange(e, index, y.year)}
-                                                />
-                                            </td>
-                                        );
-                                    }
-                                })}
-                                <td className="cell-total-final"></td> 
-                            </tr>
-                        );
-                    })}
+                            ))}
+                            <td className="cell-total-final"></td>
+                        </tr>
+                    ))}
+                    <tr className="row-total">
+                        <td className="cell-label">Total on commitment</td>
+                        {years.map((year) => (
+                            <td key={year} className="cell-total-val">
+                                {formatNumber(getColumnTotal(year, commitmentRows))}
+                            </td>
+                        ))}
+                        <td className="cell-total-final"></td>
+                    </tr>
                 </tbody>
+
+                {/* SECTION 2: COST BASIS */}
+                <tbody>
+                    {costRows.map((colDef) => (
+                        <tr key={colDef.key} className="row-standard">
+                            <td className="cell-label">{colDef.label}</td>
+                            {years.map((year) => (
+                                <td key={year} className="cell-data-readonly">
+                                    {formatNumber(dataByYear[year]?.[colDef.key])}
+                                </td>
+                            ))}
+                            <td className="cell-total-final"></td>
+                        </tr>
+                    ))}
+                    <tr className="row-total">
+                        <td className="cell-label">Total on cost</td>
+                        {years.map((year) => (
+                            <td key={year} className="cell-total-val">
+                                {formatNumber(getColumnTotal(year, costRows))}
+                            </td>
+                        ))}
+                        <td className="cell-total-final"></td>
+                    </tr>
+                </tbody>
+
+                {/* FOOTER */}
+                <tfoot>
+                    <tr className="row-total grand-total">
+                        <td className="cell-label">Total</td>
+                        {years.map((year) => (
+                            <td key={year} className="cell-total-val">
+                                {formatNumber(
+                                    getColumnTotal(year, commitmentRows) + getColumnTotal(year, costRows)
+                                )}
+                            </td>
+                        ))}
+                        <td className="cell-total-final"></td>
+                    </tr>
+                </tfoot>
             </table>
+
+            <ViewTranchModal 
+                fundId={fundId} 
+                scenarioId={scenarioId} 
+                isOpen={isViewModalOpen} 
+                onClose={handleModalClose} 
+            />
+            <AddTranchModal 
+                fundId={fundId} 
+                scenarioId={scenarioId} 
+                isOpen={isAddModalOpen} 
+                onClose={handleModalClose} 
+            />
         </div>
     );
 };

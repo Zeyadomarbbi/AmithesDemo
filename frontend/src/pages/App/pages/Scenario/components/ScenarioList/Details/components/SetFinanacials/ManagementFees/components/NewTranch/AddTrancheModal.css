@@ -1,0 +1,256 @@
+.man-fee-tranches-modal-content {
+    position: relative;
+    padding: 32px;
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.man-fee-tranches-modal-header h2 {
+    font-family: 'Inter';
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    color: #1C1917;
+    margin-bottom: 24px;
+}
+
+.man-fee-tranches-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.man-fee-tranches-form-group label {
+    font-family: 'Inter';
+    font-weight: 500;
+    font-size: 13px;
+    color: #374151;
+}
+
+.man-fee-tranches-form-group input,
+.man-fee-tranches-form-group select {
+    padding: 10px 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Inter';
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.man-fee-tranches-form-group input:focus,
+.man-fee-tranches-form-group select:focus {
+    border-color: #375A89;
+}
+
+.man-fee-tranches-footer {
+    margin-top: 12px;
+    background: #fff;
+    border-top: 1px solid rgba(204, 205, 206, 0.5);
+    padding-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+/* =========================================
+   1. MODAL CONTENT & HEADER
+   ========================================= */
+.man-fee-tranches-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.man-fee-tranches-modal-content {
+    position: relative;
+    width: 600px; /* Increased to accommodate 2-column grid */
+    padding: 32px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.man-fee-tranches-modal-close-icon {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6B7280;
+    transition: background 0.2s;
+}
+
+.man-fee-tranches-modal-close-icon:hover {
+    background: #F3F4F6;
+}
+
+.man-fee-tranches-modal-header h2 {
+    font-family: 'Inter';
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    color: #1C1917;
+    margin-bottom: 24px;
+}
+
+/* =========================================
+   2. GRID & FORM GROUPS
+   ========================================= */
+.man-fee-tranches-modal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    column-gap: 16px;              /* Horizontal space between items */
+    row-gap: 20px;                 /* Vertical space between rows */
+    padding: 20px 0;
+}
+
+.man-fee-tranches-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.man-fee-tranches-form-group label {
+    /* Text-SM/Medium */
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    /* identical to box height, or 143% */
+    letter-spacing: 0.01em;
+
+    color: #375A89;
+
+
+    /* Inside auto layout */
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+
+}
+
+.man-fee-tranches-form-group input,
+.man-fee-tranches-select-wrapper select {
+    padding: 10px 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Inter';
+    outline: none;
+    background: #fff;
+    transition: border-color 0.2s;
+}
+
+.man-fee-tranches-form-group input:focus,
+.man-fee-tranches-select-wrapper select:focus {
+    border-color: #375A89;
+}
+
+/* =========================================
+   3. CUSTOM SELECT & ICON
+   ========================================= */
+.man-fee-tranches-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* Custom Select Styling */
+.man-fee-tranches-select {
+    width: 100%;
+    appearance: none; /* Removes default arrow in Chrome/Safari/Firefox */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 32px; /* Space for the icon */
+    cursor: pointer;
+}
+
+/* Icon Positioning */
+.man-fee-tranches-select-icon {
+    position: absolute;
+    right: 12px;
+    pointer-events: none; /* Allows clicks to pass through to the select */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666; /* Adjust color based on theme */
+}
+/* =========================================
+   4. FOOTER & SAVE BUTTON
+   ========================================= */
+.man-fee-tranches-footer {
+    grid-column: 1 / span 2;
+    margin-top: 12px;
+    background: #fff;
+    border-top: 1px solid rgba(204, 205, 206, 0.5);
+    padding-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.man-fee-tranches-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.man-fee-tranches-btn-save {
+    flex: 1;
+    height: 40px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    padding: 0 36px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #F7A93B; /* Orange tone requested */
+    color: #FFFFFF;
+    transition: background 0.2s ease;
+}
+
+.man-fee-tranches-btn-cancel {
+    background: #FAFAF9;
+    border: none;
+    padding: 0 24px; /* Reduced from 48px to balance with Save button */
+    border-radius: 4px;
+    cursor: pointer;
+    height: 40px; /* Matched to Save button height */
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #7B7D7E;
+    transition: background 0.2s ease;
+}
+
+.man-fee-tranches-btn-save:hover:not(:disabled) {
+    background-color: #e2962d;
+}
+
+.man-fee-tranches-btn-save:disabled {
+    background-color: #D0D5DD;
+    cursor: not-allowed;
+}

@@ -1,0 +1,72 @@
+/* =========================================
+   TABLE SORT — HEADER WRAPPER
+   ========================================= */
+.sort-header-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 20px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sort-header-wrap.sort-header-left {
+    justify-content: flex-start;
+}
+
+.sort-header-wrap.sort-header-center {
+    justify-content: center;
+}
+
+/* =========================================
+   HEADER CONTENT GROUP
+   ========================================= */
+.sort-header-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.sort-header-wrap:hover .sort-header-group {
+    color: #375A89;
+}
+
+/* =========================================
+   CURRENCY INDICATOR
+   ========================================= */
+.sort-currency-indicator {
+    color: #9CA3AF;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+/* =========================================
+   SORT ICON
+   ========================================= */
+.sort-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 8px;
+    height: 12px;
+    opacity: 0.25;
+    transition: opacity 0.15s ease;
+}
+
+.sort-icon.sort-icon-active {
+    opacity: 1;
+}
+
+.sort-header-wrap:hover .sort-icon {
+    opacity: 0.6;
+}
+
+.sort-header-wrap:hover .sort-icon.sort-icon-active {
+    opacity: 1;
+}

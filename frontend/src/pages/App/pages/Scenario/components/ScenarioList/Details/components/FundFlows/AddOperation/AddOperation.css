@@ -1,4 +1,6 @@
-.ff-add-op-overlay {
+/* --- AddOperation.css --- */
+
+.scenario-ff-add-op-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -9,23 +11,26 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
-.ff-add-op-container {
+.scenario-ff-add-op-container {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding: 0;
   position: relative;
-  width: 360px;
+  width: 100%;
+  max-width: 360px;
   background: #FFFFFF;
-  border-radius: 8px;
+  border-radius: 8px; /* Your radius is defined here */
   box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
   height: auto;
-  overflow: visible;
+  overflow: hidden; /* CHANGE THIS: from visible to hidden */
 }
 
-.ff-add-op-close-row {
+.scenario-ff-add-op-close-row {
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -36,10 +41,10 @@
   width: 100%;
   height: 41px;
   background: #FFFFFF;
-  box-shadow: 0px -5px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: none; /* CHANGE THIS: Remove the shadow that creates the hard edge */
 }
 
-.ff-add-op-close-btn {
+.scenario-ff-add-op-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,9 +56,10 @@
   border-radius: 128px;
   border: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.ff-add-op-content {
+.scenario-ff-add-op-content {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -67,7 +73,7 @@
   overflow: visible;
 }
 
-.ff-add-op-header-group {
+.scenario-ff-add-op-header-group {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -76,9 +82,8 @@
   width: 100%;
 }
 
-.ff-add-op-title {
+.scenario-ff-add-op-title {
   width: 100%;
-  height: 24px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 16px;
@@ -87,68 +92,7 @@
   margin: 0;
 }
 
-.ff-add-op-toggles {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 0;
-  gap: 8px;
-  width: 100%;
-  height: 40px;
-}
-
-.ff-add-op-toggle-card {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 8px 10px;
-  gap: 8px;
-  flex: 1;
-  height: 40px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.ff-add-op-toggle-card.selected {
-  border: 1px solid #375A89;
-  background: #FAFAF9;
-}
-
-.ff-add-op-radio-circle {
-  box-sizing: border-box;
-  width: 18px;
-  height: 18px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.ff-add-op-toggle-card.selected .ff-add-op-radio-circle {
-  border: 5px solid #375A89;
-}
-
-.ff-add-op-badge {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  height: 24px;
-  border-radius: 6px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.ff-add-op-badge.yellow { background: #FEF1BF; color: #854C0A; }
-.ff-add-op-badge.blue { background: #D3F2FF; color: #4C6977; }
-
-.ff-add-op-inputs-group {
+.scenario-ff-add-op-inputs-group {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -157,7 +101,7 @@
   width: 100%;
 }
 
-.ff-add-op-input-col {
+.scenario-ff-add-op-input-col {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -166,9 +110,8 @@
   width: 100%;
 }
 
-.ff-add-op-input-col label {
+.scenario-ff-add-op-label {
   width: 100%;
-  height: 20px;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
@@ -177,42 +120,17 @@
   color: #375A89;
 }
 
-.ff-add-op-input-wrapper {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  gap: 8px;
-  width: 100%;
-  height: 40px;
-  background: #FFFFFF;
-  border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
-  position: relative;
-}
-
-.ff-add-op-input-wrapper input {
-  border: none;
-  outline: none;
-  width: 100%;
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  color: #7B7D7E;
-}
-
-.ff-add-op-footer {
+.scenario-ff-add-op-footer {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   padding: 0;
   gap: 13px;
   width: 100%;
-  height: 40px;
+  margin-top: 8px;
 }
 
-.ff-add-op-btn {
+.scenario-ff-add-op-btn {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -230,5 +148,17 @@
   letter-spacing: 0.01em;
 }
 
-.ff-add-op-btn.btn-cancel { background: #FAFAF9; color: #7B7D7E; }
-.ff-add-op-btn.btn-save { background: #F7A93B; color: #FFFFFF; }
+.scenario-ff-add-op-btn-cancel {
+  background: #FAFAF9;
+  color: #7B7D7E;
+}
+
+.scenario-ff-add-op-btn-save {
+  background: #F7A93B;
+  color: #FFFFFF;
+}
+
+.scenario-ff-add-op-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

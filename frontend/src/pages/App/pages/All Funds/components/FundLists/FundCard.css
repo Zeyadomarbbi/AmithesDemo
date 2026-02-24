@@ -1,9 +1,6 @@
 .fund-card {
   box-sizing: border-box;
   width: 100%;                 /* ✅ responsive */
-  max-width: 330.67px;         /* matches Figma on desktop */
-  min-height: 169px;
-
   background: #ffffff;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 8px;

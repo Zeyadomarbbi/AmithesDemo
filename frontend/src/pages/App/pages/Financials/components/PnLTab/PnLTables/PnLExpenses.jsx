@@ -2,11 +2,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   EditLineIcon,
-  PlusIcon,
   MinusIcon,
   TrashBinIcon,
   KebabIcon,
-  PlusIconWhite
+  PlusIconWhite,
 } from "../../../../../components/Icons.jsx";
 import "./FinancialTables.css";
 
@@ -33,6 +32,8 @@ const PnLExpenses = ({
 
   // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // IMPORTANT: single ref, but we bind it to the currently-open row only (fixes map/ref bug)
   const menuWrapRef = useRef(null);
 
   // close menu on outside click / Esc
@@ -93,7 +94,7 @@ const PnLExpenses = ({
         expenseLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
 
-          // ✅ restore zebra striping (same behavior as Income)
+          // ✅ zebra striping
           const rowClass =
             index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
 
@@ -181,7 +182,13 @@ const PnLExpenses = ({
               {/* ACTIONS (kebab always in last column) */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
-                  <div className="pnl-kebab-wrap" ref={menuWrapRef}>
+                  <div
+                    className="pnl-kebab-wrap"
+                    ref={(el) => {
+                      // ✅ bind ref ONLY to the currently-open row
+                      if (openMenuId === line.id) menuWrapRef.current = el;
+                    }}
+                  >
                     <button
                       className="pnl-kebab"
                       type="button"
@@ -234,7 +241,15 @@ const PnLExpenses = ({
             type="button"
             onClick={() => setShowExpenses((v) => !v)}
           >
-            {showExpenses ? <MinusIcon /> : <PlusIconWhite />}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {showExpenses ? <MinusIcon /> : <PlusIconWhite />}
+            </span>
             Expenses
           </button>
         </div>
@@ -245,7 +260,7 @@ const PnLExpenses = ({
           </div>
         ))}
 
-        {/* ✅ keep last column empty (Add button is in header row now) */}
+        {/* keep last column empty */}
         <div className="group-action-cell" />
       </div>
     </div>

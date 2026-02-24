@@ -1,0 +1,255 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ===========================================
+   TABLE
+   =========================================== */
+
+.lp-cas-table-wrapper {
+  border-radius: 6px;
+  overflow-x: auto;
+  background-color: #ffffff;
+  border: none;
+}
+
+.lp-cas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+}
+
+/* header row */
+
+.lp-cas-table thead tr {
+  background-color: #f9fafb;
+  height: 50px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.lp-cas-kpi-header,
+.lp-cas-header-cell {
+  padding: 8px 16px;
+  font-weight: 500;
+  color: #000000;
+  white-space: nowrap;
+  border: none;
+}
+
+.lp-cas-kpi-header {
+  text-align: left;
+}
+
+.lp-cas-header-cell {
+  text-align: right;
+}
+
+/* body rows */
+
+.lp-cas-row {
+  height: 50px;
+}
+
+.lp-cas-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.lp-cas-table tbody tr:nth-child(even) {
+  background-color: #fafaf9;
+}
+
+.lp-cas-table tbody tr {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.lp-cas-table td {
+  padding: 8px 16px;
+  color: #1c1917;
+  border: none;
+}
+
+/* KPI left cell */
+
+.lp-cas-kpi-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+/* numeric cells */
+.lp-cas-value-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* no vertical borders */
+.lp-cas-table th,
+.lp-cas-table td {
+  border-left: none;
+  border-right: none;
+}
+
+/* ===========================================
+   EXPAND ROWS
+   =========================================== */
+
+.lp-cas-row--expandable {
+  cursor: pointer;
+}
+
+.lp-cas-row--open {
+  background-color: #fafafa;
+}
+
+.lp-cas-table tbody tr.lp-cas-nav-details-row {
+  background-color: #f3f4f6 !important;
+}
+
+.lp-cas-nav-details-row > td {
+  padding: 0;
+  border: none;
+}
+
+/* plus/minus button */
+.lp-cas-expand-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-cas-plus-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.lp-cas-plus-icon svg {
+  display: block;
+}
+
+/* ===========================================
+   NAV PER SHARE DROPDOWN
+   =========================================== */
+
+.lp-cas-nav-details {
+  background: #f3f4f6;
+  box-sizing: border-box;
+  padding: 0 16px 16px 16px;
+  border-bottom: none !important;
+}
+
+.lp-cas-nav-details-inner {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.lp-cas-nav-details-table {
+  width: 100%;
+  min-width: 808px;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  background: transparent;
+}
+
+.lp-cas-nav-details-table thead tr {
+  background: transparent;
+}
+
+.lp-cas-nav-th {
+  padding: 8px 16px;
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  border: none;
+  background-color: #f3f4f6;
+  border-bottom: none !important;
+}
+
+.lp-cas-nav-th--first {
+  text-align: left;
+}
+
+.lp-cas-nav-th-euro {
+  font-size: 12px;
+  color: #a6a09b;
+}
+
+.lp-cas-nav-details-table tbody tr {
+  background: transparent;
+}
+
+.lp-cas-nav-td {
+  text-align: center;
+  font-weight: 400;
+  color: #1c1917;
+  border: none;
+  background-color: #f3f4f6;
+  border-bottom: none !important;
+}
+
+.lp-cas-nav-td--label {
+  text-align: left;
+}
+
+/* kill all borders in the inner table */
+.lp-cas-nav-details-table,
+.lp-cas-nav-details-table * {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ===========================================
+   ADJUSTED NAV ROW
+   =========================================== */
+
+.lp-cas-adjusted-row {
+  background-color: #f3f4f6 !important;
+}
+
+.lp-cas-adjusted-row td {
+  background-color: #f3f4f6 !important;
+}
+
+/* ===========================================
+   KPI / VALUE CELL WEIGHT OVERRIDES
+   =========================================== */
+
+.lp-cas-table tbody td.lp-cas-kpi-cell {
+  font-weight: 600 !important;
+}
+
+.lp-cas-table tbody td.lp-cas-value-cell {
+  font-weight: 400 !important;
+}
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+
+@media (max-width: 1024px) {
+  .lp-cas-nav-details {
+    padding: 0 24px 16px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Remove overflow-x: auto and -webkit-overflow-scrolling here */
+  .lp-cas-table {
+    min-width: 720px;
+  }
+}

@@ -2,128 +2,157 @@
    1. CONTAINER & TABLE RESET
    ========================================= */
 .mf-table-container {
+  position: relative;
   width: 100%;
   overflow-x: auto;
   background: #fff;
   padding: 20px;
 }
 
+.mf-close-action {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+}
+
+.mf-close-action:hover {
+  background: #F3F4F6;
+}
+
+.mf-action-header {
+  display: flex;
+  flex-direction: row; 
+  justify-content: flex-end; 
+  align-items: center;
+  gap: 12px;
+  margin-top: 60px; 
+  margin-bottom: 24px;
+}
+
+/* Base Button Style */
+.mf-btn-base {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 6px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  flex: none;
+  transition: opacity 0.2s ease;
+}
+
+.mf-btn-base:hover {
+  opacity: 0.8;
+}
+
+.mf-btn-add {
+  background: rgba(55, 90, 137, 0.2);
+  color: #375A89;
+}
+
+.mf-btn-view {
+  background: #F3F4F6; 
+  color: #4B5563;
+}
+
 .mf-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
+  table-layout: auto;
 }
 
 /* =========================================
-   2. HEADERS (THEAD)
+   2. ALIGNMENT & WRAPPING LOGIC
    ========================================= */
-.mf-table thead th {
-  border-bottom: 1px solid #E5E7EB;
-  color: #111827;
-  font-weight: 600;
-  white-space: nowrap;
-  vertical-align: middle;
-  padding: 12px 10px;
+
+.mf-table th, 
+.mf-table td {
+  padding: 12px 16px;
+  line-height: 1.5;
+  white-space: nowrap; /* Prevents labels and values from breaking into 2 lines */
 }
 
-.th-wrapper.mf-wrapper {
-  justify-content: flex-start;
-  gap: 6px;
+/* First Column (Labels): Left Aligned */
+.cell-label, 
+.th-label {
+  text-align: left;
 }
-/* Flex Wrappers */
+
+/* Year Columns: Right Aligned */
+.col-year, 
+.cell-data-readonly, 
+.cell-total-val {
+  text-align: right;
+}
+
 .th-wrapper {
   display: flex;
   align-items: center;
-  width: 100%;
 }
 
-/* Specific Header Stacking (Top: Year/Icon, Bottom: Type) */
-.th-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* Align entire block to right */
-    gap: 2px;
-}
-
-.th-top {
-    display: flex;
-    align-items: center;
-    gap: 4px; /* Space between Year, Currency, Icon */
-}
-
-.th-bottom {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: lowercase;
-}
-
-/* Color Utilities for Headers */
-.text-blue {
-    color: #375A89 !important;
-}
-
-.text-black {
-    color: #111827 !important;
-}
-
-.sort-icon {
-  width: 12px;
-  height: 12px;
-  cursor: pointer;
-}
-
-/* First Column: Left Aligned */
-.th-wrapper.mf-wrapper {
+.mf-wrapper {
   justify-content: flex-start;
 }
 
-/* Numeric Columns: Right Aligned */
-.th-wrapper.year-wrapper {
-  justify-content: flex-end;
+.year-wrapper {
+  display: flex;
+  flex-direction: row;       /* CHANGE: column -> row */
+  align-items: center;       /* Vertically center them */
+  justify-content: flex-end; /* Keep right aligned */
+  gap: 4px;                  /* Space between Year and (€) */
+  white-space: nowrap;       /* Ensure they stay on the same line */
+}
+.year-label {
+  font-weight: 600;
+  color: #111827;
 }
 
 .currency-indicator {
   color: #6B7280;
   font-weight: 400;
   font-size: 11px;
+  white-space: nowrap;
 }
 
 /* =========================================
-   3. BODY ROWS
+   3. STYLING & BANDS
    ========================================= */
-.mf-table td {
-  padding: 10px 12px;
-  vertical-align: middle;
-  border-bottom: 1px solid #F3F4F6;
-}
-
-/* Striping */
-.mf-table tbody tr:nth-child(odd):not(.row-total) {
-  background: #FAFAF9;
-}
-.mf-table tbody tr:nth-child(even):not(.row-total) {
+.mf-table thead th {
+  border-bottom: 1px solid #E5E7EB;
   background: #FFFFFF;
 }
 
-/* Cells */
+.row-standard:nth-child(odd) {
+  background: #FAFAF9;
+}
+
 .cell-label {
-  text-align: left;
   color: #374151;
   font-weight: 500;
 }
 
-.cell-realised,
-.cell-projected,
-.cell-total-val {
-  text-align: right;
-  color: #111827;
-}
-
-/* =========================================
-   4. TOTAL ROWS (Blue Bands)
-   ========================================= */
 .row-total td {
   background-color: #375A89 !important;
   color: #FFFFFF !important;
@@ -138,33 +167,30 @@
   font-weight: 600;
 }
 
+.grand-total {
+  border-top: 2px solid #fff; 
+}
+
 /* =========================================
-   5. INPUTS
+   4. SCROLLBAR & ICONS
    ========================================= */
-.proj-input {
-  width: 100%;
-  max-width: 100px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 13px;
-  text-align: right;
-  background-color: #FFFFFF;
-  outline: none;
-  color: #111827;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  border: 1px solid #E5E7EB;
-}
-
-.proj-input:hover,
-.proj-input:focus {
-  background-color: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
 .mf-table-container ::-webkit-scrollbar {
   height: 8px;
 }
 .mf-table-container ::-webkit-scrollbar-thumb {
   background: #D1D5DB;
   border-radius: 4px;
+}
+
+.mf-btn-icon {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.mf-btn-add .mf-btn-icon {
+  color: #375A89;
 }

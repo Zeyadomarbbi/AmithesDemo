@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { xirr as xirrLib } from "@webcarrot/xirr";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import "./InvestmentDetails.css";
+import { API_BASE_URL } from "../../../../../../hooks/useApi";
 const BackIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M9.75527 5.24408C10.0807 5.56951 10.0807 6.09715 9.75527 6.42259L6.17786 10L9.75527 13.5774C10.0807 13.9028 10.0807 14.4305 9.75527 14.7559C9.42983 15.0814 8.9022 15.0814 8.57676 14.7559L4.41009 10.5893C4.08466 10.2638 4.08466 9.73618 4.41009 9.41074L8.57676 5.24408C8.9022 4.91864 9.42983 4.91864 9.75527 5.24408ZM15.5886 5.24408C15.914 5.56951 15.914 6.09715 15.5886 6.42259L12.0112 10L15.5886 13.5774C15.914 13.9028 15.914 14.4305 15.5886 14.7559C15.2632 15.0814 14.7355 15.0814 14.4101 14.7559L10.2434 10.5893C9.91799 10.2638 9.91799 9.73618 10.2434 9.41074L14.4101 5.24408C14.7355 4.91864 15.2632 4.91864 15.5886 5.24408Z" fill="#375A89"/>
@@ -30,56 +32,354 @@ const toNumber = (v) => {
 
 // Helper: Format Money
 const formatMoney = (n, currency = "€") => {
-  // French locale gives spaces as separators (e.g., 12 000 000)
-  return toNumber(n).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " " + currency;
+  return (
+    toNumber(n).toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + (currency ? ` ${currency}` : "")
+  );
 };
 
-export default function InvestmentDetailsDrawer({ investment, onClose }) {
-  
-  // 1. Initialize State with initial flows (could be passed via props too)
-  const [flows, setFlows] = useState([
-    { id: 1, date: "2023-02-02", amount: -10000000, fxRate: 1.1, type: "Investment" },
-    { id: 2, date: "2024-02-02", amount: -2000000, fxRate: 1.05, type: "Investment" },
-   ]);
+const formatRatio = (n) => {
+  if (!Number.isFinite(n)) return "-";
+  return n.toFixed(2);
+};
 
-  const [fairValueDate, setFairValueDate] = useState("2025-03-31");
-  const [fairValueAmount, setFairValueAmount] = useState(13500000);
-  const [fairValueFxRate, setFairValueFxRate] = useState(1.10);
+const formatPercent = (n) => {
+  if (!Number.isFinite(n)) return "-";
+  return `${(n * 100).toFixed(2)}%`;
+};
+
+const canonicalType = (type) => {
+  const t = String(type || "").trim().toLowerCase();
+  if (t.includes("dividend")) return "Dividend";
+  if (t.includes("interest")) return "Interest";
+  if (t.includes("partial") && t.includes("divest")) return "Partial divestment";
+  if (t.includes("divest")) return "Divestment";
+  if (t.includes("invest")) return "Investment";
+  if (t === "other") return "Other";
+  return "Other";
+};
+
+const round6 = (n) => {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 0;
+  return Number(v.toFixed(6));
+};
+
+const safeXirr = (cashflows) => {
+  try {
+    if (!cashflows || cashflows.length < 2) return null;
+    const hasPos = cashflows.some((c) => c.amount > 0);
+    const hasNeg = cashflows.some((c) => c.amount < 0);
+    if (!hasPos || !hasNeg) return null;
+    return xirrLib(cashflows);
+  } catch (err) {
+    console.error("XIRR calculation failed:", err);
+    return null;
+  }
+};
+
+export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved }) {
+  
+  const [flows, setFlows] = useState([]);
+  const [fairValueFxRate, setFairValueFxRate] = useState(0);
+  const [fairValueAmountLC, setFairValueAmountLC] = useState(0);
+  const [fairValueId, setFairValueId] = useState(null);
+  const [transactionTypes, setTransactionTypes] = useState([]);
+  const [toast, setToast] = useState(null);
+  const flowIdRef = useRef(1);
 
   // 2. Read from Props (External Source) with fallbacks
-  const headerCurrency = investment?.currency || "EUR €";
+  const headerCurrency =
+    investment?.currency ||
+    [
+      investment?.currencyName,
+      investment?.currencyCode ? `(${investment.currencyCode})` : "",
+      investment?.currencySymbol,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    "EUR €";
   const headerCountry = investment?.country || "Germany"; // Could be Egypt based on image, using props makes it dynamic
-  const headerOwnership = investment?.ownership || "21.65%";
+  const ownershipValue = toNumber(investment?.ownership);
+  const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
+    ? `${ownershipValue.toFixed(2)}%`
+    : "21.65%";
   const headerName = investment?.name || "Alyra";
-  const headerSub = investment?.sub || "BioTech";
+  const headerSub = investment?.sector || investment?.sub || "BioTech";
+  const headerTimeframe = timeframe?.display_label || null;
+  const fairValueDateLabel = timeframe?.rawDate || timeframe?.date || "";
+  const investmentId =
+    investment?.id ??
+    investment?.investment_id ??
+    investment?.investmentId ??
+    null;
 
-  // 3. Dynamic Calculations: Fair Value LC
-  const fairValueAmountLC = useMemo(() => {
-    return toNumber(fairValueAmount) * toNumber(fairValueFxRate);
-  }, [fairValueAmount, fairValueFxRate]);
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/portfolio-transaction-types/`);
+        if (!res.ok) throw new Error("Failed to fetch transaction types");
+        const data = await res.json();
+        setTransactionTypes(data);
+      } catch (err) {
+        console.error("Transaction types fetch failed:", err);
+      }
+    };
+    fetchTypes();
+  }, []);
+
+  const normalizeTransactionType = useCallback((t) => {
+    if (!t) return { id: null, name: "" };
+    const name =
+      t.name ??
+      t.transaction_name ??
+      t.transactionName ??
+      t.transaction_type_name ??
+      t.label ??
+      "";
+    const id =
+      t.id ??
+      t.transaction_id ??
+      t.transactionId ??
+      t.transaction_type_id ??
+      null;
+    return { id, name: String(name || "").trim() };
+  }, []);
+
+  const makeLocalFlowId = useCallback(() => {
+    const id = `tmp-${Date.now()}-${flowIdRef.current}`;
+    flowIdRef.current += 1;
+    return id;
+  }, []);
+
+  const mapFlowFromApi = useCallback((flow) => {
+    const backendId = flow.flow_id ?? flow.id ?? flow.flowId ?? null;
+    const typeName =
+      flow.transaction_name ??
+      flow.transaction_type_name ??
+      flow.transaction_type?.name ??
+      flow.transaction_type ??
+      flow.type ??
+      "Investment";
+
+    return {
+      id: backendId ?? makeLocalFlowId(),
+      flowId: backendId,
+      date: flow.date || "",
+      amountLC: flow.amount_lc ?? flow.amountLC ?? 0,
+      fxRate: flow.fx_rate ?? flow.fxRate ?? 0,
+      type: typeName,
+      divestmentPercentage:
+        flow.divestment_percentage ?? flow.divestmentPercentage ?? null,
+    };
+  }, [makeLocalFlowId]);
+
+  const loadInvestmentData = useCallback(async () => {
+    if (!fundId || !investmentId) return;
+    try {
+      const flowsRes = await fetch(
+        `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`
+      );
+      if (flowsRes.ok) {
+        const flowsData = await flowsRes.json();
+        const mapped =
+          Array.isArray(flowsData) && flowsData.length
+            ? flowsData.map(mapFlowFromApi)
+            : [];
+        setFlows(mapped);
+      } else {
+        setFlows([]);
+      }
+
+      if (!fairValueDateLabel) {
+        setFairValueId(null);
+        setFairValueFxRate(0);
+        setFairValueAmountLC(0);
+        return;
+      }
+
+      const fairRes = await fetch(
+        `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`
+      );
+      if (!fairRes.ok) {
+        setFairValueId(null);
+        setFairValueFxRate(0);
+        setFairValueAmountLC(0);
+        return;
+      }
+
+      const fairData = await fairRes.json();
+      const fairRows = Array.isArray(fairData) ? fairData : [];
+      const match = fairRows.find(
+        (fv) => String(fv.date) === String(fairValueDateLabel)
+      );
+
+      if (match) {
+        setFairValueId(match.fair_value_id ?? match.id ?? null);
+        setFairValueFxRate(match.fx_rate ?? match.fxRate ?? 0);
+        setFairValueAmountLC(match.amount_lc ?? match.amountLC ?? 0);
+      } else {
+        // No fair value for this timeframe => start fresh (fair value only)
+        setFairValueId(null);
+        setFairValueFxRate(0);
+        setFairValueAmountLC(0);
+      }
+    } catch (err) {
+      console.error("Load investment details failed:", err);
+      setFlows([]);
+      setFairValueId(null);
+      setFairValueFxRate(0);
+      setFairValueAmountLC(0);
+    }
+  }, [fundId, investmentId, fairValueDateLabel, mapFlowFromApi]);
+
+  useEffect(() => {
+    loadInvestmentData();
+  }, [loadInvestmentData]);
+
+  // 3. Dynamic Calculations: Fair Value Amount (€)
+  const fairValueAmount = useMemo(() => {
+    return toNumber(fairValueAmountLC) / toNumber(fairValueFxRate);
+  }, [fairValueFxRate, fairValueAmountLC]);
+
+  const normalizeAmountLC = (flow) => {
+    const lc = toNumber(flow.amountLC);
+    const type = canonicalType(flow.type);
+    if (type === "Investment") return -Math.abs(lc);
+    if (type === "Dividend" || type === "Interest" || type === "Other" || type === "Divestment" || type === "Partial divestment") {
+      return Math.abs(lc);
+    }
+    // Fallback: keep original sign from backend for unknown transaction names.
+    return lc;
+  };
 
   // 4. Dynamic Calculations: Summary Cards (Sums by Type)
   const sumsByType = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
-    
-    flows.forEach(f => {
-      // Summing absolute values for display in cards, or keep signed based on business logic.
-      // Usually Investment is negative in DB but shown positive on "Investment" card.
-      const val = toNumber(f.amount);
-      if (sums[f.type] !== undefined) {
-         sums[f.type] += Math.abs(val); 
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      if (sums[t] !== undefined) {
+        sums[t] += lc;
       }
     });
-
     return sums;
   }, [flows]);
 
+  const sumsByTypeEuro = useMemo(() => {
+    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      const fx = toNumber(f.fxRate);
+      const eur = fx ? lc / fx : 0;
+      if (sums[t] !== undefined) {
+        sums[t] += eur;
+      }
+    });
+    return sums;
+  }, [flows]);
+
+  const sumsByTypeLC = useMemo(() => {
+    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+    flows.forEach((f) => {
+      const t = canonicalType(f.type);
+      const lc = Math.abs(toNumber(f.amountLC));
+      if (sums[t] !== undefined) {
+        sums[t] += lc;
+      }
+    });
+    return sums;
+  }, [flows]);
+
+  const irrEuro = useMemo(() => {
+    const cashflows = flows
+      .filter((f) => f.date && toNumber(f.fxRate) > 0)
+      .map((f) => {
+        const lc = normalizeAmountLC(f);
+        const fx = toNumber(f.fxRate);
+        const eur = fx ? lc / fx : 0;
+        return { date: new Date(f.date), amount: eur };
+      })
+      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
+      .sort((a, b) => a.date - b.date);
+    if (fairValueDateLabel) {
+      const fvDate = new Date(fairValueDateLabel);
+      if (!Number.isNaN(fvDate.getTime())) {
+        const fvAmount = toNumber(fairValueAmount);
+        if (Number.isFinite(fvAmount) && fvAmount !== 0) {
+          cashflows.push({ date: fvDate, amount: fvAmount });
+        }
+      }
+    }
+    return safeXirr(cashflows);
+  }, [flows, fairValueDateLabel, fairValueAmount]);
+
+  const irrLC = useMemo(() => {
+    const cashflows = flows
+      .filter((f) => f.date)
+      .map((f) => ({
+        date: new Date(f.date),
+        amount: normalizeAmountLC(f),
+      }))
+      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
+      .sort((a, b) => a.date - b.date);
+    if (fairValueDateLabel) {
+      const fvDate = new Date(fairValueDateLabel);
+      if (!Number.isNaN(fvDate.getTime())) {
+        const fvAmount = toNumber(fairValueAmountLC);
+        if (Number.isFinite(fvAmount) && fvAmount !== 0) {
+          cashflows.push({ date: fvDate, amount: fvAmount });
+        }
+      }
+    }
+    return safeXirr(cashflows);
+  }, [flows, fairValueDateLabel, fairValueAmountLC]);
+
+  const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
+  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
+  const moicInclEuro =
+    investmentEuro > 0
+      ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment) /
+        investmentEuro
+      : 0;
+  const firstInvestmentFlow = useMemo(() => {
+    const investmentFlows = flows.filter((f) => canonicalType(f.type) === "Investment");
+    if (!investmentFlows.length) return null;
+    return [...investmentFlows].sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date) - new Date(b.date);
+    })[0];
+  }, [flows]);
+
+  const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
+
+  // Requested: MOIC LC (incl. dividends) = Fair Value Amount LC / first investment Amount LC
+  const moicInclLC =
+    firstInvestmentAmountLC > 0 ? toNumber(fairValueAmountLC) / firstInvestmentAmountLC : 0;
+
+  // Requested: MOIC € (excl. dividends) = (Divestment + Investment) / Amount
+  const moicExclEuro =
+    toNumber(fairValueAmount) > 0
+      ? (sumsByTypeEuro.Divestment + investmentEuro) / toNumber(fairValueAmount)
+      : 0;
+
+  // Requested: MOIC LC (excl. dividends) = (Divestment + Investment) / Amount LC
+  const moicExclLC =
+    toNumber(fairValueAmountLC) > 0
+      ? (sumsByTypeLC.Divestment + investmentLC) / toNumber(fairValueAmountLC)
+      : 0;
+
   // Handlers
   const handleAddFlow = () => {
-    const newId = flows.length > 0 ? Math.max(...flows.map(f => f.id)) + 1 : 1;
     setFlows((prev) => [
       ...prev,
-      { id: newId, date: "", amount: 0, fxRate: 0, type: "Investment" },
+      { id: makeLocalFlowId(), flowId: null, date: "", amountLC: 0, fxRate: 0, type: "Investment", divestmentPercentage: null },
     ]);
   };
 
@@ -91,14 +391,125 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
     setFlows((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Logic to save flows, fairValue, etc.
-    const payload = {
-        investmentId: investment?.id,
-        flows,
-        fairValue: { date: fairValueDate, amount: fairValueAmount, fx: fairValueFxRate }
-    };
-    console.log("Saving:", payload);
+    try {
+      if (!fundId || !investmentId) {
+        throw new Error("Missing fund or investment id");
+      }
+      if (!Number.isFinite(Number(investmentId))) {
+        setToast({ type: "error", message: "Please save the investment first." });
+        return;
+      }
+
+      if (!transactionTypes.length) {
+        setToast({ type: "error", message: "Transaction types are not loaded yet. Please try again." });
+        return;
+      }
+
+      const normalizeType = (t) => String(t || "").trim().toLowerCase();
+      const typeMap = new Map(
+        transactionTypes
+          .map(normalizeTransactionType)
+          .filter((t) => t.id && t.name)
+          .map((t) => [normalizeType(t.name), t.id])
+      );
+
+      const validFlows = flows.filter((f) => {
+        const hasDate = Boolean(f.date);
+        const hasType = Boolean(f.type);
+        const fx = toNumber(f.fxRate);
+        const lc = toNumber(f.amountLC);
+        return hasDate && hasType && fx > 0 && Number.isFinite(lc);
+      });
+
+      console.log(
+        "[InvestmentDetails] flow types before save:",
+        flows.map((f) => ({ id: f.id, type: f.type, divestmentPercentage: f.divestmentPercentage }))
+      );
+
+      const flowRequests = validFlows.map((f) => {
+        const transactionId = typeMap.get(normalizeType(f.type));
+        if (!transactionId) {
+          throw new Error(`Unknown transaction type: ${f.type}`);
+        }
+        const amountLC = round6(toNumber(f.amountLC));
+        const fxRate = round6(toNumber(f.fxRate));
+        const amountEuro = fxRate ? round6(amountLC / fxRate) : 0;
+
+        const isPartial = canonicalType(f.type) === "Partial divestment";
+        const divestmentPct = f.divestmentPercentage ?? null;
+        if (isPartial) {
+          if (divestmentPct === null || divestmentPct === "") {
+            throw new Error("divestment_percentage required for Partial divestment");
+          }
+          const pct = toNumber(divestmentPct);
+          if (!Number.isFinite(pct) || pct < 0 || pct > 9.9999) {
+            throw new Error("divestment_percentage must be between 0 and 9.9999");
+          }
+        }
+
+        const isUpdate = Boolean(f.flowId);
+        const url = isUpdate
+          ? `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${f.flowId}/`
+          : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
+        return fetch(url, {
+          method: isUpdate ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transaction_id: transactionId,
+            date: f.date,
+            amount_lc: amountLC,
+            fx_rate: fxRate,
+            amount: amountEuro,
+            divestment_percentage: isPartial ? round6(toNumber(divestmentPct)) : null,
+          }),
+        });
+      });
+
+      const requests = [...flowRequests];
+      if (fairValueDateLabel) {
+        requests.push(
+          fetch(
+            fairValueId
+              ? `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/${fairValueId}/`
+              : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`,
+            {
+              method: fairValueId ? "PUT" : "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                date: fairValueDateLabel,
+                amount_lc: round6(toNumber(fairValueAmountLC)),
+                fx_rate: round6(toNumber(fairValueFxRate)),
+                amount: round6(toNumber(fairValueAmount)),
+              }),
+            }
+          )
+        );
+      }
+
+      if (!requests.length) {
+        setToast({ type: "error", message: "No valid flows to save." });
+        return;
+      }
+
+      const responses = await Promise.all(requests);
+      const bad = responses.find((r) => !r.ok);
+      if (bad) {
+        const text = await bad.text();
+        console.error("Save failed:", text);
+        setToast({ type: "error", message: "Failed to save investment details." });
+        return;
+      }
+    } catch (err) {
+      console.error("Save investment details failed:", err);
+      setToast({ type: "error", message: "Failed to save investment details." });
+      return;
+    }
+    await loadInvestmentData();
+    if (onSaved) {
+      await onSaved();
+    }
     onClose();
   };
 
@@ -132,6 +543,12 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
                    {headerCountry}
                 </span>
               </div>
+              {headerTimeframe && (
+                <div className="invMetaItem">
+                  <span className="invMetaLabel">Timeframe</span>
+                  <span className="invMetaValue">{headerTimeframe}</span>
+                </div>
+              )}
             </div>
 
             <div className="invHeaderActions">
@@ -176,29 +593,37 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
   <div className="invFairCol" style={{ maxWidth: '160px' }}>
     <div className="invFairLabel">Fair Value</div>
     <div style={{ height: '42px', display: 'flex', alignItems: 'center', fontSize: '14px', color: '#334155', fontWeight: '500' }}>
-      2024/22/1
+      {fairValueDateLabel || "-"}
     </div>
   </div>
 
   <div className="invFairCol">
     <div className="invFairLabel">Amount</div>
     <div style={{ height: '42px', display: 'flex', alignItems: 'center', fontSize: '14px', color: '#334155', fontWeight: '500' }}>
-      {formatMoney(fairValueAmountLC, "").trim()}
+      {formatMoney(fairValueAmount, "")}
     </div>
   </div>
 
   <div className="invFairCol">
     <div className="invFairLabel">FX Rate*</div>
-   <div style={{ height: '42px', display: 'flex', alignItems: 'center', fontSize: '14px', color: '#334155', fontWeight: '500' }}>
-      {formatMoney(fairValueAmountLC, "").trim()}
-    </div>
+    <input
+      className="invInputBase"
+      type="number"
+      step="0.0001"
+      value={fairValueFxRate}
+      onChange={(e) => setFairValueFxRate(e.target.value)}
+    />
   </div>
 
   <div className="invFairCol">
     <div className="invFairLabel">Amount LC *</div>
-    <div style={{ height: '42px', display: 'flex', alignItems: 'center', fontSize: '14px', color: '#334155', fontWeight: '500' }}>
-      {formatMoney(fairValueAmountLC, "").trim()}
-    </div>
+    <input
+      className="invInputBase"
+      type="number"
+      step="0.01"
+      value={fairValueAmountLC}
+      onChange={(e) => setFairValueAmountLC(e.target.value)}
+    />
   </div>
 </div>
 
@@ -208,6 +633,10 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
             onUpdate={handleUpdateFlow}
             onDelete={handleDeleteFlow}
             onAdd={handleAddFlow}
+            flowTypes={transactionTypes
+              .map(normalizeTransactionType)
+              .map((t) => t.name)
+              .filter(Boolean)}
           />
 {/* ===== Performance ===== */}
 <section className="inv-performance">
@@ -216,32 +645,32 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
   <div className="inv-performance-grid">
     <div className="perf-card">
       <span>Gross IRR €</span>
-      <strong>3465575</strong>
+      <strong>{irrEuro !== null ? formatPercent(irrEuro) : "-"}</strong>
     </div>
 
     <div className="perf-card">
       <span>Gross IRR LC</span>
-      <strong>4536554</strong>
+      <strong>{irrLC !== null ? formatPercent(irrLC) : "-"}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC € (incl. dividends)</span>
-      <strong>5462</strong>
+      <strong>{`${formatRatio(moicInclEuro)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC LC (incl. dividends)</span>
-      <strong>543745</strong>
+      <strong>{`${formatRatio(moicInclLC)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC € (excl. dividends)</span>
-      <strong>54376</strong>
+      <strong>{`${formatRatio(moicExclEuro)}x`}</strong>
     </div>
 
     <div className="perf-card">
       <span>MOIC LC (excl. dividends)</span>
-      <strong>653756</strong>
+      <strong>{`${formatRatio(moicExclLC)}x`}</strong>
     </div>
   </div>
 </section>
@@ -255,6 +684,20 @@ export default function InvestmentDetailsDrawer({ investment, onClose }) {
         </div>
 
       </aside>
+
+      {toast && (
+        <div className={`toast toast-${toast.type} toast-inv`}>
+          <span>{toast.message}</span>
+          <button
+            className="toast-close"
+            onClick={() => setToast(null)}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+

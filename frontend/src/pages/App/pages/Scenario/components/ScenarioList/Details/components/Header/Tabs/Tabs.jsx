@@ -11,17 +11,7 @@ function Tabs({ activeTab, onTabChange }) {
 
   return (
     <div className="scenario-tabs-frame">
-      
-      {/* 1. SIMULATION RESULTS */}
-      <button 
-        className={`scenario-tab-item ${isActive('simulation-results') ? 'active' : ''}`}
-        onClick={() => onTabChange('simulation-results')}
-      >
-        <PlayIcon />
-        Simulation Results
-      </button>
-
-      {/* 2. PORTFOLIO */}
+      {/* 1. PORTFOLIO */}
       <button 
         className={`scenario-tab-item ${isActive('portfolio') ? 'active' : ''}`}
         onClick={() => onTabChange('portfolio')}
@@ -30,7 +20,7 @@ function Tabs({ activeTab, onTabChange }) {
         Portfolio
       </button>
       
-      {/* 3. SET FINANCIALS */}
+      {/* 2. SET FINANCIALS */}
       <button 
         className={`scenario-tab-item ${isActive('set-financials') ? 'active' : ''}`}
         onClick={() => onTabChange('set-financials')}
@@ -39,7 +29,7 @@ function Tabs({ activeTab, onTabChange }) {
         Set financials
       </button>
 
-      {/* 4. FUND FLOWS */}
+      {/* 3. FUND FLOWS */}
       <button 
         className={`scenario-tab-item ${isActive('fund-flows') ? 'active' : ''}`}
         onClick={() => onTabChange('fund-flows')}

@@ -18,19 +18,29 @@ const formatNum = (v) => {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).replace(/,/g, ' ');
 };
 
-const MenuIcon = () => (
-  <div style={{fontWeight: 'bold', fontSize: '18px', paddingBottom:'6px'}}>⋮</div>
+const TrashIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fillRule="evenodd" clipRule="evenodd" d="M5 0.833333C5 0.373096 5.3731 0 5.83333 0H10.8333C11.2936 0 11.6667 0.373096 11.6667 0.833333C11.6667 1.29357 11.2936 1.66667 10.8333 1.66667H5.83333C5.3731 1.66667 5 1.29357 5 0.833333ZM2.49354 2.5H0.833333C0.373096 2.5 0 2.8731 0 3.33333C0 3.79357 0.373096 4.16667 0.833333 4.16667H1.72037L2.25512 12.1879C2.29708 12.8174 2.3318 13.3384 2.39406 13.7624C2.45888 14.2039 2.56171 14.6073 2.77591 14.9833C3.10936 15.5687 3.61232 16.0392 4.21852 16.333C4.60794 16.5217 5.01733 16.5975 5.46216 16.6328C5.8894 16.6667 6.41152 16.6667 7.04245 16.6667H9.62422C10.2551 16.6667 10.7773 16.6667 11.2045 16.6328C11.6493 16.5975 12.0587 16.5217 12.4481 16.333C13.0543 16.0392 13.5573 15.5687 13.8908 14.9833C14.105 14.6073 14.2078 14.2039 14.2726 13.7624C14.3349 13.3383 14.3696 12.8173 14.4116 12.1878L14.9463 4.16667H15.8333C16.2936 4.16667 16.6667 3.79357 16.6667 3.33333C16.6667 2.8731 16.2936 2.5 15.8333 2.5H14.1731C14.1683 2.49996 14.1634 2.49996 14.1585 2.5H2.50812C2.50327 2.49996 2.49841 2.49996 2.49354 2.5ZM13.2759 4.16667H3.39074L3.91589 12.044C3.96062 12.7148 3.99154 13.1695 4.04305 13.5203C4.09308 13.861 4.1542 14.0357 4.22406 14.1583C4.39079 14.451 4.64227 14.6863 4.94537 14.8332C5.07237 14.8947 5.25071 14.9441 5.59405 14.9713C5.94752 14.9994 6.40321 15 7.07555 15H9.59112C10.2635 15 10.7191 14.9994 11.0726 14.9713C11.416 14.9441 11.5943 14.8947 11.7213 14.8332C12.0244 14.6863 12.2759 14.451 12.4426 14.1583C12.5125 14.0357 12.5736 13.861 12.6236 13.5203C12.6751 13.1695 12.7061 12.7148 12.7508 12.044L13.2759 4.16667ZM6.66667 6.25C7.1269 6.25 7.5 6.6231 7.5 7.08333V11.25C7.5 11.7102 7.1269 12.0833 6.66667 12.0833C6.20643 12.0833 5.83333 11.7102 5.83333 11.25V7.08333C5.83333 6.6231 6.20643 6.25 6.66667 6.25ZM10 6.25C10.4602 6.25 10.8333 6.6231 10.8333 7.08333V11.25C10.8333 11.7102 10.4602 12.0833 10 12.0833C9.53976 12.0833 9.16667 11.7102 9.16667 11.25V7.08333C9.16667 6.6231 9.53976 6.25 10 6.25Z" fill="#375A89"/>
+  </svg>
 );
 
-// دالة مساعدة لتنسيق التاريخ للعرض داخل الـ Input
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 3.3335V12.6668M3.33337 8.00016H12.6667" stroke="#375A89" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);// دالة مساعدة لتنسيق التاريخ للعرض داخل الـ Input
 const formatDateForDisplay = (dateString) => {
     if (!dateString) return "";
     // لو التاريخ جاي سترينج YYYY-MM-DD
     return dateString; 
 };
 
-export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd }) {
+export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd, flowTypes }) {
+  const types = flowTypes && flowTypes.length > 0 ? flowTypes : FLOW_TYPES;
   const [activePickerId, setActivePickerId] = useState(null);
+  const hasPartialDivestment = flows.some(
+    (f) => String(f.type).toLowerCase() === "partial divestment"
+  );
 
   // لغلق الـ Picker عند الضغط خارجه (اختياري، لكن مفيد)
   const wrapperRef = useRef(null);
@@ -48,24 +58,25 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd 
 
 
   return (
-    <div className="invTableContainer" style={{ minHeight: '400px' /* مساحة عشان الـ Popup يظهر */ }}>
+    <div className="invTableContainer">
       <table className="invTable">
         <thead>
           <tr>
             <th>Flow <span className="invSortIcon"><SortIcon/></span></th>
             <th>Date <span className="invSortIcon"><SortIcon/></span></th>
-            <th className="invNum">Amount (€) <span className="invSortIcon"><SortIcon/></span></th>
+            <th className="invNum">Amount <span className="invSortIcon"><SortIcon/></span></th>
             <th className="invNum">FX Rate <span className="invSortIcon"><SortIcon/></span></th>
-            <th className="invNum">Amount LC <span className="invSortIcon"><SortIcon/></span></th>
+            <th className="invNum">Amount LC* <span className="invSortIcon"><SortIcon/></span></th>
             <th>Type <span className="invSortIcon"><SortIcon/></span></th>
+            {hasPartialDivestment && <th className="invNum">Divestment %</th>}
             <th style={{ textAlign: 'right', paddingRight: '12px' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {flows.map((f, index) => {
-            const amountVal = parseFloat(String(f.amount).replace(/[^0-9.-]/g, "")) || 0;
+            const amountLCVal = parseFloat(String(f.amountLC).replace(/[^0-9.-]/g, "")) || 0;
             const fxVal = parseFloat(String(f.fxRate).replace(/[^0-9.-]/g, "")) || 0;
-            const calculatedLC = amountVal * fxVal;
+            const amountEuro = fxVal ? amountLCVal / fxVal : 0;
             const isPickerOpen = activePickerId === f.id;
 
             return (
@@ -121,14 +132,14 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd 
                   </div>
                 </td>
          
-                {/* Amount */}
+                {/* Amount (calculated) */}
                 <td>
                   <div className="invInputWrapper">
                     <input
-                      type="number"
-                      className="invTableInput invNum"
-                      value={f.amount}
-                      onChange={(e) => onUpdate(f.id, "amount", e.target.value)}
+                      type="text"
+                      readOnly
+                      className="invTableInput invNum readOnlyInput"
+                      value={amountEuro ? `${formatNum(amountEuro)}` : ""}
                     />
                   </div>
                 </td>
@@ -146,14 +157,14 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd 
                   </div>
                 </td>
 
-                {/* Calculated LC */}
+                {/* Amount LC (input) */}
                 <td>
                     <div className="invInputWrapper">
                      <input
-                      type="text"
-                      readOnly
-                      className="invTableInput invNum readOnlyInput"
-                      value={calculatedLC ? `${formatNum(calculatedLC)} LC` : ""}
+                      type="number"
+                      className="invTableInput invNum"
+                      value={f.amountLC}
+                      onChange={(e) => onUpdate(f.id, "amountLC", e.target.value)}
                     />
                   </div>
                 </td>
@@ -161,21 +172,41 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd 
                 {/* Type Select */}
                 <td style={{ width: '140px' }}>
                   <select
-                    className={`invBadgeSelect badge-${f.type}`}
+                    className={`invBadgeSelect badge-${String(f.type).replace(/\\s+/g, "-")}`}
                     value={f.type}
                     onChange={(e) => onUpdate(f.id, "type", e.target.value)}
                   >
-                    {FLOW_TYPES.map((t) => (
+                    {types.map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
                 </td>
 
-                {/* Actions */}
+                {/* Divestment Percentage (Partial divestment only) */}
+                {hasPartialDivestment && (
+                  <td style={{ width: '140px' }}>
+                    {String(f.type).toLowerCase() === "partial divestment" ? (
+                      <div className="invInputWrapper">
+                        <input
+                          type="number"
+                          className="invTableInput invNum"
+                          value={f.divestmentPercentage ?? ""}
+                          onChange={(e) => onUpdate(f.id, "divestmentPercentage", e.target.value)}
+                          min="0"
+                          max="9.9999"
+                          step="0.0001"
+                          placeholder="0 - 9.9999"
+                        />
+                      </div>
+                    ) : (
+                      <div className="invEmptyCell" />
+                    )}
+                  </td>
+                )}{/* Actions */}
                 <td>
                   <div className="invActionsCell">
                     <button className="invRowActionBtn invIconGrey" onClick={() => onDelete(f.id)}>
-                        <MenuIcon />
+                        <TrashIcon />
                     </button>
                   </div>
                 </td>
@@ -186,8 +217,13 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd 
       </table>
 
       <button className="invAddFlowBtn" onClick={onAdd}>
-        + New Flow
+        <span className="invAddFlowIcon"><PlusIcon /></span>
+        <span className="invAddFlowText">New Flow</span>
       </button>
     </div>
   );
 }
+
+
+
+

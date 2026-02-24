@@ -16,30 +16,6 @@
 }
 
 /* span that wraps ONLY the SVG search icon */
-.search-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  background: none !important;
-  position: relative;
-}
-
-/* kill any old pseudo-content/icon from other styles */
-.search-icon::before,
-.search-icon::after {
-  content: none !important;
-}
-
-/* make sure the SVG fits perfectly */
-.search-icon svg {
-  width: 14px;
-  height: 14px;
-  display: block;
-}
-
 .search-input {
   flex: 1;
   border: none;

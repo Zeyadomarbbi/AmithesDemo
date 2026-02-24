@@ -9,10 +9,7 @@ export default function SearchBox({
 }) {
   return (
     <div className="search-input-wrapper search-box">
-      <span className="search-icon">
         <SearchIcon />
-      </span>
-
       <input
         className="search-input"
         placeholder={placeholder}

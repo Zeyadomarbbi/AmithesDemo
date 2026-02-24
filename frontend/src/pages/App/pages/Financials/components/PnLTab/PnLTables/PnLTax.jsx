@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   EditLineIcon,
   MinusIcon,
-  PlusIcon,
   PlusIconWhite,
   TrashBinIcon,
   KebabIcon,
@@ -33,6 +32,8 @@ const PnLTax = ({
 
   // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // IMPORTANT: single ref, but we bind it to the currently-open row only
   const menuWrapRef = useRef(null);
 
   // close menu on outside click / Esc
@@ -93,7 +94,7 @@ const PnLTax = ({
         taxLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
 
-          // ✅ restore zebra striping (match Income/Expenses)
+          // ✅ zebra striping (match Income/Expenses)
           const rowClass =
             index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
 
@@ -181,7 +182,13 @@ const PnLTax = ({
               {/* ACTIONS */}
               <div className="pnl-row-actions">
                 {line.isCustom ? (
-                  <div className="pnl-kebab-wrap" ref={menuWrapRef}>
+                  <div
+                    className="pnl-kebab-wrap"
+                    ref={(el) => {
+                      // ✅ bind ref ONLY to the currently-open row
+                      if (openMenuId === line.id) menuWrapRef.current = el;
+                    }}
+                  >
                     <button
                       className="pnl-kebab"
                       type="button"
@@ -234,7 +241,15 @@ const PnLTax = ({
             type="button"
             onClick={() => setShowTax((v) => !v)}
           >
-            {showTax ? <MinusIcon /> : <PlusIconWhite />}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {showTax ? <MinusIcon /> : <PlusIconWhite />}
+            </span>
             Tax
           </button>
         </div>
@@ -245,7 +260,7 @@ const PnLTax = ({
           </div>
         ))}
 
-        {/* ✅ keep last column empty (Add button is in header row now) */}
+        {/* keep last column empty */}
         <div className="group-action-cell" />
       </div>
     </div>

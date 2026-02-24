@@ -79,7 +79,7 @@ function ScenarioCard({ id, fundId, title, author, createdDate, description, isS
         
         {/* === Link === */}
         <Link 
-          to={`scenario-details/${id}/simulation-results`}
+          to={`scenario-details/${id}/portfolio`}
           className="scenario-card-join-btn" 
           state={{ 
             title, 

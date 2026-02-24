@@ -129,6 +129,13 @@
   align-items: center;
 }
 
+.btn-save-add-scenario:disabled {
+    background-color: #E5E7EB; /* Light grey */
+    color: #9CA3AF;            /* Muted text */
+    cursor: not-allowed;
+    border-color: #E5E7EB;
+}
+
 .btn-cancel-add-scenario {
   background: #FAFAF9; 
   color: #7B7D7E;

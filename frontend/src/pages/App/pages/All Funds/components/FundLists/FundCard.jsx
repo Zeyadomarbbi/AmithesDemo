@@ -1,8 +1,8 @@
 import React from "react";
 import "./FundCard.css";
 
-export default function FundCard({ fund, fundKpi, clickable = false, onClick }) {
-    const getToneClass = (phase) => {
+export default function FundCard({ fund, clickable = false, onClick }) {
+  const getToneClass = (phase) => {
     const phaseLower = phase?.toLowerCase() || "";
 
     if (
@@ -21,7 +21,7 @@ export default function FundCard({ fund, fundKpi, clickable = false, onClick }) 
       return "badge-closed";
     }
 
-    return "badge-info"; // Fallback
+    return "badge-info"; 
   };
 
   const toneClass = getToneClass(fund.phaseName);
@@ -33,8 +33,8 @@ export default function FundCard({ fund, fundKpi, clickable = false, onClick }) 
       onClick?.();
     }
   };
-  const formatKpi = (val) => (val !== undefined && val !== null && val !== "" ? val : "-");
-return (
+
+  return (
     <div
       className={`fund-card ${clickable ? "clickable" : ""}`}
       onClick={clickable ? onClick : undefined}
@@ -72,23 +72,6 @@ return (
               />
             </svg>
           </div>
-        </div>
-      </div>
-
-      <div className="fund-stats">
-        <div className="stat-box">
-          <div className="stat-label">Gross IRR</div>
-          <div className="stat-value">{formatKpi(fundKpi?.grossIrr)}</div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label">Net IRR</div>
-          <div className="stat-value">{formatKpi(fundKpi?.netIrr)}</div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label"># Deals</div>
-          <div className="stat-value">{formatKpi(fundKpi?.deals)}</div>
         </div>
       </div>
     </div>

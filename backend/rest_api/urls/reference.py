@@ -1,5 +1,4 @@
 from django.urls import path
-
 from ..views.reference import *
 
 urlpatterns = [
@@ -8,4 +7,5 @@ urlpatterns = [
     path('fund-phases/', FundPhaseListView.as_view(), name='fund-phase-list'),
     path('waterfall-steps/', WaterfallStepListView.as_view(), name='waterfall-step-list'),
     path('man-fee-phases/', ManFeePhaseListView.as_view(), name='man-fee-phase-list'),
+    path('portfolio-transaction-types/', PortfolioTransactionTypeListView.as_view(), name='portfolio-transaction-type-list'),
 ]

@@ -1,6 +1,6 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Drawer/NewShareClassDrawer.jsx
-import React, { useState, useEffect } from "react";
-import { useFileUpload } from "../../../../../../../../hooks/Upload"; // Adjust path as needed
+import React, { useState, useEffect, useMemo } from "react";
+import { useFileUpload } from "../../../../../../../../hooks/Upload"; 
 import { 
   ChevronLeftIcon, CloseIcon, CurrencyIcon, PoundIcon, 
   PieChartIcon, CreditCardIcon, CreditCardXIcon, UploadIcon 
@@ -13,6 +13,8 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [isin, setIsin] = useState("");
   const [shareValue, setShareValue] = useState("");
+  
+  // These are required; we keep your defaults as they ensure the "required" state is met upon opening
   const [issuanceMethod, setIssuanceMethod] = useState("pro-rata");
   const [distributionMethod, setDistributionMethod] = useState("dividend");
   const [description, setDescription] = useState("");
@@ -36,7 +38,17 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
     }
   }, [isOpen]);
 
-  // --- File Upload Implementation ---
+  // --- STRICT VALIDATION LOGIC ---
+  const isFormValid = useMemo(() => {
+    return (
+      name.trim() !== "" && 
+      shareValue !== "" && 
+      !isNaN(parseFloat(shareValue)) &&
+      issuanceMethod !== "" &&
+      distributionMethod !== ""
+    );
+  }, [name, shareValue, issuanceMethod, distributionMethod]);
+
   const handleFileSelected = (file) => {
     setUploadedFile(file);
   };
@@ -48,18 +60,12 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
 
   const { trigger, InputComponent } = useFileUpload(handleFileSelected);
 
-  // --- SAVE LOGIC (Commits to Database) ---
   const handleSave = async () => {
-    // 1. Basic Validation
-    if (!name || !shareValue) {
-      alert("Please fill in the required fields (Name and Share Value).");
-      return;
-    }
+    if (!isFormValid || isSaving) return;
 
     setIsSaving(true);
 
     try {
-      // 2. Enum Mapping: Convert UI state to Database ENUMs
       const dbIssuanceMethod = issuanceMethod === "pro-rata" 
         ? "PRO_RATA_CALLED" 
         : "UPFRONT";
@@ -68,27 +74,23 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
         ? "DIVIDEND" 
         : "REDEMPTION_OF_SHARES";
 
-      // 3. Construct Payload
       const newShareClassData = {
         share_class_name: name,
         isin_code: isin,
-        nominal_value: parseFloat(shareValue), // Ensure it's a number/decimal
+        nominal_value: shareValue ? parseFloat(shareValue) : 0,
         issuance_method: dbIssuanceMethod,
         distribution_method: dbDistributionMethod,
         ppm_description: description,
-        document_file: uploadedFile // Changed from 'file' to 'document_file'
+        document_file: (uploadedFile instanceof File) ? uploadedFile : null 
       };
 
-      // 4. Call Parent API Function (Commits to DB)
-      console.log("Committing to DB...", newShareClassData);
+      // onCreate in parent handles the global Toast for success/error
       await onCreate(newShareClassData);
-
-      // 5. Close Drawer on Success
       onClose();
       
     } catch (error) {
-      console.error("Failed to save share class:", error);
-      alert("An error occurred while saving.");
+      // Error is caught here to stop loading state, but parent handles notification
+      console.error("Save failed:", error);
     } finally {
       setIsSaving(false);
     }
@@ -125,24 +127,28 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               <div className="share-class-drawer-field-label">
                 Share Class Name<span className="required">*</span>
               </div>
-              <input
-                type="text"
-                className="field-input"
-                placeholder="Please enter the share class name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <div className="share-class-field-input share-class-field-input--with-icon">
+                <input
+                  type="text"
+                  className="field-input-inner"
+                  placeholder="Please enter the share class name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="share-drawer-field">
               <div className="share-class-drawer-field-label">ISIN code</div>
-              <input
-                type="text"
-                className="field-input"
-                placeholder="ex : FR0000120271"
-                value={isin}
-                onChange={(e) => setIsin(e.target.value)}
-              />
+              <div className="share-class-field-input share-class-field-input--with-icon">
+                <input
+                  type="text"
+                  className="field-input-inner"
+                  placeholder="ex : FR0000120271"
+                  value={isin}
+                  onChange={(e) => setIsin(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -150,7 +156,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
             <div className="share-class-drawer-field-label">
               Share value<span className="required">*</span>
             </div>
-            <div className="field-input field-input--with-icon">
+            <div className="share-class-field-input share-class-field-input--with-icon">
               <input
                 type="number"
                 className="field-input-inner"
@@ -160,13 +166,12 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               />
               <CurrencyIcon />
             </div>
-            <div className="share-drawer-help">
-              Please enter the full amount in €...
-            </div>
           </div>
 
           <div className="share-drawer-section">
-            <div className="share-class-drawer-field-label">Share issuance method</div>
+            <div className="share-class-drawer-field-label">
+              Share issuance method<span className="required">*</span>
+            </div>
               <div className="share-toggle-group">
                 <button
                   type="button"
@@ -186,7 +191,9 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
           </div>
 
           <div className="share-drawer-section">
-            <div className="share-class-drawer-field-label">Distribution method</div>
+            <div className="share-class-drawer-field-label">
+              Distribution method<span className="required">*</span>
+            </div>
             <div className="share-toggle-group">
               <button
                 type="button"
@@ -223,10 +230,9 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               style={{ cursor: uploadedFile ? "default" : "pointer" }}
             >
               <InputComponent />
-              
               {uploadedFile ? (
                 <div className="share-file-preview">
-                   <div className="share-file-info">
+                    <div className="share-file-info">
                       <div className="share-file-icon">📄</div>
                       <div className="share-file-details">
                         <span className="share-file-name">{uploadedFile.name}</span>
@@ -234,23 +240,16 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
                           {(uploadedFile.size / 1024).toFixed(0)} KB
                         </span>
                       </div>
-                   </div>
-                   <button 
-                     type="button" 
-                     className="share-file-remove" 
-                     onClick={handleRemoveFile}
-                   >
-                     <CloseIcon />
-                   </button>
+                    </div>
+                    <button type="button" className="share-file-remove" onClick={handleRemoveFile}>
+                      <CloseIcon />
+                    </button>
                 </div>
               ) : (
                 <>
                   <UploadIcon />
                   <div className="share-upload-text">
                     <span className="upload-trigger">Click to upload</span> or drag and drop
-                  </div>
-                  <div className="share-upload-hint">
-                    SVG, PNG, JPG or GIF (max. 800×400px)
                   </div>
                 </>
               )}
@@ -272,7 +271,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
             type="button"
             className="share-drawer-footer-btn share-drawer-footer-btn--save"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !isFormValid}
           >
             {isSaving ? "Saving..." : "Save"}
           </button>

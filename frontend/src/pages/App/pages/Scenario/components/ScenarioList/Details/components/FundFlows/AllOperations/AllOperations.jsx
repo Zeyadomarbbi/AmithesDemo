@@ -1,19 +1,40 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './AllOperations.css';
 import { SortIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
+import { useScenarioFFAllOperations } from './useScenarioFFAllOperations'; 
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';
 
-const AllOperations = ({ data }) => { // Accepts data prop
+const AllOperations = ({ fundId, scenarioId, refreshTrigger }) => {
+  const formatNumber = useNumberFormatter();
+  const formatPercentage = usePercentageFormatter();
+
+  const { 
+    allOperations, 
+    loading, 
+    error, 
+    refresh 
+  } = useScenarioFFAllOperations(fundId, scenarioId);
+
+  useEffect(() => {
+    if (refreshTrigger > 0 && refresh) {
+      refresh();
+    }
+  }, [refreshTrigger, refresh]);
 
   const parseDateString = (dateStr) => {
     if (!dateStr) return new Date();
-    const [day, month, year] = dateStr.split('/');
-    return new Date(year, month - 1, day);
+    // Handle YYYY-MM-DD (standard API format)
+    return new Date(dateStr);
   };
+
+  if (loading) return <div>Loading...</div>; // simplified for brevity
+  if (error) return <div>Error: {error}</div>;
+  if (!allOperations || allOperations.length === 0) return <div>No operations found</div>;
 
   return (
     <div className="all-ops-container"> 
-      <div className="table-responsive-wrapper">   
+      <div className="table-responsive-wrapper">    
         <table className="ops-table">
           <thead>
             <tr>
@@ -25,19 +46,33 @@ const AllOperations = ({ data }) => { // Accepts data prop
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => (
-              <tr key={row.id} className={row.type === 'dist' ? 'row-highlight' : ''}>
+            {allOperations.map((row) => (
+              <tr key={row.all_operations_id} className={row.flow_type === 'distribution' ? 'row-highlight' : ''}>
                 <td className="td-date">
                   <DateInputWithPicker 
                     initialDate={parseDateString(row.date)}
                     isSingle={true}
+                    disabled={true} 
                   />
                 </td>
                 
-                <td className="td-right">{row.flow}</td>
-                <td className="td-right">{row.capCalled || '-'}</td>
-                <td className="td-right">{row.distPercent || '-'}</td>
-                <td className="td-right">{row.dpi || '0.00x'}</td>
+                {/* Fixed: row.flows (was row.flow) */}
+                <td className="td-right">{formatNumber(row.flows)}</td>
+                
+                {/* Fixed: row.pct_capital_called (was row.capCalled) */}
+                <td className="td-right">
+                  {formatPercentage(row.pct_capital_called)}
+                </td>
+                
+                {/* Fixed: row.pct_distributed (was row.distPercent) */}
+                <td className="td-right">
+                   {formatPercentage(row.pct_distributed)}
+                </td>
+                
+                {/* Fixed: row.dpi with specific 'x' formatting */}
+                <td className="td-right">
+                  {row.dpi ? `${parseFloat(row.dpi).toFixed(2)}x` : '0.00x'}
+                </td>
               </tr>
             ))}
           </tbody>

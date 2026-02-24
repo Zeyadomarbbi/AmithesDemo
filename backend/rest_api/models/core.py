@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Fund(models.Model):
     fund_id = models.AutoField(primary_key=True)
@@ -22,6 +23,7 @@ class Fund(models.Model):
 
     class Meta:
         db_table = "fund"
+        ordering = ['formation_date', 'legal_name', 'short_name']
 
 class ShareClass(models.Model):
 
@@ -70,6 +72,7 @@ class ShareClass(models.Model):
 
     class Meta:
         db_table = "share_class"
+        ordering = ['share_class_name']
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "share_class_name"],
@@ -95,9 +98,11 @@ class Timeframe(models.Model):
     class Meta:
         managed = False
         db_table = "timeframe"
+        ordering = ['date', 'name']
         constraints = [
             models.UniqueConstraint(fields=['fund', 'date'], name='uq_fund_date_timeframe')
         ]
+        
 
     def save(self, *args, **kwargs):
         if self.date:
@@ -106,3 +111,48 @@ class Timeframe(models.Model):
             
         super().save(*args, **kwargs)
 
+class LimitedPartner(models.Model):
+    lp_id = models.AutoField(primary_key=True)
+    country = models.ForeignKey(
+        'Country',
+        on_delete=models.PROTECT,
+        db_column='country_id',
+        related_name='limited_partners'
+    )
+    name = models.CharField(max_length=255)
+    address = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=20)
+    iban = models.CharField(max_length=34)
+    bank_name = models.CharField(max_length=255)
+    swift = models.CharField(max_length=11)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = 'lps_limited_partner'
+        ordering = ['name']
+
+class FundManFeeCommitmentYear(models.Model):
+    # Primary Key
+    fund = models.OneToOneField('Fund', on_delete=models.DO_NOTHING, primary_key=True, db_column='fund_id')
+    
+    # Commitment FROM
+    commitment_from = models.DateField()
+    commitment_from_year = models.IntegerField()
+    commitment_from_year_start = models.DateField() # <--- Added
+    commitment_from_year_end = models.DateField()   # <--- Added
+    
+    # Commitment UNTIL
+    commitment_until = models.DateField()
+    commitment_until_year = models.IntegerField()
+    commitment_until_year_start = models.DateField() # <--- Added
+    commitment_until_year_end = models.DateField()   # <--- Added
+    
+    class Meta:
+        managed = False  # Created via SQL
+        db_table = 'fund_man_fee_commitment_year'
+        ordering = ['commitment_from']

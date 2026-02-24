@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
+import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard';
 import './index.css';
 
 // --- AUTH ---
@@ -11,13 +12,21 @@ import LoginPage from './pages/Auth/Login/LoginPage';
 import AppLayout from './pages/App/components/AppLayout'; 
 
 // --- PAGES ---
-import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
-import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
-import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
-import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage';
 import AllFundsPage from './pages/App/pages/All Funds/AllFundsPage';
 import AdminsPage from './pages/App/pages/Admins/AdminsPage';
 import HelpPage from './pages/App/pages/Help/HelpPage';
+
+// --- DASHBOARD COMPONENTS ---
+import DashboardPage from './pages/App/pages/Dashboard/DashboardPage';
+import KPIDashboard from './pages/App/pages/Dashboard/components/KPIDashboard/KPIDashboard';
+import LimitsDashboard from './pages/App/pages/Dashboard/components/LimitsDashboard/LimitsDashboard';
+
+// --- LPs STATEMENT COMPONENT ---
+import LPsStatementPage from './pages/App/pages/LPsStatement/LPsStatementPage.jsx';
+import CapitalAccountStatement from './pages/App/pages/LPsStatement/components/CapitalAccountStatement/CapitalAccountStatement';
+import CapitalFlows from './pages/App/pages/LPsStatement/components/CapitalFlows/CapitalFlows.jsx';
+import Limits from './pages/App/pages/LPsStatement/components/Limits/Limits.jsx';
+import LPsRegister from './pages/App/pages/LPsStatement/components/LPsRegister/LPsRegister.jsx';
 
 // --- FINANCIALS COMPONENTS ---
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
@@ -41,11 +50,8 @@ import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/C
 
 // --- SCENARIO COMPONENTS ---
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
-import ScenarioList from './pages/App/pages/Scenario/components/ScenarioList/ScenarioList.jsx';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
-import SynthesisList from './pages/App/pages/Scenario/components/SynthesisList/SynthesisList.jsx';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
-
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -63,6 +69,7 @@ const router = createBrowserRouter([
       // 2. FUND SPECIFIC PAGES
       {
         path: 'funds/:fundId',
+        element: <FundSetupGuard><Outlet /></FundSetupGuard>, 
         children: [
           { 
             path: 'settings', 
@@ -75,6 +82,17 @@ const router = createBrowserRouter([
                 { path: 'management-fees', element: <ManagementFees /> },
             ]
           },
+          { 
+            path: 'lps-statement', 
+            element: <LPsStatementPage />,
+            children: [
+              { index: true, element: <Navigate to="lps-register" replace /> },
+              { path: 'lps-register', element: <LPsRegister /> },
+              { path: 'capital-flows', element: <CapitalFlows /> },
+              { path: 'capital-account-statement', element: <CapitalAccountStatement /> },
+              { path: 'lps-limits', element: <Limits /> },
+            ]
+          },
           {
             path: 'dashboard',
             element: <DashboardPage />,
@@ -85,20 +103,21 @@ const router = createBrowserRouter([
               { path: 'limits', element: <LimitsDashboard /> },
             ]
           },
+          
+          // Scenario page with synthesis drawer as child (keeps state)
           { 
             path: 'scenario-dashboard', 
-            element: <ScenariosPage />, 
+            element: <ScenariosPage />,
             children: [
-              { 
-                path: 'scenario-details/:scenarioId/:tab?', 
-                element: <ScenarioDetailPage /> 
-              },
               { 
                 path: 'synthesis-details/:synthesisId', 
                 element: <SynthesisDetailsDrawer /> 
               }
-            ], 
+            ]
           },
+          
+          // Scenario detail as separate full page
+          
           {
             path: 'portfolio',
             element: <PortfolioPage />,
@@ -111,7 +130,7 @@ const router = createBrowserRouter([
               { path: 'compare/:positionId', element: <CompareDetailPanel /> },
             ],
           },
-          { path: 'lps-statement', element: <LPsStatementPage /> },
+          
           { 
             path: "financials",
             element: <FinancialsPage />,
@@ -125,6 +144,14 @@ const router = createBrowserRouter([
       }
     ],
   },
+    {
+    path: '/funds/:fundId/scenario-dashboard/scenario-details/:scenarioId/:tab?',
+    element: (
+      <FundSetupGuard>
+        <ScenarioDetailPage />
+      </FundSetupGuard>
+    )
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(

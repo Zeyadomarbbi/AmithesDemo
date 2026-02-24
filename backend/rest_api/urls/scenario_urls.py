@@ -2,6 +2,7 @@ from django.urls import path
 from ..views.scenario_views import *
 
 urlpatterns = [
+    # Scenario List
     path(
         "funds/<int:fund_id>/scenario_list/", 
         FundScenarioListView.as_view(), 
@@ -12,15 +13,166 @@ urlpatterns = [
         FundScenarioListView.as_view(), 
         name="scenario-detail"
     ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/",
+        ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-investment-list-create"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:pk>/",
+        ScenarioPortfolioInvestmentViewSet.as_view({
+            'get': 'retrieve', 
+            'put': 'update', 
+            'patch': 'partial_update', 
+            'delete': 'destroy'
+        }),
+        name="scenario-investment-detail"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:investment_id>/flows/",
+        ScenarioTransactionFlowViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-flow-list-create"
+    ),
+    # Scenario-Specific Flows: Detail (Retrieve, Update, Delete)
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/<int:investment_id>/flows/<int:pk>/",
+        ScenarioTransactionFlowViewSet.as_view({
+            'get': 'retrieve', 
+            'put': 'update', 
+            'patch': 'partial_update', 
+            'delete': 'destroy'
+        }),
+        name="scenario-flow-detail"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-projections/",
+        ScenarioPortfolioProjectionViewSet.as_view({'get': 'list'}),
+        name="scenario-projections-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-projections/<int:pk>/",
+        ScenarioPortfolioProjectionViewSet.as_view({'patch': 'partial_update', 'get': 'retrieve'}),
+        name="scenario-portfolio-projections"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/financials-projections/",
+        ScenarioFinancialsProjectionViewSet.as_view({
+            'get': 'list', 
+            'post': 'create'
+        }),
+        name="scenario-financials-projections-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/financials-projections/<int:pk>/",
+        ScenarioFinancialsProjectionViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name="scenario-financials-projections-detail"
+    ),
+    # --- DUE DILIGENCE FEES ---
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/",
+        ScenarioDueDiligenceFeeViewSet.as_view({'get': 'list'}),
+        name="scenario-dd-fees-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/dd-fees/<int:pk>/",
+        ScenarioDueDiligenceFeeViewSet.as_view({
+            'get': 'retrieve',
+            'patch': 'partial_update',
+            'put': 'update'
+        }),
+        name="scenario-dd-fees-detail"
+    ),
+    # Management Fee Tranches
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/man-fee-tranches/",
+        ManFeeTrancheViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name="scenario-man-fee-tranche-list"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/man-fee-tranches/<int:pk>/",
+        ManFeeTrancheViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name="scenario-man-fee-tranche-detail"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/master-man-fees/",
+        ViewMasterManFeesViewSet.as_view({'get': 'list'}),
+        name="scenario-master-man-fees"
+    ),
+    path(
+        "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/gains-summary/",
+        ViewMasterScenarioGainsViewSet.as_view({'get': 'list'}),
+        name="scenario-gains-summary"
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-distribution-summary/',
+        ScenarioFundflowsDistributionSummaryViewSet.as_view({'get': 'list'}),
+        name='scenario-fund-flows-distribution-summary-list'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-capitalcall-summary/',
+        ScenarioFundflowsCapitalcallSummaryViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name='scenario-capitalcall-summary-list'
+    ),
+    # Detail operations (update/delete specific entry)
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_pk>/ff-capitalcall-summary/<int:pk>/',
+        ScenarioFundflowsCapitalcallSummaryViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'patch': 'partial_update',
+            'delete': 'destroy'
+        }),
+        name='scenario-capitalcall-summary-detail'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/ff-all-operations/',
+        ViewScenarioFundflowsAllOperationsViewSet.as_view({'get': 'list'}),
+        name='scenario-all-operations-list'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/ff-all-operations/<int:all_operations_id>/',
+        ViewScenarioFundflowsAllOperationsViewSet.as_view({'get': 'retrieve'}),
+        name='scenario-all-operations-detail'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/waterfall/', 
+        ScenarioWaterfallView.as_view(), 
+        name='scenario-waterfall'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/sensitivity/', 
+         ScenarioSensitivityView.as_view(), 
+         name='scenario-sensitivity'
+    ),
+    path(
+        'funds/<int:fund_id>/scenario_list/<int:scenario_id>/target-mode/', 
+        TargetModePreviewView.as_view(), 
+        name='target_mode'
+    ),
     # Scenario Synthesis
     path(
-        "funds/<int:fund_id>/synthesis-scenario/", 
+        "funds/<int:fund_id>/synthesis-details/", 
         FundScenarioSynthesisView.as_view(), 
         name="synthesis-list-create"
     ),
     path(
-        "funds/<int:fund_id>/synthesis-scenario/<int:pk>/", 
+        "funds/<int:fund_id>/synthesis-details/<int:pk>/", 
         FundScenarioSynthesisView.as_view(), 
         name="synthesis-detail"
+    ),
+    path(
+        "funds/<int:fund_id>/synthesis-details/<int:synthesis_id>/kpis/", 
+        ScenarioSynthesisKPIView.as_view(), 
+        name="synthesis-kpis"
     ),
 ]

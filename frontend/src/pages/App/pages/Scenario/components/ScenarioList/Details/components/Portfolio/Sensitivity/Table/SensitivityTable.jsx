@@ -1,9 +1,7 @@
-// src/components/Table/SensitivityTable.jsx
-
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ChevronDownIcon } from '../../Icons';
 import './SensitivityTable.css';
 
-// Helper component for styled input fields (MOIC and Duration axes)
 const StyledInput = ({ value, onChange, className, type = "text" }) => (
     <input
         className={className}
@@ -13,79 +11,104 @@ const StyledInput = ({ value, onChange, className, type = "text" }) => (
     />
 );
 
-const SensitivityTable = () => {
-    // State for MOIC inputs (X-Axis) - Moved here
-    const [moicValues, setMoicValues] = useState(["1.75x", "1.90x", "2.00x", "2.50x"]);
-    // State for Duration inputs (Y-Axis) - Moved here
-    const [durationValues, setDurationValues] = useState(["4.25", "4.50", "4.75", "4.68", "5.00", "5.50"]);
-    // Placeholder for the Net IRR results - Moved here
-    const [irrData] = useState([
-        ["6.78%", "7.40%", "8.21%", "9.50%"],
-        ["6.57%", "7.25%", "8.02%", "9.12%"],
-        ["6.32%", "7.10%", "7.85%", "8.65%"],
-        ["6.18%", "6.87%", "7.54%", "8.54%"],
-        ["6.04%", "6.57%", "7.36%", "8.23%"],
-        ["5.76%", "6.34%", "7.14%", "7.69%"],
-    ]);
+const SensitivityTable = ({ 
+    data = null, 
+    kpiOptions = [], 
+    isLoading = false,
+    moicValues = [],
+    durationValues = [],
+    onMoicChange,
+    onDurationChange
+}) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [selectedKpi, setSelectedKpi] = useState("");
 
-    // Function to handle changes in MOIC inputs 
-    const handleMoicChange = (index, value) => {
-        setMoicValues(prev => prev.map((v, i) => i === index ? value : v));
-    };
-    
-    // Function to handle changes in Duration inputs 
-    const handleDurationChange = (index, value) => {
-        setDurationValues(prev => prev.map((v, i) => i === index ? value : v));
-    };
+    useEffect(() => {
+        if (kpiOptions.length > 0 && !selectedKpi) {
+            setSelectedKpi(kpiOptions[0].value);
+        }
+    }, [kpiOptions, selectedKpi]);
+
+    const displayData = useMemo(() => {
+        if (data && selectedKpi && data[selectedKpi]) {
+            return data[selectedKpi];
+        }
+        return new Array(5).fill(0).map(() => new Array(5).fill("0.00%"));
+    }, [data, selectedKpi]);
 
     return (
-        <div className="sensitivity-main-grid">
-            
-            {/* A. Top-Left Axis Label Cell */}
-            <div className="grid-cell moic-label-cell">
-                <span className="moic-label-text">MOIC</span>
-                <span className="duration-label-text">Duration (yrs)</span>
+        <div className="sensitivity-wrapper">
+            <div className="sensitivity-header-wrapper">
+                <span className="sensitivity-title-text">Sensitivity table</span>
+                <div className="sensitivity-controls-group">
+                    <div className="sensitivity-header-dropdown-container">
+                        <select 
+                            className="sensitivity-header-control-dropdown" 
+                            value={selectedKpi}
+                            onChange={(e) => {
+                                setIsDropdownOpen(false);
+                                setSelectedKpi(e.target.value);
+                            }}
+                            onClick={() => setIsDropdownOpen(prev => !prev)}
+                            onBlur={() => setIsDropdownOpen(false)}
+                            disabled={kpiOptions.length === 0}
+                        >
+                            {kpiOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <span className={`sensitivity-dropdown-icon ${isDropdownOpen ? 'sensitivity-dropdown-icon--open' : ''}`}>
+                            <ChevronDownIcon />
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            {/* B. MOIC INPUTS (X-Axis Header) */}
-            {moicValues.map((val, index) => (
-                <div key={`moic-cell-${index}`} className="moic-input grid-cell">
-                    {/* Input element nested inside the grid cell for styling control */}
-                    <StyledInput
-                        className="moic-input-field"
-                        value={val}
-                        onChange={(e) => handleMoicChange(index, e.target.value)}
-                        type="text" 
-                    />
-                </div>
-            ))}
+            <div className="sensitivity-main-grid" style={{ position: 'relative' }}>
+                {isLoading && (
+                    <div className="sensitivity-loading-overlay">
+                        <div className="sensitivity-loading-spinner" />
+                        <span className="sensitivity-loading-text">Loading...</span>
+                    </div>
+                )}
 
-            {/* C. Duration Inputs (Y-Axis) and IRR Results (Data Grid) */}
-            {durationValues.map((duration, rowIndex) => (
-                <React.Fragment key={`row-${rowIndex}`}>
-                    
-                    {/* Y-Axis Input Cell (Duration) */}
-                    <div className="duration-input grid-cell">
-                        {/* Input element nested inside the grid cell for styling control */}
+                <div className="sensitivity-grid-cell sensitivity-moic-label-cell">
+                    <span className="sensitivity-moic-label-text">MOIC</span>
+                    <span className="sensitivity-duration-label-text">Duration (yrs)</span>
+                </div>
+
+                {moicValues.map((val, index) => (
+                    <div key={`moic-cell-${index}`} className="sensitivity-moic-input sensitivity-grid-cell">
                         <StyledInput
-                            className="duration-input-field"
-                            value={duration}
-                            onChange={(e) => handleDurationChange(rowIndex, e.target.value)}
-                            type="text" 
+                            className="sensitivity-moic-input-field"
+                            value={val}
+                            onChange={(e) => onMoicChange(index, e.target.value)}
                         />
                     </div>
+                ))}
 
-                    {/* Main Data Cells (Net IRR Results) for this row */}
-                    {irrData[rowIndex].map((irr, colIndex) => (
-                        <div
-                            key={`irr-${rowIndex}-${colIndex}`}
-                            className="irr-result-cell grid-cell"
-                        >
-                            {irr}
+                {durationValues.map((duration, rowIndex) => (
+                    <React.Fragment key={`row-${rowIndex}`}>
+                        <div className="sensitivity-moic-input sensitivity-grid-cell">
+                            <StyledInput
+                                className="sensitivity-moic-input-field"
+                                value={duration}
+                                onChange={(e) => onDurationChange(rowIndex, e.target.value)}
+                            />
                         </div>
-                    ))}
-                </React.Fragment>
-            ))}
+                        {displayData[rowIndex].map((val, colIndex) => (
+                            <div
+                                key={`result-${rowIndex}-${colIndex}`}
+                                className="sensitivity-irr-result-cell sensitivity-grid-cell"
+                            >
+                                {val}
+                            </div>
+                        ))}
+                    </React.Fragment>
+                ))}
+            </div>
         </div>
     );
 };
