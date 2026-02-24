@@ -115,30 +115,6 @@ export default function OperationStep4({
       {/* hidden file input */}
       <input id="op4-upload-input" type="file" style={{ display: "none" }} />
 
-      {/* ── Operation summary strip ───────────────────────────────────────── */}
-      <div className="op4-summary-strip">
-        <div className="op4-summary-item">
-          <span className="op4-summary-label">Operation</span>
-          <span className="op4-summary-value">{operationName || "—"}</span>
-        </div>
-        <div className="op4-summary-item">
-          <span className="op4-summary-label">Type</span>
-          <span className="op4-summary-value">{operationTypeName || "—"}</span>
-        </div>
-        <div className="op4-summary-item">
-          <span className="op4-summary-label">Notice date</span>
-          <span className="op4-summary-value">{noticeDate || "—"}</span>
-        </div>
-        <div className="op4-summary-item">
-          <span className="op4-summary-label">Due date</span>
-          <span className="op4-summary-value">{dueDate || "—"}</span>
-        </div>
-        <div className="op4-summary-item">
-          <span className="op4-summary-label">Total amount</span>
-          <span className="op4-summary-value">€ {grandTotal}</span>
-        </div>
-      </div>
-
       {/* ── Save status messages ──────────────────────────────────────────── */}
       {saveError?.message && (
         <div style={{ margin: "8px 0", color: "#b42318", fontSize: 12 }}>

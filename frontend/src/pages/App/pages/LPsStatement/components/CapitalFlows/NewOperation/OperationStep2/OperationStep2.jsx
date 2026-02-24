@@ -19,10 +19,6 @@ const FLOW_W = 220;
 const EQ_W = 220;
 const BLUEBOX_SIDE_PADDING = 28;
 
-
-/** -------------------------
- * Parse/format helpers
- * ------------------------- */
 function parsePercent(value) {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") {
@@ -74,6 +70,13 @@ function formatPct(n) {
   return `${n.toFixed(2)}%`;
 }
 
+function rowAmountForFlow(flow, row, flowTotal) {
+  const pct = row.ownershipPct;
+  if (flowTotal === null || !Number.isFinite(flowTotal)) return null;
+  if (pct === null || !Number.isFinite(pct)) return null;
+  return flowTotal * pct;
+}
+
 function getNominalValueFromShareClass(sc = {}) {
   const candidates = [
     sc?.nominal_value, sc?.nominalValue, sc?.nominal_value_per_share,
@@ -87,9 +90,6 @@ function getNominalValueFromShareClass(sc = {}) {
   return null;
 }
 
-/** -------------------------
- * Draft
- * ------------------------- */
 const EMPTY_DRAFT = {
   breakdown: "lps",
   flows: [],
@@ -97,6 +97,7 @@ const EMPTY_DRAFT = {
   flowTotals: {},
   eqTargetInput: "",
 };
+const EQ_FLOW_SYNTHETIC_ID = "__eq_flow__";
 
 const OperationStep2 = forwardRef(function OperationStep2(
   {
@@ -121,10 +122,20 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const [showAddFlow, setShowAddFlow] = useState(false);
   const outlet = useOutletContext() || {};
   const fundId = fundIdProp ?? outlet.fundId;
+  const opKind = useMemo(() => {
+    const t = String(operationType || "").toLowerCase();
+    if (t.includes("equalization")) return "equalization";
+    if (t.includes("distribution")) return "distribution";
+    return "capital_call";
+  }, [operationType]);
 
-  const { data: shareClasses = [] } = useShareClasses(fundId);
+  const isEqualization = opKind === "equalization";
+  const isDistribution = opKind === "distribution";
+  const totalsLabel = isDistribution ? "Distributed Amount (€)" : "Call Amount (€)";
+  const { data: shareClasses = [], isLoading: isLoadingShareClass } = useShareClasses(fundId);
   const { flowTypes, fetchFlowTypes, isLoading: isLoadingTypes } = useFlowTypes();
-  const { flows: fetchedFlows, fetchFlows } = useCapitalFlowFlowDetails(fundId, operationId);
+  const { flows: fetchedFlows, fetchFlows, isLoading: isLoadingCFFlowDetails } = useCapitalFlowFlowDetails(fundId, operationId);
+
   useEffect(() => {
     fetchAllAllocations?.().catch(() => {});
   }, [fetchAllAllocations]);
@@ -134,23 +145,37 @@ const OperationStep2 = forwardRef(function OperationStep2(
   useEffect(() => {
     if (operationId) fetchFlows().catch(() => {});
   }, [operationId, fetchFlows]);
+
   useEffect(() => {
-    if (!fetchedFlows?.length || flows.length > 0) return;
+    if (!fetchedFlows?.length) return;
+
+    const eqTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
+      (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
+    )?.flow_type_id ?? null;
 
     const loadedFlows = [];
     const loadedTotals = {};
     const loadedInputs = {};
+    let loadedEqTargetInput = null;
 
     fetchedFlows.forEach((f) => {
+      const isEq = eqTypeId !== null && Number(f.flow_type_id) === Number(eqTypeId);
+      
+      if (isEq) {
+        if (f.input_percentage !== null && f.input_percentage !== undefined) {
+          loadedEqTargetInput = String(f.input_percentage);
+        }
+      }
+
       const fid = String(f.operation_flow_id);
       const amount = Number(f.computed_total_amount || f.input_amount || 0);
-
       loadedFlows.push({
         id: fid,
         label: f.flow_name,
-        flowType: f.flow_name, 
+        flowType: f.flow_name,
         data: { flowTypeId: f.flow_type_id, ...f },
         operation_flow_id: f.operation_flow_id,
+        isSyntheticEqualization: isEq,
       });
       loadedTotals[fid] = amount;
       loadedInputs[fid] = amount.toString();
@@ -162,19 +187,22 @@ const OperationStep2 = forwardRef(function OperationStep2(
         flows: loadedFlows,
         flowTotals: loadedTotals,
         flowTotalInputs: loadedInputs,
+        ...(loadedEqTargetInput !== null && { eqTargetInput: loadedEqTargetInput }),
       }));
     }
-  }, [fetchedFlows]);
+  }, [fetchedFlows, flowTypes, setDraft]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
   const safeDraft = draft || EMPTY_DRAFT;
   const breakdown = safeDraft.breakdown ?? "lps";
-  const flows = safeDraft.flows ?? [];
+  
+  const flows = (safeDraft.flows ?? []).filter(f => !f.isSyntheticEqualization);
   const flowTotalInputs = safeDraft.flowTotalInputs ?? {};
   const flowTotals = safeDraft.flowTotals ?? {};
   const eqTargetInput = safeDraft.eqTargetInput ?? "";
-  // ── Derive filtered commitments (due_date >= closing_period_date) ──────────
+  
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
     let dueDateObj = dueDate;
@@ -203,10 +231,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
     if (c.share_class_id) commitmentByLpId[id].shareClassId = String(c.share_class_id);
   }
 
-  // ── Derive LP rows directly from filtered commitments ─────────────────────
-  // Each commitment has: lp_id, share_class_id, commitment_amount, closing_name
-  // We group by lp_id and sum commitment_amounts
-
   const historicalData = useMemo(() => {
     const byLp = {};
     const byClass = {};
@@ -221,31 +245,43 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const called = parseFloat(alloc.capital_call || 0);
       const commit = parseFloat(alloc.commitment_amount || 0);
 
+      if (scId && !byClass[scId]) {
+        byClass[scId] = { calledAmount: 0, commitmentAmount: 0 };
+      }
+
       if (lpId) {
-        if (!byLp[lpId]) byLp[lpId] = { calledAmount: 0, commitmentAmount: 0, opNum: -1 };
+        if (!byLp[lpId]) byLp[lpId] = { calledAmount: 0, commitmentAmount: 0, opNum: -1, scId: null };
         byLp[lpId].calledAmount += called;
+        
         if (allocOpNum > byLp[lpId].opNum) {
           byLp[lpId].commitmentAmount = commit;
           byLp[lpId].opNum = allocOpNum;
+          byLp[lpId].scId = scId;
         }
       }
 
       if (scId) {
-        if (!byClass[scId]) byClass[scId] = { calledAmount: 0 };
         byClass[scId].calledAmount += called;
       }
     }
+
+    for (const lpId in byLp) {
+      const sc = byLp[lpId].scId;
+      if (sc && byClass[sc]) {
+        byClass[sc].commitmentAmount += byLp[lpId].commitmentAmount;
+      }
+    }
+
     return { byLp, byClass };
   }, [existingAllocations, operationNumber]);
   
-const lpRows = useMemo(() => {
+  const lpRows = useMemo(() => {
     const nameById = new Map();
     (Array.isArray(lps) ? lps : []).forEach((lp) => {
       const id = String(lp?.lp_id ?? lp?.id ?? "");
       const name = lp?.name ?? lp?.fullName ?? lp?.lpName ?? null;
       if (id && name) nameById.set(id, name);
     });
-    console.log("filteredCommitments", filteredCommitments)
     const byLp = new Map();
     for (const c of filteredCommitments) {
       const id = String(c.lp_id);
@@ -282,9 +318,8 @@ const lpRows = useMemo(() => {
         calledAmountNumber: historicalData.byLp[r.id]?.calledAmount || 0,
       };
     });
-  }, [filteredCommitments, totalFundCommitment, lps]);
+  }, [filteredCommitments, totalFundCommitment, lps, historicalData]);
 
-  // ── Derive Share Class rows from filtered commitments ─────────────────────
   const shareClassRows = useMemo(() => {
     const byClass = new Map();
     for (const c of filteredCommitments) {
@@ -298,7 +333,6 @@ const lpRows = useMemo(() => {
     const total = totalFundCommitment ||
       Array.from(byClass.values()).reduce((s, r) => s + r.commitmentAmount, 0);
 
-    // Enrich with share class name from useShareClasses data
     const scLookup = new Map();
     (Array.isArray(shareClasses) ? shareClasses : []).forEach((sc) => {
       const id = String(sc?.share_class_id ?? sc?.id ?? "");
@@ -323,20 +357,7 @@ const lpRows = useMemo(() => {
   }, [filteredCommitments, totalFundCommitment, shareClasses, historicalData]);
 
   const rows = breakdown === "share-class" ? shareClassRows : lpRows;
-
-  // totalCommitment = the pre-computed value from Step 1
   const totalCommitment = totalFundCommitment;
-
-  const opKind = useMemo(() => {
-    const t = String(operationType || "").toLowerCase();
-    if (t.includes("equalization")) return "equalization";
-    if (t.includes("distribution")) return "distribution";
-    return "capital_call";
-  }, [operationType]);
-
-  const isEqualization = opKind === "equalization";
-  const isDistribution = opKind === "distribution";
-  const totalsLabel = isDistribution ? "Distributed Amount (€)" : "Call Amount (€)";
 
   const setBreakdown = (v) => {
     if (typeof setDraft !== "function") return;
@@ -382,20 +403,26 @@ const lpRows = useMemo(() => {
     const cleanName = flowData?.flowName?.trim();
     const label = cleanName || flowData?.flowTypeName || flowData?.flowType || `Flow ${flows.length + 1}`;
     const flowTypeId = flowData?.flowTypeId ?? flowData?.flow_type_id ?? null;
+
+    const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
+      (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
+    )?.flow_type_id ?? null;
+
     const newFlow = {
       id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
       label,
       flowType: flowData?.flowTypeName || flowData?.flowType || "",
       data: { ...flowData, flowTypeId },
       operation_flow_id: null,
+      isSyntheticEqualization: eqFlowTypeId !== null && Number(flowTypeId) === Number(eqFlowTypeId)
     };
+    
     setFlows((prev) => [...prev, newFlow]);
     setShowAddFlow(false);
     setFlowTotalInputs((prev) => ({ ...prev, [newFlow.id]: "" }));
     setFlowTotals((prev) => ({ ...prev, [newFlow.id]: null }));
   };
 
-  /** Layout */
   const capMinPx = flows.length > 0 ? flows.length * FLOW_W + BLUEBOX_SIDE_PADDING : null;
 
   const gridCols = useMemo(() => {
@@ -418,7 +445,6 @@ const lpRows = useMemo(() => {
     return f !== null && Number.isFinite(f) ? f : null;
   }, [eqTargetInput]);
 
-
   const eqByRowId = useMemo(() => {
     if (!isEqualization) return {};
     const out = {};
@@ -432,8 +458,7 @@ const lpRows = useMemo(() => {
     return out;
   }, [isEqualization, rows, eqTargetPct, historicalData]);
 
-  /** Totals per row */
-const totalsByRowId = useMemo(() => {
+  const totalsByRowId = useMemo(() => {
     const map = {};
     const flowIds = flows.map((f) => f.id);
     
@@ -512,7 +537,6 @@ const totalsByRowId = useMemo(() => {
       ? (grandTotal / totalCommitment) * 100
       : null;
 
-  /** Share class nominal value lookup for shares issued */
   const shareClassLookup = useMemo(() => {
     const byId = new Map();
     const byName = new Map();
@@ -534,8 +558,6 @@ const totalsByRowId = useMemo(() => {
     return { byId, byName };
   }, [shareClasses]);
 
-
-  console.log("historical", historicalData)
   const submitToNext = useCallback(async () => {
     if (typeof onNext !== "function") return;
     const perLpOut = {};
@@ -545,6 +567,7 @@ const totalsByRowId = useMemo(() => {
     for (const r of rows) {
       const pct = r.ownershipPct;
       const rowFlows = {};
+
       for (const f of flows) {
         const t = flowTotals[f.id];
         rowFlows[f.id] =
@@ -586,10 +609,9 @@ const totalsByRowId = useMemo(() => {
         computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
       } else {
         const currentCommitment = r.commitmentNumber ?? 0;
-        const prevCommitment = breakdown === "share-class" 
-          ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0) 
+        const prevCommitment = breakdown === "share-class"
+          ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0)
           : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
-        
         const delta = currentCommitment - prevCommitment;
         computedShares = delta > 0 ? delta / nomNum : 0;
       }
@@ -606,26 +628,67 @@ const totalsByRowId = useMemo(() => {
       };
     }
 
-    console.log("FINAL PAYLOAD:", perLpOut);
+    const mappedFlows = flows.map((f) => {
+      const flowTotal = flowTotals[f.id] ?? null;
+
+      const perLpAmounts = rows
+        .map((r) => rowAmountForFlow(f, r, flowTotal))
+        .filter((v) => v !== null && Number.isFinite(v));
+
+      const computedTotalAmount = flowTotal;
+
+      return {
+        id: f.id,
+        operation_flow_id: f.operation_flow_id ?? null,
+        flow_type_id: f?.data?.flowTypeId ?? null,
+        flow_name: f.label,
+        input_type: "amount",
+        input_amount: flowTotal,
+        input_percentage: null,
+        computed_total_amount: computedTotalAmount,
+        allocation_percentage_of_commitment:
+          totalCommitment > 0 && computedTotalAmount !== null && Number.isFinite(computedTotalAmount)
+            ? (computedTotalAmount / totalCommitment) * 100
+            : null,
+      };
+    });
+
+    if (isEqualization) {
+      const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
+        (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
+      )?.flow_type_id ?? null;
+
+      const fetchedEqFlow = (draft?.flows ?? []).find((f) => f.isSyntheticEqualization);
+
+      mappedFlows.unshift({
+        id: fetchedEqFlow?.id || EQ_FLOW_SYNTHETIC_ID,
+        operation_flow_id: fetchedEqFlow?.operation_flow_id ?? null,
+        flow_type_id: eqFlowTypeId,
+        flow_name: "Equalization",
+        input_type: "percentage",
+        input_amount: null,
+        input_percentage: eqTargetPct !== null ? eqTargetPct * 100 : null,
+        computed_total_amount: eqGrandTotal,
+        allocation_percentage_of_commitment:
+          totalCommitment > 0 && eqGrandTotal !== null && Number.isFinite(eqGrandTotal)
+            ? (eqGrandTotal / totalCommitment) * 100
+            : null,
+      });
+    }
 
     onNext({
       operationType: operationType || "Distribution",
-      flows: flows.map((f) => ({
-        id: f.id,
-        label: f.label,
-        flowType: f.flowType,
-        flowTypeId: f?.data?.flowTypeId ?? null,
-      })),
+      flows: mappedFlows,
       perLp: perLpOut,
       grandTotal,
       grandPercent,
     });
   }, [
     onNext, operationType, flows, flowTotals, rows, totalsByRowId,
-    grandPercent, isEqualization, eqByRowId, eqTargetPct,
-    breakdown, shareClassLookup, shareClasses, historicalData
+    grandPercent, isEqualization, eqByRowId, eqTargetPct, eqGrandTotal,
+    breakdown, shareClassLookup, shareClasses, historicalData,
+    totalCommitment, flowTypes, draft
   ]);
-
 
   useImperativeHandle(ref, () => ({ submitToNext }), [submitToNext]);
 
@@ -634,6 +697,15 @@ const totalsByRowId = useMemo(() => {
       if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
       return (eqGrandTotal / totalCommitment) * 100;
     }, [isEqualization, eqGrandTotal, totalCommitment]);
+
+  const isLoadingData =
+  isLoadingTypes ||
+  isLoadingShareClass ||
+  (operationId && isLoadingCFFlowDetails);
+
+  if (isLoadingData) {
+    return <div style={{ padding: 20 }}>Loading...</div>;
+  }
   return (
     <>
       {saveErrorMsg && (
@@ -876,8 +948,8 @@ const totalsByRowId = useMemo(() => {
           onClose={closeFlow} 
           onSave={handleSaveFlow} 
           isSaving={isSaving} 
-          flowTypes={flowTypes}      // Pass data
-          isLoading={isLoadingTypes} // Pass loading state
+          flowTypes={flowTypes}      
+          isLoading={isLoadingTypes}
         />
       )}
     </>

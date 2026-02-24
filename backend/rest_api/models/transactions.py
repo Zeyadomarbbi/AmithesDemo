@@ -520,11 +520,10 @@ class LPsOperationLPAllocation(models.Model):
     lp_operation_allocation_id = models.BigAutoField(primary_key=True)
     lps_operation_details = models.ForeignKey(
         "LPsOperationDetails",
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         db_column="lps_operation_details_id",
         related_name="lp_allocations",
     )
-
     lp_id = models.BigIntegerField(db_column="lp_id")
     share_class_id = models.BigIntegerField(db_column="share_class_id")
 

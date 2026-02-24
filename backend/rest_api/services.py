@@ -550,10 +550,10 @@ class CapitalAccountService:
         dpi_by_sc  = {sc: (distributed_by_sc.get(sc, 0.0) / capital_called_by_sc.get(sc, 0.0)) if capital_called_by_sc.get(sc) else 0.0 for sc in share_classes}
         tvpi_by_sc = {sc: rvpi_by_sc.get(sc, 0.0) + dpi_by_sc.get(sc, 0.0) for sc in share_classes}
 
-        pct_called_total      = (capital_called_total / total_commitment) if total_commitment else 0.0
-        pct_distributed_total = (distributed_total    / total_commitment) if total_commitment else 0.0
-        pct_called_by_sc      = {sc: (capital_called_by_sc.get(sc, 0.0) / commitment_by_sc.get(sc, 0.0)) if commitment_by_sc.get(sc) else 0.0 for sc in share_classes}
-        pct_distributed_by_sc = {sc: (distributed_by_sc.get(sc, 0.0)    / commitment_by_sc.get(sc, 0.0)) if commitment_by_sc.get(sc) else 0.0 for sc in share_classes}
+        pct_called_total      = round((capital_called_total / total_commitment) * 100, 4) if total_commitment else 0.0
+        pct_distributed_total = round((distributed_total    / total_commitment) * 100, 4) if total_commitment else 0.0
+        pct_called_by_sc      = {sc: round((capital_called_by_sc.get(sc, 0.0) / commitment_by_sc.get(sc, 0.0)) * 100, 4) if commitment_by_sc.get(sc) else 0.0 for sc in share_classes}
+        pct_distributed_by_sc = {sc: round((distributed_by_sc.get(sc, 0.0)    / commitment_by_sc.get(sc, 0.0)) * 100, 4) if commitment_by_sc.get(sc) else 0.0 for sc in share_classes}
 
         nav_per_share_by_sc = {sc: (nav_by_sc.get(sc, 0.0) / shares_by_sc.get(sc, 0.0)) if shares_by_sc.get(sc) else 0.0 for sc in share_classes}
         nav_per_share_total = (nav_total / shares_total) if shares_total else 0.0

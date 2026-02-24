@@ -474,61 +474,59 @@ class LPsOperationLPAllocationViewSet(viewsets.ModelViewSet):
             LPsOperationLPAllocation.objects
             .select_related("lps_operation_details")
             .filter(
-                lps_operation_details__fund_id=fund_id,
+                lps_operation_details_id__fund_id=fund_id,
                 is_deleted=False
             )
-            .order_by('lp_id', '-lps_operation_details__lps_operation_details_id')
+            .order_by('lp_id', '-lps_operation_details_id__lps_operation_details_id')
         )
         serializer = self.get_serializer(allocations, many=True)
         return Response(serializer.data)
     
     def get_queryset(self):
-        # Ensure we only see allocations for the specific operation in the URL
-        op_id = self.kwargs.get("lps_operation_details_id")
+        op_id = self.kwargs.get("lps_operation_details")
         return (
             self.queryset
             .select_related("lps_operation_details")
             .filter(
-                lps_operation_details_id=op_id,
+                lps_operation_details_id_id=op_id,
                 is_deleted=False
             )
             .order_by("lp_id")
         )
 
     def perform_create(self, serializer):
-        op_id = self.kwargs.get("lps_operation_details_id")
+        op_id_raw = self.kwargs.get("lps_operation_details_id")
         data = serializer.validated_data
 
         existing = LPsOperationLPAllocation.objects.filter(
-            lp_id=data["lp_id"],
-            share_class_id=data["share_class_id"],
+            lp_id=data.get("lp_id"),
+            share_class_id=data.get("share_class_id"),
+            lps_operation_details_id=op_id_raw 
         ).first()
 
         if existing:
-            existing.capital_call = (existing.capital_call or 0) + data["capital_call"]
-            existing.called_percentage = (existing.called_percentage or 0) + data["called_percentage"]
-            existing.shares_issued = (existing.shares_issued or 0) + data["shares_issued"]
-            existing.commitment_amount = data["commitment_amount"]
-            existing.lps_operation_details_id = op_id
+            existing.capital_call = (existing.capital_call or 0) + data.get("capital_call", 0)
+            existing.called_percentage = (existing.called_percentage or 0) + data.get("called_percentage", 0)
+            existing.shares_issued = (existing.shares_issued or 0) + data.get("shares_issued", 0)
+            existing.commitment_amount = data.get("commitment_amount", existing.commitment_amount)
+            
+            existing.lps_operation_details_id = op_id_raw
             existing.save()
             serializer.instance = existing
         else:
             serializer.save(
-                lps_operation_details_id=op_id,
+                lps_operation_details_id=op_id_raw,
                 created_by=_created_by_int(self.request)
             )
 
+
     @action(detail=False, methods=['get'], url_path='summary')
     def summary(self, request, *args, **kwargs):
-        """
-        Calculates the aggregate totals from child flows.
-        Access via: GET .../lp-allocations/summary/
-        """
         op_id = self.kwargs.get("lps_operation_details_id")
         
         summary_data = (
             LPsOperationFlowLPAllocation.objects
-            .filter(operation_flow_id__lps_operation_details_id=op_id)
+            .filter(operation_flow_id__lps_operation_details_id_id=op_id)
             .values('lp_id', 'lp_id__name')
             .annotate(total_allocated=Sum('allocated_amount'))
             .order_by('lp_id')

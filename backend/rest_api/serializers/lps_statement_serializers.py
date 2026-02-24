@@ -326,3 +326,6 @@ class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = LPsOperationLPAllocation
         fields = "__all__"
+        extra_kwargs = {
+            "lps_operation_details": {"read_only": True}
+        }

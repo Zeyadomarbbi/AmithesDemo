@@ -98,7 +98,7 @@ export default function OperationPanel({
   const [operationNumber, setOperationNumber] = useState(null);
   // DB id — set after final save
   const [operationId, setOperationId] = useState(null);
-
+  
   // ── Step 2 draft + result ──────────────────────────────────────────────────
   const [step2Draft, setStep2Draft] = useState({ ...EMPTY_STEP2_DRAFT });
   const [step2Result, setStep2Result] = useState({
@@ -177,7 +177,6 @@ export default function OperationPanel({
       setStep2Result({ operationTypeId: "", operationTypeName: "", flows: [], perLp: {}, total_operation_amount: 0, overall_percentage_of_commitment: 0 });
     }
   }, [open, isDetail, operation, fetchOperation]);
-
   const operationTypeName = useMemo(() => {
     const arr = Array.isArray(operationTypes) ? operationTypes : [];
     const found = arr.find((t) => String(t?.operation_type_id) === String(operationType));
@@ -234,7 +233,7 @@ export default function OperationPanel({
         notice_date: toIsoDate(noticeDate),
         due_date: toIsoDate(dueDate),
         total_fund_commitment: totalFundCommitment,
-        total_operation_amount,
+        total_operation_amount: Number(total_operation_amount.toFixed(2)),
         // Ensure decimal (0..1) — grandPercent from Step2 is a percentage number
         overall_percentage_of_commitment:
         (
@@ -249,43 +248,31 @@ export default function OperationPanel({
 
       // ── 2. Create flows ──────────────────────────────────────────────────
       // Derive flow totals from perLp (submitted values, not draft)
-      const flowTotalsFromPerLp = {};
-      for (const flow of flows) {
-        let sum = 0;
-        for (const lpData of Object.values(perLp)) {
-          const v = lpData.flows?.[flow.id];
-          if (v !== null && v !== undefined && Number.isFinite(Number(v))) sum += Number(v);
-        }
-        flowTotalsFromPerLp[flow.id] = sum || null;
-      }
-
-      const flowIdMap = {}; // flow.id -> opFlowId (needed for step 3)
+      const flowIdMap = {};
 
       for (const flow of flows) {
-        const flowTotal = flowTotalsFromPerLp[flow.id] ?? null;
-        const alloc = totalFundCommitment > 0 && flowTotal !== null
-          ? flowTotal / totalFundCommitment : 0;
-
         const createdFlow = await createFlow(newOperationId, {
           operation: newOperationId,
-          flow_type_id: Number(flow.flowTypeId),
-          flow_name: flow.label,
-          input_type: isEqualization ? "percentage" : "amount",
-          input_amount: isEqualization ? null : Number(flowTotal.toFixed(2)),
-          input_percentage: isEqualization ? flowTotal : null,
-          computed_total_amount: Number(flowTotal.toFixed(2)),
-          allocation_percentage_of_commitment: (
-            alloc > 1 ? alloc / 100 : (alloc ?? 0)
-          ).toFixed(4),
+          flow_type_id: Number(flow.flow_type_id),
+          flow_name: flow.flow_name,
+          input_type: flow.input_type,
+          input_amount: flow.input_amount !== null ? Number(Number(flow.input_amount).toFixed(2)) : null,
+          input_percentage: flow.input_percentage !== null 
+            ? Number((flow.input_percentage > 1 ? flow.input_percentage / 100 : flow.input_percentage).toFixed(4)) 
+            : null,
+          computed_total_amount: flow.computed_total_amount !== null ? Number(Number(flow.computed_total_amount).toFixed(2)) : null,
+          allocation_percentage_of_commitment: flow.allocation_percentage_of_commitment !== null
+            ? Number(Number(flow.allocation_percentage_of_commitment).toFixed(4))
+            : null,
         });
 
         const opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
-        if (!opFlowId) throw new Error(`Flow "${flow.label}" created but missing operation_flow_id.`);
+        if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
 
         flowIdMap[flow.id] = opFlowId;
-        console.log(`[Save 2/4] Flow created: ${flow.label} →`, opFlowId);
+        console.log(`[Save 2/4] Flow created: ${flow.flow_name} →`, opFlowId);
 
-        // ── 3. Flow LP allocations ─────────────────────────────────────────
+        // ── 3. Flow LP allocations ───────────────────────────────────────────────
         for (const [lpId, lpData] of Object.entries(perLp)) {
           const allocatedAmount = lpData.flows?.[flow.id] ?? null;
           if (allocatedAmount === null || !Number.isFinite(Number(allocatedAmount))) continue;
