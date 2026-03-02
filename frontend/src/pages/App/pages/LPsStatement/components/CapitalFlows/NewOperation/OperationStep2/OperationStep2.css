@@ -120,17 +120,22 @@
 
 /* headers */
 .op2-col-header {
-  height: 48px;
+  box-sizing: border-box;
+  height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 16px;
   font-weight: 500;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 8px 14px; /* Unified padding */
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9); /* Unified border */
   gap: 6px;
 }
 
 .op2-col-header--right {
   justify-content: flex-end;
+}
+
+.op2-col-header--eq {
+  justify-content: space-between;
 }
 
 .op2-sort {
@@ -199,7 +204,6 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
 
   width: 100%;
   height: 100%;
@@ -467,10 +471,6 @@
   padding: 0 4px;
 }
 
-.op2-eq-target-wrap {
-  padding: 10px 40px;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
-}
 
 .op2-eq-target-input {
   width: 100%;

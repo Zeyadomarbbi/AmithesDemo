@@ -1,58 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { API_BASE_URL } from "../useApi";
-
-// --- PRIVATE SERVICE HELPERS (Internal to this file) ---
-const api = {
-  async fetchAll() {
-    const res = await fetch(`${API_BASE_URL}/api/funds/`);
-    if (!res.ok) throw new Error(`Fetch failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  async fetchOne(id) {
-    const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`);
-    if (!res.ok) throw new Error(`Fetch detail failed: ${res.status}`);
-    return res.json();
-  },
-
-  async post(payload) {
-    console.log("API POST Payload:", payload);
-    const res = await fetch(`${API_BASE_URL}/api/funds/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("Creation failed");
-    return res.json();
-  },
-
-  async put(id, payload) {
-    const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("Update failed");
-    return res.json();
-  },
-
-  async delete(id) {
-    const res = await fetch(`${API_BASE_URL}/api/funds/${id}/`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Delete failed");
-    return true;
-  }
-};
+import useApi from "../api/useApi"; // Import the new centralized hook
 
 const FundContext = createContext(null);
 
 export function FundProvider({ children }) {
+  const api = useApi(); // Initialize the API engine
   const [funds, setFunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // State for sticky active fund selection
   const [activeFundId, setActiveFundId] = useState(() => localStorage.getItem('lastActiveFundId'));
 
   // --- DATA NORMALIZER ---
@@ -69,7 +24,6 @@ export function FundProvider({ children }) {
     createdAt: f.created_at,
     updatedAt: f.updated_at ?? null,
     isDeleted: f.is_deleted,
-    // The Guard Condition Field
     isSetupComplete: f.is_setup_complete ?? false, 
   }), []);
 
@@ -77,7 +31,8 @@ export function FundProvider({ children }) {
   const refreshFunds = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await api.fetchAll();
+      // Use new api.get - API_BASE_URL is handled internally by useApi
+      const data = await api.get("/api/funds/");
       setFunds(data.filter(f => !f.is_deleted).map(formatFund));
       setError(null);
     } catch (e) {
@@ -85,11 +40,11 @@ export function FundProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [formatFund]);
+  }, [api, formatFund]);
 
   const initializeFund = async (payload) => {
     try {
-      const data = await api.post({
+      const data = await api.post("/api/funds/", {
         legal_name: payload.legalName,
         short_name: payload.shortName,
         formation_date: payload.formationDate,
@@ -102,7 +57,6 @@ export function FundProvider({ children }) {
       
       const newFund = formatFund(data);
       setFunds((prev) => [newFund, ...prev]);
-      
       return { success: true, id: newFund.id }; 
     } catch (e) {
       return { success: false, error: e.message };
@@ -111,7 +65,7 @@ export function FundProvider({ children }) {
 
   const updateFund = async (id, payload) => {
     try {
-      const data = await api.put(id, {
+      const data = await api.put(`/api/funds/${id}/`, {
         legal_name: payload.legal_name,
         short_name: payload.short_name,
         formation_date: payload.formation_date,
@@ -131,7 +85,7 @@ export function FundProvider({ children }) {
 
   const deleteFund = async (id) => {
     try {
-      await api.delete(id);
+      await api.delete(`/api/funds/${id}/`);
       setFunds((prev) => prev.filter((f) => f.id !== id));
       return { success: true };
     } catch (e) {
@@ -156,7 +110,7 @@ export function FundProvider({ children }) {
         updateFund, 
         deleteFund, 
         formatFund,
-        api 
+        api // Passing the new api object down
       }}
     >
       {children}
@@ -182,7 +136,7 @@ export function useFundDetails(fundId) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await api.fetchOne(fundId);
+      const data = await api.get(`/api/funds/${fundId}/`);
       setFund(formatFund(data));
     } catch (err) {
       setError(err.message);

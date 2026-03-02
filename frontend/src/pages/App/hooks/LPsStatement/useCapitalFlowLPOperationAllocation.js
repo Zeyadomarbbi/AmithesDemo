@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import { API_BASE_URL } from '../api/apiConfig';
 
 export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
   const [allocations, setAllocations] = useState([]);

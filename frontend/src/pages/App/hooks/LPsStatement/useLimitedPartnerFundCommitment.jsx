@@ -1,14 +1,14 @@
-
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export const useLimitedPartnerFundCommitment = (fundId) => {
+  const api = useApi();
   const [commitments, setCommitments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   /* =========================
-     FETCH LIST
+      FETCH LIST
      ========================= */
   const fetchCommitments = useCallback(async () => {
     if (!fundId) return;
@@ -17,22 +17,17 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/fund-commitments/`);
-      if (!response.ok) {
-          console.error('Commitment 400 detail:', data);
-          throw new Error(data.detail || JSON.stringify(data));
-      }
-      const data = await response.json();
-      setCommitments([...data]);
+      const data = await api.get(`/api/funds/${fundId}/fund-commitments/`);
+      setCommitments(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId]);
+  }, [fundId, api]);
 
   /* =========================
-     FETCH DETAIL
+      FETCH DETAIL
      ========================= */
   const fetchCommitmentDetail = async (commitmentId) => {
     if (!fundId || !commitmentId) return;
@@ -41,14 +36,7 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/funds/${fundId}/fund-commitments/${commitmentId}/`
-      );
-      if (!response.ok) {
-          console.error('Commitment 400 detail:', data);
-          throw new Error(data.detail || JSON.stringify(data));
-      }
-      return await response.json();
+      return await api.get(`/api/funds/${fundId}/fund-commitments/${commitmentId}/`);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -58,7 +46,7 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
   };
 
   /* =========================
-     CREATE
+      CREATE
      ========================= */
   const createCommitment = async (payload) => {
     if (!fundId) throw new Error('Missing fundId');
@@ -67,22 +55,8 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/funds/${fundId}/fund-commitments/`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-          console.error('Commitment 400 detail:', data);
-          throw new Error(data.detail || JSON.stringify(data));
-      }
-
-      setCommitments((prev) => [...prev, { ...data }]);
+      const data = await api.post(`/api/funds/${fundId}/fund-commitments/`, payload);
+      setCommitments((prev) => [...prev, data]);
       return data;
     } catch (err) {
       setError(err.message);
@@ -93,7 +67,7 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
   };
 
   /* =========================
-     UPDATE (PUT / PATCH)
+      UPDATE (PUT / PATCH)
      ========================= */
   const updateCommitment = async (commitmentId, payload, partial = true) => {
     if (!fundId || !commitmentId) throw new Error('Missing identifiers');
@@ -102,25 +76,11 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/funds/${fundId}/fund-commitments/${commitmentId}/`,
-        {
-          method: partial ? 'PATCH' : 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-          console.error('Commitment 400 detail:', data);
-          throw new Error(data.detail || JSON.stringify(data));
-      }
+      const method = partial ? 'patch' : 'put';
+      const data = await api[method](`/api/funds/${fundId}/fund-commitments/${commitmentId}/`, payload);
 
       setCommitments(prev =>
-        prev.map(c =>
-            c.commitment_id === commitmentId ? { ...data } : c
-        )
+        prev.map(c => c.commitment_id === commitmentId ? data : c)
       );
 
       return data;
@@ -133,7 +93,7 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
   };
 
   /* =========================
-     DELETE
+      DELETE
      ========================= */
   const deleteCommitment = async (commitmentId) => {
     if (!fundId || !commitmentId) throw new Error('Missing identifiers');
@@ -142,19 +102,8 @@ export const useLimitedPartnerFundCommitment = (fundId) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/funds/${fundId}/fund-commitments/${commitmentId}/`,
-        { method: 'DELETE' }
-      );
-
-      if (!response.ok) {
-          console.error('Commitment 400 detail:', data);
-          throw new Error(data.detail || JSON.stringify(data));
-      }
-
-      setCommitments((prev) =>
-        prev.filter((c) => c.commitment_id !== commitmentId)
-      );
+      await api.delete(`/api/funds/${fundId}/fund-commitments/${commitmentId}/`);
+      setCommitments((prev) => prev.filter((c) => c.commitment_id !== commitmentId));
     } catch (err) {
       setError(err.message);
       throw err;

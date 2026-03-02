@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export function usePhases() {
+    const api = useApi();
     const [phases, setPhases] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -9,17 +10,18 @@ export function usePhases() {
         const fetchPhases = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/fund-phases/`);
-                const data = await response.json();
+                // api.get handles API_BASE_URL and credentials internally
+                const data = await api.get("/api/fund-phases/");
                 setPhases(data);
             } catch (err) {
-                console.error("Failed to fetch phases:", err);
+                console.error("Failed to fetch phases:", err.message);
             } finally {
                 setIsLoading(false);
             }
         };
+        
         fetchPhases();
-    }, []);
+    }, [api]);
 
     return { phases, isLoading };
 }

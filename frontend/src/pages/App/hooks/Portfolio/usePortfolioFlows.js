@@ -1,88 +1,81 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export const usePortfolioFlows = (fundId, investmentId) => {
+  const api = useApi();
   const [loading, setLoading] = useState(false);
   const [flows, setFlows] = useState([]);
 
   /**
    * FETCH FLOWS
-   * No scenarioId: Hits APIView (Master/Global flows)
-   * With scenarioId: Hits ViewSet (Scenario-specific flows)
    */
   const fetchFlows = useCallback(async (scenarioId = null) => {
     if (!investmentId) return;
     setLoading(true);
     try {
-      // We always hit the scenario endpoint if scenarioId exists.
-      // This endpoint SHOULD return: [Flows with scenario_id=null] + [Flows with scenario_id=scenarioId]
-      const url = scenarioId
-        ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
-        : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
+      const endpoint = scenarioId
+        ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
+        : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
       
-      const response = await axios.get(url);
+      const data = await api.get(endpoint);
       
-      // Ensure we sort them by date so real and scenario flows mix chronologically
-      const sortedData = response.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
       setFlows(sortedData);
     } catch (err) {
-      console.error("Failed to fetch combined flows:", err);
+      console.error("Failed to fetch combined flows:", err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId, investmentId]);
+  }, [fundId, investmentId, api]);
 
   /**
    * CREATE FLOW
-   * Automatically uses the correct endpoint based on scenarioId
    */
-  const createFlow = async (scenarioId, data) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
+  const createFlow = async (scenarioId, payload) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
     
     try {
-      const response = await axios.post(url, { ...data, scenario_id: scenarioId });
+      const data = await api.post(endpoint, { ...payload, scenario_id: scenarioId });
       fetchFlows(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Flow creation failed:", err);
+      console.error("Flow creation failed:", err.message);
       throw err;
     }
   };
 
   /**
    * DELETE FLOW
-   * Targets specific flow ID within the context of the scenario
    */
   const deleteFlow = async (scenarioId, flowId) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
     
     try {
-      await axios.delete(url);
+      await api.delete(endpoint);
       fetchFlows(scenarioId);
     } catch (err) {
-      console.error("Flow deletion failed:", err);
+      console.error("Flow deletion failed:", err.message);
     }
   };
 
   /**
    * UPDATE FLOW (PATCH)
    */
-  const updateFlow = async (scenarioId, flowId, data) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
+  const updateFlow = async (scenarioId, flowId, payload) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
     
     try {
-      const response = await axios.patch(url, data);
+      const data = await api.patch(endpoint, payload);
       fetchFlows(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Flow update failed:", err);
+      console.error("Flow update failed:", err.message);
       throw err;
     }
   };

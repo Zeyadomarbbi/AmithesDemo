@@ -1,9 +1,8 @@
-﻿// KPIsTable.jsx
-import React, { useMemo, useState, useEffect } from "react";
+﻿import React, { useMemo, useState, useEffect } from "react";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../components/useFormatter';
 import { fetchPortfolioKpisByFundIds } from "../PortfolioDataFuncs"; 
-import { API_BASE_URL } from "../../../../hooks/useApi"; 
+import useApi from "../../../../hooks/api/useApi"; // ✅ New engine import
 import { PageSpinner } from "../../AllFundsPage"; 
 import "./KPIsTable.css";
 
@@ -12,7 +11,7 @@ const COLS = [
   { key: "strategy",   label: "Strategy",       center: true  },
   { key: "commitment", label: "Commitment (€)", center: true  },
   { key: "cost",       label: "Cost (€)",       center: true  },
-  { key: "deals",      label: "Nb of deals",    center: true  },
+  { key: "deals",       label: "Nb of deals",    center: true  },
   { key: "grossIrr",   label: "Gross IRR",      center: true  },
   { key: "netIrr",     label: "Net IRR",        center: true  },
   { key: "dpi",        label: "DPI",            center: true  },
@@ -31,6 +30,7 @@ const fmtRatio = (x) =>
   Number.isFinite(Number(x)) ? `${Number(x).toFixed(2)}x` : "-";
 
 export default function KPIsTable({ funds = [], onFundClick }) {
+  const api = useApi(); // ✅ Initialize API engine
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
 
@@ -39,75 +39,52 @@ export default function KPIsTable({ funds = [], onFundClick }) {
   const [isKpisLoading, setIsKpisLoading] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
+    let isMounted = true;
 
     const loadAllKpis = async () => {
       const ids = funds.map((fund) => fund.id).filter(Boolean);
+      
       if (ids.length === 0) {
-        if (!signal.aborted) {
-          setFundKpisByFundId({});
-          setCasKpisByFundId({});
-          setIsKpisLoading(false);
-        }
+        setFundKpisByFundId({});
+        setCasKpisByFundId({});
+        setIsKpisLoading(false);
         return;
       }
 
-      if (!signal.aborted) setIsKpisLoading(true);
-
-      // Note: fetchPortfolioKpisByFundIds must be updated internally to accept and utilize the 'signal' parameter to fully abort its internal network requests.
-      const portfolioKpisPromise = fetchPortfolioKpisByFundIds(ids, signal).catch(e => {
-        if (e.name === 'AbortError') return {};
-        throw e;
-      });
-
-      const casBulkPromise = fetch(
-        `${API_BASE_URL}/api/funds/cas-kpis/bulk/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fund_ids: ids,
-            timeframe_id: null, // or pass actual timeframe if available
-          }),
-          signal,
-        }
-      )
-        .then(res => {
-          if (!res.ok) throw new Error(`Status ${res.status}`);
-          return res.json();
-        })
-        .catch(e => {
-          if (e.name === "AbortError") return {};
-          throw e;
-        });
+      setIsKpisLoading(true);
 
       try {
+        // 1. Fetch Portfolio KPIs via service (passing api instance)
+        const portfolioKpisPromise = fetchPortfolioKpisByFundIds(api, ids);
+
+        // 2. Fetch CAS KPIs via direct engine call
+        const casBulkPromise = api.post("/api/funds/cas-kpis/bulk/", {
+          fund_ids: ids,
+          timeframe_id: null,
+        });
+
         const [portfolioMap, casMap] = await Promise.all([
           portfolioKpisPromise,
           casBulkPromise
         ]);
 
-        if (!signal.aborted) {
+        if (isMounted) {
           setFundKpisByFundId(portfolioMap || {});
           setCasKpisByFundId(casMap || {});
-          setIsKpisLoading(false);
         }
       } catch (err) {
-        if (!signal.aborted) {
-          setIsKpisLoading(false);
-        }
+        console.error("KPI loading failed:", err.message);
+      } finally {
+        if (isMounted) setIsKpisLoading(false);
       }
     };
 
     loadAllKpis();
 
     return () => {
-      controller.abort();
+      isMounted = false;
     };
-  }, [funds]);
+  }, [funds, api]); // ✅ Added api to dependencies
 
   const tableRows = useMemo(
     () =>

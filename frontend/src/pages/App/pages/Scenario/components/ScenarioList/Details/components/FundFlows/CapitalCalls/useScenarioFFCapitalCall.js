@@ -1,9 +1,8 @@
-// useScenarioFFCapitalCall.js
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi"; // Adjust relative path as needed
 
 export const useScenarioFFCapitalCall = (fundId, scenarioId) => {
+    const api = useApi();
     const [capitalCalls, setCapitalCalls] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -15,17 +14,18 @@ export const useScenarioFFCapitalCall = (fundId, scenarioId) => {
         setError(null);
         
         try {
-            const response = await axios.get(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/`
+            // api.get prepends API_BASE_URL and handles headers/credentials
+            const data = await api.get(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/`
             );
-            setCapitalCalls(response.data);
+            setCapitalCalls(data);
         } catch (err) {
-            console.error('Failed to fetch capital call summary:', err);
+            console.error('Failed to fetch capital call summary:', err.message);
             setError(err.message || 'Failed to load capital call data');
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     useEffect(() => {
         fetchCapitalCalls();
@@ -34,14 +34,14 @@ export const useScenarioFFCapitalCall = (fundId, scenarioId) => {
     // Create new custom projected date
     const createCustomDate = async (payload) => {
         try {
-            const response = await axios.post(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/`,
+            const data = await api.post(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/`,
                 payload
             );
             await fetchCapitalCalls(); // Refresh list
-            return response.data;
+            return data;
         } catch (err) {
-            console.error('Failed to create custom date:', err);
+            console.error('Failed to create custom date:', err.message);
             throw err;
         }
     };
@@ -49,14 +49,14 @@ export const useScenarioFFCapitalCall = (fundId, scenarioId) => {
     // Update existing entry (date only for user-inserted)
     const updateEntry = async (summaryId, payload) => {
         try {
-            const response = await axios.patch(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/${summaryId}/`,
+            const data = await api.patch(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/${summaryId}/`,
                 payload
             );
             await fetchCapitalCalls(); // Refresh list
-            return response.data;
+            return data;
         } catch (err) {
-            console.error('Failed to update entry:', err);
+            console.error('Failed to update entry:', err.message);
             throw err;
         }
     };
@@ -64,12 +64,12 @@ export const useScenarioFFCapitalCall = (fundId, scenarioId) => {
     // Delete custom projected entry
     const deleteEntry = async (summaryId) => {
         try {
-            await axios.delete(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/${summaryId}/`
+            await api.delete(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-capitalcall-summary/${summaryId}/`
             );
             await fetchCapitalCalls(); // Refresh list
         } catch (err) {
-            console.error('Failed to delete entry:', err);
+            console.error('Failed to delete entry:', err.message);
             throw err;
         }
     };

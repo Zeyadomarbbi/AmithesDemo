@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../../hooks/api/useApi";
 
 /**
- * Hook to manage Management Fee Tranches
+ * Hook to manage Management Fee Tranches using the centralized API engine
  * @param {number} fundId 
  * @param {number} scenarioId 
  */
 export const useManFeeTranches = (fundId, scenarioId) => {
+    const api = useApi();
     const [tranches, setTranches] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -17,17 +17,18 @@ export const useManFeeTranches = (fundId, scenarioId) => {
         if (!fundId || !scenarioId) return;
         setLoading(true);
         try {
-            const response = await axios.get(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/`
+            // api.get handles base URL and returns data directly
+            const data = await api.get(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/`
             );
-            setTranches(response.data);
+            setTranches(data);
             setError(null);
         } catch (err) {
-            setError(err.response?.data || "Failed to fetch tranches");
+            setError(err.message || "Failed to fetch tranches");
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     useEffect(() => {
         fetchTranches();
@@ -36,14 +37,14 @@ export const useManFeeTranches = (fundId, scenarioId) => {
     // 2. Add New Tranche
     const addTranche = async (newTrancheData) => {
         try {
-            const response = await axios.post(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/`,
+            const data = await api.post(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches//`,
                 { ...newTrancheData, scenario_id: scenarioId }
             );
-            setTranches(prev => [...prev, response.data]);
-            return response.data;
+            setTranches(prev => [...prev, data]);
+            return data;
         } catch (err) {
-            console.error("Error adding tranche:", err);
+            console.error("Error adding tranche:", err.message);
             throw err;
         }
     };
@@ -51,16 +52,16 @@ export const useManFeeTranches = (fundId, scenarioId) => {
     // 3. Update Existing Tranche
     const updateTranche = async (trancheId, updateData) => {
         try {
-            const response = await axios.patch(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/${trancheId}/`,
+            const data = await api.patch(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/${trancheId}/`,
                 updateData
             );
             setTranches(prev => prev.map(t => 
-                t.tranche_id === trancheId ? response.data : t
+                t.tranche_id === trancheId ? data : t
             ));
-            return response.data;
+            return data;
         } catch (err) {
-            console.error("Error updating tranche:", err);
+            console.error("Error updating tranche:", err.message);
             throw err;
         }
     };
@@ -68,12 +69,12 @@ export const useManFeeTranches = (fundId, scenarioId) => {
     // 4. Delete Tranche
     const deleteTranche = async (trancheId) => {
         try {
-            await axios.delete(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/${trancheId}/`
+            await api.delete(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/${trancheId}/`
             );
             setTranches(prev => prev.filter(t => t.tranche_id !== trancheId));
         } catch (err) {
-            console.error("Error deleting tranche:", err);
+            console.error("Error deleting tranche:", err.message);
             throw err;
         }
     };

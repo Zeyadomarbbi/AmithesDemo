@@ -1,4 +1,5 @@
 from django.urls import path, include
+from ..views_auth import login_view, logout_view, csrf_view
 
 from .core import urlpatterns as core_urlpatterns
 from .fund_urls import urlpatterns as fund_urlpatterns
@@ -9,7 +10,11 @@ from .lps_statement_urls import urlpatterns as lps_statement_urlpatterns
 from .portfolio_urls import urlpatterns as portfolio_urlpatterns
 from .kpis_urls import urlpatterns as kpis_urlpatterns
 
-urlpatterns = []
+urlpatterns = [
+    path("login/", login_view),
+    path("logout/", logout_view),
+    path("csrf/", csrf_view),
+]
 urlpatterns += core_urlpatterns
 urlpatterns += fund_urlpatterns
 urlpatterns += reference_urlpatterns

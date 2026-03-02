@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi";
 
 export const useTargetMode = (fundId, scenarioId) => {
+    const api = useApi();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -14,15 +14,18 @@ export const useTargetMode = (fundId, scenarioId) => {
         setError(null);
 
         try {
-            const response = await axios.post(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/target-mode/`,
+            // api.post handles base path, content-type, and returns data directly
+            const result = await api.post(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/target-mode/`,
                 payload
             );
-            setData(response.data);
-            return response.data;
+            
+            setData(result);
+            return result;
         } catch (err) {
-            const resData = err.response?.data;
+            // map backend responses to user-friendly messages
             const status = err.response?.status;
+            const resData = err.response?.data;
 
             let userMessage;
             if (status === 404) {
@@ -32,15 +35,15 @@ export const useTargetMode = (fundId, scenarioId) => {
             } else if (status === 400) {
                 userMessage = resData?.error || 'Invalid input parameters.';
             } else {
-                userMessage = resData?.error || 'Calculation failed. Please try again.';
+                userMessage = err.message || 'Calculation failed. Please try again.';
             }
 
             setError(userMessage);
-            throw new Error(userMessage); // re-throw with clean message
+            throw new Error(userMessage); 
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     return { data, loading, error, executeTargetMode };
 };

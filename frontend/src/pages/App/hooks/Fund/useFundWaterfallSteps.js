@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
-import { API_BASE_URL } from "../useApi";
+import useApi from "../api/useApi";
 
 export function useFundWaterfallSteps() {
+  const api = useApi();
   const [loading, setLoading] = useState({
     fetch: false,
     save: false,
@@ -14,24 +15,20 @@ export function useFundWaterfallSteps() {
     setLoading(prev => ({ ...prev, [key]: value }));
 
   /**
-   * Transforms the UI payload to match Django Serializer expectations:
-   * 1. Converts empty strings to null for Decimal compatibility.
-   * 2. Converts Rules Dictionaries (keyed by ID) back into Arrays.
+   * Transforms the UI payload to match Django Serializer expectations.
+   * Note: useApi handles JSON.stringify, so we return a clean object here.
    */
   const preparePayload = (payload) => {
-    const stringified = JSON.stringify(payload, (key, value) => 
-      value === "" ? null : value
+    // Convert empty strings to null for Decimal compatibility
+    const clean = JSON.parse(
+      JSON.stringify(payload, (key, value) => (value === "" ? null : value))
     );
-    const clean = JSON.parse(stringified);
 
-    // Helper to ensure rules are always sent as an array
     const ensureArray = (data) => (Array.isArray(data) ? data : Object.values(data || {}));
 
     return {
       ...clean,
-      // Handle Step-level rules
       rules: ensureArray(clean.rules),
-      // Handle Envelope-level rules
       envelopes: (clean.envelopes || []).map(env => ({
         ...env,
         rules: ensureArray(env.rules)
@@ -43,29 +40,21 @@ export function useFundWaterfallSteps() {
     setLoadingState("fetch", true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`);
-      if (!res.ok) throw await res.json();
-      return await res.json();
+      return await api.get(`/api/funds/${fundId}/waterfall-steps/`);
     } catch (err) {
       setError(err);
       throw err;
     } finally {
       setLoadingState("fetch", false);
     }
-  }, []);
+  }, [api]);
 
   const createStep = async (fundId, payload) => {
     setLoadingState("save", true);
     setError(null);
     try {
       const processedPayload = preparePayload(payload);
-      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(processedPayload),
-      });
-      if (!res.ok) throw await res.json();
-      return await res.json();
+      return await api.post(`/api/funds/${fundId}/waterfall-steps/`, processedPayload);
     } catch (err) {
       setError(err);
       throw err;
@@ -79,13 +68,7 @@ export function useFundWaterfallSteps() {
     setError(null);
     try {
       const processedPayload = preparePayload(payload);
-      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
-        method: "PUT", // Or PATCH if your APIView supports partial updates
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(processedPayload),
-      });
-      if (!res.ok) throw await res.json();
-      return await res.json();
+      return await api.put(`/api/funds/${fundId}/waterfall-steps/${stepId}/`, processedPayload);
     } catch (err) {
       setError(err);
       throw err;
@@ -98,10 +81,7 @@ export function useFundWaterfallSteps() {
     setLoadingState("delete", true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/funds/${fundId}/waterfall-steps/${stepId}/`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw await res.json();
+      await api.delete(`/api/funds/${fundId}/waterfall-steps/${stepId}/`);
       return true;
     } catch (err) {
       setError(err);

@@ -339,7 +339,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       if (id) scLookup.set(id, sc?.share_class_name ?? sc?.name ?? `Class ${id}`);
     });
 
-  return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
+    return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
       const name = scLookup.get(scId) ?? `Class ${scId}`;
       const initials = name.replace(/class\s*/i, "").trim().slice(0, 2).toUpperCase() || "SC";
       const ownershipPct = total > 0 ? commitmentAmount / total : null;
@@ -440,6 +440,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
     setFlowTotals((prev) => ({ ...prev, [flowId]: parseMoney(raw) }));
   };
+
   const eqTargetPct = useMemo(() => {
     const f = parsePercent(eqTargetInput);
     return f !== null && Number.isFinite(f) ? f : null;
@@ -490,7 +491,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return map;
   }, [rows, flows, flowTotals, isEqualization, eqByRowId]);
 
-    const eqGrandTotal = useMemo(() => {
+  const eqGrandTotal = useMemo(() => {
     if (!isEqualization) return null;
     let sum = 0;
     let any = false;
@@ -694,18 +695,19 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const saveErrorMsg = saveError?.message ? String(saveError.message) : null;
   const eqGrandTotalPct = useMemo(() => {
-      if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
-      return (eqGrandTotal / totalCommitment) * 100;
-    }, [isEqualization, eqGrandTotal, totalCommitment]);
+    if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
+    return (eqGrandTotal / totalCommitment) * 100;
+  }, [isEqualization, eqGrandTotal, totalCommitment]);
 
   const isLoadingData =
-  isLoadingTypes ||
-  isLoadingShareClass ||
-  (operationId && isLoadingCFFlowDetails);
+    isLoadingTypes ||
+    isLoadingShareClass ||
+    (operationId && isLoadingCFFlowDetails);
 
   if (isLoadingData) {
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
+
   return (
     <>
       {saveErrorMsg && (
@@ -788,14 +790,11 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {/* Equalization column */}
             {isEqualization && (
               <div className="op2-col op2-col--eq">
-                <div className="op2-col-header">
+                <div className="op2-col-header op2-col-header--eq">
                   <span>Equalization</span>
-                  <span className="op2-sort">⇅</span>
-                </div>
-                <div className="op2-eq-target-wrap">
                   <input
                     className="op2-eq-target-input"
-                    placeholder="Target..."
+                    placeholder="Target %"
                     value={eqTargetInput}
                     onChange={(e) => setEqTargetInput(e.target.value)}
                     disabled={isSaving}
@@ -816,7 +815,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
             )}
 
             {/* Flows column */}
-            <div className="op2-col op2-col--cap">
+            <div className="op2-col">
               <div className="op2-bluebox">
                 {flows.length === 0 ? (
                   <div className="op2-cap-empty">

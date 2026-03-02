@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi";
 
 export const useScenarioFFDistribution = (fundId, scenarioId) => {
+    const api = useApi();
     const [distributions, setDistributions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -14,17 +14,18 @@ export const useScenarioFFDistribution = (fundId, scenarioId) => {
         setError(null);
         
         try {
-            const response = await axios.get(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-distribution-summary/`
+            // api.get handles API_BASE_URL and returns data directly
+            const data = await api.get(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-distribution-summary/`
             );
-            setDistributions(response.data);
+            setDistributions(data);
         } catch (err) {
-            console.error('Failed to fetch distribution summary:', err);
+            console.error('Failed to fetch distribution summary:', err.message);
             setError(err.message || 'Failed to load distribution data');
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     useEffect(() => {
         fetchDistributions();

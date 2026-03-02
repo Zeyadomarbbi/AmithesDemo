@@ -25,8 +25,7 @@ export default function AddFlowModal({
         if (id === null || id === undefined || !name) return null;
         return { id: String(id), name: String(name) };
       })
-      .filter(Boolean)
-      .filter((opt) => opt.name.toLowerCase() !== "equalization");
+      .filter(Boolean); // Removed the equalization filter here
   }, [flowTypes]);
 
   // Handle default selection when options are available

@@ -1,31 +1,18 @@
-import { API_BASE_URL } from "../../../hooks/useApi";
+/**
+ * Standalone API services for Portfolio KPIs.
+ * Note: These require the 'api' instance from useApi() to be passed in by the caller.
+ */
 
-
-export async function fetchFundPortfolioKpi(fundId, signal) {
+export async function fetchFundPortfolioKpi(api, fundId) {
   if (!fundId) {
     return { grossIrr: null, deals: 0, totalCost: 0 };
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/funds/portfolio-kpis/bulk/`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fund_ids: [fundId],
-        }),
-        signal,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Status ${response.status}`);
-    }
-
-    const data = await response.json();
+    // api.post handles base URL, Content-Type, and credentials automatically
+    const data = await api.post("/api/funds/portfolio-kpis/bulk/", {
+      fund_ids: [fundId],
+    });
 
     return (
       data?.[String(fundId)] ?? {
@@ -35,11 +22,10 @@ export async function fetchFundPortfolioKpi(fundId, signal) {
       }
     );
   } catch (error) {
-    if (error.name === "AbortError") {
-      throw error;
-    }
+    // Standardizing on the engine's error handling
+    if (error.name === "AbortError") throw error;
 
-    console.error(`Portfolio KPI: failed for fund ${fundId}`, error);
+    console.error(`Portfolio KPI: failed for fund ${fundId}`, error.message);
 
     return {
       grossIrr: null,
@@ -49,20 +35,16 @@ export async function fetchFundPortfolioKpi(fundId, signal) {
   }
 }
 
-export async function fetchPortfolioKpisByFundIds(fundIds = [], signal) {
+export async function fetchPortfolioKpisByFundIds(api, fundIds = []) {
   if (!fundIds?.length) return {};
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/funds/portfolio-kpis/bulk/`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fund_ids: fundIds }),
-      signal,
-    }
-  );
-
-  if (!response.ok) return {};
-
-  return response.json();
+  try {
+    // The engine's post method returns the parsed JSON directly
+    return await api.post("/api/funds/portfolio-kpis/bulk/", {
+      fund_ids: fundIds,
+    });
+  } catch (error) {
+    console.error("Bulk Portfolio KPI fetch failed:", error.message);
+    return {};
+  }
 }

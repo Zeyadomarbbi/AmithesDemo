@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export function usePortfolioTransactionTypes() {
+    const api = useApi();
     const [transactionTypes, setTransactionTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -9,21 +10,18 @@ export function usePortfolioTransactionTypes() {
         const fetchTransactionTypes = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/portfolio-transaction-types/`);
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`);
-                }
-                const data = await response.json();
+                // api.get prepends API_BASE_URL and attaches credentials
+                const data = await api.get("/api/portfolio-transaction-types/");
                 setTransactionTypes(data);
             } catch (err) {
-                console.error("Failed to fetch transaction types:", err);
+                console.error("Failed to fetch transaction types:", err.message);
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchTransactionTypes();
-    }, []);
+    }, [api]);
 
     return { transactionTypes, isLoading };
 }

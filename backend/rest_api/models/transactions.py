@@ -694,7 +694,7 @@ class ScenarioPortfolioProjection(models.Model):
 
     class Meta:
         db_table = 'scenario_portfolio_projections'
-        managed = True 
+        managed = False 
         unique_together = (('investment', 'scenario'),)
 
     def __str__(self):
@@ -714,7 +714,7 @@ class ManFeeTranche(models.Model):
 
     class Meta:
         db_table = 'man_fee_tranches'
-        managed = True
+        managed = False
     
 class ScenarioDueDiligenceFee(models.Model):
     dd_fee_id = models.BigAutoField(primary_key=True)

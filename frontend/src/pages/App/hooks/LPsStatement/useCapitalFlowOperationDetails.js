@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import { API_BASE_URL } from '../api/apiConfig';
 
 function apiUrl(fundId, operationId = null) {
   const base = `${API_BASE_URL}/api/funds/${fundId}/operations/`;

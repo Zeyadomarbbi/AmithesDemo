@@ -1,27 +1,24 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { xirr as xirrLib } from "@webcarrot/xirr";
+import useApi from "../../../../hooks/api/useApi"; // Adjust path to useApi
 
 /* ===== Components ===== */
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import NewInvestmentModal from "./components/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
-import { API_BASE_URL } from "../../../../hooks/useApi";
 
 /* ===== Styles ===== */
 import "./PortfolioSummaryTab.css";
-const SortIcon = () => (
-  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', verticalAlign: 'middle' }}>
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.5286 0.195262C3.78894 -0.0650874 4.21106 -0.0650874 4.4714 0.195262L7.80474 3.5286C8.06509 3.78894 8.06509 4.21106 7.80474 4.4714C7.54439 4.73175 7.12228 4.73175 6.86193 4.4714L4 1.60948L1.13807 4.4714C0.877722 4.73175 0.455612 4.73175 0.195262 4.4714C-0.0650874 4.21106 -0.0650874 3.78894 0.195262 3.5286L3.5286 0.195262ZM0.195262 7.5286C0.455612 7.26825 0.877722 7.26825 1.13807 7.5286L4 10.3905L6.86193 7.5286C7.12228 7.26825 7.54439 7.26825 7.80474 7.5286C8.06509 7.78895 8.06509 8.21106 7.80474 8.47141L4.4714 11.8047C4.21106 12.0651 3.78894 12.0651 3.5286 11.8047L0.195262 8.47141C-0.0650874 8.21106 -0.0650874 7.78895 0.195262 7.5286Z" fill="#375A89"/>
-  </svg>
-);
+
 /* ===== Icons ===== */
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
   DownloadIcon,
   iconStyle,
+  SortIcon
 } from "../../icons";
 
 /* ================= Utils ================= */
@@ -50,8 +47,6 @@ const formatCurrencyDisplay = (name, code, symbol) => {
 
 const ownershipToDbValue = (ownershipPercent) => {
   const n = toNumber(ownershipPercent);
-  // DB column currently behaves like numeric(5,4) => max 9.9999
-  // We keep UI as 1-100%, but persist scaled value to avoid overflow.
   const scaled = n / 10;
   return Number(Math.min(9.9999, scaled).toFixed(4));
 };
@@ -61,6 +56,7 @@ const ownershipFromDbValue = (storedOwnership) => {
   if (n <= 10) return Number((n * 10).toFixed(2));
   return Number(n.toFixed(2));
 };
+
 const canonicalType = (type) => {
   const t = String(type || "").trim().toLowerCase();
   if (t === "dividends" || t === "dividend") return "Dividend";
@@ -87,6 +83,7 @@ const safeXirr = (cashflows) => {
 
 /* ================= Component ================= */
 const PortfolioSummaryTab = () => {
+  const api = useApi();
   const { fundId, portfolioDataset } = useOutletContext();
   const numericFundId = Number(fundId);
   const [toast, setToast] = useState(null);
@@ -98,6 +95,7 @@ const PortfolioSummaryTab = () => {
   /* ===== Modals / Drawers ===== */
   const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState(null);
+  
   const selectedQuarterObj = quarters.find(
     (q) => Number(q.id) === Number(selectedQuarter)
   );
@@ -113,16 +111,6 @@ const PortfolioSummaryTab = () => {
     activeQuarterObj?.rawDate || activeQuarterObj?.date || null;
   const metricsCutoffDate = selectedTimeframeDate || "9999-12-31";
   const effectiveTimeframe = activeQuarterObj || null;
-
-  const normalizeStatus = (status) => {
-    const s = String(status || "").trim().toLowerCase();
-    if (!s) return null;
-    if (s.includes("unallocated")) return "unallocated";
-    if (s.includes("unrealized")) return "unrealized";
-    if (s.includes("realized")) return "realized";
-    if (s.includes("partial")) return "partial";
-    return null;
-  };
 
   const normalizeRow = (row) => ({
     id: row.investment_id ?? row.id ?? row.investmentId ?? row.portfolio_investment_id,
@@ -150,31 +138,10 @@ const PortfolioSummaryTab = () => {
     exitValue: row.exit_value ?? row.exitValue ?? row.amount ?? 0,
     realized: row.realized ?? row.realized_gain ?? row.realizedGain ?? 0,
     status: row.status ?? row.investment_status ?? row.portfolio_status ?? null,
+    // Safely capture pre-joined arrays
+    transaction_flows: row.transaction_flows || [],
+    fair_value_flows: row.fair_value_flows || [],
   });
-
-  const fetchInvestmentFlows = useCallback(async (investmentId) => {
-    const preloaded = portfolioDataset?.flowsByInvestment?.[investmentId];
-    if (Array.isArray(preloaded)) return preloaded;
-
-    const res = await fetch(
-      `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/${investmentId}/flows/`
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  }, [numericFundId, portfolioDataset]);
-
-  const fetchInvestmentFairValues = useCallback(async (investmentId) => {
-    const preloaded = portfolioDataset?.fairValuesByInvestment?.[investmentId];
-    if (Array.isArray(preloaded)) return preloaded;
-
-    const res = await fetch(
-      `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/${investmentId}/fair-values/`
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  }, [numericFundId, portfolioDataset]);
 
   const computeStatusFromFlows = useCallback((flows, date) => {
     try {
@@ -304,39 +271,30 @@ const PortfolioSummaryTab = () => {
     };
   }, []);
 
-  const loadSummaryData = useCallback(async () => {
+  // Synchronous Load Data Method
+  const loadSummaryData = useCallback(() => {
     if (!numericFundId) return;
     try {
       const preloadedInvestments = Array.isArray(portfolioDataset?.investments)
         ? portfolioDataset.investments
         : [];
-      const flattened = preloadedInvestments.length
-        ? preloadedInvestments
-        : [];
 
-      const rows = flattened.map(normalizeRow);
+      const rows = preloadedInvestments.map(normalizeRow);
 
-      const statusResults = await Promise.all(
-        rows.map(async (row) => {
-          const [flows, fairValues] = await Promise.all([
-            fetchInvestmentFlows(row.id),
-            fetchInvestmentFairValues(row.id),
-          ]);
+      const statusResults = rows.map((row) => {
+        // Feed the embedded arrays directly into the computation engines
+        const flows = row.transaction_flows;
+        const fairValues = row.fair_value_flows;
 
-          const statusComputed = computeStatusFromFlows(flows, metricsCutoffDate);
-          const metrics = computeMetricsFromFlows(
-            flows,
-            fairValues,
-            metricsCutoffDate
-          );
+        const statusComputed = computeStatusFromFlows(flows, metricsCutoffDate);
+        const metrics = computeMetricsFromFlows(flows, fairValues, metricsCutoffDate);
 
-          return {
-            row: { ...row, ...metrics },
-            status: statusComputed.status,
-            include: statusComputed.include,
-          };
-        })
-      );
+        return {
+          row: { ...row, ...metrics },
+          status: statusComputed.status,
+          include: statusComputed.include,
+        };
+      });
 
       const nextUnrealized = [];
       const nextRealized = [];
@@ -369,15 +327,13 @@ const PortfolioSummaryTab = () => {
     }
   }, [
     numericFundId,
-    selectedTimeframeDate,
     metricsCutoffDate,
     portfolioDataset,
-    fetchInvestmentFlows,
-    fetchInvestmentFairValues,
     computeStatusFromFlows,
     computeMetricsFromFlows,
   ]);
 
+  // Load data immediately when the pre-fetched dataset updates
   useEffect(() => {
     loadSummaryData();
   }, [loadSummaryData]);
@@ -392,11 +348,6 @@ const PortfolioSummaryTab = () => {
       setSelectedQuarter(Number(latest.id));
     }
   }, [quarters, selectedQuarter]);
-
-  useEffect(() => {
-    if (!numericFundId) return;
-    loadSummaryData();
-  }, [numericFundId, selectedQuarter, selectedTimeframeDate, loadSummaryData]);
 
   const calcValue = (row) =>
     toNumber(
@@ -441,9 +392,7 @@ const PortfolioSummaryTab = () => {
     name,
     sector,
     countryId,
-    countryName,
     currencyId,
-    currencyCode,
     ownership,
   }) => {
     if (!name || !String(name).trim()) {
@@ -465,44 +414,26 @@ const PortfolioSummaryTab = () => {
       currency_id: Number(currencyId),
     };
 
-    let created = null;
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/funds/${numericFundId}/portfolio-investments/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      if (!res.ok) {
-        const msg = await res.text();
-        if (msg && msg.toLowerCase().includes("duplicate")) {
-          setToast({
-            type: "error",
-            message: "Investment name already exists for this fund. Please choose another name.",
-          });
-        } else {
-          setToast({ type: "error", message: "Failed to create investment. Please check your input." });
-        }
-        return;
+      // Use the API engine for the creation request
+      await api.post(`/api/funds/${numericFundId}/portfolio-investments/`, payload);
+      
+      // Trigger the parent's refresh hook so new data trickles down
+      if (typeof portfolioDataset?.refresh === "function") {
+        await portfolioDataset.refresh();
       }
-      created = await res.json();
+      setIsNewInvestmentOpen(false);
     } catch (err) {
-      console.error("Create investment failed:", err);
-      setToast({ type: "error", message: "Failed to create investment. Please try again." });
-      return;
+      console.error("Create investment failed:", err.message);
+      if (err.message && err.message.toLowerCase().includes("duplicate")) {
+        setToast({
+          type: "error",
+          message: "Investment name already exists for this fund. Please choose another name.",
+        });
+      } else {
+        setToast({ type: "error", message: "Failed to create investment. Please check your input." });
+      }
     }
-
-    if (!created?.investment_id || !Number.isFinite(Number(created.investment_id))) {
-      setToast({ type: "error", message: "Investment was not saved correctly. Please try again." });
-      return;
-    }
-
-    if (typeof portfolioDataset?.refresh === "function") {
-      await portfolioDataset.refresh();
-    }
-    await loadSummaryData();
   };
 
   const handleSaveNewTimeframe = async (timeframe) => {
@@ -553,7 +484,6 @@ const PortfolioSummaryTab = () => {
   /* ================= Render ================= */
   return (
     <>
-      {/* ===== Toolbar ===== */}
       <div className="portfolio-toolbar">
         <div className="toolbar-left">
           <QuarterSelector
@@ -592,22 +522,16 @@ const PortfolioSummaryTab = () => {
             </h2>
             <div className="portfolio-table-tools">
               <button className="icon-circle-btn search-btn">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd"
-                      d="M5.33333 1.33333C3.12419 1.33333 1.33333 3.12419 1.33333 5.33333C1.33333 7.54247 3.12419 9.33333 5.33333 9.33333C7.54247 9.33333 9.33333 7.54247 9.33333 5.33333C9.33333 3.12419 7.54247 1.33333 5.33333 1.33333ZM0 5.33333C0 2.38781 2.38781 0 5.33333 0C8.27885 0 10.6667 2.38781 10.6667 5.33333C10.6667 6.56579 10.2486 7.70061 9.5466 8.60373L13.1381 12.1953C13.3984 12.4556 13.3984 12.8777 13.1381 13.1381C12.8777 13.3984 12.4556 13.3984 12.1953 13.1381L8.60379 9.54655C7.70067 10.2486 6.56582 10.6667 5.33333 10.6667C2.38781 10.6667 0 8.27885 0 5.33333Z"
-                      fill="#375A89"/>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M5.33333 1.33333C3.12419 1.33333 1.33333 3.12419 1.33333 5.33333C1.33333 7.54247 3.12419 9.33333 5.33333 9.33333C7.54247 9.33333 9.33333 7.54247 9.33333 5.33333C9.33333 3.12419 7.54247 1.33333 5.33333 1.33333ZM0 5.33333C0 2.38781 2.38781 0 5.33333 0C8.27885 0 10.6667 2.38781 10.6667 5.33333C10.6667 6.56579 10.2486 7.70061 9.5466 8.60373L13.1381 12.1953C13.3984 12.4556 13.3984 12.8777 13.1381 13.1381C12.8777 13.3984 12.4556 13.3984 12.1953 13.1381L8.60379 9.54655C7.70067 10.2486 6.56582 10.6667 5.33333 10.6667C2.38781 10.6667 0 8.27885 0 5.33333Z" fill="#375A89"/>
                   </svg>
                 </button>
 
               <button className="icon-circle-btn filter-btn">
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M2 9C2 4.58172 5.58172 1 10 1H26C30.4183 1 34 4.58172 34 9V25C34 29.4183 30.4183 33 26 33H10C5.58172 33 2 29.4183 2 25V9Z" fill="white"/>
-                      <path d="M10 1.5H26C30.1421 1.5 33.5 4.85786 33.5 9V25C33.5 29.1421 30.1421 32.5 26 32.5H10C5.85786 32.5 2.5 29.1421 2.5 25V9C2.5 4.85786 5.85786 1.5 10 1.5Z"
-                        stroke="#CCCDCE" strokeOpacity="0.5"/>
-                      <path d="M11.334 13H24.667M13.334 17H22.667M15.334 21H20.667"
-                        stroke="#375A89" strokeWidth="1.333" strokeLinecap="round"/>
+                      <path d="M10 1.5H26C30.1421 1.5 33.5 4.85786 33.5 9V25C33.5 29.1421 30.1421 32.5 26 32.5H10C5.85786 32.5 2.5 29.1421 2.5 25V9C2.5 4.85786 5.85786 1.5 10 1.5Z" stroke="#CCCDCE" strokeOpacity="0.5"/>
+                      <path d="M11.334 13H24.667M13.334 17H22.667M15.334 21H20.667" stroke="#375A89" strokeWidth="1.333" strokeLinecap="round"/>
                     </svg>
                   </button>
             </div>
@@ -754,6 +678,8 @@ const PortfolioSummaryTab = () => {
           </div>
         </div>
       </section>
+
+      {/* ===== Unallocated ===== */}
       <section className="portfolio-section">
         <div className="portfolio-table-card">
           <div className="portfolio-section-header">
@@ -828,6 +754,7 @@ const PortfolioSummaryTab = () => {
           </div>
         </div>
       </section>
+
       {/* ===== TOTAL ===== */}
       <section className="portfolio-total-section">
         <div className="portfolio-table-scroll">
@@ -857,7 +784,6 @@ const PortfolioSummaryTab = () => {
               </tr>
             </thead>
             <tbody>
-              
               <tr className="portfolio-subtotal-row total-row">
                 <td className="subtotal-name-cell">Total</td>
                 <td />
@@ -892,7 +818,6 @@ const PortfolioSummaryTab = () => {
             if (typeof portfolioDataset?.refresh === "function") {
               await portfolioDataset.refresh();
             }
-            await loadSummaryData();
           }}
         />
       )}

@@ -1,49 +1,57 @@
-// src/pages/App/pages/Scenario/hooks/useScenarioData.js
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { API_BASE_URL } from '../../../../../../hooks/useApi';
+import useApi from "../../../../../../hooks/api/useApi"; // Adjust relative path as needed
 
 export const useScenarioData = (fundId, scenarioId) => {
+  const api = useApi();
   const location = useLocation();
+  
+  // Initialize from React Router state if available to avoid redundant network calls
   const [data, setData] = useState(location.state || null);
   const [loading, setLoading] = useState(!location.state);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // If we have state from a client-side Link/Navigate, don't fetch
+    // Guard: Prevent fetch if data is already present (e.g., from location.state)
     if (data) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
 
+    if (!fundId || !scenarioId) return;
+
+    let isMounted = true;
+
     const fetchScenario = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/`);
+        // api.get handles base URL and session credentials automatically
+        const result = await api.get(`/api/funds/${fundId}/scenario_list/${scenarioId}/`);
         
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: Failed to fetch scenario`);
+        if (isMounted) {
+          // Map backend fields to frontend expected schema
+          setData({
+            title: result.scenario_name,
+            author: result.created_by,
+            date: result.created_at,
+            description: result.description,
+            ...result
+          });
         }
-        
-        const result = await response.json();
-        
-        // Map backend fields to frontend expected keys
-        setData({
-          title: result.scenario_name,
-          author: result.created_by,
-          date: result.created_at,
-          description: result.description,
-          ...result
-        });
       } catch (err) {
-        setError(err.message);
+        if (isMounted) setError(err.message);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchScenario();
-  }, [fundId, scenarioId, data]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fundId, scenarioId, data, api]);
 
   return { data, loading, error };
 };

@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export const useFundClosings = (fundId = null) => {
+  const api = useApi();
   const [closingPeriods, setClosingPeriods] = useState([]);
   const [fundClosings, setFundClosings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -11,32 +12,28 @@ export const useFundClosings = (fundId = null) => {
   const fetchClosingPeriods = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/closing-periods/`);
-      if (!response.ok) throw new Error('Failed to fetch closing periods');
-      const data = await response.json();
+      const data = await api.get('/api/closing-periods/');
       setClosingPeriods(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [api]);
 
   // 2. Fund Specific: Fetch List
   const fetchFundClosings = useCallback(async () => {
-    if (!fundId) return; // Silent return if fundId isn't available yet
+    if (!fundId) return; 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/fund-closings/`);
-      if (!response.ok) throw new Error('Failed to fetch fund closings');
-      const data = await response.json();
+      const data = await api.get(`/api/funds/${fundId}/fund-closings//`);
       setFundClosings(data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId]);
+  }, [fundId, api]);
 
   // 3. Fund Specific: Create
   const createFundClosing = async (closingData) => {
@@ -45,18 +42,8 @@ export const useFundClosings = (fundId = null) => {
     setLoading(true);
     setError(null);
     try {
-        const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/fund-closings/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(closingData), // Payload now includes the integer fund ID
-      });
-      const resData = await response.json();
-      if (!response.ok) {
-        const serverError = resData.detail || JSON.stringify(resData)
-        throw new Error(serverError);
-      }
-
-    setFundClosings((prev) => [...prev, resData]);
+      const resData = await api.post(`/api/funds/${fundId}/fund-closings//`, closingData);
+      setFundClosings((prev) => [...prev, resData]);
       return resData;
     } catch (err) {
       setError(err.message);
@@ -71,9 +58,7 @@ export const useFundClosings = (fundId = null) => {
     if (!fundId) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/fund-closings/${recordId}/`);
-      if (!response.ok) throw new Error('Failed to fetch record detail');
-      return await response.json();
+      return await api.get(`/api/funds/${fundId}/fund-closings/${recordId}/`);
     } catch (err) {
       setError(err.message);
     } finally {

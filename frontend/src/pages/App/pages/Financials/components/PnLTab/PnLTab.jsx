@@ -1,5 +1,5 @@
 // src/pages/App/pages/Financials/components/PnLTab/PnLTab.jsx
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
@@ -10,71 +10,16 @@ import {
   AddFileIcon,
   PlusIcon,
 } from "../../../../components/Icons.jsx";
-import Toast from "../../../../components/Toast/Toast.jsx"; // ✅ Import Toast
+import Toast from "../../../../components/Toast/Toast.jsx";
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
 import PnLTax from "./PnLTables/PnLTax.jsx";
-import { API_BASE_URL } from "../../../../hooks/useApi.js";
+
+// Import the new hooks
+import { usePnLApi } from "../../../../hooks/Financials/usePnLApi"; 
+import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload"; 
 import "./PnL.css";
-
-/* -----------------------------
-   API helpers (no new files)
------------------------------ */
-async function apiFetchPnL(fundId, timeframeIds = []) {
-  const qs =
-    Array.isArray(timeframeIds) && timeframeIds.length > 0
-      ? `?timeframe_ids=${timeframeIds.join(",")}`
-      : "";
-
-  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/${qs}`, {
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`PnL GET failed (${r.status}): ${txt}`);
-  }
-
-  return r.json();
-}
-
-async function apiUpsertPnLValue(fundId, { lineItemId, timeframeId, amount }) {
-  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/value/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      lineItemId: Number(lineItemId),
-      timeframeId: Number(timeframeId),
-      amount: amount === "" || amount === null || amount === undefined ? 0 : Number(amount),
-    }),
-  });
-
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`PnL upsert failed (${r.status}): ${txt}`);
-  }
-
-  return r.json();
-}
-
-async function apiCreatePnLLineItem(fundId, { category, name }) {
-  const r = await fetch(`${API_BASE_URL}/api/pnl/${fundId}/line-item/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      category: String(category || "").toLowerCase(),
-      name: String(name || "").trim(),
-    }),
-  });
-
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(`PnL line-item create failed (${r.status}): ${txt}`);
-  }
-
-  return r.json();
-}
 
 /* -----------------------------
    helpers
@@ -84,13 +29,7 @@ const makeId = (prefix) =>
 
 function getPeriodLabel(p) {
   return (
-    (p?.label ??
-      p?.name ??
-      p?.display_label ??
-      p?.displayLabel ??
-      p?.period_name ??
-      p?.periodName ??
-      "") + ""
+    (p?.label ?? p?.name ?? p?.display_label ?? p?.displayLabel ?? p?.period_name ?? p?.periodName ?? "") + ""
   ).trim();
 }
 
@@ -110,7 +49,6 @@ const sumForPeriod = (rows, periodId) => {
   return (rows || []).reduce((acc, r) => acc + Number(r?.byPeriod?.[pid] || 0), 0);
 };
 
-// convert backend map {"12":{"5":123}} => aligned rows
 function valuesMapToRows(lines, valueMap) {
   const map = valueMap || {};
   return (lines || []).map((line) => {
@@ -137,22 +75,21 @@ const PnLTab = () => {
 
   const { quarters, isLoading, setQuarters } = useTimeframes(effectiveFundId);
   const [toast, setToast] = useState(null);
+  
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
     return (
-      qp
-        .get("timeframes")
-        ?.split(",")
-        .map(Number)
-        .filter((id) => !isNaN(id)) || []
+      qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || []
     );
   }, [location.search]);
 
+  // Hook Integrations
+  const { fetchPnL, upsertValue, createLineItem } = usePnLApi(effectiveFundId);
+  const { fileInputRef, uploading, handleUploadClick, handleFileSelected } = usePnLUpload(effectiveFundId, selectedTimeframeIds);
+
   const setTimeframesInUrl = (ids) => {
     const qp = new URLSearchParams(location.search);
-    const cleaned = (Array.isArray(ids) ? ids : [])
-      .map(Number)
-      .filter((n) => Number.isFinite(n));
+    const cleaned = (Array.isArray(ids) ? ids : []).map(Number).filter((n) => Number.isFinite(n));
 
     if (cleaned.length === 0) qp.delete("timeframes");
     else qp.set("timeframes", cleaned.join(","));
@@ -186,12 +123,10 @@ const PnLTab = () => {
   const [showExpenses, setShowExpenses] = useState(true);
   const [showTax, setShowTax] = useState(true);
 
-  // Lines (from backend + custom)
+  // Lines & Values
   const [incomeLines, setIncomeLines] = useState([]);
   const [expenseLines, setExpenseLines] = useState([]);
   const [taxLines, setTaxLines] = useState([]);
-
-  // Values
   const [incomeValues, setIncomeValues] = useState([]);
   const [expenseValues, setExpenseValues] = useState([]);
   const [taxValues, setTaxValues] = useState([]);
@@ -201,66 +136,54 @@ const PnLTab = () => {
 
   const sortedQuarters = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
-    return list
-      .slice()
-      .sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date));
+    return list.slice().sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date));
   }, [quarters]);
 
   const headerPeriods = useMemo(() => {
-    if (!sortedQuarters?.length) return [];
-    if (selectedTimeframeIds.length === 0) return [];
+    if (!sortedQuarters?.length || selectedTimeframeIds.length === 0) return [];
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
     return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
   }, [sortedQuarters, selectedTimeframeIds]);
 
-  // ✅ Load from backend
-  useEffect(() => {
-    let alive = true;
+  // Fetch logic extracted so it can be reused in the save workflow
+  const loadPnL = useCallback(async () => {
+    if (!effectiveFundId) return;
+    setPnlLoading(true);
+    setPnlError("");
 
-    async function loadPnL() {
-      if (!effectiveFundId) return;
+    try {
+      const data = await fetchPnL(selectedTimeframeIds);
 
-      setPnlLoading(true);
-      setPnlError("");
+      const normalizeLines = (arr) =>
+        (arr || []).map((x) => ({
+          ...x,
+          id: x.line_item_id,
+          label: x.name ?? x.label ?? "",
+          isCustom: false,
+        }));
 
-      try {
-        const data = await apiFetchPnL(effectiveFundId, selectedTimeframeIds);
-        if (!alive) return;
+      const incLines = normalizeLines(data.incomeLines);
+      const expLines = normalizeLines(data.expenseLines);
+      const taxLs = normalizeLines(data.taxLines);
 
-        const normalizeLines = (arr) =>
-          (arr || []).map((x) => ({
-            ...x,
-            id: x.line_item_id, // IMPORTANT
-            label: x.name ?? x.label ?? "",
-            isCustom: false,
-          }));
+      setIncomeLines(incLines);
+      setExpenseLines(expLines);
+      setTaxLines(taxLs);
 
-        const incLines = normalizeLines(data.incomeLines);
-        const expLines = normalizeLines(data.expenseLines);
-        const taxLs = normalizeLines(data.taxLines);
-
-        setIncomeLines(incLines);
-        setExpenseLines(expLines);
-        setTaxLines(taxLs);
-
-        setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
-        setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
-        setTaxValues(valuesMapToRows(taxLs, data.taxValues));
-      } catch (e) {
-        if (!alive) return;
-        setPnlError(e?.message || "Failed to load PnL");
-      } finally {
-        if (alive) setPnlLoading(false);
-      }
+      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
+      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
+      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
+    } catch (e) {
+      setPnlError(e?.message || "Failed to load PnL");
+    } finally {
+      setPnlLoading(false);
     }
+  }, [effectiveFundId, selectedTimeframeIds, fetchPnL]);
 
+  useEffect(() => {
     loadPnL();
-    return () => {
-      alive = false;
-    };
-  }, [effectiveFundId, selectedTimeframeIds.join(",")]);
+  }, [loadPnL]);
 
-  // keep values shape in sync with selected columns
   useEffect(() => {
     setIncomeValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
     setExpenseValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
@@ -289,16 +212,15 @@ const PnLTab = () => {
   const netByPeriod = useMemo(() => {
     const out = {};
     headerPeriods.forEach((p) => {
-      const id = p.id;
-      out[id] =
-        Number(totalIncomeByPeriod[id] || 0) -
-        Number(totalExpensesByPeriod[id] || 0) -
-        Number(totalTaxByPeriod[id] || 0);
+      out[p.id] =
+        Number(totalIncomeByPeriod[p.id] || 0) -
+        Number(totalExpensesByPeriod[p.id] || 0) -
+        Number(totalTaxByPeriod[p.id] || 0);
     });
     return out;
   }, [headerPeriods, totalIncomeByPeriod, totalExpensesByPeriod, totalTaxByPeriod]);
 
-  // add/remove rows (UI)
+  // row actions
   const addIncomeRow = () => {
     setIncomeLines((prev) => [...prev, { id: makeId("inc"), label: "", isCustom: true }]);
     setIncomeValues((prev) => [...(Array.isArray(prev) ? prev : []), { byPeriod: {} }]);
@@ -326,79 +248,38 @@ const PnLTab = () => {
     setTaxValues((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // upload/download
-  const fileInputRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUploadClick = () => {
-    if (!effectiveFundId) return alert("Missing fundId in URL.");
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelected = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      const form = new FormData();
-      form.append("file", file);
-      form.append("quarters", JSON.stringify(selectedTimeframeIds || []));
-
-      const res = await fetch(
-        `${API_BASE_URL}/api/funds/${encodeURIComponent(effectiveFundId)}/financials/pnl/upload`,
-        { method: "POST", body: form }
-      );
-
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-      const data = await res.json();
-      console.log("Upload success:", data);
-    } catch (err) {
-      alert(err?.message || "Upload failed");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const handleDownload = () =>
-    console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
+  const handleDownload = () => console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
 
   /* -----------------------------
-     ✅ SAVE ALL TO DB (ALL 3 TABLES + custom rows)
+     SAVE DB PIPELINE
   ----------------------------- */
   const [savingAll, setSavingAll] = useState(false);
 
-  // send fewer requests: only send cells the user filled
   const isFilled = (v) => !(v === "" || v === null || v === undefined);
 
   const runInBatches = async (items, batchSize, fn) => {
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
-      // eslint-disable-next-line no-await-in-loop
       await Promise.all(batch.map(fn));
     }
   };
 
-  // ✅ creates DB line items for custom rows and returns updated arrays with real IDs
   const persistCustomRows = async () => {
-    // helper: persist custom rows in one section
     const persistSection = async (category, lines, values) => {
       const nextLines = [...(lines || [])];
-
       for (let i = 0; i < nextLines.length; i++) {
         const line = nextLines[i];
         if (!line?.isCustom) continue;
 
         const name = String(line?.label || "").trim();
-        if (!name) continue; // ignore empty custom rows
+        if (!name) continue; 
 
-        const created = await apiCreatePnLLineItem(effectiveFundId, { category, name });
+        // Uses the new hook method
+        const created = await createLineItem({ category, name });
 
-        // replace with real DB-backed line
         nextLines[i] = {
           ...line,
-          id: created.line_item_id,     // IMPORTANT: now numeric
+          id: created.line_item_id,
           line_item_id: created.line_item_id,
           category_id: created.category_id,
           label: created.name,
@@ -406,8 +287,6 @@ const PnLTab = () => {
           isCustom: false,
         };
       }
-
-      // values array stays aligned
       return { nextLines, nextValues: values };
     };
 
@@ -419,7 +298,6 @@ const PnLTab = () => {
     setExpenseLines(exp.nextLines);
     setTaxLines(tax.nextLines);
 
-    // return updated arrays to use immediately (setState is async)
     return {
       incomeLines: inc.nextLines, incomeValues,
       expenseLines: exp.nextLines, expenseValues,
@@ -429,7 +307,6 @@ const PnLTab = () => {
 
   const buildJobs = (lines, values) => {
     const jobs = [];
-
     (lines || []).forEach((line, idx) => {
       const lineItemId = Number(line?.id);
       if (!Number.isFinite(lineItemId)) return;
@@ -438,40 +315,26 @@ const PnLTab = () => {
       headerPeriods.forEach((p) => {
         const timeframeId = Number(p.id);
         const raw = byPeriod[String(timeframeId)];
-
-        // only send filled cells (avoid spamming zeros)
         if (!isFilled(raw)) return;
 
-        jobs.push({
-          lineItemId,
-          timeframeId,
-          amount: Number(raw),
-        });
+        jobs.push({ lineItemId, timeframeId, amount: Number(raw) });
       });
     });
-
     return jobs;
   };
 
   const handleSave = async () => {
     if (!effectiveFundId) return;
     if (headerPeriods.length === 0) {
-        setToast({
-            type: "error",
-            title: "Selection Required",
-            message: "Select at least one timeframe first."
-        });
-        return;
+      setToast({ type: "error", title: "Selection Required", message: "Select at least one timeframe first." });
+      return;
     }
 
     try {
       setSavingAll(true);
       setPnlError("");
 
-      // ✅ Step 1: Persist custom rows
       const updated = await persistCustomRows();
-
-      // ✅ Step 2: Build jobs
       const jobs = [
         ...buildJobs(updated.incomeLines, updated.incomeValues),
         ...buildJobs(updated.expenseLines, updated.expenseValues),
@@ -479,94 +342,50 @@ const PnLTab = () => {
       ];
 
       if (jobs.length === 0) {
-        setToast({
-            type: "info",
-            title: "No Changes",
-            message: "Nothing to save. Please fill some values first."
-        });
+        setToast({ type: "info", title: "No Changes", message: "Nothing to save. Please fill some values first." });
         setSavingAll(false);
         return;
       }
 
-      // ✅ Step 3: Write values in batches
-      await runInBatches(jobs, 10, (payload) => apiUpsertPnLValue(effectiveFundId, payload));
+      // Uses the new hook method
+      await runInBatches(jobs, 10, (payload) => upsertValue(payload));
 
-      // ✅ Step 4: Reload from backend
-      const data = await apiFetchPnL(effectiveFundId, selectedTimeframeIds);
+      // Reload grid
+      await loadPnL();
 
-      const normalizeLines = (arr) =>
-        (arr || []).map((x) => ({
-          ...x,
-          id: x.line_item_id,
-          label: x.name ?? x.label ?? "",
-          isCustom: false,
-        }));
-
-      const incLines = normalizeLines(data.incomeLines);
-      const expLines = normalizeLines(data.expenseLines);
-      const taxLs = normalizeLines(data.taxLines);
-
-      setIncomeLines(incLines);
-      setExpenseLines(expLines);
-      setTaxLines(taxLs);
-
-      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
-      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
-      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
-
-      // ✅ Success Toast
-      setToast({
-        type: "success",
-        title: "Financials Saved",
-        message: "Income, Expenses, and Tax data updated successfully."
-      });
-
+      setToast({ type: "success", title: "Financials Saved", message: "Income, Expenses, and Tax data updated successfully." });
     } catch (e) {
       console.error(e);
       setPnlError(e?.message || "Save failed");
-      
-      // ✅ Error Toast
-      setToast({
-        type: "error",
-        title: "Save Failed",
-        message: e?.message || "An error occurred while saving financials."
-      });
+      setToast({ type: "error", title: "Save Failed", message: e?.message || "An error occurred while saving financials." });
     } finally {
       setSavingAll(false);
     }
   };
 
-  // HeaderRow
   const HeaderRow = ({ leftSlot = null }) => (
     <div className="table-header-row">
       <div className="header-left-slot">{leftSlot}</div>
-
       {headerPeriods.map((p) => {
         const label = getPeriodLabel(p);
         return (
           <div key={p.id || label} className="col-period">
             <AddFileIcon />
             <EditLineIcon />
-            <span className="period-label">
-              {label} <span>(€)</span>
-            </span>
+            <span className="period-label">{label} <span>(€)</span></span>
           </div>
         );
       })}
-
       <div />
     </div>
   );
 
-  const scopeVars = useMemo(
-    () => ({
-      "--pnl-cols": String(headerPeriods.length),
-      "--pnl-label-col": "minmax(260px, 1fr)",
-      "--pnl-period-col": "minmax(160px, 1fr)",
-      "--pnl-actions-col": "110px",
-    }),
-    [headerPeriods.length]
-  );
+  const scopeVars = useMemo(() => ({
+    "--pnl-cols": String(headerPeriods.length),
+    "--pnl-label-col": "minmax(260px, 1fr)",
+    "--pnl-period-col": "minmax(160px, 1fr)",
+    "--pnl-actions-col": "110px",
+  }), [headerPeriods.length]);
 
   return (
     <>
@@ -614,26 +433,14 @@ const PnLTab = () => {
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
             <div className="financials-section-title">Income</div>
-            <HeaderRow
-              leftSlot={
-                <button className="pill-btn" type="button" onClick={addIncomeRow}>
-                  <PlusIcon /> Add income
-                </button>
-              }
-            />
-
+            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addIncomeRow}><PlusIcon /> Add income</button>} />
             <PnLIncome
-              fundId={effectiveFundId}
-              headerPeriods={headerPeriods}
-              showIncome={showIncome}
-              setShowIncome={setShowIncome}
-              incomeLines={incomeLines}
-              setIncomeLines={setIncomeLines}
-              incomeValues={incomeValues}
-              setIncomeValues={setIncomeValues}
+              fundId={effectiveFundId} headerPeriods={headerPeriods}
+              showIncome={showIncome} setShowIncome={setShowIncome}
+              incomeLines={incomeLines} setIncomeLines={setIncomeLines}
+              incomeValues={incomeValues} setIncomeValues={setIncomeValues}
               totalIncomeByPeriod={totalIncomeByPeriod}
-              onAddRow={addIncomeRow}
-              onRemoveRow={removeIncomeRow}
+              onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow}
             />
           </div>
         </div>
@@ -644,26 +451,14 @@ const PnLTab = () => {
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
             <div className="financials-section-title">Expense</div>
-            <HeaderRow
-              leftSlot={
-                <button className="pill-btn" type="button" onClick={addExpenseRow}>
-                  <PlusIcon /> Add expense
-                </button>
-              }
-            />
-
+            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addExpenseRow}><PlusIcon /> Add expense</button>} />
             <PnLExpenses
-              fundId={effectiveFundId}
-              headerPeriods={headerPeriods}
-              showExpenses={showExpenses}
-              setShowExpenses={setShowExpenses}
-              expenseLines={expenseLines}
-              setExpenseLines={setExpenseLines}
-              expenseValues={expenseValues}
-              setExpenseValues={setExpenseValues}
+              fundId={effectiveFundId} headerPeriods={headerPeriods}
+              showExpenses={showExpenses} setShowExpenses={setShowExpenses}
+              expenseLines={expenseLines} setExpenseLines={setExpenseLines}
+              expenseValues={expenseValues} setExpenseValues={setExpenseValues}
               totalExpensesByPeriod={totalExpensesByPeriod}
-              onAddRow={addExpenseRow}
-              onRemoveRow={removeExpenseRow}
+              onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow}
             />
           </div>
         </div>
@@ -674,26 +469,14 @@ const PnLTab = () => {
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
             <div className="financials-section-title">Tax</div>
-            <HeaderRow
-              leftSlot={
-                <button className="pill-btn" type="button" onClick={addTaxRow}>
-                  <PlusIcon /> Add tax
-                </button>
-              }
-            />
-
+            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addTaxRow}><PlusIcon /> Add tax</button>} />
             <PnLTax
-              fundId={effectiveFundId}
-              headerPeriods={headerPeriods}
-              showTax={showTax}
-              setShowTax={setShowTax}
-              taxLines={taxLines}
-              setTaxLines={setTaxLines}
-              taxValues={taxValues}
-              setTaxValues={setTaxValues}
+              fundId={effectiveFundId} headerPeriods={headerPeriods}
+              showTax={showTax} setShowTax={setShowTax}
+              taxLines={taxLines} setTaxLines={setTaxLines}
+              taxValues={taxValues} setTaxValues={setTaxValues}
               totalTaxByPeriod={totalTaxByPeriod}
-              onAddRow={addTaxRow}
-              onRemoveRow={removeTaxRow}
+              onAddRow={addTaxRow} onRemoveRow={removeTaxRow}
             />
           </div>
         </div>
@@ -705,7 +488,6 @@ const PnLTab = () => {
           <div className="pnl-grid-scope">
             <div className="net-row net-row--standalone">
               <div>Net Profit / Net loss</div>
-
               {headerPeriods.map((p) => {
                 const v = Number(netByPeriod[p.id] || 0);
                 return (
@@ -714,7 +496,6 @@ const PnLTab = () => {
                   </div>
                 );
               })}
-
               <div />
             </div>
           </div>
@@ -729,12 +510,7 @@ const PnLTab = () => {
         </div>
       </div>
       {toast && (
-        <Toast
-          type={toast.type}
-          title={toast.title}
-          message={toast.message}
-          onClose={() => setToast(null)}
-        />
+        <Toast type={toast.type} title={toast.title} message={toast.message} onClose={() => setToast(null)} />
       )}
     </>
   );

@@ -119,7 +119,7 @@ export default function OperationPanel({
 
   const { operationTypes, fetchOperationTypes } = useOperationTypes();
   // ── Hooks — all scoped to fundId only ─────────────────────────────────────
-  const { createOperation, fetchOperation, loading: opLoading } = useOperationDetails(fundId);
+  const { createOperation, fetchOperation, deleteOperation, loading: opLoading } = useOperationDetails(fundId);
   const { createFlow } = useCapitalFlowFlowDetails(fundId, null);
   const { createAllocation: createFlowLPAllocation } = useCapitalFlowLPFlowAllocation(fundId, null, null);
   const {
@@ -225,8 +225,11 @@ export default function OperationPanel({
     setIsSaving(true);
     setSaveError(null);
 
+    const rollbackState = {
+      operationId: null,
+    };
+
     try {
-      // ── 1. Create operation ──────────────────────────────────────────────
       const newOperationId = await createOperation({
         operation_name: String(operationName).trim(),
         operation_type_id: Number(operationType),
@@ -234,21 +237,14 @@ export default function OperationPanel({
         due_date: toIsoDate(dueDate),
         total_fund_commitment: totalFundCommitment,
         total_operation_amount: Number(total_operation_amount.toFixed(2)),
-        // Ensure decimal (0..1) — grandPercent from Step2 is a percentage number
-        overall_percentage_of_commitment:
-        (
+        overall_percentage_of_commitment: (
           (overall_percentage_of_commitment ?? 0) > 1
             ? overall_percentage_of_commitment / 100
             : (overall_percentage_of_commitment ?? 0)
         ).toFixed(4),
       });
 
-      setOperationId(newOperationId);
-      console.log("[Save 1/4] Operation created:", newOperationId);
-
-      // ── 2. Create flows ──────────────────────────────────────────────────
-      // Derive flow totals from perLp (submitted values, not draft)
-      const flowIdMap = {};
+      rollbackState.operationId = newOperationId;
 
       for (const flow of flows) {
         const createdFlow = await createFlow(newOperationId, {
@@ -269,10 +265,6 @@ export default function OperationPanel({
         const opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
         if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
 
-        flowIdMap[flow.id] = opFlowId;
-        console.log(`[Save 2/4] Flow created: ${flow.flow_name} →`, opFlowId);
-
-        // ── 3. Flow LP allocations ───────────────────────────────────────────────
         for (const [lpId, lpData] of Object.entries(perLp)) {
           const allocatedAmount = lpData.flows?.[flow.id] ?? null;
           if (allocatedAmount === null || !Number.isFinite(Number(allocatedAmount))) continue;
@@ -283,12 +275,8 @@ export default function OperationPanel({
             allocated_amount: Number(Number(allocatedAmount).toFixed(4)),
           });
         }
-
-        console.log(`[Save 3/4] Flow LP allocations created for flow:`, opFlowId);
       }
 
-      // ── 4. Operation LP allocations ──────────────────────────────────────
-      // called_percentage must be a decimal (0..1), grandPercent from Step2 is already /100
       const overallPctDecimal = (overall_percentage_of_commitment ?? 0) > 1
         ? (overall_percentage_of_commitment / 100)
         : (overall_percentage_of_commitment ?? 0);
@@ -296,7 +284,6 @@ export default function OperationPanel({
       for (const [lpId, lpData] of Object.entries(perLp)) {
         const mainAmount = lpData.mainAmount ?? 0;
         const commitmentNum = lpData.commitmentNumber ?? 0;
-        // per-LP called_percentage = their amount / their commitment (decimal)
         const lpCalledPct = commitmentNum > 0 ? mainAmount / commitmentNum : 0;
 
         await createOperationLPAllocation(newOperationId, {
@@ -312,12 +299,17 @@ export default function OperationPanel({
         });
       }
 
-      console.log("[Save 4/4] Operation LP allocations created.");
-      console.log("[Save complete] operationId:", newOperationId);
-
+      setOperationId(newOperationId);
       return newOperationId;
 
     } catch (e) {
+      if (rollbackState.operationId) {
+        try {
+          await deleteOperation(rollbackState.operationId);
+        } catch (rollbackError) {
+          console.error("Critical: Frontend rollback failed. Orphaned operation ID:", rollbackState.operationId, rollbackError);
+        }
+      }
       setSaveError(e);
       throw e;
     } finally {

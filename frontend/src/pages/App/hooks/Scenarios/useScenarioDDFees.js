@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 /**
  * Hook to manage Scenario Due Diligence Fees
  * Includes annual aggregation logic.
- * @param {number} fundId 
- * @param {number} scenarioId 
  */
 export const useScenarioDDFees = (fundId, scenarioId) => {
+    const api = useApi();
     const [ddFees, setDDFees] = useState([]);
-    const [annualTotals, setAnnualTotals] = useState([]); // <--- New State for Aggregates
+    const [annualTotals, setAnnualTotals] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -19,24 +17,24 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
         if (!fundId || !scenarioId) return;
         setLoading(true);
         try {
-            const response = await axios.get(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/dd-fees/`
+            const data = await api.get(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/dd-fees/`
             );
-            setDDFees(response.data);
+            setDDFees(data);
             setError(null);
         } catch (err) {
-            setError(err.response?.data || "Failed to fetch DD fees");
+            setError(err.message || "Failed to fetch DD fees");
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     useEffect(() => {
         fetchDDFees();
     }, [fetchDDFees]);
 
     // ---------------------------------------------------------
-    // NEW LOGIC: Calculate Annual Totals whenever fees change
+    // Aggregation Logic: Calculate Annual Totals
     // ---------------------------------------------------------
     useEffect(() => {
         if (!ddFees || ddFees.length === 0) {
@@ -51,7 +49,6 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
             if (fee.entry_date && fee.entry_amount) {
                 const year = parseInt(fee.entry_date.split('-')[0]);
                 const amount = parseFloat(fee.entry_amount) || 0;
-                // Accumulate
                 totalsMap[year] = (totalsMap[year] || 0) + amount;
             }
 
@@ -59,12 +56,10 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
             if (fee.exit_date && fee.exit_amount) {
                 const year = parseInt(fee.exit_date.split('-')[0]);
                 const amount = parseFloat(fee.exit_amount) || 0;
-                // Accumulate (Add to existing year total if entry happened in same year)
                 totalsMap[year] = (totalsMap[year] || 0) + amount;
             }
         });
 
-        // Convert Map to Sorted Array: [{ year: 2026, total_amount: 5000 }, ...]
         const sortedTotals = Object.keys(totalsMap)
             .map(year => ({
                 year: parseInt(year),
@@ -73,23 +68,21 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
             .sort((a, b) => a.year - b.year);
 
         setAnnualTotals(sortedTotals);
-
     }, [ddFees]);
-    // ---------------------------------------------------------
 
     // 2. Update Fee Percentages (PATCH)
     const updateFeeRate = async (ddFeeId, patchData) => {
         try {
-            const response = await axios.patch(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/dd-fees/${ddFeeId}/`,
+            const data = await api.patch(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/dd-fees/${ddFeeId}/`,
                 patchData
             );
             
-            // Sync local state with backend-calculated amounts from triggers
+            // Sync local state with backend-calculated amounts
             setDDFees(prev => prev.map(fee => 
-                fee.dd_fee_id === ddFeeId ? response.data : fee
+                fee.dd_fee_id === ddFeeId ? data : fee
             ));
-            return response.data;
+            return data;
         } catch (err) {
             console.error("Update DD Fee failed", err);
             throw err;
@@ -115,7 +108,7 @@ export const useScenarioDDFees = (fundId, scenarioId) => {
 
     return {
         ddFees,
-        annualTotals, // <--- Exposed here
+        annualTotals,
         loading,
         error,
         updateFeeRate,

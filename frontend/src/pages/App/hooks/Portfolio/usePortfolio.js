@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export const usePortfolio = (fundId) => {
+  const api = useApi();
   const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
 
@@ -17,82 +17,77 @@ export const usePortfolio = (fundId) => {
   const fetchInvestments = useCallback(async (scenarioId = null) => {
     setLoading(true);
     try {
-      const url = scenarioId
-        ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
-        : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`;
+      const endpoint = scenarioId
+        ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
+        : `/api/funds/${fundId}/portfolio-investments/`;
       
-      const response = await axios.get(url);
-      // response.data contains [ { ..., transaction_flows: [...] }, ... ]
-      setInvestments(response.data);
+      const data = await api.get(endpoint);
+      setInvestments(data);
     } catch (err) {
-      console.error("Failed to fetch investments", err);
+      console.error("Failed to fetch investments", err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId]);
+  }, [fundId, api]);
 
-  const createInvestment = async (scenarioId, data) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`;
+  const createInvestment = async (scenarioId, payload) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
+      : `/api/funds/${fundId}/portfolio-investments/`;
     
     try {
-      const response = await axios.post(url, { ...data, scenario_id: scenarioId });
-      // Re-fetch to get the newly created investment along with its empty flow array
+      const data = await api.post(endpoint, { ...payload, scenario_id: scenarioId });
       fetchInvestments(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Investment creation failed", err);
+      console.error("Investment creation failed", err.message);
       throw err;
     }
   };
 
   const deleteInvestment = async (scenarioId, investmentId) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/`;
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/`;
     try {
-      await axios.delete(url);
+      await api.delete(endpoint);
       fetchInvestments(scenarioId);
     } catch (err) {
-      console.error("Investment deletion failed", err);
+      console.error("Investment deletion failed", err.message);
     }
   };
 
   // --- TRANSACTION FLOWS (Individual Actions) ---
-  // We keep the mutations (Create/Delete) but they refresh the whole investment list 
-  // to keep the nested data in sync.
 
-  const createFlow = async (investmentId, scenarioId, data) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
+  const createFlow = async (investmentId, scenarioId, payload) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
     
     try {
-      const response = await axios.post(url, data);
-      // Refresh investments to update the nested flows array for this investment
+      const data = await api.post(endpoint, payload);
       fetchInvestments(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Flow creation failed", err);
+      console.error("Flow creation failed", err.message);
       throw err;
     }
   };
 
   const deleteFlow = async (investmentId, scenarioId, flowId) => {
-    const url = scenarioId
-      ? `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
-      : `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
     try {
-      await axios.delete(url);
+      await api.delete(endpoint);
       fetchInvestments(scenarioId);
     } catch (err) {
-      console.error("Flow deletion failed", err);
+      console.error("Flow deletion failed", err.message);
     }
   };
 
   return {
-    investments, // Now contains nested flows
+    investments,
     loading,
     fetchInvestments,
     createInvestment,

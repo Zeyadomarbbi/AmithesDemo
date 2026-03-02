@@ -1,46 +1,49 @@
-import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../useApi';
+import { useState, useEffect, useCallback } from 'react';
+import useApi from "../api/useApi";
 
 export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast) {
+    const api = useApi();
     const [scenarios, setScenarios] = useState([]);
     const [syntheses, setSyntheses] = useState([]);
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 
-    useEffect(() => {
+    const fetchData = useCallback(async () => {
         if (!fundId) return;
+        try {
+            // Simultaneous fetching using the api engine
+            const [scData, synData] = await Promise.all([
+                api.get(`/api/funds/${fundId}/scenario_list/`),
+                api.get(`/api/funds/${fundId}/synthesis-details/`)
+            ]);
 
-        const fetchData = async () => {
-            try {
-                const scResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/`);
-                if (!scResp.ok) throw new Error("Failed to fetch scenarios");
-                const scData = await scResp.json();
-                setScenarios(scData.map(apiRowToScenario));
+            setScenarios(scData.map(apiRowToScenario));
 
-                const synResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-details/`);
-                if (!synResp.ok) throw new Error("Failed to fetch syntheses");
-                const synData = await synResp.json();
+            const formattedSyntheses = synData.map(syn => ({
+                id: syn.synthesis_id,
+                fundId: syn.fund,
+                title: syn.synthesis_name,
+                author: syn.created_by,
+                description: syn.description,
+                createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
+                links: syn.scenarios?.map(s => s.scenario_name) || []
+            }));
 
-                const formattedSyntheses = synData.map(syn => ({
-                    id: syn.synthesis_id,
-                    fundId: syn.fund,
-                    title: syn.synthesis_name,
-                    author: syn.created_by,
-                    description: syn.description,
-                    createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
-                    links: syn.scenarios?.map(s => s.scenario_name) || []
-                }));
+            setSyntheses(formattedSyntheses);
+        } catch (error) {
+            console.error("Error loading data:", error);
+            showToast({ 
+                title: "Load Failed", 
+                message: error.message || "Could not load scenarios or syntheses.", 
+                type: "error" 
+            });
+        }
+    }, [fundId, api, apiRowToScenario, showToast]);
 
-                setSyntheses(formattedSyntheses);
-            } catch (error) {
-                console.error("Error loading data:", error);
-                showToast({ title: "Load Failed", message: "Could not load scenarios or syntheses.", type: "error" });
-            }
-        };
-
+    useEffect(() => {
         fetchData();
-    }, [fundId]);
+    }, [fetchData]);
 
     const handleAddScenario = async (newScenarioData) => {
         const payload = {
@@ -50,52 +53,36 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                showToast({
-                    title: "Creation Failed",
-                    message: errorData.scenario_name || "Failed to save scenario.",
-                    type: "error"
-                });
-                return;
-            }
-
-            const savedRow = await response.json();
+            const savedRow = await api.post(`/api/funds/${fundId}/scenario_list/`, payload);
             setScenarios(prev => [...prev, apiRowToScenario(savedRow)]);
             setIsModalOpen(false);
             showToast({ title: "Scenario Created", message: `"${newScenarioData.name}" was added successfully.`, type: "success" });
         } catch (error) {
             console.error("Persistence error:", error);
-            showToast({ title: "Error", message: "An unexpected error occurred while saving the scenario.", type: "error" });
+            showToast({ 
+                title: "Creation Failed", 
+                message: error.message || "Failed to save scenario.", 
+                type: "error" 
+            });
         }
     };
 
     const handleDeleteScenario = async (idToDelete, onConflict) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${idToDelete}/`, {
-                method: 'DELETE',
-            });
-
-            if (response.status === 409) {
-                const errorData = await response.json();
-                onConflict?.(errorData.syntheses || []);
-                return;
-            }
-
-            if (!response.ok) throw new Error("Failed to delete scenario from the database.");
-
+            await api.delete(`/api/funds/${fundId}/scenario_list/${idToDelete}/`);
+            
             setScenarios(prev => prev.filter(s => s.id !== idToDelete));
             setSelectedScenarioIds(prev => prev.filter(id => id !== idToDelete));
             showToast({ title: "Scenario Deleted", message: "The scenario was removed.", type: "success" });
         } catch (error) {
+            // Specific handling for Django 409 Conflict (Linked Syntheses)
+            if (error.message.includes("409") || error.status === 409) {
+                // Note: Ensure your api engine passes the error data if you need the synthesis list
+                onConflict?.([]); 
+                return;
+            }
             console.error("Delete scenario error:", error);
-            showToast({ title: "Delete Failed", message: "Could not delete scenario. Please try again.", type: "error" });
+            showToast({ title: "Delete Failed", message: error.message, type: "error" });
         }
     };
 
@@ -114,23 +101,7 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-details/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                showToast({
-                    title: "Synthesis Failed",
-                    message: errorData.synthesis_name || "Failed to save synthesis.",
-                    type: "error"
-                });
-                return;
-            }
-
-            const savedRow = await response.json();
+            const savedRow = await api.post(`/api/funds/${fundId}/synthesis-details/`, payload);
 
             const formattedSynthesis = {
                 id: savedRow.synthesis_id,
@@ -148,55 +119,46 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
             showToast({ title: "Synthesis Created", message: `"${newSynthesisData.name}" was created successfully.`, type: "success" });
         } catch (error) {
             console.error("Synthesis persistence error:", error);
-            showToast({ title: "Error", message: "An unexpected error occurred while saving the synthesis.", type: "error" });
+            showToast({ title: "Error", message: error.message, type: "error" });
         }
     };
 
     const handleDeleteSynthesis = async (idToDelete) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-details/${idToDelete}/`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) throw new Error("Failed to delete synthesis from the database.");
-
+            await api.delete(`/api/funds/${fundId}/synthesis-details/${idToDelete}/`);
             setSyntheses(prev => prev.filter(s => s.id !== idToDelete));
             showToast({ title: "Synthesis Deleted", message: "The synthesis was removed.", type: "success" });
         } catch (error) {
             console.error("Delete synthesis error:", error);
-            showToast({ title: "Delete Failed", message: "Could not delete synthesis. Please try again.", type: "error" });
+            showToast({ title: "Delete Failed", message: error.message, type: "error" });
         }
     };
 
     const handleForceDeleteScenario = async (idToDelete) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${idToDelete}/?force=true`, {
-                method: 'DELETE',
+            await api.delete(`/api/funds/${fundId}/scenario_list/${idToDelete}/`, {
+                params: { force: "true" } // or append to string if api engine doesn't handle params
             });
-
-            if (!response.ok) throw new Error("Failed to force delete scenario.");
 
             setScenarios(prev => prev.filter(s => s.id !== idToDelete));
             setSelectedScenarioIds(prev => prev.filter(id => id !== idToDelete));
 
-            const synResp = await fetch(`${API_BASE_URL}/api/funds/${fundId}/synthesis-details/`);
-            if (synResp.ok) {
-                const synData = await synResp.json();
-                setSyntheses(synData.map(syn => ({
-                    id: syn.synthesis_id,
-                    fundId: syn.fund_id,
-                    title: syn.synthesis_name,
-                    author: syn.created_by,
-                    description: syn.description,
-                    createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
-                    links: syn.scenarios?.map(s => s.scenario_name) || []
-                })));
-            }
+            // Refresh syntheses to reflect the removal of linked items
+            const synData = await api.get(`/api/funds/${fundId}/synthesis-details/`);
+            setSyntheses(synData.map(syn => ({
+                id: syn.synthesis_id,
+                fundId: syn.fund_id,
+                title: syn.synthesis_name,
+                author: syn.created_by,
+                description: syn.description,
+                createdDate: new Date(syn.created_at).toLocaleDateString("de-CH"),
+                links: syn.scenarios?.map(s => s.scenario_name) || []
+            })));
 
             showToast({ title: "Deleted", message: "Scenario and linked syntheses were removed.", type: "success" });
         } catch (error) {
             console.error("Force delete error:", error);
-            showToast({ title: "Delete Failed", message: "Could not delete. Please try again.", type: "error" });
+            showToast({ title: "Delete Failed", message: error.message, type: "error" });
         }
     };
 

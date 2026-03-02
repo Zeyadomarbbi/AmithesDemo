@@ -1,13 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi";
 
 export const useSensitivityAnalysis = (fundId, scenarioId) => {
+    const api = useApi();
     const [matrixData, setMatrixData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Using a ref to track the component's mounted state
     const isMounted = useRef(true);
 
     useEffect(() => {
@@ -16,27 +15,25 @@ export const useSensitivityAnalysis = (fundId, scenarioId) => {
     }, []);
 
     const fetchMatrix = useCallback(async (payload) => {
-        // Guard against empty fund or scenario IDs
         if (!fundId || !scenarioId) return;
 
         setLoading(true);
         setError(null);
 
         try {
-            // Standardizing with your axios and API_BASE_URL
-            const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/sensitivity/`;
-            
-            const response = await axios.post(url, payload, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            // api.post handles the base URL and returns response.data directly
+            const response = await api.post(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/sensitivity/`, 
+                payload
+            );
 
             if (isMounted.current) {
-                // The backend should return a 5x5 matrix in response.data.matrix
-                setMatrixData(response.data.matrix || []);
+                // Assuming backend structure: { matrix: [...] }
+                setMatrixData(response.matrix || []);
             }
         } catch (err) {
             if (isMounted.current) {
-                const errorMessage = err.response?.data?.error || err.message || "Failed to calculate sensitivity";
+                const errorMessage = err.message || "Failed to calculate sensitivity";
                 setError(errorMessage);
                 console.error("Sensitivity Hook Error:", err);
             }
@@ -45,15 +42,13 @@ export const useSensitivityAnalysis = (fundId, scenarioId) => {
                 setLoading(false);
             }
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
-    // Return clear state for the Sensitivity UI
     return { 
         matrixData, 
         loading, 
         error, 
         fetchMatrix,
-        // Optional: clear function to reset grid if needed
         clearMatrix: () => setMatrixData([]) 
     };
 };

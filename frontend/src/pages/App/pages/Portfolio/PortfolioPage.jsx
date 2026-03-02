@@ -1,13 +1,31 @@
 // PortfolioPage.jsx
+import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
-import { usePortfolioDataset } from "./usePortfolioDataset";
+import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
+
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
 import "./styles/portfolio.tables.css";
 
 const PortfolioPage = () => {
   const { fundId } = useParams();
-  const portfolioDataset = usePortfolioDataset(fundId);
+  
+  // Use the clean, standardized API hook
+  const { investments, loading, fetchInvestments } = usePortfolio(fundId);
+
+  // Auto-fetch when the portfolio layout mounts
+  useEffect(() => {
+    if (fundId) {
+      fetchInvestments();
+    }
+  }, [fundId, fetchInvestments]);
+
+  // Bridge the data shape so the downstream tabs don't need any changes
+  const portfolioDataset = {
+    investments: investments,
+    isLoading: loading,
+    refresh: fetchInvestments 
+  };
 
   return (
     <div className="portfolio-page">
@@ -30,7 +48,7 @@ const PortfolioPage = () => {
           </NavLink>
         </div>
 
-        {/* Routed content */}
+        {/* Routed content receives the clean dataset */}
         <Outlet context={{ fundId, portfolioDataset }} />
       </main>
     </div>

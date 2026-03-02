@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../../hooks/api/useApi";
 
 export const useMasterManFees = (fundId, scenarioId) => {
+    const api = useApi();
     const [pivotedData, setPivotedData] = useState([]); 
     const [columns, setColumns] = useState([]);      
-    const [annualTotals, setAnnualTotals] = useState([]); // <--- NEW STATE
+    const [annualTotals, setAnnualTotals] = useState([]); 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -13,37 +13,31 @@ export const useMasterManFees = (fundId, scenarioId) => {
         if (!fundId || !scenarioId) return;
         
         setLoading(true);
+        setError(null);
+
         try {
-            // 1. Parallel Fetch: Fee Data AND Commitment Year Definition
-            const [feeRes, commitYearRes] = await Promise.allSettled([
-                axios.get(`${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/master-man-fees/`),
-                axios.get(`${API_BASE_URL}/api/funds/${fundId}/man-fee-commitment-year/`)
+            // 1. Parallel Fetch using the api engine
+            const [feeData, commitYearData] = await Promise.all([
+                api.get(`/api/funds/${fundId}/scenario_list/${scenarioId}/master-man-fees/`),
+                api.get(`/api/funds/${fundId}/man-fee-commitment-year/`)
             ]);
 
             // 2. Determine Start Year
-            let startYear = new Date().getFullYear(); // Default
-            if (commitYearRes.status === 'fulfilled' && commitYearRes.value.data) {
-                if (commitYearRes.value.data.commitment_from_year) {
-                    startYear = parseInt(commitYearRes.value.data.commitment_from_year);
-                }
+            let startYear = new Date().getFullYear(); 
+            if (commitYearData && commitYearData.commitment_from_year) {
+                startYear = parseInt(commitYearData.commitment_from_year);
             }
 
-            // 3. Process Fee Data
-            if (feeRes.status === 'fulfilled') {
-                processData(feeRes.value.data, startYear, 15);
-            } else {
-                throw new Error(feeRes.reason);
-            }
-            
-            setError(null);
+            // 3. Process the results
+            processData(feeData, startYear, 15);
 
         } catch (err) {
-            console.error("Failed to fetch Master Man Fees", err);
+            console.error("Failed to fetch Master Man Fees:", err.message);
             setError("Failed to load fee data");
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     useEffect(() => {
         fetchData();
@@ -73,8 +67,9 @@ export const useMasterManFees = (fundId, scenarioId) => {
                 }
 
                 if (yearsMap[item.year]) {
-                    yearsMap[item.year][colKey] = parseFloat(item.fee_amount);
-                    yearsMap[item.year].total += parseFloat(item.fee_amount);
+                    const amount = parseFloat(item.fee_amount || 0);
+                    yearsMap[item.year][colKey] = amount;
+                    yearsMap[item.year].total += amount;
                 }
             });
         }
@@ -82,7 +77,7 @@ export const useMasterManFees = (fundId, scenarioId) => {
         // C. Sort Rows
         const sortedRows = Object.values(yearsMap).sort((a, b) => a.year - b.year);
 
-        // D. Create Simplified Aggregates (NEW LOGIC)
+        // D. Create Simplified Aggregates
         const simpleTotals = sortedRows.map(row => ({
             year: row.year,
             total_amount: row.total
@@ -98,14 +93,14 @@ export const useMasterManFees = (fundId, scenarioId) => {
         });
 
         setPivotedData(sortedRows);
-        setAnnualTotals(simpleTotals); // <--- Set the new simplified state
+        setAnnualTotals(simpleTotals);
         setColumns(sortedColumns);
-        
     };
+
     return { 
-        pivotedData,   // Detailed Table Data
-        columns,       // Table Headers
-        annualTotals,  // Simplified Data: [{ year: 2023, total_amount: 50000 }, ...]
+        pivotedData,   
+        columns,       
+        annualTotals,  
         loading, 
         error, 
         refresh: fetchData 

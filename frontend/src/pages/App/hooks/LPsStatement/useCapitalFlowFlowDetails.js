@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi'; 
+import { API_BASE_URL } from '../api/apiConfig'; 
 
 export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   const [flows, setFlows] = useState([]);

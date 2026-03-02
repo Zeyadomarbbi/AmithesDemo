@@ -1,9 +1,8 @@
-// useScenarioFinancialsProjections.js
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi";
 
 export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
+    const api = useApi();
     const [gridData, setGridData] = useState([]); 
     const [years, setYears] = useState([]); 
     const [loading, setLoading] = useState(false);
@@ -13,10 +12,10 @@ export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
 
         setLoading(true);
         try {
-            const res = await axios.get(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/`
+            // api.get returns the data directly, no need for .data
+            const rawData = await api.get(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/`
             );
-            const rawData = res.data;
 
             const uniqueYears = [...new Set(rawData.map(r => r.year))].sort((a, b) => a - b);
             setYears(uniqueYears);
@@ -46,42 +45,42 @@ export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
             setGridData(Object.values(pivotMap));
 
         } catch (err) {
-            console.error("Failed to fetch projections", err);
+            console.error("Failed to fetch projections:", err.message);
         } finally {
             setLoading(false);
         }
-    }, [fundId, scenarioId]);
+    }, [fundId, scenarioId, api]);
 
     const put = useCallback(async (projectionId, payload) => {
         try {
-            await axios.put(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/${projectionId}/`,
+            await api.put(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/${projectionId}/`,
                 payload
             );
             await fetchProjections();
         } catch (err) {
-            console.error("PUT failed", err);
+            console.error("PUT failed:", err.message);
             throw err;
         }
-    }, [fundId, scenarioId, fetchProjections]);
+    }, [fundId, scenarioId, api, fetchProjections]);
 
     const patch = useCallback(async (projectionId, payload) => {
         try {
-            await axios.patch(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/${projectionId}/`,
+            await api.patch(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/${projectionId}/`,
                 payload
             );
             await fetchProjections();
         } catch (err) {
-            console.error("PATCH failed", err);
+            console.error("PATCH failed:", err.message);
             throw err;
         }
-    }, [fundId, scenarioId, fetchProjections]);
+    }, [fundId, scenarioId, api, fetchProjections]);
 
     const post = useCallback(async (payload) => {
         try {
-            await axios.post(
-                `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/`,
+            await api.post(
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/financials-projections/`,
                 {
                     fund: fundId,
                     scenario: scenarioId,
@@ -90,10 +89,10 @@ export const useScenarioFinancialsProjections = (fundId, scenarioId) => {
             );
             await fetchProjections();
         } catch (err) {
-            console.error("POST failed", err);
+            console.error("POST failed:", err.message);
             throw err;
         }
-    }, [fundId, scenarioId, fetchProjections]);
+    }, [fundId, scenarioId, api, fetchProjections]);
 
     useEffect(() => {
         fetchProjections();

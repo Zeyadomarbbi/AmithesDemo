@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../../../../../../hooks/useApi';
+import useApi from "../../../../../../../../hooks/api/useApi";
 
 export const useScenarioFFAllOperations = (fundId, scenarioId) => {
+  const api = useApi();
   const [allOperations, setAllOperations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,18 +17,19 @@ export const useScenarioFFAllOperations = (fundId, scenarioId) => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/ff-all-operations/`
+      // api.get handles prefixing the base URL and returns data directly
+      const data = await api.get(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/ff-all-operations/`
       );
 
-      setAllOperations(response.data || []);
+      setAllOperations(data || []);
     } catch (err) {
-      console.error('Error fetching all operations:', err);
+      console.error('Error fetching all operations:', err.message);
       setError(err.message || 'Failed to fetch operations');
     } finally {
       setLoading(false);
     }
-  }, [fundId, scenarioId]);
+  }, [fundId, scenarioId, api]);
 
   useEffect(() => {
     fetchAllOperations();

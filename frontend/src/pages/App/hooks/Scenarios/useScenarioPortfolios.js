@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../api/useApi";
 
 export const useScenarioInvestments = (fundId) => {
+  const api = useApi();
   const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
 
@@ -10,42 +10,46 @@ export const useScenarioInvestments = (fundId) => {
   const fetchInvestments = useCallback(async (scenarioId = null) => {
     setLoading(true);
     try {
-      const url = scenarioId 
-        ? `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
-        : `${API_BASE_URL}/funds/${fundId}/portfolio-investments/`;
+      const endpoint = scenarioId 
+        ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
+        : `/api/funds/${fundId}/portfolio-investments/`;
       
-      const response = await axios.get(url);
-      setInvestments(response.data);
+      const data = await api.get(endpoint);
+      setInvestments(data);
     } catch (err) {
-      console.error("Fetch failed", err);
+      console.error("Fetch failed", err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId]);
+  }, [fundId, api]);
 
   // CREATE: Must supply scenarioId
-  const createInvestment = async (scenarioId, data) => {
+  const createInvestment = async (scenarioId, payload) => {
     if (!scenarioId) throw new Error("scenario_id is mandatory for creation.");
     try {
-      const url = `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`;
-      const response = await axios.post(url, data);
+      const data = await api.post(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`, 
+        payload
+      );
       fetchInvestments(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Create failed", err);
+      console.error("Create failed", err.message);
       throw err;
     }
   };
 
   // UPDATE: Targeted update for a specific investment
-  const updateInvestment = async (scenarioId, investmentId, data) => {
+  const updateInvestment = async (scenarioId, investmentId, payload) => {
     try {
-      const url = `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`;
-      const response = await axios.patch(url, data);
+      const data = await api.patch(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`, 
+        payload
+      );
       fetchInvestments(scenarioId);
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Update failed", err);
+      console.error("Update failed", err.message);
       throw err;
     }
   };
@@ -53,11 +57,13 @@ export const useScenarioInvestments = (fundId) => {
   // DELETE: Targeted deletion
   const deleteInvestment = async (scenarioId, investmentId) => {
     try {
-      const url = `${API_BASE_URL}/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`;
-      await axios.delete(url);
+      await api.delete(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
+      );
       fetchInvestments(scenarioId);
     } catch (err) {
-      console.error("Delete failed", err);
+      console.error("Delete failed", err.message);
+      throw err;
     }
   };
 
