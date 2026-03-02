@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import useApi from "./api/useApi";
+import useApi from "../../../hooks/api/useApi";
 
 export function useShareClasses(fundId) {
   const api = useApi();

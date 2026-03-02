@@ -2,7 +2,7 @@
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../components/useFormatter';
 import { fetchPortfolioKpisByFundIds } from "../PortfolioDataFuncs"; 
-import useApi from "../../../../hooks/api/useApi"; // ✅ New engine import
+import useApi from "../../../../../../hooks/api/useApi"; // ✅ New engine import
 import { PageSpinner } from "../../AllFundsPage"; 
 import "./KPIsTable.css";
 

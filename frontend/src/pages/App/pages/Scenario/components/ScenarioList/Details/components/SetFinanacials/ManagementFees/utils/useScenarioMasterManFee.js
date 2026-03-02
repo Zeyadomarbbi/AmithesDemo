@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import useApi from "../../../../../../../../../hooks/api/useApi";
+import useApi from "../../../../../../../../../../../hooks/api/useApi";
 
 export const useMasterManFees = (fundId, scenarioId) => {
     const api = useApi();

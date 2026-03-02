@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import useApi from "../../../../../../hooks/api/useApi"; // Adjusted path to engine
+import useApi from "../../../../../../../../hooks/api/useApi"; // Adjusted path to engine
 
 export default function useScenarioSynthesisKPIs(fundId, synthesisId) {
     const api = useApi();

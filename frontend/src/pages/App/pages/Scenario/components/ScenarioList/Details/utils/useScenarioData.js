@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import useApi from "../../../../../../hooks/api/useApi"; // Adjust relative path as needed
+import useApi from "../../../../../../../../hooks/api/useApi"; // Adjust relative path as needed
 
 export const useScenarioData = (fundId, scenarioId) => {
   const api = useApi();

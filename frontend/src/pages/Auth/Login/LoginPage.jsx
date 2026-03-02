@@ -1,27 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useLogin from './useLogin';
+import { useAuth } from '../../../hooks/Auth/AuthContext'; // Using the global context now
 import AmethisLogo from '../assets/amethis-logo.svg';
 import BackgroundImg from '../assets/background.jpg';
 import './LoginPage.css';
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login, loading, error } = useLogin();
+  
+  // Extract global login action
+  const { login } = useAuth(); 
 
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  // Local UI state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // prevent page refresh
-
+    e.preventDefault(); 
     if (!email || !password) return;
 
+    setLoading(true);
+    setError(null);
+
     try {
-      await login(email, password);
+      // Calls the AuthContext login, which updates the global user state
+      await login(email, password); 
       navigate("/all-funds");
     } catch (err) {
-      console.log("Login failed");
+      console.error("Login failed:", err);
+      setError(err.message || "Invalid credentials. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,7 +115,7 @@ function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <p className="error-message">
+            <p className="error-message" style={{ color: '#d93025', fontSize: '14px', marginTop: '8px' }}>
               {error}
             </p>
           )}

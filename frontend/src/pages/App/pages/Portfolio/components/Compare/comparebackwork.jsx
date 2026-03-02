@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { saveNewTimeframe, useTimeframes } from "../../../../hooks/Core/useTimeframes";
-import { API_BASE_URL } from "../../../../hooks/api/apiConfig";
+import { API_BASE_URL } from "../../../../../../hooks/api/apiConfig";
 
 const toNumber = (value) => {
   const n = Number(value);

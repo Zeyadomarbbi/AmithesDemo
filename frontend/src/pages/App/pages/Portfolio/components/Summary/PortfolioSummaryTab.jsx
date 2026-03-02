@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { xirr as xirrLib } from "@webcarrot/xirr";
-import useApi from "../../../../hooks/api/useApi"; // Adjust path to useApi
+import useApi from "../../../../../../hooks/api/useApi"; // Adjust path to useApi
 
 /* ===== Components ===== */
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";

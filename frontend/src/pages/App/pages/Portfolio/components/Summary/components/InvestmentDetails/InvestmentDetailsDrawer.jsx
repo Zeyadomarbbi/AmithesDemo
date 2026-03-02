@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { xirr as xirrLib } from "@webcarrot/xirr";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
-import useApi from "../../../../../../hooks/api/useApi"; // Adjust path to useApi
+import useApi from "../../../../../../../../hooks/api/useApi"; // Adjust path to useApi
 import "./InvestmentDetails.css";
 
 const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment"];

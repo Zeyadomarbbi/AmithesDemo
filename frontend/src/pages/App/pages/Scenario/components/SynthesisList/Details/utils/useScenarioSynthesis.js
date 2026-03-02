@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import useApi from "../../../../../../hooks/api/useApi"; // Adjust relative path as needed
+import useApi from "../../../../../../../../hooks/api/useApi"; // Adjust relative path as needed
 
 const useScenarioSynthesis = (fundId, synthesisId) => {
   const api = useApi();
