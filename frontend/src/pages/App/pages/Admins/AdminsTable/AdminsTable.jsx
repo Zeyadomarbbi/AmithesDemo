@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MoreHorizontalIcon } from '../Icons'; 
-import EditAdminPanel from '../EditAdminPanel/EditAdminPanel'; 
+import AdminPanel from '../AdminPanel/AdminPanel'; 
 import { useTableSort, SortableHeaderRenderer } from '../../../../../components/Sort/TableSort'; // Adjust path
 import './AdminsTable.css';
 
@@ -85,7 +85,7 @@ function AdminsTable({ data, refreshData }) {
         </div>
       </div>
 
-      <EditAdminPanel 
+      <AdminPanel 
         isOpen={!!selectedAdmin} 
         userData={selectedAdmin}
         onClose={() => setSelectedAdmin(null)}

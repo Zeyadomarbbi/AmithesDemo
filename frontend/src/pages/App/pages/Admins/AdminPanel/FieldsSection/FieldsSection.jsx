@@ -1,9 +1,9 @@
 import React from 'react';
 import { useUsers } from '../../../../hooks/Core/useUsers'; 
-import './EditFieldsSection.css';
+import './FieldsSection.css';
 
 // Added onSuccess to the destructured props
-function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode, onSuccess }) {
+function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSuccess }) {
   const { deleteUser, isLoading: isDeleting } = useUsers();
 
   const handleRoleChange = (e) => {
@@ -169,4 +169,4 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode, on
   );
 }
 
-export default EditFieldsSection;
+export default FieldsSection;

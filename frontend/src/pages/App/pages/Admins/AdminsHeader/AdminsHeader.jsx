@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SearchBar from '../../../../../components/SearchBar/SearchBar'
 import { PlusIcon } from '../Icons'; 
-import EditAdminPanel from '../EditAdminPanel/EditAdminPanel'; 
+import AdminPanel from '../AdminPanel/AdminPanel'; 
 import './AdminsHeader.css';
 
 function AdminsHeader({ onSearch, refreshData }) {
@@ -27,7 +27,7 @@ function AdminsHeader({ onSearch, refreshData }) {
         </button>
       </div>
 
-      <EditAdminPanel 
+      <AdminPanel 
         isOpen={isAddPanelOpen} 
         onClose={() => setIsAddPanelOpen(false)} 
         userData={null} 

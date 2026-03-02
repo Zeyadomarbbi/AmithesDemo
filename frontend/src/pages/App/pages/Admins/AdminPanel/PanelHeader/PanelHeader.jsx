@@ -1,8 +1,8 @@
 import React from 'react';
 import { CloseIcon, ChevronDoubleLeftIcon } from '../../Icons'; 
-import './EditPanelHeader.css';
+import './PanelHeader.css';
 
-function EditPanelHeader({ onClose, title, description }) {
+function PanelHeader({ onClose, title, description }) {
   return (
     <div className="panel-header-wrapper">
       <div className="header-top-bar">
@@ -26,4 +26,4 @@ function EditPanelHeader({ onClose, title, description }) {
   );
 }
 
-export default EditPanelHeader;
+export default PanelHeader;

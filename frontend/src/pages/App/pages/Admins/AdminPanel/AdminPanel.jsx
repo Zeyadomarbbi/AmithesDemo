@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import EditPanelHeader from './EditPanelHeader/EditPanelHeader';
-import EditFieldsSection from './EditFieldsSection/EditFieldsSection';
+import PanelHeader from './PanelHeader/PanelHeader';
+import FieldsSection from './FieldsSection/FieldsSection';
 import { useUsers } from '../../../hooks/Core/useUsers';
-import './EditAdminPanel.css';
+import './AdminPanel.css';
 
-function EditAdminPanel({ isOpen, onClose, userData, onSuccess }) {
+function AdminPanel({ isOpen, onClose, userData, onSuccess }) {
   const { updateUser, createUser, isLoading } = useUsers();
   const isEditMode = !!userData;
 
@@ -65,7 +65,7 @@ function EditAdminPanel({ isOpen, onClose, userData, onSuccess }) {
       <div className={`panel-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose} />
       <div className={`admin-panel-container ${isOpen ? 'open' : ''}`}>
         
-        <EditPanelHeader 
+        <PanelHeader 
           onClose={onClose} 
           title={isEditMode ? "Edit User" : "New User"}
           description={
@@ -75,7 +75,7 @@ function EditAdminPanel({ isOpen, onClose, userData, onSuccess }) {
           }
         />
 
-        <EditFieldsSection 
+        <FieldsSection 
           formData={formData} 
           onChange={handleChange} 
           userId={userData?.id}
@@ -96,4 +96,4 @@ function EditAdminPanel({ isOpen, onClose, userData, onSuccess }) {
     </>
   );
 }
-export default EditAdminPanel;
+export default AdminPanel;
