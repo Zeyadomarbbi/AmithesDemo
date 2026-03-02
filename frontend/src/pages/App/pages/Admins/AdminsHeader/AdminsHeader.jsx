@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import SearchBar from '../../../../../components/SearchBar/SearchBar'
 import { PlusIcon } from '../Icons'; 
-import EditAdminPanel from '../EditAdminPanel/EditAdminPanel'; // Use the Edit panel
+import EditAdminPanel from '../EditAdminPanel/EditAdminPanel'; 
 import './AdminsHeader.css';
 
-function AdminsHeader({ onSearch }) {
+function AdminsHeader({ onSearch, refreshData }) {
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
 
   return (
@@ -27,11 +27,11 @@ function AdminsHeader({ onSearch }) {
         </button>
       </div>
 
-      {/* When userData is null, it acts as a Creation panel */}
       <EditAdminPanel 
         isOpen={isAddPanelOpen} 
         onClose={() => setIsAddPanelOpen(false)} 
         userData={null} 
+        onSuccess={refreshData} /* Execute parent fetch on success */
       />
     </div>
   );

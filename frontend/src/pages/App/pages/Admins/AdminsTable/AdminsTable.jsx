@@ -4,7 +4,7 @@ import EditAdminPanel from '../EditAdminPanel/EditAdminPanel';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../components/Sort/TableSort'; // Adjust path
 import './AdminsTable.css';
 
-function AdminsTable({ data }) {
+function AdminsTable({ data, refreshData }) {
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
   // Define columns configuration
@@ -89,6 +89,7 @@ function AdminsTable({ data }) {
         isOpen={!!selectedAdmin} 
         userData={selectedAdmin}
         onClose={() => setSelectedAdmin(null)}
+        onSuccess={refreshData} /* Execute parent fetch on success */
       />
     </>
   );

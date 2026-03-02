@@ -7,7 +7,7 @@ import './AdminsPage.css';
 function AdminsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { users, isLoading, fetchUsers } = useUsers();
-  console.log("Fetched Users:", users); // Debugging log
+  
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
@@ -23,7 +23,7 @@ function AdminsPage() {
       email: safeVal(user.email),
       role: safeVal(user.role),
       status: safeVal(user.status),
-      date_joined: safeVal(user.date_joined)
+      dateJoined: safeVal(user.dateJoined)
     }))
     .filter(admin => {
       const q = searchQuery.toLowerCase();
@@ -39,15 +39,15 @@ function AdminsPage() {
 
   return (
     <div className="admins-container">
-      {/* Pass the search setter to the header */}
-      <AdminsHeader onSearch={setSearchQuery} />
+      {/* Pass fetchUsers as refreshData */}
+      <AdminsHeader onSearch={setSearchQuery} refreshData={fetchUsers} />
 
       {isLoading ? (
         <div className="loading-overlay">
           <span>Loading authenticated users...</span>
         </div>
       ) : (
-        <AdminsTable data={filteredAdmins} />
+        <AdminsTable data={filteredAdmins} refreshData={fetchUsers} />
       )}
     </div>
   );

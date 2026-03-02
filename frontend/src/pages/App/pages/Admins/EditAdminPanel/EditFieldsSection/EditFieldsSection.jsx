@@ -2,8 +2,10 @@ import React from 'react';
 import { useUsers } from '../../../../hooks/Core/useUsers'; 
 import './EditFieldsSection.css';
 
-function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) {
+// Added onSuccess to the destructured props
+function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode, onSuccess }) {
   const { deleteUser, isLoading: isDeleting } = useUsers();
+
   const handleRoleChange = (e) => {
     const value = e.target.value;
     if (value === 'superadmin') {
@@ -28,6 +30,8 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
     if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
       try {
         await deleteUser(userId);
+        // This triggers fetchUsers() in AdminsPage to refresh the table
+        if (onSuccess) onSuccess(); 
         onClose(); 
       } catch (err) {
         alert("Failed to delete user: " + err.message);
@@ -37,7 +41,6 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
 
   return (
     <div className="panel-fields-container">
-      {/* Conditionally show Username/Password for New Users only */}
       {!isEditMode && (
         <div className="fields-row-frame">
           <div className="text-field-wrapper">
@@ -64,7 +67,7 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
           </div>
         </div>
       )}
-      {/* Row 1: Names */}
+
       <div className="fields-row-frame">
         <div className="text-field-wrapper">
           <div className="input-with-label">
@@ -94,7 +97,6 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
         </div>
       </div>
 
-      {/* Row 2: Email & Status Dropdown */}
       <div className="fields-row-frame">
         <div className="text-field-wrapper">
           <div className="input-with-label">
@@ -130,7 +132,6 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
         </div>
       </div>
 
-      {/* Row 3: Role Dropdown */}
       <div className="fields-row-frame">
         <div className="text-field-wrapper full-width">
           <div className="input-with-label">
@@ -153,18 +154,17 @@ function EditFieldsSection({ formData, onChange, userId, onClose, isEditMode }) 
         </div>
       </div>
 
-      {/* Delete Button */}
       {isEditMode && (
         <div className="destructive-action-row">
            <button 
             className="destructive-btn" 
             onClick={handleDelete}
+            disabled={isDeleting}
            >
-             <span>Delete User</span>
+             <span>{isDeleting ? 'Deleting...' : 'Delete User'}</span>
            </button>
         </div>
       )}
-
     </div>
   );
 }

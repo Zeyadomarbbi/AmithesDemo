@@ -4,7 +4,7 @@ import EditFieldsSection from './EditFieldsSection/EditFieldsSection';
 import { useUsers } from '../../../hooks/Core/useUsers';
 import './EditAdminPanel.css';
 
-function EditAdminPanel({ isOpen, onClose, userData }) {
+function EditAdminPanel({ isOpen, onClose, userData, onSuccess }) {
   const { updateUser, createUser, isLoading } = useUsers();
   const isEditMode = !!userData;
 
@@ -46,26 +46,14 @@ function EditAdminPanel({ isOpen, onClose, userData }) {
 
   const handleSave = async () => {
     try {
-      // Construct a clean payload
-      const payload = {
-        username: formData.username || formData.email, // Required & Unique
-        email: formData.email,                         // Optional but recommended
-        password: formData.password,                   // Required for creation
-        first_name: formData.first_name,               // Note: snake_case
-        last_name: formData.last_name,                 // Note: snake_case
-        is_active: formData.is_active,
-        is_staff: formData.is_staff,
-        is_superuser: formData.is_superuser,
-      };
-
-      console.log("Payload to submit:", payload);
       if (isEditMode) {
-        // For updates, we often don't want to send an empty password string
-        if (!payload.password) delete payload.password;
-        await updateUser(userData.id, payload);
+        await updateUser(userData.id, formData);
       } else {
+        const payload = { ...formData, username: formData.username || formData.email };
         await createUser(payload);
       }
+      
+      if (onSuccess) onSuccess(); // Force parent to sync with DB
       onClose();
     } catch (err) {
       console.error("Operation failed:", err);
@@ -92,8 +80,8 @@ function EditAdminPanel({ isOpen, onClose, userData }) {
           onChange={handleChange} 
           userId={userData?.id}
           onClose={onClose}
-          // Pass this flag to handle internal conditional rendering
           isEditMode={isEditMode} 
+          onSuccess={onSuccess} /* Pass to section for delete operation */
         />
 
         <div className="panel-footer">
