@@ -12,14 +12,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Ping the CSRF endpoint to verify the session cookie is still valid
-        await api.get('/api/csrf/');
+        // 1. First get the CSRF cookie
+        await api.get('/api/csrf/'); 
         
-        // Retrieve cached user data for the UI
-        const cachedUser = localStorage.getItem('amethis_user');
-        if (cachedUser) {
-          setUser(JSON.parse(cachedUser));
-        }
+        // 2. Then verify if the session is still active
+        const data = await api.get('/api/me/');
+        setUser(data.user);
+        localStorage.setItem('amethis_user', JSON.stringify(data.user));
       } catch (err) {
         setUser(null);
         localStorage.removeItem('amethis_user');
@@ -34,8 +33,14 @@ export const AuthProvider = ({ children }) => {
   const loginAction = async (email, password) => {
     try {
       const data = await api.post('/api/login/', { email, password });
-      setUser(data.user);
+      
+      // 1. Save to storage first
       localStorage.setItem('amethis_user', JSON.stringify(data.user));
+      
+      // 2. Set the user state
+      setUser(data.user);
+      
+      // 3. Return the data so the LoginPage can navigate
       return data;
     } catch (err) {
       throw err;

@@ -65,96 +65,101 @@ const router = createBrowserRouter([
 
   // === PROTECTED APP DOMAIN ===
   {
-    element: <ProtectedRoute />, // Validates session before rendering children
+    element: <ProtectedRoute />, // 1. STOPS UNAUTHENTICATED USERS HERE
     children: [
       {
-        path: '/', 
-        element: <AppLayout />, 
+        element: <FundProvider><Outlet /></FundProvider>, // 2. ONLY FETCHES FUNDS IF LOGGED IN
         children: [
-          { path: 'all-funds', element: <AllFundsPage /> },
-          { path: 'admins', element: <AdminsPage /> },
-          { path: 'help', element: <HelpPage /> },
-
-          // --- FUND SPECIFIC DOMAIN ---
           {
-            path: 'funds/:fundId',
-            element: <FundSetupGuard><Outlet /></FundSetupGuard>, 
+            path: '/', 
+            element: <AppLayout />, 
             children: [
-              { 
-                path: 'settings', 
-                element: <SettingsPage />, 
-                children: [
-                    { index: true, element: <Navigate to="fund-identity" replace /> },
-                    { path: 'fund-identity', element: <FundIdentity /> },
-                    { path: 'share-classes', element: <ShareClasses /> },
-                    { path: 'waterfall-structure', element: <WaterfallStructure /> },
-                    { path: 'management-fees', element: <ManagementFees /> },
-                ]
-              },
-              { 
-                path: 'lps-statement', 
-                element: <LPsStatementPage />,
-                children: [
-                  { index: true, element: <Navigate to="lps-register" replace /> },
-                  { path: 'lps-register', element: <LPsRegister /> },
-                  { path: 'capital-flows', element: <CapitalFlows /> },
-                  { path: 'capital-account-statement', element: <CapitalAccountStatement /> },
-                  { path: 'lps-limits', element: <Limits /> },
-                ]
-              },
+              { path: 'all-funds', element: <AllFundsPage /> },
+              { path: 'admins', element: <AdminsPage /> },
+              { path: 'help', element: <HelpPage /> },
+
+              // --- FUND SPECIFIC DOMAIN ---
               {
-                path: 'dashboard',
-                element: <DashboardPage />,
-                children: [
-                  { index: true, element: <Navigate to="kpi" replace /> },
-                  { path: 'kpi', element: <KPIDashboard /> },
-                  { path: 'kpi/:timeframeId', element: <KPIDashboard /> },
-                  { path: 'limits', element: <LimitsDashboard /> },
-                ]
-              },
-              { 
-                path: 'scenario-dashboard', 
-                element: <ScenariosPage />,
+                path: 'funds/:fundId',
+                element: <FundSetupGuard><Outlet /></FundSetupGuard>, 
                 children: [
                   { 
-                    path: 'synthesis-details/:synthesisId', 
-                    element: <SynthesisDetailsDrawer /> 
-                  }
+                    path: 'settings', 
+                    element: <SettingsPage />, 
+                    children: [
+                        { index: true, element: <Navigate to="fund-identity" replace /> },
+                        { path: 'fund-identity', element: <FundIdentity /> },
+                        { path: 'share-classes', element: <ShareClasses /> },
+                        { path: 'waterfall-structure', element: <WaterfallStructure /> },
+                        { path: 'management-fees', element: <ManagementFees /> },
+                    ]
+                  },
+                  { 
+                    path: 'lps-statement', 
+                    element: <LPsStatementPage />,
+                    children: [
+                      { index: true, element: <Navigate to="lps-register" replace /> },
+                      { path: 'lps-register', element: <LPsRegister /> },
+                      { path: 'capital-flows', element: <CapitalFlows /> },
+                      { path: 'capital-account-statement', element: <CapitalAccountStatement /> },
+                      { path: 'lps-limits', element: <Limits /> },
+                    ]
+                  },
+                  {
+                    path: 'dashboard',
+                    element: <DashboardPage />,
+                    children: [
+                      { index: true, element: <Navigate to="kpi" replace /> },
+                      { path: 'kpi', element: <KPIDashboard /> },
+                      { path: 'kpi/:timeframeId', element: <KPIDashboard /> },
+                      { path: 'limits', element: <LimitsDashboard /> },
+                    ]
+                  },
+                  { 
+                    path: 'scenario-dashboard', 
+                    element: <ScenariosPage />,
+                    children: [
+                      { 
+                        path: 'synthesis-details/:synthesisId', 
+                        element: <SynthesisDetailsDrawer /> 
+                      }
+                    ]
+                  },
+                  {
+                    path: 'portfolio',
+                    element: <PortfolioPage />,
+                    children: [
+                      { index: true, element: <Navigate to="summary" replace /> },
+                      { path: 'summary', element: <PortfolioSummaryTab /> },
+                      { path: 'fx', element: <PortfolioFxTab /> },
+                      { path: 'limits', element: <PortfolioLimitsTab /> },
+                      { path: 'compare', element: <PortfolioCompareTab /> },
+                      { path: 'compare/:positionId', element: <CompareDetailPanel /> },
+                    ],
+                  },
+                  { 
+                    path: "financials",
+                    element: <FinancialsPage />,
+                    children: [
+                      { index: true, element: <Navigate to="pnl" replace /> },
+                      { path: "pnl", element: <PnLTab /> },
+                      { path: "limits", element: <LimitsTab /> },
+                    ],
+                  },
                 ]
-              },
-              {
-                path: 'portfolio',
-                element: <PortfolioPage />,
-                children: [
-                  { index: true, element: <Navigate to="summary" replace /> },
-                  { path: 'summary', element: <PortfolioSummaryTab /> },
-                  { path: 'fx', element: <PortfolioFxTab /> },
-                  { path: 'limits', element: <PortfolioLimitsTab /> },
-                  { path: 'compare', element: <PortfolioCompareTab /> },
-                  { path: 'compare/:positionId', element: <CompareDetailPanel /> },
-                ],
-              },
-              { 
-                path: "financials",
-                element: <FinancialsPage />,
-                children: [
-                  { index: true, element: <Navigate to="pnl" replace /> },
-                  { path: "pnl", element: <PnLTab /> },
-                  { path: "limits", element: <LimitsTab /> },
-                ],
-              },
+              }
             ]
+          },
+          // Special case: Full page scenario details outside AppLayout sidebar
+          {
+            path: '/funds/:fundId/scenario-dashboard/scenario-details/:scenarioId/:tab?',
+            element: (
+              <FundSetupGuard>
+                <ScenarioDetailPage />
+              </FundSetupGuard>
+            )
           }
         ]
-      },
-      // Special case: Full page scenario details outside AppLayout sidebar
-      {
-        path: '/funds/:fundId/scenario-dashboard/scenario-details/:scenarioId/:tab?',
-        element: (
-          <FundSetupGuard>
-            <ScenarioDetailPage />
-          </FundSetupGuard>
-        )
       }
     ]
   }
@@ -163,9 +168,8 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <FundProvider>
-        <RouterProvider router={router} />
-      </FundProvider>
+      {/* ⚠️ FundProvider removed from here. It is now safely inside the Protected Route above! */}
+      <RouterProvider router={router} />
     </AuthProvider>
   </React.StrictMode>
 );

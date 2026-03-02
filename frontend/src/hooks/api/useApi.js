@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { API_BASE_URL } from "./apiConfig";
 
 function getCSRFToken() {
@@ -6,6 +7,9 @@ function getCSRFToken() {
     .find(row => row.startsWith("csrftoken="));
   return cookie ? cookie.split("=")[1] : null;
 }
+
+// Moved outside the hook: no need to recreate this function on every render
+const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
 
 async function request(endpoint, options = {}) {
   const csrfToken = getCSRFToken();
@@ -38,10 +42,10 @@ async function request(endpoint, options = {}) {
 }
 
 export default function useApi() {
-  // Centralized body processor
-  const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
-
-  return {
+  // CRITICAL FIX: Wrap the return object in useMemo.
+  // This ensures that the 'api' object reference never changes between re-renders,
+  // preventing infinite loops in useEffect hooks that list [api] as a dependency.
+  return useMemo(() => ({
     get: (endpoint, options = {}) => 
       request(endpoint, { method: "GET", ...options }),
 
@@ -68,5 +72,5 @@ export default function useApi() {
 
     delete: (endpoint, options = {}) => 
       request(endpoint, { method: "DELETE", ...options }),
-  };
+  }), []); // Empty dependency array means this object is created exactly once.
 }

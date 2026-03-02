@@ -4,13 +4,25 @@ import { useAuth } from './AuthContext';
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
-  // Prevent flashing the login page while validating the session cookie on refresh
+  // 🔍 TRACE LOGS
+  console.log("[ProtectedRoute] Current Auth State:", { 
+    user, 
+    loading, 
+    hasSessionCookie: document.cookie.includes('sessionid') 
+  });
+
   if (loading) {
-    return <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Loading session...</div>; 
+    console.log("[ProtectedRoute] Still loading session...");
+    return <div>Loading session...</div>;
   }
 
-  // If no user object exists after loading, redirect to login
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  if (!user) {
+    console.warn("[ProtectedRoute] No user found. Redirecting to /login");
+    return <Navigate to="/login" replace />;
+  }
+
+  console.log("[ProtectedRoute] User authenticated. Mounting App domain...");
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

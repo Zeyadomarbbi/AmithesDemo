@@ -8,6 +8,7 @@ import PortfolioValueChart from './PortfolioKPIs/PortfolioValueChart/PortfolioVa
 import PortfolioCard from './PortfolioKPIs/PortfolioCard/PortfolioCard';
 import { fetchPortfolioValueCreationKPIs } from './PortfolioKPIs/PortfolioCard/portfolioCardnChartCalculations';
 import { useCASKPIs } from '../../../../hooks/LPsStatement/useCASKPIs';
+import useApi from '../../../../../../hooks/api/useApi';
 import './KPIDashboard.css';
 
 function GlobalSpinner() {
@@ -52,6 +53,7 @@ function GlobalSpinner() {
 function KPIDashboard() {
   const { fundId } = useOutletContext();
   const { timeframeId } = useParams();
+  const api = useApi();
   const { quarters, isLoading: isTimeframesLoading } = useTimeframes(fundId);
 
   // Debounce logic
@@ -89,7 +91,9 @@ function KPIDashboard() {
     const loadPortfolioCardData = async () => {
       try {
         setIsPortfolioCardLoading(true);
-        const result = await fetchPortfolioValueCreationKPIs({
+        const result = await fetchPortfolioValueCreationKPIs(
+          api,
+          {
           fundId: Number(fundId),
           cutoffDate: selectedTimeframeDate,
         });

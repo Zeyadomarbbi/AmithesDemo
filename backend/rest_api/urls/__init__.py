@@ -1,5 +1,5 @@
 from django.urls import path, include
-from ..views_auth import login_view, logout_view, csrf_view
+from ..views_auth import login_view, logout_view, csrf_view, me_view, users_list_view, user_detail_view
 
 from .core import urlpatterns as core_urlpatterns
 from .fund_urls import urlpatterns as fund_urlpatterns
@@ -14,6 +14,9 @@ urlpatterns = [
     path("login/", login_view),
     path("logout/", logout_view),
     path("csrf/", csrf_view),
+    path('me/', me_view, name='me'),
+    path('users/', users_list_view),
+    path('users/<int:pk>/', user_detail_view), # GET (retrieve), PATCH (update), DELETE
 ]
 urlpatterns += core_urlpatterns
 urlpatterns += fund_urlpatterns

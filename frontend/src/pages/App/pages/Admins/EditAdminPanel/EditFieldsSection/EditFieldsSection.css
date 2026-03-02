@@ -58,6 +58,50 @@
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
+  position: relative; /* Necessary for absolute select positioning */
+}
+
+.select-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  background: transparent;
+  appearance: none; /* Removes default arrow */
+  -webkit-appearance: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.input-box.dropdown::before {
+  content: attr(data-value); /* You can use state to display value if preferred */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+/* Styling for the select box UI wrapper */
+.input-box.dropdown {
+  cursor: pointer;
+}
+
+.text-input, .select-input-display {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+/* Optional: Add a hover effect to the dropdown */
+.input-box.dropdown:hover {
+  border-color: #375A89;
 }
 
 .text-input {

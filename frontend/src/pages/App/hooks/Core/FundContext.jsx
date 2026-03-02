@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import useApi from "../../../../hooks/api/useApi"; // Import the new centralized hook
-
+import { useAuth } from "../../../../hooks/Auth/AuthContext"; // Import useAuth
 const FundContext = createContext(null);
 
 export function FundProvider({ children }) {
   const api = useApi(); // Initialize the API engine
+  const { user } = useAuth();
   const [funds, setFunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,7 +30,9 @@ export function FundProvider({ children }) {
 
   // --- ACTIONS ---
   const refreshFunds = useCallback(async () => {
+    if (!user) return;
     try {
+      
       setIsLoading(true);
       // Use new api.get - API_BASE_URL is handled internally by useApi
       const data = await api.get("/api/funds/");

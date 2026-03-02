@@ -77,16 +77,24 @@ ROOT_URLCONF = 'project_config.urls'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
+
+SESSION_COOKIE_SAMESITE = None  # Allow cross-port session sharing
+CSRF_COOKIE_SAMESITE = None
+
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# 4. Critical for useApi.js 'X-CSRFToken' header
+# Allows JavaScript to read the CSRF cookie to put it in the header
+CSRF_COOKIE_HTTPONLY = False
 
 
 TEMPLATES = [

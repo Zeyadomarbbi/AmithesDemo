@@ -1,9 +1,27 @@
 from rest_framework import serializers
-
+from django.contrib.auth.models import User
 
 from ..models.core import *
 from ..models.core import Timeframe
 from ..models.reference import Currency
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 
+            'email', 'password', 'is_active', 'is_staff', 
+            'is_superuser', 'date_joined'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': True}, # Ensure password is required
+            'username': {'required': True},
+            'date_joined': {'read_only': True}
+        }
+
+    def create(self, validated_data):
+        # Use create_user to ensure the password is encrypted
+        return User.objects.create_user(**validated_data)
 
 class FundSerializer(serializers.ModelSerializer):
     # Explicitly map currency_id for the incoming payload

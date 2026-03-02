@@ -26,7 +26,7 @@ export const useFundClosings = (fundId = null) => {
     if (!fundId) return; 
     setLoading(true);
     try {
-      const data = await api.get(`/api/funds/${fundId}/fund-closings//`);
+      const data = await api.get(`/api/funds/${fundId}/fund-closings/`);
       setFundClosings(data);
     } catch (err) {
       setError(err.message);
@@ -42,7 +42,7 @@ export const useFundClosings = (fundId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const resData = await api.post(`/api/funds/${fundId}/fund-closings//`, closingData);
+      const resData = await api.post(`/api/funds/${fundId}/fund-closings/`, closingData);
       setFundClosings((prev) => [...prev, resData]);
       return resData;
     } catch (err) {

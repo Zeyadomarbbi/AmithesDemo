@@ -1,47 +1,18 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../../../../hooks/api/apiConfig';
-
-function apiUrl(fundId, operationId = null) {
-  const base = `${API_BASE_URL}/api/funds/${fundId}/operations/`;
-  return operationId ? `${base}${operationId}/` : base;
-}
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    // removed credentials: 'include' — causes CORS preflight failure
-    // when backend returns wildcard Access-Control-Allow-Origin: *
-  });
-
-  const text = await res.text();
-  let data = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text || null;
-  }
-
-  if (!res.ok) {
-    let msg = `Request failed (${res.status})`;
-    if (data && typeof data === 'object') msg = JSON.stringify(data);
-    else if (typeof data === 'string' && data.trim()) msg = data;
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    throw err;
-  }
-
-  return data;
-}
+import useApi from '../../../../hooks/api/useApi';
 
 export function useOperationDetails(fundId) {
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const api = useApi();
+
+  // Helper to generate relative endpoint paths
+  const getEndpoint = useCallback((operationId = null) => {
+    const base = `/api/funds/${fundId}/operations/`;
+    return operationId ? `${base}${operationId}/` : base;
+  }, [fundId]);
 
   // ── LIST ──────────────────────────────────────────────────────────────────
   const fetchOperations = useCallback(async () => {
@@ -49,66 +20,59 @@ export function useOperationDetails(fundId) {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchJson(apiUrl(fundId));
+      const data = await api.get(getEndpoint());
       setOperations(Array.isArray(data) ? data : (data?.results ?? []));
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }, [fundId]);
+  }, [api, fundId, getEndpoint]);
 
   // ── RETRIEVE ──────────────────────────────────────────────────────────────
   const fetchOperation = useCallback(async (operationId) => {
     if (!fundId) throw new Error('fundId is missing.');
     if (!operationId) throw new Error('operationId is missing.');
-    const data = await fetchJson(apiUrl(fundId, operationId));
-    return data;
-  }, [fundId]);
+    return await api.get(getEndpoint(operationId));
+  }, [api, fundId, getEndpoint]);
 
   // ── CREATE ────────────────────────────────────────────────────────────────
   const createOperation = useCallback(async (payload) => {
     if (!fundId) throw new Error('fundId is missing.');
     setError(null);
-    const data = await fetchJson(apiUrl(fundId), {
-      method: 'POST',
-      body: JSON.stringify({
-        fund: Number(fundId),
-        fund_id: Number(fundId),
-        ...payload,
-      }),
+    const data = await api.post(getEndpoint(), {
+      fund: Number(fundId),
+      fund_id: Number(fundId),
+      ...payload,
     });
+    
     const newId = data?.lps_operation_details_id ?? data?.operation_id ?? data?.id ?? null;
     if (!newId) throw new Error('Create succeeded but response missing operation id.');
     return newId;
-  }, [fundId]);
+  }, [api, fundId, getEndpoint]);
 
   // ── FULL UPDATE (PUT) ─────────────────────────────────────────────────────
   const updateOperation = useCallback(async (operationId, payload) => {
     if (!fundId) throw new Error('fundId is missing.');
     if (!operationId) throw new Error('operationId is missing.');
     setError(null);
-    const data = await fetchJson(apiUrl(fundId, operationId), {
-      method: 'PUT',
-      body: JSON.stringify({
-        fund: Number(fundId),
-        fund_id: Number(fundId),
-        ...payload,
-      }),
+    return await api.put(getEndpoint(operationId), {
+      fund: Number(fundId),
+      fund_id: Number(fundId),
+      ...payload,
     });
-    return data;
-  }, [fundId]);
+  }, [api, fundId, getEndpoint]);
 
   // ── DELETE ────────────────────────────────────────────────────────────────
   const deleteOperation = useCallback(async (operationId) => {
     if (!fundId) throw new Error('fundId is missing.');
     if (!operationId) throw new Error('operationId is missing.');
     setError(null);
-    await fetchJson(apiUrl(fundId, operationId), { method: 'DELETE' });
+    await api.delete(getEndpoint(operationId));
     setOperations((prev) =>
       prev.filter((op) => (op?.lps_operation_details_id ?? op?.id) !== operationId)
     );
-  }, [fundId]);
+  }, [api, fundId, getEndpoint]);
 
   return {
     operations,

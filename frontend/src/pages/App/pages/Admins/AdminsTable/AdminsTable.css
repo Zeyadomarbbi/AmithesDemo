@@ -12,7 +12,9 @@
 .admins-table-header,
 .admins-table-row {
   display: grid;
-  grid-template-columns: 3rem 2fr 1.5fr 1.5fr 1fr 1.5fr; /* checkbox, name, role, email, status, actions */
+  /* Updated to 7 columns to accommodate "Date Added" */
+  /* Checkbox, Name(Flexible), Role, Email, Status, Date, Actions */
+  grid-template-columns: 3.5rem 2fr 1.2fr 2fr 1.2fr 1.5fr 3.5rem; 
   align-items: center;
   width: 100%;
   box-sizing: border-box;
@@ -30,17 +32,6 @@
   gap: 0.75rem;
 }
 
-.admins-table-header .header-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.admins-table-header .header-cell svg {
-  flex-shrink: 0;
-  color: #375A89;
-}
 
 /* ======================= TABLE BODY ======================= */
 .admins-table-body {
@@ -62,35 +53,35 @@
 .cell {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.75rem; /* 8px 12px */
+  padding: 0.5rem 1rem;
   box-sizing: border-box;
+  overflow: hidden; /* Prevent text overflow breaking layout */
 }
 
-.col-checkbox { justify-content: center; }
+.col-checkbox {
+  justify-content: center;
+}
 
 .col-name {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 0.125rem; /* 2px */
+  justify-content: flex-start;
+  text-align: left;
 }
-
-.admins-table-header .col-name {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem; /* 8px between label & icon */
+.admins-table-header .col-firstname {
+  justify-content: flex-start;
 }
 
 .col-role,
 .col-email,
 .col-status,
-.col-actions {
-  display: flex;
-  align-items: center;
+.col-datejoined {
+  justify-content: center;
+  text-align: center;
 }
 
-.col-actions { justify-content: flex-end; padding-right: 1.5rem; }
+.col-actions {
+  justify-content: flex-end; /* Pushes icon to the far right of the cell */
+  padding-right: 1rem;
+}
 
 /* ======================= TEXT STYLES ======================= */
 .row-text-primary {

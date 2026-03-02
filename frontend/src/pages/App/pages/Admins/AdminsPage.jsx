@@ -1,44 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminsHeader from './AdminsHeader/AdminsHeader';
 import AdminsTable from './AdminsTable/AdminsTable';
-import SearchBar from '../../../../components/SearchBar/SearchBar'
+import { useUsers } from '../../hooks/Core/useUsers';
 import './AdminsPage.css';
 
 function AdminsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { users, isLoading, fetchUsers } = useUsers();
+  console.log("Fetched Users:", users); // Debugging log
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
-  const adminsData = [
-    { id: 1, firstName: 'X', lastName: 'Y', handle: '@XY', role: 'Admin', roleType: 'blue', email: 'xy@email.com', status: 'Active', statusType: 'green' },
-    { id: 2, firstName: 'A', lastName: 'B', handle: '@AB', role: 'Editor', roleType: 'grey', email: 'ab@email.com', status: 'Pending', statusType: 'blue' },
-    { id: 3, firstName: 'Nomlong', lastName: 'prénom', handle: '@nomlong', role: 'Viewer', roleType: 'grey', email: 'nomlong@email.com', status: 'Inactive', statusType: 'grey' },
-    { id: 4, firstName: 'Nomlong', lastName: 'prénom', handle: '@nomlong', role: 'Super Admin', roleType: 'green', email: 'nomlong@email.com', status: 'Active', statusType: 'green' },
-    { id: 5, firstName: 'Nomlong', lastName: 'prénom', handle: '@nomlong', role: 'Super Admin', roleType: 'green', email: 'nomlong@email.com', status: 'Active', statusType: 'green' },
-  ]; 
+  const safeVal = (val) => (val === null || val === undefined || val === '' ? '-' : val);
 
-  // Filter admins based on search query
-  const filteredAdmins = adminsData.filter(admin => {
-    const q = searchQuery.toLowerCase();
-    return (
-      admin.firstName.toLowerCase().includes(q) ||
-      admin.lastName.toLowerCase().includes(q) ||
-      admin.handle.toLowerCase().includes(q) ||
-      admin.role.toLowerCase().includes(q) ||
-      admin.email.toLowerCase().includes(q) ||
-      admin.status.toLowerCase().includes(q)
-    );
-  });
+  const filteredAdmins = users
+    .map(user => ({
+      ...user,
+      firstName: safeVal(user.firstName),
+      lastName: safeVal(user.lastName),
+      handle: safeVal(user.handle),
+      email: safeVal(user.email),
+      role: safeVal(user.role),
+      status: safeVal(user.status),
+      date_joined: safeVal(user.date_joined)
+    }))
+    .filter(admin => {
+      const q = searchQuery.toLowerCase();
+      return (
+        admin.firstName.toLowerCase().includes(q) ||
+        admin.lastName.toLowerCase().includes(q) ||
+        admin.handle.toLowerCase().includes(q) ||
+        admin.role.toLowerCase().includes(q) ||
+        admin.email.toLowerCase().includes(q) ||
+        admin.status.toLowerCase().includes(q)
+      );
+    });
 
   return (
     <div className="admins-container">
-      <AdminsHeader>
-        <SearchBar
-          placeholder="Search"
-          onSearch={setSearchQuery} // update parent state
-          className="search-input"
-        />
-      </AdminsHeader>
+      {/* Pass the search setter to the header */}
+      <AdminsHeader onSearch={setSearchQuery} />
 
-      <AdminsTable data={filteredAdmins} />
+      {isLoading ? (
+        <div className="loading-overlay">
+          <span>Loading authenticated users...</span>
+        </div>
+      ) : (
+        <AdminsTable data={filteredAdmins} />
+      )}
     </div>
   );
 }
