@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDownIcon, PlusIcon, RightArrowIcon, CheckMarkIcon } from '../Icons'; 
 import AddNewTimeframeModal from './AddNewTimeframeModal/AddNewTimeframeModal';
+import { PermissionGate } from '../../hooks/Auth/PermissionGate';
 import './QuarterSelector.css';
 
 function QuarterSelector({ 
@@ -120,7 +121,7 @@ function QuarterSelector({
                             );
                         })}
                     </div>
-
+                    <PermissionGate>
                     <button 
                         className="add-timeframe-btn" 
                         onClick={() => {
@@ -131,6 +132,7 @@ function QuarterSelector({
                         <span className="add-icon"><PlusIcon /></span>
                         <span className="add-text">Add a new timeframe</span>
                     </button>
+                    </PermissionGate>
                 </div>
             )}
             

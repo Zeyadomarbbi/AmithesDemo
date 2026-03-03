@@ -6,7 +6,7 @@ import Header from './components/Header/Header';
 import Portfolio from './components/Portfolio/Portfolio'; 
 import SetFinancials from './components/SetFinanacials/SetFinancials'; 
 import FundFlows from './components/FundFlows/FundFlows'; 
-import { useScenarioData } from './utils/useScenarioData';
+import { useScenarioData } from '../../../../../hooks/Scenarios/useScenarioData';
 
 import './ScenarioDetailPage.css';
 

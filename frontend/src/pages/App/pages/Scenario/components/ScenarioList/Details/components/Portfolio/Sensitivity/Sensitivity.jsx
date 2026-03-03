@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import debounce from 'lodash.debounce';
 import SensitivityTable from './Table/SensitivityTable.jsx'; 
 import { useShareClasses } from '../../../../../../../../hooks/useShareClass.js';
-import { useSensitivityAnalysis } from './useSensitivityAnalysis.js'; // Adjust path if needed
+import { useSensitivityAnalysis } from '../../../../../../../../hooks/Scenarios/useSensitivityAnalysis.js'; // Adjust path if needed
 import './Sensitivity.css';
 
 function Sensitivity({ rowData, fundId, scenarioId, isClosing }) {

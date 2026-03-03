@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlusIcon } from './Icons'; 
+import { PermissionGate } from '../../../../../../hooks/Auth/PermissionGate'; // Import PermissionGate
 import SearchBar from '../../../../../../components/SearchBar/SearchBar'
 import './ScenarioControls.css';
 
@@ -22,20 +23,20 @@ function ScenarioControls({ onAddClick, selectedScenarioCount, onCreateSynthesis
                 </div>
 
             </div>
-
-            <div className="scenarios-controls-right">
-                {isSynthesisButtonVisible && (
-                    <button className="create-synthesis-button" onClick={onCreateSynthesisClick}>
+            <PermissionGate>
+                <div className="scenarios-controls-right">
+                    {isSynthesisButtonVisible && (
+                        <button className="create-synthesis-button" onClick={onCreateSynthesisClick}>
+                            <PlusIcon />
+                            <span>Create Scenario Synthesis</span>
+                        </button>
+                    )}
+                    <button className="add-scenario-button" onClick={onAddClick}>
                         <PlusIcon />
-                        <span>Create Scenario Synthesis</span>
+                        <span>Add new scenario</span>
                     </button>
-                )}
-                <button className="add-scenario-button" onClick={onAddClick}>
-                    <PlusIcon />
-                    <span>Add new scenario</span>
-                </button>
-            </div>
-
+                </div>
+            </PermissionGate>
         </div>
     );
 }

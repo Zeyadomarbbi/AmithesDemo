@@ -6,6 +6,7 @@ import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
 
 import './ManagementFees.css';
+import { PermissionGate } from '../../../../../../../../../../hooks/Auth/PermissionGate.jsx';
 
 const ManagementFees = ({ fundId, scenarioId, onClose }) => {
     // 1. Hook Integration (No more hardcoded 2024/15)
@@ -64,10 +65,12 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                 <button className="mf-btn-base mf-btn-view" onClick={() => setIsViewModalOpen(true)}>
                     View tranches
                 </button>
+                <PermissionGate>
                 <button className="mf-btn-base mf-btn-add" onClick={() => setIsAddModalOpen(true)}>
                     <PlusIcon />
                     Add tranche
                 </button>
+                </PermissionGate>
             </div>
 
             <table className="mf-table">

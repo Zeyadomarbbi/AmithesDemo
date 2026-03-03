@@ -8,7 +8,7 @@ import QuarterSelector from "../../../../../../components/QuarterSelection/Quart
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import NewInvestmentModal from "./components/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
-
+import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
 /* ===== Styles ===== */
 import "./PortfolioSummaryTab.css";
 
@@ -18,7 +18,8 @@ import {
   FunnelIcon,
   DownloadIcon,
   iconStyle,
-  SortIcon
+  SortIcon,
+  PlusIconWhite
 } from "../../icons";
 
 /* ================= Utils ================= */
@@ -502,13 +503,15 @@ const PortfolioSummaryTab = () => {
             <DownloadIcon />
             <span>Download</span>
           </button>
-
-          <button
-            className="primary-btn"
-            onClick={() => setIsNewInvestmentOpen(true)}
-          >
-            + New investment
-          </button>
+          <PermissionGate>
+            <button
+              className="primary-btn"
+              onClick={() => setIsNewInvestmentOpen(true)}
+            >
+              <PlusIconWhite />
+              <span>New investment</span>
+            </button>
+          </PermissionGate>
         </div>
       </div>
 

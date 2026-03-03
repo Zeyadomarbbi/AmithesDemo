@@ -4,8 +4,9 @@ import { usePortfolio } from "../../../../../../../hooks/Portfolio/usePortfolio.
 import { usePortfolioTransactionTypes } from "../../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
 import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
-import { executeDeferredUpdates } from "./ScenarioPortfolioHelpers.js";
+import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
 import { useTargetMode } from "./TargetSelectionModal/useTargetMode.js";
+import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
 // Components
 import { PlusIcon, ChevronDoubleLeftIcon } from "./Icons"; // Ensure ChevronDoubleLeftIcon is imported
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
@@ -344,11 +345,12 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     lockedRows={lockedRows}
                     onToggleLock={handleToggleLock}
                 />
-
-                <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
-                    <PlusIcon /> <span>New deal</span>
-                </button>
-                
+                <PermissionGate>
+                  <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
+                      <PlusIcon /> <span>New deal</span>
+                  </button>
+                </PermissionGate>
+                <PermissionGate>
                 <div className="scenario-portfolio-footer">
                   <div className="scenario-portfolio-actions">
                   <button 
@@ -361,6 +363,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                   {toast && <Toast {...toast} onClose={() => setToast(null)} />}
                   </div>
               </div>
+              </PermissionGate>
             </div>
 
             {/* Footer Actions */}

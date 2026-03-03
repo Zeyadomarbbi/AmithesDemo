@@ -1,5 +1,6 @@
 import React from "react";
-import { SortIcon } from "../../../../Icons.jsx";
+import { SortIcon, PlusIcon } from "../../../../Icons.jsx";
+import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate.jsx";
 import "./LPsDashboard.css";
 
 /* Helpers Internalized for the Table */
@@ -96,13 +97,15 @@ const LPsDashboard = ({
       </div>
 
       {/* Side Plus Button for Adding Periods */}
-      <button 
-        className="side-plus-btn" 
-        onClick={onOpenAddPeriod}
-        title="Add Closing Period"
-      >
-        +
-      </button>
+      <PermissionGate>
+        <button 
+          className="side-plus-btn" 
+          onClick={onOpenAddPeriod}
+          title="Add Closing Period"
+        >
+          <PlusIcon />
+        </button>
+      </PermissionGate>
     </div>
   );
 };

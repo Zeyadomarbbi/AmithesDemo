@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react"; 
 import "./InvestmentDetails.css";
+import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate";
 // تأكد من استيراد الديت بيكر من مساره الصحيح
 import DatePicker from "../../../../../../../../components/DateComponents/DatePicker"; // <--- مسار ملف الديت بيكر
 
@@ -69,7 +70,9 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd,
             <th className="invNum">Amount LC* <span className="invSortIcon"><SortIcon/></span></th>
             <th>Type <span className="invSortIcon"><SortIcon/></span></th>
             {hasPartialDivestment && <th className="invNum">Divestment %</th>}
-            <th style={{ textAlign: 'right', paddingRight: '12px' }}>Actions</th>
+            <PermissionGate>
+              <th style={{ textAlign: 'right', paddingRight: '12px' }}>Actions</th>
+            </PermissionGate>
           </tr>
         </thead>
         <tbody>
@@ -204,22 +207,26 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd,
                   </td>
                 )}{/* Actions */}
                 <td>
+                  <PermissionGate>
                   <div className="invActionsCell">
                     <button className="invRowActionBtn invIconGrey" onClick={() => onDelete(f.id)}>
                         <TrashIcon />
                     </button>
                   </div>
+                  </PermissionGate>  
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-
-      <button className="invAddFlowBtn" onClick={onAdd}>
-        <span className="invAddFlowIcon"><PlusIcon /></span>
-        <span className="invAddFlowText">New Flow</span>
-      </button>
+                
+      <PermissionGate>
+        <button className="invAddFlowBtn" onClick={onAdd}>
+          <span className="invAddFlowIcon"><PlusIcon /></span>
+          <span className="invAddFlowText">New Flow</span>
+        </button>
+      </PermissionGate>    
     </div>
   );
 }

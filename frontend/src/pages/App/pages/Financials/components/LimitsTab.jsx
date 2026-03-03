@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
+import { PermissionGate } from "../../../../../hooks/Auth/PermissionGate.jsx";
 import "./limitstab/Limits.css";
 
 import NewLimitDrawer from "./limitstab/NewLimitDrawer.jsx";
@@ -182,7 +183,7 @@ export default function LimitsTab() {
               isSingle={true}
             />
           </div>
-
+          <PermissionGate>
           <button
             type="button"
             className="limits-new-btn"
@@ -193,6 +194,7 @@ export default function LimitsTab() {
             </span>
             <span>New limit</span>
           </button>
+          </PermissionGate>
         </div>
 
         <div className="limits-table-wrapper">

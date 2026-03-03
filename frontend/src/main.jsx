@@ -7,7 +7,8 @@ import { AuthProvider } from './hooks/Auth/AuthContext.jsx'; // Path to your new
 import ProtectedRoute from './hooks/Auth/ProtectedRoute'; // Path to your new ProtectedRoute
 import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
 import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard';
-
+import { PermissionGate } from "./hooks/Auth/PermissionGate.jsx";
+import { StaffRoute } from './hooks/Auth/StaffRoute.jsx';
 /* --- AUTH --- */
 import LoginPage from './pages/Auth/Login/LoginPage';
 
@@ -75,7 +76,12 @@ const router = createBrowserRouter([
             element: <AppLayout />, 
             children: [
               { path: 'all-funds', element: <AllFundsPage /> },
-              { path: 'admins', element: <AdminsPage /> },
+              {
+                element: <StaffRoute />,
+                children: [
+                  { path: 'admins', element: <AdminsPage /> }
+                ]
+              },
               { path: 'help', element: <HelpPage /> },
 
               // --- FUND SPECIFIC DOMAIN ---
@@ -85,7 +91,11 @@ const router = createBrowserRouter([
                 children: [
                   { 
                     path: 'settings', 
-                    element: <SettingsPage />, 
+                    element: (
+                      <PermissionGate fallback={<Navigate to=".." replace />}>
+                        <SettingsPage />
+                      </PermissionGate>
+                    ), 
                     children: [
                         { index: true, element: <Navigate to="fund-identity" replace /> },
                         { path: 'fund-identity', element: <FundIdentity /> },

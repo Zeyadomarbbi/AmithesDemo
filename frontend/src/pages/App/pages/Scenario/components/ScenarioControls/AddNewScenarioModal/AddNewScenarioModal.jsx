@@ -1,8 +1,8 @@
 // AddNewScenarioModal.jsx (Updated)
 
 import React, { useState } from 'react'; // Import useState
-import './AddNewScenarioModal.css';
 import { CloseIcon } from '../Icons'; 
+import './AddNewScenarioModal.css';
 
 // Receive new props: author and onSave
 function AddNewScenarioModal({ author, onSave, onClose }) {

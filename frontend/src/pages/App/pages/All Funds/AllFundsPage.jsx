@@ -2,12 +2,12 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFundData } from "../../hooks/Core/FundContext"; 
+import { PermissionGate } from "../../../../hooks/Auth/PermissionGate.jsx";
 import FundList from "./components/FundLists/FundList";
 import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
 import Toast from "../../components/Toast/Toast";
 import SearchBar from "../../../../components/SearchBar/SearchBar";
-import PermissionGate from "frontend/src/hooks/Auth/PermissionGate.jsx"
 import { PlusIcon } from "../../../../components/Icons";
 import "./AllFundsPage.css";
 
@@ -158,10 +158,12 @@ export default function AllFundsPage() {
           placeholder="Search by fund name..."
           onSearch={setQuery}
         />
+      <PermissionGate>
         <button className="new-fund-btn" onClick={() => setIsNewFundOpen(true)}>
           <PlusIcon />
           <span>New fund</span>
         </button>
+      </PermissionGate>
       </div>
 
       {renderContent()}

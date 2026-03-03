@@ -7,7 +7,8 @@ import {
   EllipsisVerticalIcon,
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
-
+import { PlusIcon } from "../../icons";
+import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
 const iconStyle = {
   color: "#111827",
   stroke: "#111827",
@@ -259,8 +260,10 @@ const CompareDetailPanel = ({ investment, onClose }) => {
               </tbody>
             </table>
           </div>
-
-          <button className="new-flow-btn">+ New Flow</button>
+        
+          <PermissionGate>
+            <button className="new-flow-btn"> <PlusIcon /> New Flow</button>
+          </PermissionGate>
         </section>
 
         {/* Footer */}

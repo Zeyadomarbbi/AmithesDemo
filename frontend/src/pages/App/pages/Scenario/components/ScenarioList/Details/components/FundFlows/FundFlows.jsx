@@ -7,6 +7,7 @@ import CapitalCalls from './CapitalCalls/CapitalCalls';
 import Distributions from './Distributions/Distributions';
 import AddOperation from './AddOperation/AddOperation';
 import Toast from '../../../../../../../components/Toast/Toast';
+import { PermissionGate } from '../../../../../../../../../hooks/Auth/PermissionGate';
 import { PlusIcon } from './Icons';
 
 // Hooks
@@ -83,7 +84,7 @@ function FundFlows({ fundId, scenarioId }) {
               Distributions
             </button>
           </div>
-
+          <PermissionGate>
           <div className="flows-actions">
             {(activeView === 'all_operations' || activeView === 'calls') && (
               <button 
@@ -95,6 +96,7 @@ function FundFlows({ fundId, scenarioId }) {
               </button>
             )}
           </div>
+          </PermissionGate>
         </div>
 
         <div className="flows-section-content">

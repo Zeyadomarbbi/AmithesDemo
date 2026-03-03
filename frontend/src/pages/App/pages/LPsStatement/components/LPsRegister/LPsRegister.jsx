@@ -9,7 +9,7 @@ import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
 import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
 import LPDrawer from "./components/LPDrawer/LPDrawer.jsx"
-
+import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate.jsx";
 /* Hooks */
 import { useCountries } from "../../../../hooks/Reference/useCountries.js";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
@@ -263,7 +263,7 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
             {classesLoading && <span className="loading-text">Loading classes...</span>}
           </div>
         </div>
-
+        <PermissionGate>
         <div className="lp-toolbar-right">
           <button className="btn-transfer" onClick={() => setIsTransferOpen(true)}>
             <TransferIcon />
@@ -273,6 +273,7 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
             <PlusIcon /> <span>New LP</span>
           </button>
         </div>
+        </PermissionGate>
       </div>
 
       {isLoadingData ? (

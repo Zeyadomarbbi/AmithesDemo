@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { xirr as xirrLib } from "@webcarrot/xirr";
+import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import useApi from "../../../../../../../../hooks/api/useApi"; // Adjust path to useApi
 import "./InvestmentDetails.css";
@@ -470,11 +471,12 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
                 </div>
               )}
             </div>
-
-            <div className="invHeaderActions">
-              <button className="invActionIcon" title="Edit">✎</button>
-              <button className="invActionIcon" title="Delete">🗑</button>
-            </div>
+            <PermissionGate>
+              <div className="invHeaderActions">
+                <button className="invActionIcon" title="Edit">✎</button>
+                <button className="invActionIcon" title="Delete">🗑</button>
+              </div>
+            </PermissionGate>
           </div>
         </div>
 
@@ -589,11 +591,12 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
             </div>
           </section>
         </div>
-
-        <div className="invDrawerFooter">
-          <button className="invFooterBtn invBtnCancel" onClick={onClose}>Cancel</button>
-          <button className="invFooterBtn invBtnSave" onClick={handleSave}>Save</button>
-        </div>
+        <PermissionGate>
+          <div className="invDrawerFooter">
+            <button className="invFooterBtn invBtnCancel" onClick={onClose}>Cancel</button>
+            <button className="invFooterBtn invBtnSave" onClick={handleSave}>Save</button>
+          </div>
+        </PermissionGate>
       </aside>
 
       {toast && (

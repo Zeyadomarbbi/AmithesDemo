@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useManFeeTranches } from '../../utils/useScenarioManFeeTranches';
+import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
 import { useShareClasses } from '../../../../../../../../../../hooks/useShareClass';
 import { CloseIcon, ChevronDownIcon } from '../../../Icons';
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
