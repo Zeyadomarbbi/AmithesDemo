@@ -11,7 +11,7 @@ import { PermissionGate } from '../../../../../../../../../hooks/Auth/Permission
 import { PlusIcon } from './Icons';
 
 // Hooks
-import { useScenarioFFCapitalCall } from './CapitalCalls/useScenarioFFCapitalCall';
+import { useScenarioFFCapitalCall } from '../../../../../../../hooks/Scenarios/useScenarioFFCapitalCall';
 
 function FundFlows({ fundId, scenarioId }) {
   const [activeView, setActiveView] = useState('all_operations');

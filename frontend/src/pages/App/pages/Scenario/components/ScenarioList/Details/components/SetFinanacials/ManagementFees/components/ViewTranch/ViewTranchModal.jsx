@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useManFeeTranches } from '../../utils/useScenarioManFeeTranches';
+import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
 import { CloseIcon } from '../../../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../../../components/Sort/TableSort';

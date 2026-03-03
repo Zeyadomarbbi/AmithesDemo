@@ -5,7 +5,6 @@ import { usePortfolioTransactionTypes } from "../../../../../../../hooks/Referen
 import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
-import { useTargetMode } from "./TargetSelectionModal/useTargetMode.js";
 import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
 // Components
 import { PlusIcon, ChevronDoubleLeftIcon } from "./Icons"; // Ensure ChevronDoubleLeftIcon is imported

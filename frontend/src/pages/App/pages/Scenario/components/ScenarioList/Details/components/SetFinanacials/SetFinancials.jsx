@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FinancialTable from './FinancialTable/FinancialTable';
 import ManagementFees from './ManagementFees/ManagementFees';
-import { useScenarioFinancialsProjections } from './utils/useScenarioFinancialsProjections.js';
+import { useScenarioFinancialsProjections } from '../../../../../../../hooks/Scenarios/useScenarioFinancialsProjections';
 import Toast from '../../../../../../../components/Toast/Toast'; 
 import DDFees from './DDFees/DDFees';
 import { DownloadIcon, PlusIcon, MinusIcon } from './Icons';

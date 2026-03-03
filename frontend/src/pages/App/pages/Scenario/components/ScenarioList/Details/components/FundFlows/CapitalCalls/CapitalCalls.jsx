@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SortIcon, PlusIcon, MinusIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 import Toast from '../../../../../../../../components/Toast/Toast'; 
-import { useScenarioFFCapitalCall } from './useScenarioFFCapitalCall';
+import { useScenarioFFCapitalCall } from '../../../../../../../../hooks/Scenarios/useScenarioFFCapitalCall';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
 import './CapitalCalls.css'; 
 

@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { useMasterManFees } from './utils/useScenarioMasterManFee.js'; // Adjust path
+import { useMasterManFees } from '../../../../../../../../hooks/Scenarios/useScenarioMasterManFee';
 import { PlusIcon, CloseIcon } from '../Icons'; 
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
-
-import './ManagementFees.css';
 import { PermissionGate } from '../../../../../../../../../../hooks/Auth/PermissionGate.jsx';
+import './ManagementFees.css';
 
 const ManagementFees = ({ fundId, scenarioId, onClose }) => {
     // 1. Hook Integration (No more hardcoded 2024/15)

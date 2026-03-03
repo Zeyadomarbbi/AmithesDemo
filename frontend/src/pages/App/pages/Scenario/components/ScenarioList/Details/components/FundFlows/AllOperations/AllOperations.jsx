@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import './AllOperations.css';
 import { SortIcon } from '../Icons'; 
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
-import { useScenarioFFAllOperations } from './useScenarioFFAllOperations'; 
+import { useScenarioFFAllOperations } from '../../../../../../../../hooks/Scenarios/useScenarioFFAllOperations'; 
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';
 
 const AllOperations = ({ fundId, scenarioId, refreshTrigger }) => {

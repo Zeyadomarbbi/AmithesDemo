@@ -80,24 +80,24 @@
 .mgmt-date-input {
   display: flex;
   align-items: center;
-  height: 40px;
-  width: clamp(80px, 8vw, 100px); /* Responsive width with bounds */
-  padding: 0 0.5rem;
-  background: #FFFFFF;
+  padding: 0 12px;
   border: 1px solid #E5E7EB;
   border-radius: 6px;
+  background: #FFFFFF;
+  height: 40px; 
   box-sizing: border-box;
+  width: 100%;
 }
 
 .mgmt-date-input-inner {
   border: none;
-  background: transparent;
   outline: none;
   width: 100%;
   font-family: 'Inter';
+  font-weight: 500;
   font-size: 14px;
   color: #1C1917;
-  text-align: center;
+  background: transparent;
 }
 
 /* Date Picker Overrides */

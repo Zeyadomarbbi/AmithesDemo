@@ -138,3 +138,21 @@
   background-color: #D0D5DD;
   cursor: not-allowed;
 }
+
+.fund-identity-input .custom-select-arrow {
+  position: absolute;
+  right: 14px;
+  top: calc(50% - 6px);
+  width: 8px;
+  height: 8px;
+  border: solid #375A89;
+  border-width: 0 2px 2px 0;
+  padding: 0;
+  margin: 0;
+  transform: rotate(45deg);
+}
+
+.fund-identity-input .custom-select-arrow.up {
+  transform: rotate(-135deg);
+  top: calc(50% - 2px);
+}
