@@ -8,8 +8,6 @@ import ProtectedRoute from './hooks/Auth/ProtectedRoute'; // Path to your new Pr
 import { FundProvider } from './pages/App/hooks/Core/FundContext.jsx';
 import FundSetupGuard from './pages/App/hooks/Core/FundSetupGuard';
 
-import './index.css';
-
 /* --- AUTH --- */
 import LoginPage from './pages/Auth/Login/LoginPage';
 
@@ -57,6 +55,8 @@ import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/C
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
+
+import './index.css';
 
 const router = createBrowserRouter([
   // Public Routes

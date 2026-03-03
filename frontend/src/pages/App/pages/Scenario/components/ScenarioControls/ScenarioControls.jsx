@@ -1,5 +1,5 @@
 import React from 'react';
-import { SearchIcon, PlusIcon } from './Icons'; 
+import { PlusIcon } from './Icons'; 
 import SearchBar from '../../../../../../components/SearchBar/SearchBar'
 import './ScenarioControls.css';
 

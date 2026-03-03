@@ -7,6 +7,7 @@ import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
 import Toast from "../../components/Toast/Toast";
 import SearchBar from "../../../../components/SearchBar/SearchBar";
+import PermissionGate from "frontend/src/hooks/Auth/PermissionGate.jsx"
 import { PlusIcon } from "../../../../components/Icons";
 import "./AllFundsPage.css";
 

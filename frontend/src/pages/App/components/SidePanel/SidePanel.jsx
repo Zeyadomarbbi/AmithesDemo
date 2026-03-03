@@ -1,3 +1,4 @@
+// SidePanel.jsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
@@ -5,11 +6,11 @@ import { useAuth } from '../../../../hooks/Auth/AuthContext';
 import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
 import Toast from '../Toast/Toast';
+import SearchBar from '../../../../components/SearchBar/SearchBar';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
   LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
-  SettingsIcon, ChevronDownIcon, ProfileExpandIcon,
-  SearchIcon
+  SettingsIcon, ChevronDownIcon, ProfileExpandIcon
 } from '../Icons';
 
 import './SidePanel.css';
@@ -23,7 +24,6 @@ function SidePanel() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { funds } = useFundData();
-  // useActiveFund now pulls from Context (Sticky State)
   const activeFundId = useActiveFund();
   
   const location = useLocation();
@@ -41,7 +41,6 @@ function SidePanel() {
     );
   }, [funds, searchQuery]);
 
-  // Find fund based on the sticky activeFundId from context
   const currentFund = useMemo(() => 
     (funds && activeFundId) 
       ? funds.find(f => f.id.toString() === activeFundId.toString()) 
@@ -75,11 +74,8 @@ function SidePanel() {
 
   const handleLogoutClick = async () => {
     try {
-      // 1. Trigger the toast UI immediately
       setShowLogoutToast(true);
       setIsProfileOpen(false);
-
-      // 2. Wait briefly so the user sees the toast before the session is cleared
       setTimeout(async () => {
         await logout();
       }, 800); 
@@ -91,7 +87,6 @@ function SidePanel() {
 
   return (
     <div className="side-panel">
-    {/* Toast Notification */}
       {showLogoutToast && (
         <Toast 
           title="Logged Out" 
@@ -113,7 +108,6 @@ function SidePanel() {
                   {currentFund ? currentFund.name : 'Select a fund'}
                 </span>
                 
-                {/* Only show "Fund setup" if a fund is active AND the user is an admin/staff */}
                 {hasActiveFund && (user?.is_staff || user?.is_superuser) && (
                   <Link 
                     to={`/funds/${currentFund.id}/settings`} 
@@ -139,16 +133,12 @@ function SidePanel() {
             {isFundSelectorOpen && (
               <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
                 
-                <div className="dropdown-search-container">
-                  <SearchIcon />
-                  <input 
-                    type="text" 
-                    placeholder="Search by name or code" 
-                    className="dropdown-search-input" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+                <SearchBar 
+                  placeholder="Search by name or code"
+                  onSearch={(value) => setSearchQuery(value)}
+                  containerClassName="dropdown-search-container"
+                  className="dropdown-search-input"
+                />
 
                 <div className="dropdown-scroll">
                   {filteredFunds.length > 0 ? (
@@ -174,7 +164,6 @@ function SidePanel() {
             )}
           </div>
 
-          {/* This section remains visible even on All Funds page if a fund was previously selected */}
           {hasActiveFund && (
             <nav className="side-panel-nav">
               <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">

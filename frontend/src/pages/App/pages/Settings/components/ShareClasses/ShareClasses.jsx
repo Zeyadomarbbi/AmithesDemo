@@ -1,7 +1,8 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/ShareClasses.jsx
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { SearchIcon, PlusIcon } from "../../../../../../components/Icons/icons2.jsx"; 
+import { PlusIcon } from "../../../../../../components/Icons/icons2.jsx"; 
+import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";
 import Toast from "../../../../components/Toast/Toast.jsx"; // Import Toast
@@ -11,7 +12,9 @@ import "./ShareClasses.css";
 
 const ShareClasses = () => {
   const { fundId } = useOutletContext();
-  const [toast, setToast] = useState(null); // Added Toast state
+  const [toast, setToast] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isNewShareOpen, setIsNewShareOpen] = useState(false);
 
   const { 
     data: savedShareClasses, 
@@ -21,10 +24,6 @@ const ShareClasses = () => {
     fetchAll 
   } = useShareClasses(fundId);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isNewShareOpen, setIsNewShareOpen] = useState(false);
-
-  // Updated handler with Toast feedback
   const handleCreate = async (payload) => {
     try {
       await create(payload);
@@ -41,7 +40,6 @@ const ShareClasses = () => {
         title: "Creation Failed",
         message: err.message || "An error occurred while creating the share class."
       });
-      // We throw the error so the Drawer knows NOT to close
       throw err;
     }
   };
@@ -58,16 +56,12 @@ const ShareClasses = () => {
 
   return (
     <div className="share-classes-wrap">
-      <div className="share-search">
-        <span className="share-search-icon"><SearchIcon /></span>
-        <input
-          type="text"
-          className="share-search-input"
-          placeholder="Search by share class or ISIN..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <SearchBar 
+        placeholder="Search by share class or ISIN..."
+        onSearch={(value) => setSearchTerm(value)}
+        containerClassName="share-search"
+        className="share-search-input"
+      />
 
       <div className="share-list">
         {filteredShareClasses.length === 0 ? (
@@ -90,7 +84,6 @@ const ShareClasses = () => {
         onCreate={handleCreate} 
       />
 
-      {/* Global Toast for ShareClasses Page */}
       {toast && (
         <Toast
           type={toast.type}
