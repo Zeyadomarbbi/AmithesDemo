@@ -1,15 +1,15 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewOperation/OperationPanel.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import OperationStep1 from "../OperationStep1/OperationStep1.jsx";
-import OperationStep2 from "../OperationStep2/OperationStep2.jsx";
-import OperationStep3Breakdown from "../OperationStep3/OperationStep3Breakdown.jsx";
-import OperationStep4 from "../OperationStep4/OperationStep4.jsx";
-import { CloseIcon } from "../../../../Icons.jsx";
+import OperationStep1 from "./OperationStep1/OperationStep1.jsx";
+import OperationStep2 from "./OperationStep2/OperationStep2.jsx";
+import OperationStep3Breakdown from "./OperationStep3/OperationStep3Breakdown.jsx";
+import OperationStep4 from "./OperationStep4/OperationStep4.jsx";
+import { CloseIcon } from "../../../Icons.jsx";
 import { useOperationTypes } from "/src/pages/App/hooks/LPsStatement/useOperationTypes.js";
-import { useOperationDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
-import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
-import { useCapitalFlowLPFlowAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPFlowAllocation.js";
-import { useCapitalFlowLPOperationAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
+import { useOperationDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
+import { useCapitalFlowFlowDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
+import { useCapitalFlowLPFlowAllocation } from "../../../../../hooks/LPsStatement/useCapitalFlowLPFlowAllocation.js";
+import { useCapitalFlowLPOperationAllocation } from "../../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
 import "./OperationPanel.css";
 
 /** Date -> YYYYMMDD integer */
@@ -369,7 +369,7 @@ export default function OperationPanel({
 
   const handleCloseSuccess = () => {
     setShowSuccess(false);
-    if (typeof onClose === "function") onClose();
+    if (typeof onClose === "function") onClose(true);
   };
 
   const stepTabs = useMemo(
@@ -465,10 +465,10 @@ export default function OperationPanel({
         return null;
     }
   };
-
+  
   return (
     <>
-      <div className="opw-drawer-backdrop" onClick={() => onClose?.()}>
+      <div className="opw-drawer-backdrop" onClick={() => onClose?.(false)}>
         <aside className="opw-drawer" onClick={(e) => e.stopPropagation()}>
           <div className="opw-header">
             <div className="opw-header-left">
@@ -491,7 +491,7 @@ export default function OperationPanel({
             <button
               className="opw-close-btn"
               type="button"
-              onClick={() => onClose?.()}
+              onClick={() => onClose?.(false)}
               aria-label="Close"
               disabled={savingStep1 || isSaving}
             >

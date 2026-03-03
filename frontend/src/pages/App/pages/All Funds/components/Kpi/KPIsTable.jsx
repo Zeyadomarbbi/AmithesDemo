@@ -3,7 +3,7 @@ import { useTableSort, SortableHeaderRenderer } from "../../../../../../componen
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../components/useFormatter';
 import { fetchPortfolioKpisByFundIds } from "../PortfolioDataFuncs"; 
 import useApi from "../../../../../../hooks/api/useApi"; // ✅ New engine import
-import { PageSpinner } from "../../AllFundsPage"; 
+import { PageSpinner } from "../../../../../../components/LoadingScreens/LoadingScreens";
 import "./KPIsTable.css";
 
 const COLS = [
