@@ -14,21 +14,40 @@ class UserSerializer(serializers.ModelSerializer):
             'is_superuser', 'date_joined'
         ]
         extra_kwargs = {
-            'password': {'write_only': True, 'required': True},
+            # required=False allows us to skip password on PATCH
+            'password': {'write_only': True, 'required': False},
             'username': {'required': True},
-            'email': {'required': True}, # Recommended to make email required
+            'email': {'required': True},
             'date_joined': {'read_only': True}
         }
 
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exists():
-            raise serializers.ValidationError("A user with that username already exists.")
+        # Allow the current user to keep their own username
+        user_id = self.instance.id if self.instance else None
+        if User.objects.filter(username__iexact=value).exclude(id=user_id).exists():
+            raise serializers.ValidationError("Username already exists.")
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("A user with that email already exists.")
+        # Allow the current user to keep their own email
+        user_id = self.instance.id if self.instance else None
+        if User.objects.filter(email__iexact=value).exclude(id=user_id).exists():
+            raise serializers.ValidationError("Email already exists.")
         return value
+
+    def update(self, instance, validated_data):
+        # Pop password so it isn't handled by standard setattr
+        password = validated_data.pop('password', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Only set password if one was actually sent
+        if password:
+            instance.set_password(password)
+            
+        instance.save()
+        return instance
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

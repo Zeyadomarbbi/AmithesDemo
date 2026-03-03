@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
+import { useAuth } from '../../../../hooks/Auth/AuthContext';
 import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
+import Toast from '../Toast/Toast';
 import { 
   DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
   LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
@@ -13,6 +15,10 @@ import {
 import './SidePanel.css';
 
 function SidePanel() {
+  const { user, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showLogoutToast, setShowLogoutToast] = useState(false);
+  const profileRef = useRef(null);
   const [isFundSelectorOpen, setIsFundSelectorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -50,9 +56,50 @@ function SidePanel() {
     setSearchQuery("");
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name[0].toUpperCase();
+  };
+
+  const handleLogoutClick = async () => {
+    try {
+      // 1. Trigger the toast UI immediately
+      setShowLogoutToast(true);
+      setIsProfileOpen(false);
+
+      // 2. Wait briefly so the user sees the toast before the session is cleared
+      setTimeout(async () => {
+        await logout();
+      }, 800); 
+    } catch (err) {
+      console.error("Logout failed:", err);
+      setShowLogoutToast(false);
+    }
+  };
+
   return (
     <div className="side-panel">
-      
+    {/* Toast Notification */}
+      {showLogoutToast && (
+        <Toast 
+          title="Logged Out" 
+          message="See you soon!" 
+          type="success" 
+          onClose={() => setShowLogoutToast(false)} 
+        />
+      )}   
       <div className="frame-1">
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
@@ -66,7 +113,8 @@ function SidePanel() {
                   {currentFund ? currentFund.name : 'Select a fund'}
                 </span>
                 
-                {hasActiveFund && (
+                {/* Only show "Fund setup" if a fund is active AND the user is an admin/staff */}
+                {hasActiveFund && (user?.is_staff || user?.is_superuser) && (
                   <Link 
                     to={`/funds/${currentFund.id}/settings`} 
                     className="fund-setup-row"
@@ -157,23 +205,44 @@ function SidePanel() {
       <div className="frame-3">
         <div className="footer-links">
           <NavLink to="/all-funds" className="footer-item">
-              <AllFundsIcons /> <span>All funds</span>
+            <AllFundsIcons /> <span>All funds</span>
           </NavLink>
-          <NavLink to="/admins" className="footer-item">
+          
+          {(user?.is_staff || user?.is_superuser) && (
+            <NavLink to="/admins" className="footer-item">
               <AdminsIcon /> <span>Admins</span>
-          </NavLink>
+            </NavLink>
+          )}
+          
           <NavLink to="/help" className="footer-item">
-              <HelpIcon /> <span>Help</span>
+            <HelpIcon /> <span>Help</span>
           </NavLink>
         </div>
 
-        <div className="user-profile">
-          <div className="user-avatar">MR</div>
-          <div className="user-details">
-            <span className="user-name">Mathieu Rigot</span>
-            <span className="user-email">mathieu.rigot@likifunds.com</span>
+        <div className="user-profile-wrapper" ref={profileRef}>
+          {isProfileOpen && (
+            <div className="profile-dropdown-menu">
+              <button onClick={handleLogoutClick} className="logout-button">
+                Logout
+              </button>
+            </div>
+          )}
+          
+          <div 
+            className={`user-profile ${isProfileOpen ? 'active' : ''}`} 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+          >
+            <div className="user-avatar">
+              {getInitials(user?.username || user?.email)}
+            </div>
+            <div className="user-details">
+              <span className="user-name">{user?.username || 'User'}</span>
+              <span className="user-email">{user?.email}</span>
+            </div>
+            <div className={`profile-arrow ${isProfileOpen ? 'rotate' : ''}`}>
+              <ProfileExpandIcon />
+            </div>
           </div>
-          <ProfileExpandIcon />
         </div>
       </div>
     </div>

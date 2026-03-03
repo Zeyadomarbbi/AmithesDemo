@@ -46,14 +46,26 @@ function AdminPanel({ isOpen, onClose, userData, onSuccess }) {
 
   const handleSave = async () => {
     try {
+      // 1. Prepare payload and remove empty password
+      const payload = { ...formData };
+      console.log("Payload before cleanup:", payload);
+      if (!payload.password || payload.password.trim() === "") {
+        delete payload.password;
+      }
+
       if (isEditMode) {
-        await updateUser(userData.id, formData);
+        // 2. Pass the cleaned payload to updateUser
+        await updateUser(userData.id, payload);
       } else {
-        const payload = { ...formData, username: formData.username || formData.email };
-        await createUser(payload);
+        // For creation, ensure username exists
+        const createPayload = { 
+          ...payload, 
+          username: payload.username || payload.email 
+        };
+        await createUser(createPayload);
       }
       
-      if (onSuccess) onSuccess(); // Force parent to sync with DB
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
       console.error("Operation failed:", err);

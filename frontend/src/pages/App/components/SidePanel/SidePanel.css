@@ -584,6 +584,66 @@ html, body {
   background: #fecaca;
 }
 
+
+.user-profile-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.profile-dropdown-menu {
+  position: absolute;
+  top: -50px; /* Positioned above the profile bar */
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: 4px;
+}
+
+.logout-button {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #d93025; /* Red color for logout */
+  font-family: 'Inter', sans-serif;
+  font-weight: 400; 
+  font-size: clamp(11px, 3vw, 12px);
+  line-height: 1.33;
+  letter-spacing: 0;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.logout-button:hover {
+  background-color: #fee2e2;
+}
+
+.profile-arrow {
+  transition: transform 0.2s ease;
+}
+
+.profile-arrow.rotate {
+  transform: rotate(180deg);
+}
+
+.user-profile {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-profile:hover {
+  background: linear-gradient(90deg, rgba(250, 168, 55, 0.15) 0%, rgba(250, 168, 55, 0) 100%);
+  border-radius: 8px;
+  color: #FFFFFF; 
+  font-weight: 500;
+  box-shadow: inset 0 0 0 0 #FAA837; 
+}
+
 /* =========================================
    MOBILE ADJUSTMENTS
    ========================================= */

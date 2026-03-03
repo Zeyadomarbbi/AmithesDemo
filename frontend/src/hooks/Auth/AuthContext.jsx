@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  console.log("AuthContext State:", { user, loading });
   const canEdit = user?.is_staff || user?.is_superuser; // Standard Django flags
   const isViewer = user && !canEdit;
 

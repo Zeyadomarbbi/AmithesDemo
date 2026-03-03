@@ -42,11 +42,12 @@ def login_view(request):
     if user is not None:
         login(request, user)
         return Response({
-            "message": "Login successful",
             "user": {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "is_staff": user.is_staff,       # Add this
+                "is_superuser": user.is_superuser # Add this
             }
         })
 
@@ -74,6 +75,8 @@ def me_view(request):
             "id": request.user.id,
             "username": request.user.username,
             "email": request.user.email,
+            "is_staff": request.user.is_staff,
+            "is_superuser": request.user.is_superuser
         }
     })
 
