@@ -86,39 +86,52 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
   });
 
   const summaryRows = Object.values(lpMap).map(item => {
-    const row = {
-      lp: item.lp,
-      displayClass: item.share_class,
-      displayClassColor: getClassColor(item.share_class),
-      commitmentCell: formatAmount(item.total_commitment),
-      totalNumeric: item.total_commitment,
-      ownership: grandTotal > 0 ? (item.total_commitment / grandTotal) * 100 : 0,
-      closingValues: {}
-    };
+      const row = {
+        lp: item.lp,
+        displayClass: item.share_class,
+        totalNumeric: item.total_commitment,
+        ownership: grandTotal > 0 ? (item.total_commitment / grandTotal) * 100 : 0,
+        closingValues: {}
+      };
 
-    closings.forEach(closing => {
-      const val = item.closings[closing.lps_fund_closing_period_id] || 0;
-      row.closingValues[closing.lps_fund_closing_period_id] = val > 0 ? formatAmount(val) : "—";
+      // --- CUMULATIVE LOGIC ---
+      let runningTotal = 0;
+      
+      // closings must be sorted by date/sequence for this to work
+      closings.forEach(closing => {
+        const closingId = closing.lps_fund_closing_period_id;
+        const trancheAmount = item.closings[closingId] || 0;
+        
+        runningTotal += trancheAmount;
+        
+        // Store the accumulation for this specific period
+        row.closingValues[closingId] = runningTotal;
+      });
+
+      return row;
     });
 
-    return row;
-  });
+    // --- CUMULATIVE FOOTER TOTALS ---
+    const closingTotals = {};
+    let totalRunningBalance = 0;
 
-  const closingTotals = {};
-  closings.forEach(closing => {
-    const sum = activeCommitments
-      .filter(c => String(c.lps_fund_closing_period_id || c.closing_period) === String(closing.lps_fund_closing_period_id))
-      .reduce((acc, curr) => acc + parseFloat(curr.commitment_amount || 0), 0);
-    closingTotals[closing.lps_fund_closing_period_id] = formatAmount(sum);
-  });
+    closings.forEach(closing => {
+      const closingId = closing.lps_fund_closing_period_id;
+      const trancheSum = activeCommitments
+        .filter(c => String(c.lps_fund_closing_period_id) === String(closingId))
+        .reduce((acc, curr) => acc + parseFloat(curr.commitment_amount || 0), 0);
+      
+      totalRunningBalance += trancheSum;
+      closingTotals[closingId] = totalRunningBalance;
+    });
 
-  return {
-    summaryRows,
-    grandTotal: formatAmount(grandTotal),
-    grandTotalNumeric: grandTotal,
-    closingTotals
-  };
-}
+    return {
+      summaryRows,
+      grandTotal: formatAmount(grandTotal),
+      grandTotalNumeric: grandTotal,
+      closingTotals
+    };
+  }
 
 export default function LPsRegister() {
   const { fundId } = useOutletContext();
@@ -272,6 +285,10 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
           <button className="btn-newlp" onClick={() => setIsNewLpOpen(true)}>
             <PlusIcon /> <span>New LP</span>
           </button>
+          <button className="btn-newlp" onClick={() => setPeriodModalOpen(true)}>
+            <PlusIcon />
+            <span>Add closing period</span>
+          </button>
         </div>
         </PermissionGate>
       </div>
@@ -289,7 +306,6 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
             closingTotals: summaryData.closingTotals
           }}
           onSelectLP={handleSelectLP}
-          onOpenAddPeriod={() => setPeriodModalOpen(true)}
         />
       )}
       

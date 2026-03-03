@@ -286,39 +286,27 @@ class ClosingPeriodDetail(generics.RetrieveAPIView):
     serializer_class = ClosingPeriodSerializer
     lookup_field = 'closing_id'
 
-class FundClosingDetail(generics.RetrieveAPIView):
-    queryset = FundClosing.objects.all()
-    serializer_class = FundClosingSerializer
-    
-    def get_queryset(self):
-        # Ensures the record belongs to the fund specified in the URL
-        return self.queryset.filter(fund_id=self.kwargs.get('fund_id'))
-    
-class FundClosingListCreate(mixins.ListModelMixin,
-                            mixins.CreateModelMixin,
-                            generics.GenericAPIView):
+class FundClosingDetail(generics.RetrieveUpdateDestroyAPIView):
+    # Changed to RetrieveUpdateDestroyAPIView in case you want to edit 
+    # the description later via the Detail endpoint.
     serializer_class = FundClosingSerializer
 
     def get_queryset(self):
-        queryset = FundClosing.objects.all()
+        return FundClosing.objects.filter(fund_id=self.kwargs.get('fund_id'))
+    
+class FundClosingListCreate(generics.ListCreateAPIView):
+    serializer_class = FundClosingSerializer
+
+    def get_queryset(self):
+        # Optimized filtering using the URL kwarg
         fund_id = self.kwargs.get('fund_id')
-        if fund_id is not None:
-            return queryset.filter(fund_id=fund_id)
-        return queryset
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        return FundClosing.objects.filter(fund_id=fund_id)
 
     def perform_create(self, serializer):
-        # Automatically assign user and fund_id from URL if present
+        # Automatically inject the fund_id from the URL into the save method
+        # Ensure 'description' is included in your Serializer fields to be saved
         fund_id = self.kwargs.get('fund_id')
-        if fund_id:
-            serializer.save(fund_id=fund_id)
-        else:
-            serializer.save()
+        serializer.save(fund_id=fund_id)
 
 class LimitedPartnerViewSet(ModelViewSet):
     queryset = LimitedPartner.objects.filter(is_deleted=False)

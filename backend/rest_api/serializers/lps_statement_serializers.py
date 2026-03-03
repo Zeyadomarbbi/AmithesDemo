@@ -59,6 +59,7 @@ class FundClosingSerializer(serializers.ModelSerializer):
             'date', 
             'created_at', 
             'created_by', 
+            'description',
             'fund', 
             'closing_period', 
             'closing_name' # Add this

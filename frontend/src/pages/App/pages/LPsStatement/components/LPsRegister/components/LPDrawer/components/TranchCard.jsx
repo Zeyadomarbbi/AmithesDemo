@@ -45,7 +45,7 @@ export default function TranchCard({
 
         {/* Column 3: Commitment */}
         <div className="mini-row-column">
-          <span className="mini-row-label">Commitment</span>
+          <span className="mini-row-label">Amount</span>
           <span className="mini-row-value">
             {tranch.commitment ? `${Number(tranch.commitment).toLocaleString("fr-FR")} ${selectedCurrency?.symbol || ""}` : "-"}
           </span>
@@ -124,7 +124,7 @@ export default function TranchCard({
 
       <div className="lp-drawer-grid-2">
         <div className="lp-drawer-field">
-          <label className="lp-drawer-field-label">Commitment*</label>
+          <label className="lp-drawer-field-label">Amount*</label>
           <div className="lp-drawer-input-wrapper">
             <input
               className="lp-drawer-field-input lp-drawer-field-input--has-suffix"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronDownIcon, CloseIcon } from "../../../../Icons.jsx";
+import { CloseIcon } from "../../../../Icons.jsx";
 import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput";
+import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { useFundClosings } from "../../../../../../hooks/LPsStatement/useClosingPeriods"; 
 import "./AddPeriodModal.css";
 
@@ -26,6 +27,7 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
   const { fundId } = useParams();
   const [selectedClosingId, setSelectedClosingId] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [description, setDescription] = useState("");
   
   const { 
     closingPeriods, 
@@ -39,6 +41,7 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
     if (open) {
       fetchClosingPeriods();
       setSelectedClosingId("");
+      setDescription("");
       setEndDate(formatDDMMYYYY(new Date()));
     }
   }, [open, fetchClosingPeriods]);
@@ -58,6 +61,7 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
       const payload = {
         closing_period: parseInt(selectedClosingId, 10),
         date: isoDate,
+        description: description.trim(),
         fund: parseInt(fundId, 10)
       };
       const newRecord = await createFundClosing(payload);
@@ -85,27 +89,31 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
           
           <div className="lp-add-closing-period-modal-field">
             <label className="lp-add-closing-period-modal-label">Closing Period *</label>
-              <div className="lp-add-closing-period-modal-input-wrapper">
-                <select
-                  className="lp-add-closing-period-modal-input lp-add-closing-period-modal-select"
-                  value={selectedClosingId}
-                  onChange={(e) => setSelectedClosingId(e.target.value)}
-                  required
-                  disabled={loading}
-                >
-                  {/* By setting value to "", HTML validation triggers if this remains selected */}
-                  <option value="" hidden>Select a closing period...</option>
-                  
-                  {closingPeriods.map((period) => (
-                    <option key={period.closing_id} value={period.closing_id}>
-                      {period.closing_name} ({period.closing_code})
-                    </option>
-                  ))}
-                </select>
-                <div className="lp-add-closing-period-modal-chevron">
-                  <ChevronDownIcon />
-                </div>
-              </div>
+            <SearchableSelect
+              options={closingPeriods}
+              value={selectedClosingId}
+              onChange={(val) => setSelectedClosingId(val)}
+              placeholder="Select a closing period..."
+              labelKey="closing_name"
+              valueKey="closing_id"
+              secondaryLabelKey="closing_code"
+              disabled={loading}
+              triggerClassName="lp-add-closing-period-modal-input"
+            />
+          </div>
+
+          <div className="lp-add-closing-period-modal-field">
+            <label className="lp-add-closing-period-modal-label">Description</label>
+            <div className="lp-add-closing-period-modal-input-wrapper">
+              <input
+                type="text"
+                className="lp-add-closing-period-modal-input"
+                placeholder="Enter period description..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div className="lp-add-closing-period-modal-field lp-add-closing-period-modal-field-end">

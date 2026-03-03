@@ -38,7 +38,7 @@ export const useFundClosings = (fundId = null) => {
   // 3. Fund Specific: Create
   const createFundClosing = async (closingData) => {
     if (!fundId) throw new Error("Missing Fund ID for creation");
-    
+    console.log("Creating fund closing with data:", closingData);
     setLoading(true);
     setError(null);
     try {

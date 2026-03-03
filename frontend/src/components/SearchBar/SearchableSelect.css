@@ -24,8 +24,8 @@
 .custom-select-dropdown {
   position: absolute;
   top: 100%;
-    left: -1px; 
-  right: -1px;
+  left: 0px; 
+  right: 0px;
   background: #fff;
   border: 1px solid #ccc; /* Match your app's border color */
   border-top: none;

@@ -319,10 +319,12 @@ class FundClosing(models.Model):
         db_column="closing_id"  # Explicitly map to the DB column name
     )
     date = models.DateField()
+    description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = 'lps_fund_closings'
         unique_together = ('fund', 'closing_period')
 

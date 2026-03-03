@@ -4,7 +4,8 @@ import {
   CloseIcon, 
   ChevronDoubleLeftIcon, 
   ChevronDownIcon,
-  LocationIcon 
+  LocationIcon, 
+  PlusIcon
 } from "../../../../Icons.jsx";
 
 /* Hooks */
@@ -74,7 +75,7 @@ export default function LPDrawer({
   useEffect(() => {
       if (open && !isEdit) {
           setForm(EMPTY_FORM);
-          setTranches([]);
+          setTranches([{ ...EMPTY_TRANCHE, originalIndex: 0 }]);
           setIsSubmitting(false);
       }
       if (open && isEdit) {
@@ -309,7 +310,7 @@ export default function LPDrawer({
           </section>
             
           <section className="lp-drawer-tranches-section">
-            <h3 className="lp-drawer-section-title">Shares & Tranches</h3>
+            <h3 className="lp-drawer-section-title">Shares & Commitments</h3>
             {tranches.length > 0 && (
               <div className="lp-drawer-tranches-list">
                 {tranches.map((t, idx) => (
@@ -339,8 +340,8 @@ export default function LPDrawer({
               onClick={addNewTranche} 
               disabled={isSubmitting}
             >
-              <span className="lp-drawer-new-tranch-plus">+</span>
-              <span className="lp-drawer-new-tranch-text">New Tranche</span>
+              <span className="lp-drawer-new-tranch-plus"><PlusIcon /></span>
+              <span className="lp-drawer-new-tranch-text">Commitment</span>
             </button>
           </section>
         </div>
