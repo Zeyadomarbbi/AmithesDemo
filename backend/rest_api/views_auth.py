@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.db.models import Q # Add this import
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,25 +13,30 @@ User = get_user_model()
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
-    email = request.data.get("email")
+    # 'email' now acts as a general 'identity' identifier
+    identity = request.data.get("email") 
     password = request.data.get("password")
 
-    if not email or not password:
+    if not identity or not password:
         return Response(
-            {"error": "Email and password are required"},
+            {"error": "Identity and password are required"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    users = User.objects.filter(email=email)
+    # Filter by either username OR email, case-insensitively
+    user_query = User.objects.filter(
+        Q(email__iexact=identity) | Q(username__iexact=identity)
+    )
 
-    if not users.exists():
+    if not user_query.exists():
         return Response(
             {"error": "Invalid credentials"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    user_obj = users.first()
+    user_obj = user_query.first()
 
+    # Pass the exact username found in the DB to the authenticate function
     user = authenticate(request, username=user_obj.username, password=password)
 
     if user is not None:

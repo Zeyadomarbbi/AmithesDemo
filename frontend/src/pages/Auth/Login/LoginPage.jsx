@@ -3,34 +3,46 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/Auth/AuthContext'; // Using the global context now
 import AmethisLogo from '../assets/amethis-logo.svg';
 import BackgroundImg from '../assets/background.jpg';
+import Toast from '../../App/components/Toast/Toast';
 import './LoginPage.css';
 
 function LoginPage() {
   const navigate = useNavigate();
-  
-  // Extract global login action
-  const { login } = useAuth(); 
+  const { login } = useAuth();
 
-  // Local UI state
-  const [email, setEmail] = useState("");
+  const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastData, setToastData] = useState({ title: "", message: "", type: "success" });
+
+  const triggerToast = (title, message, type) => {
+    setToastData({ title, message, type });
+    setShowToast(true);
+  };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); 
-    if (!email || !password) return;
+    e.preventDefault();
+    if (!identity || !password) return;
 
     setLoading(true);
-    setError(null);
 
     try {
-      // Calls the AuthContext login, which updates the global user state
-      await login(email, password); 
-      navigate("/all-funds");
+      const normalizedIdentity = identity.trim().toLowerCase();
+      await login(normalizedIdentity, password);
+      
+      triggerToast("Success", "Logging you in...", "success");
+      
+      setTimeout(() => {
+        navigate("/all-funds");
+      }, 1000);
     } catch (err) {
       console.error("Login failed:", err);
-      setError(err.message || "Invalid credentials. Please try again.");
+      triggerToast(
+        "Login Failed", 
+        err.message || "Invalid credentials. Please try again.", 
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -41,12 +53,18 @@ function LoginPage() {
       className="login-page"
       style={{ backgroundImage: `url(${BackgroundImg})` }}
     >
-      <div className="login-card">
+      {showToast && (
+        <Toast
+          title={toastData.title}
+          message={toastData.message}
+          type={toastData.type}
+          onClose={() => setShowToast(false)}
+        />
+      )}
 
-        {/* === HEADER SECTION === */}
+      <div className="login-card">
         <div className="login-header-group">
           <img src={AmethisLogo} alt="Amethis" className="login-logo" />
-
           <div className="header-text-stack">
             <h1 className="header-title">Log in</h1>
             <p className="header-subtitle">
@@ -55,29 +73,24 @@ function LoginPage() {
           </div>
         </div>
 
-        {/* === FORM SECTION === */}
         <form className="login-form-container" onSubmit={handleLogin}>
-
           <div className="form-inputs-stack">
-
-            {/* Email */}
             <div className="text-field-desktop">
               <div className="input-with-label">
-                <label className="field-label">Email</label>
+                <label className="field-label">Email or Username</label>
                 <div className="input-box">
                   <input
-                    type="email"
+                    type="text"
                     className="text-input"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email or username"
+                    value={identity}
+                    onChange={(e) => setIdentity(e.target.value)}
                     required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Password */}
             <div className="text-field-desktop">
               <div className="input-with-label">
                 <label className="field-label">Password</label>
@@ -93,34 +106,18 @@ function LoginPage() {
                 </div>
               </div>
             </div>
-
           </div>
 
-          {/* Remember & Forgot Row */}
           <div className="remember-row">
             <div className="checkbox-content">
-              <input
-                type="checkbox"
-                className="custom-checkbox"
-                id="remember"
-              />
+              <input type="checkbox" className="custom-checkbox" id="remember" />
               <label htmlFor="remember" className="checkbox-label">
                 Remember for 30 days
               </label>
             </div>
-            <span className="forgot-password-link">
-              Forgot password?
-            </span>
+            <span className="forgot-password-link">Forgot password?</span>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <p className="error-message" style={{ color: '#d93025', fontSize: '14px', marginTop: '8px' }}>
-              {error}
-            </p>
-          )}
-
-          {/* Actions */}
           <div className="form-actions">
             <button
               type="submit"
@@ -131,18 +128,11 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* Footer / Sign Up */}
           <div className="signup-row">
-            <span className="signup-text">
-              Don't have an account?
-            </span>
-            <button type="button" className="signup-link-btn">
-              Sign up
-            </button>
+            <span className="signup-text">Don't have an account?</span>
+            <button type="button" className="signup-link-btn">Sign up</button>
           </div>
-
         </form>
-
       </div>
     </div>
   );

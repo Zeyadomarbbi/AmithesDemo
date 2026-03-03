@@ -14,13 +14,23 @@ class UserSerializer(serializers.ModelSerializer):
             'is_superuser', 'date_joined'
         ]
         extra_kwargs = {
-            'password': {'write_only': True, 'required': True}, # Ensure password is required
+            'password': {'write_only': True, 'required': True},
             'username': {'required': True},
+            'email': {'required': True}, # Recommended to make email required
             'date_joined': {'read_only': True}
         }
 
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("A user with that username already exists.")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return value
+
     def create(self, validated_data):
-        # Use create_user to ensure the password is encrypted
         return User.objects.create_user(**validated_data)
 
 class FundSerializer(serializers.ModelSerializer):
