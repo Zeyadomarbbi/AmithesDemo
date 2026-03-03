@@ -231,6 +231,7 @@ export const LocationIcon = () => (
     />
   </svg>
 );
+
 export const EuroCurrencyIcon = () => (
   <svg
     width="12"

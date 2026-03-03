@@ -1,6 +1,6 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Card/ShareClassCard.jsx
 import React from "react";
-import { FileIcon, MoreActionsIcon } from "../../icons";
+import { FileIcon, MoreActionsIcon } from "../../../../../../../../components/Icons/icons2";
 
 import "./ShareClassCard.css";
 

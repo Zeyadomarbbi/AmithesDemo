@@ -57,8 +57,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const canEdit = user?.is_staff || user?.is_superuser; // Standard Django flags
+  const isViewer = user && !canEdit;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login: loginAction, logout: logoutAction }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login: loginAction, 
+      logout: logoutAction,
+      canEdit,
+      isViewer
+    }}>
       {children}
     </AuthContext.Provider>
   );

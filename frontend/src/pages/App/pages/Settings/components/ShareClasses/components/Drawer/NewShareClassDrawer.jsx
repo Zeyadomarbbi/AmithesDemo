@@ -4,7 +4,7 @@ import { useFileUpload } from "../../../../../../../../hooks/Upload";
 import { 
   ChevronLeftIcon, CloseIcon, CurrencyIcon, PoundIcon, 
   PieChartIcon, CreditCardIcon, CreditCardXIcon, UploadIcon 
-} from "../../icons";
+} from "../../../../../../../../components/Icons/icons2";
 
 import "./NewShareClassDrawer.css";
 
