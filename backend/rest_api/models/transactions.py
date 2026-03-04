@@ -333,7 +333,7 @@ class LPsFundCommitment(models.Model):
 
     lp_id = models.ForeignKey(
         'LimitedPartner',
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         db_column='lp_id',
         related_name='fund_commitments'
     )
@@ -381,9 +381,7 @@ class LPsFundCommitment(models.Model):
 
 
 class LPsOperationDetails(models.Model):
-    """
-    ✅ This MUST exist because your DB FK on lps_operation_flows points to lps_operation_details.
-    """
+
     lps_operation_details_id = models.BigAutoField(primary_key=True)
 
     fund = models.ForeignKey(
@@ -407,7 +405,7 @@ class LPsOperationDetails(models.Model):
     total_fund_commitment = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     total_operation_amount = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     overall_percentage_of_commitment = models.DecimalField(max_digits=20, decimal_places=20, default=0)
-    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
     
     class Meta:

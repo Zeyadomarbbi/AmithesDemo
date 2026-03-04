@@ -151,7 +151,7 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
     lps_operation_details_id = serializers.IntegerField(write_only=True, required=False)
     lp_allocations = LPsFlowLPAllocationSerializer(many=True, read_only=True)
     share_class_allocations = serializers.SerializerMethodField()
-    flow_type_id = serializers.IntegerField(write_only=True)
+    flow_type_id = serializers.IntegerField(write_only=False)
     class Meta:
         model = LPsOperationFlow
         fields = [
@@ -204,9 +204,23 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
         if value not in ["amount", "percentage"]:
             raise serializers.ValidationError("input_type must be either 'amount' or 'percentage'.")
         return value
-    
+
+class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
+    operation_number = serializers.IntegerField(
+        source="lps_operation_details.operation_number",
+        read_only=True
+    )
+
+    class Meta:
+        model = LPsOperationLPAllocation
+        fields = "__all__"
+        extra_kwargs = {
+            "lps_operation_details": {"read_only": True}
+        }
+
 class LPsOperationDetailsSerializer(serializers.ModelSerializer):
     flows = LPsOperationFlowSerializer(many=True, read_only=True)
+    lp_allocations = LPsOperationLPAllocationSerializer(many=True, read_only=True)
     operation_type_id = serializers.IntegerField()
     operation_type_name = serializers.ReadOnlyField(source='operation_type.name')
     class Meta:
@@ -224,6 +238,7 @@ class LPsOperationDetailsSerializer(serializers.ModelSerializer):
             "total_operation_amount",
             "overall_percentage_of_commitment",
             "flows",
+            "lp_allocations",
             "created_at",
         ]
         read_only_fields = ["lps_operation_details_id", "fund_id", "created_at"]
@@ -318,15 +333,3 @@ class OperationFullCreateSerializer(serializers.Serializer):
     flows = FlowCreateItemSerializer(many=True, required=True)
 
 
-class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
-    operation_number = serializers.IntegerField(
-        source="lps_operation_details.operation_number",
-        read_only=True
-    )
-
-    class Meta:
-        model = LPsOperationLPAllocation
-        fields = "__all__"
-        extra_kwargs = {
-            "lps_operation_details": {"read_only": True}
-        }

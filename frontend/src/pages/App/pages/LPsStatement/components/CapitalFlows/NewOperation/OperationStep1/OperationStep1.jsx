@@ -5,34 +5,7 @@ import "./OperationStep1.css";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import { ChevronDownIcon } from "../../../../Icons.jsx";
 
-/**
- * ✅ BASE URL FIX (LOCAL-FRIENDLY)
- * This component doesn't call the API, but it was failing indirectly when
- * DateInput/other shared components rely on API_BASE.
- *
- * So we ensure a safe default for runtime config in local dev:
- * - If window.__RUNTIME_CONFIG__ exists, keep it
- * - Otherwise create it with API_BASE_URL="" so the rest of the app can use relative "/api/..."
- */
-if (typeof window !== "undefined") {
-  window.__RUNTIME_CONFIG__ = window.__RUNTIME_CONFIG__ || {};
-  // Only set if missing (don't override customer/deploy config)
-  if (window.__RUNTIME_CONFIG__.API_BASE_URL === undefined) {
-    window.__RUNTIME_CONFIG__.API_BASE_URL = "";
-  }
-  if (window.__RUNTIME_CONFIG__.API_PREFIX === undefined) {
-    window.__RUNTIME_CONFIG__.API_PREFIX = "";
-  }
-}
 
-/**
- * ✅ Remove "Equalization" ALONE as an option
- * but keep "Equalization/Capital Call".
- *
- * Rule:
- * - remove if name includes "equalization"
- * - AND does NOT include "capital"
- */
 function shouldHideOperationType(name = "") {
   const n = String(name || "").toLowerCase();
   const hasEq = n.includes("equalization");

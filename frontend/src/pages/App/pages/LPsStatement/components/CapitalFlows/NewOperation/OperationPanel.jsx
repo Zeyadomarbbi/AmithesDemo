@@ -4,12 +4,13 @@ import OperationStep1 from "./OperationStep1/OperationStep1.jsx";
 import OperationStep2 from "./OperationStep2/OperationStep2.jsx";
 import OperationStep3Breakdown from "./OperationStep3/OperationStep3Breakdown.jsx";
 import OperationStep4 from "./OperationStep4/OperationStep4.jsx";
+import { PageSpinner, PageError } from "../../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import { CloseIcon } from "../../../Icons.jsx";
-import { useOperationTypes } from "/src/pages/App/hooks/LPsStatement/useOperationTypes.js";
+import { ChevronDoubleLeftIcon } from "../../../Icons.jsx";
+import { useOperationTypes } from "../../../../../hooks/LPsStatement/useOperationTypes.js";
 import { useOperationDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
 import { useCapitalFlowFlowDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
 import { useCapitalFlowLPFlowAllocation } from "../../../../../hooks/LPsStatement/useCapitalFlowLPFlowAllocation.js";
-import { useCapitalFlowLPOperationAllocation } from "../../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
 import "./OperationPanel.css";
 
 /** Date -> YYYYMMDD integer */
@@ -79,9 +80,12 @@ export default function OperationPanel({
   fundId,
   onClose,
   commitments,
+  createOperationLPAllocation,
+  existingAllocations,   // ← from parent
+  fetchAllAllocations,   // ← from parent
 }) {
   if (!open) return null;
-
+  const [isExpanded, setIsExpanded] = useState(false); // New state for expansion
   const isDetail = mode === "detail" && !!operation;
 
   const [step, setStep] = useState(1);
@@ -98,7 +102,6 @@ export default function OperationPanel({
   const [operationNumber, setOperationNumber] = useState(null);
   // DB id — set after final save
   const [operationId, setOperationId] = useState(null);
-  
   // ── Step 2 draft + result ──────────────────────────────────────────────────
   const [step2Draft, setStep2Draft] = useState({ ...EMPTY_STEP2_DRAFT });
   const [step2Result, setStep2Result] = useState({
@@ -117,17 +120,12 @@ export default function OperationPanel({
   const [savingStep1, setSavingStep1] = useState(false);
   const [step1Error, setStep1Error] = useState(null);
 
-  const { operationTypes, fetchOperationTypes } = useOperationTypes();
-  // ── Hooks — all scoped to fundId only ─────────────────────────────────────
-  const { createOperation, fetchOperation, deleteOperation, loading: opLoading } = useOperationDetails(fundId);
-  const { createFlow } = useCapitalFlowFlowDetails(fundId, null);
+  const { operationTypes, fetchOperationTypes, isLoading: typesLoading, error: typesError } = useOperationTypes();
+  const { createOperation, updateOperation, fetchOperation, deleteOperation, loading: opLoading, error: opError } = useOperationDetails(fundId);
+  const { createFlow, updateFlow } = useCapitalFlowFlowDetails(fundId, null);
   const { createAllocation: createFlowLPAllocation } = useCapitalFlowLPFlowAllocation(fundId, null, null);
-  const {
-    createAllocation: createOperationLPAllocation,
-    fetchAllAllocations,
-    allocations: existingAllocations,
-  } = useCapitalFlowLPOperationAllocation(fundId, null);
-  
+  const [detailReady, setDetailReady] = useState(!isDetail); // true immediately if "new" mode
+
   // Fetch all past allocations for this fund on mount (used for "before" in Step 3)
   useEffect(() => {
     if (fundId) fetchAllAllocations();
@@ -145,6 +143,7 @@ export default function OperationPanel({
     setTotalFundCommitment(0);
 
     if (isDetail && operation) {
+      setDetailReady(false); // block render until fetch completes
       const opId = operation?.lps_operation_details_id ?? operation?.operation_id ?? operation?.id ?? null;
       setOperationId(opId);
 
@@ -157,16 +156,17 @@ export default function OperationPanel({
           setTotalFundCommitment(Number(fullOp?.total_fund_commitment ?? 0));
           setOperationNumber(fullOp?.operation_number ?? null);
           setStep2Draft({ ...EMPTY_STEP2_DRAFT });
-          setStep2Result({ 
-            operationTypeId: String(fullOp?.operation_type_id ?? ""), 
-            operationTypeName: operationTypeName, 
-            flows: [], 
-            perLp: {}, 
-            total_operation_amount: Number(fullOp?.total_operation_amount ?? 0), 
-            overall_percentage_of_commitment: Number(fullOp?.overall_percentage_of_commitment ?? 0) 
+          setStep2Result({
+            operationTypeId: String(fullOp?.operation_type_id ?? ""),
+            operationTypeName: operationTypeName,
+            flows: [],
+            perLp: {},
+            total_operation_amount: Number(fullOp?.total_operation_amount ?? 0),
+            overall_percentage_of_commitment: Number(fullOp?.overall_percentage_of_commitment ?? 0),
           });
         })
-        .catch((err) => setStep1Error(err));
+        .catch((err) => setStep1Error(err))
+        .finally(() => setDetailReady(true)); // unblock after fetch
     } else {
       setOperationId(null);
       setOperationName("");
@@ -221,55 +221,85 @@ export default function OperationPanel({
   
   const handleFinalSave = async () => {
     const { flows, perLp, total_operation_amount, overall_percentage_of_commitment } = step2Result;
-
+    const computedTFC = isDetail && operationId
+      ? totalFundCommitment  // already loaded from DB in detail mode
+      : computeTotalFundCommitment(commitments, dueDate);  // recompute for new
     setIsSaving(true);
     setSaveError(null);
+    console.log("[handleFinalSave] totalFundCommitment:", computedTFC);
 
-    const rollbackState = {
-      operationId: null,
-    };
+    const rollbackState = { operationId: null };
 
     try {
-      const newOperationId = await createOperation({
+      let targetOperationId;
+
+      const operationPayload = {
         operation_name: String(operationName).trim(),
         operation_type_id: Number(operationType),
         notice_date: toIsoDate(noticeDate),
         due_date: toIsoDate(dueDate),
-        total_fund_commitment: totalFundCommitment,
+        total_fund_commitment: computedTFC,
         total_operation_amount: Number(total_operation_amount.toFixed(2)),
         overall_percentage_of_commitment: (
           (overall_percentage_of_commitment ?? 0) > 1
             ? overall_percentage_of_commitment / 100
             : (overall_percentage_of_commitment ?? 0)
         ).toFixed(4),
-      });
-
-      rollbackState.operationId = newOperationId;
-
+      };
+      console.log("[handleFinalSave] operationPayload:", operationPayload);
+      if (isDetail && operationId) {
+        await updateOperation(operationId, operationPayload);
+        targetOperationId = operationId;
+      } else {
+        const newOperationId = await createOperation(operationPayload);
+        rollbackState.operationId = newOperationId;
+        targetOperationId = newOperationId;
+      }
+      const eqFlowTypeId = flows.find(
+        (f) => String(f.flow_name ?? "").toLowerCase() === "equalization"
+      )?.flow_type_id ?? null;
       for (const flow of flows) {
-        const createdFlow = await createFlow(newOperationId, {
-          operation: newOperationId,
+        const flowPayload = {
+          operation: targetOperationId,
           flow_type_id: Number(flow.flow_type_id),
           flow_name: flow.flow_name,
           input_type: flow.input_type,
           input_amount: flow.input_amount !== null ? Number(Number(flow.input_amount).toFixed(2)) : null,
-          input_percentage: flow.input_percentage !== null 
-            ? Number((flow.input_percentage > 1 ? flow.input_percentage / 100 : flow.input_percentage).toFixed(4)) 
+          input_percentage: flow.input_percentage !== null
+            ? Number((flow.input_percentage > 1 ? flow.input_percentage / 100 : flow.input_percentage).toFixed(6))
             : null,
+          allocation_percentage_of_commitment: Number(
+            Math.max(0, (flow.allocation_percentage_of_commitment ?? 0) / 100).toFixed(6)
+          ),
           computed_total_amount: flow.computed_total_amount !== null ? Number(Number(flow.computed_total_amount).toFixed(2)) : null,
-          allocation_percentage_of_commitment: flow.allocation_percentage_of_commitment !== null
-            ? Number(Number(flow.allocation_percentage_of_commitment).toFixed(4))
-            : null,
-        });
+          commitment_amount: computedTFC,
+        };
 
-        const opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
-        if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
+        let opFlowId;
 
+        if (flow.operation_flow_id) {
+          // UPDATE existing flow
+          const updatedFlow = await updateFlow(targetOperationId, flow.operation_flow_id, flowPayload);
+          opFlowId = updatedFlow?.operation_flow_id ?? flow.operation_flow_id;
+        } else {
+          // CREATE new flow
+          const createdFlow = await createFlow(targetOperationId, flowPayload);
+          opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
+          if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
+        }
+        
         for (const [lpId, lpData] of Object.entries(perLp)) {
-          const allocatedAmount = lpData.flows?.[flow.id] ?? null;
+          let allocatedAmount;
+
+          if (flow.flow_name === "Equalization" || flow.flow_type_id === eqFlowTypeId) {
+            allocatedAmount = lpData.eqAmount ?? null;
+          } else {
+            allocatedAmount = lpData.flows?.[flow.id] ?? null;
+          }
+
           if (allocatedAmount === null || !Number.isFinite(Number(allocatedAmount))) continue;
 
-          await createFlowLPAllocation(newOperationId, opFlowId, {
+          await createFlowLPAllocation(targetOperationId, opFlowId, {
             operation_flow_id: opFlowId,
             lp_id: Number(lpId),
             allocated_amount: Number(Number(allocatedAmount).toFixed(4)),
@@ -277,17 +307,13 @@ export default function OperationPanel({
         }
       }
 
-      const overallPctDecimal = (overall_percentage_of_commitment ?? 0) > 1
-        ? (overall_percentage_of_commitment / 100)
-        : (overall_percentage_of_commitment ?? 0);
-
       for (const [lpId, lpData] of Object.entries(perLp)) {
         const mainAmount = lpData.mainAmount ?? 0;
         const commitmentNum = lpData.commitmentNumber ?? 0;
         const lpCalledPct = commitmentNum > 0 ? mainAmount / commitmentNum : 0;
 
-        await createOperationLPAllocation(newOperationId, {
-          lps_operation_details_id: newOperationId,
+        await createOperationLPAllocation(targetOperationId, {
+          lps_operation_details_id: targetOperationId,
           lp_id: Number(lpId),
           share_class_id: lpData.shareClassId ? Number(lpData.shareClassId) : null,
           commitment_amount: Number(commitmentNum.toFixed(2)),
@@ -299,8 +325,8 @@ export default function OperationPanel({
         });
       }
 
-      setOperationId(newOperationId);
-      return newOperationId;
+      setOperationId(targetOperationId);
+      return targetOperationId;
 
     } catch (e) {
       if (rollbackState.operationId) {
@@ -413,6 +439,7 @@ export default function OperationPanel({
             ref={step2Ref}
             lps={safeLps}
             fundId={fundId}
+            shareClasses={shareClasses} 
             existingAllocations={existingAllocations}
             fetchAllAllocations={fetchAllAllocations}
             operationId={operationId}
@@ -465,94 +492,129 @@ export default function OperationPanel({
         return null;
     }
   };
-  
+  const isPanelLoading = typesLoading || opLoading || !detailReady;
+  const panelError = typesError || opError;
   return (
-    <>
-      <div className="opw-drawer-backdrop" onClick={() => onClose?.(false)}>
-        <aside className="opw-drawer" onClick={(e) => e.stopPropagation()}>
-          <div className="opw-header">
-            <div className="opw-header-left">
+  <>
+    <div className="opw-drawer-backdrop" onClick={() => onClose?.(false)}>
+      <aside
+        className={`opw-drawer ${isExpanded ? "share-drawer--expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="opw-header">
+          <div className="opw-header-left">
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                type="button"
+                className="opw-expand-btn"
+                onClick={() => setIsExpanded(!isExpanded)}
+                aria-label={isExpanded ? "Collapse" : "Expand"}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "transform 0.3s ease",
+                  transform: isExpanded ? "rotate(180deg)" : "none",
+                  color: "inherit",
+                }}
+              >
+                <ChevronDoubleLeftIcon />
+              </button>
               <h2 className="opw-title">
                 {isDetail ? "Operation details" : "Create a new operation"}
               </h2>
-              <div className="opw-tabs" role="tablist" aria-label="Operation steps">
-                {stepTabs.map((t) => (
-                  <div
-                    key={t.step}
-                    className={`opw-tab ${step === t.step ? "is-active" : ""}`}
-                    role="tab"
-                    aria-selected={step === t.step}
-                  >
-                    {t.label}
-                  </div>
-                ))}
-              </div>
             </div>
-            <button
-              className="opw-close-btn"
-              type="button"
-              onClick={() => onClose?.(false)}
-              aria-label="Close"
-              disabled={savingStep1 || isSaving}
-            >
-              <CloseIcon />
-            </button>
-          </div>
-
-          <div className="opw-body">{renderStep()}</div>
-
-          {saveError && (
-            <div style={{ padding: "8px 16px", color: "#b42318", fontSize: 12, whiteSpace: "pre-wrap" }}>
-              {saveError.message}
-            </div>
-          )}
-
-          <div className="opw-footer">
-            <button
-              type="button"
-              className="opw-nav-btn opw-btn-ghost"
-              onClick={handlePrev}
-              disabled={step === 1 || savingStep1 || isSaving}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="opw-nav-btn opw-btn-primary"
-              onClick={handleNext}
-              disabled={savingStep1 || isSaving}
-            >
-              {isSaving ? "Saving..." : savingStep1 ? "Saving..." : step === 4 ? "Save" : "Next"}
-            </button>
-          </div>
-        </aside>
-      </div>
-
-      {showSuccess && (
-        <div className="opw-success-backdrop">
-          <div className="opw-success-toast">
-            <div className="opw-success-left">
-              <span className="opw-success-icon">✓</span>
-              <div>
-                <div className="opw-success-title">
-                  {isDetail ? "Operation updated" : "Operation created"}
+            <div className="opw-tabs" role="tablist" aria-label="Operation steps">
+              {stepTabs.map((t) => (
+                <div
+                  key={t.step}
+                  className={`opw-tab ${step === t.step ? "is-active" : ""}`}
+                  role="tab"
+                  aria-selected={step === t.step}
+                >
+                  {t.label}
                 </div>
-                <div className="opw-success-message">
-                  The operation has been saved successfully
-                </div>
-              </div>
+              ))}
             </div>
-            <button
-              type="button"
-              className="opw-success-close"
-              onClick={handleCloseSuccess}
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
           </div>
+
+          <button
+            className="opw-close-btn"
+            type="button"
+            onClick={() => onClose?.(false)}
+            aria-label="Close"
+            disabled={savingStep1 || isSaving}
+          >
+            <CloseIcon />
+          </button>
         </div>
-      )}
-    </>
-  );
+
+        {isPanelLoading ? (
+          <PageSpinner label="Loading..." />
+        ) : panelError ? (
+          <PageError message={panelError?.message ?? panelError} />
+        ) : (
+          <>
+            <div className="opw-body">{renderStep()}</div>
+
+            {saveError && (
+              <div style={{ padding: "8px 16px", color: "#b42318", fontSize: 12, whiteSpace: "pre-wrap" }}>
+                {saveError.message}
+              </div>
+            )}
+
+            <div className="opw-footer">
+              <button
+                type="button"
+                className="opw-nav-btn opw-btn-ghost"
+                onClick={handlePrev}
+                disabled={step === 1 || savingStep1 || isSaving}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                className="opw-nav-btn opw-btn-primary"
+                onClick={handleNext}
+                disabled={savingStep1 || isSaving}
+              >
+                {isSaving ? "Saving..." : savingStep1 ? "Saving..." : step === 4 ? "Save" : "Next"}
+              </button>
+            </div>
+          </>
+        )}
+      </aside>
+    </div>
+
+    {showSuccess && (
+      <div className="opw-success-backdrop">
+        <div className="opw-success-toast">
+          <div className="opw-success-left">
+            <span className="opw-success-icon">✓</span>
+            <div>
+              <div className="opw-success-title">
+                {isDetail ? "Operation updated" : "Operation created"}
+              </div>
+              <div className="opw-success-message">
+                The operation has been saved successfully
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="opw-success-close"
+            onClick={handleCloseSuccess}
+            aria-label="Close"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      </div>
+    )}
+  </>
+);
 }

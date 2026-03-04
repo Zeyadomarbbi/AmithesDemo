@@ -5,6 +5,7 @@ import FlowHeader from "./FlowHeader.jsx";
 import FlowFilters from "./FlowFilters.jsx";
 import FlowTable from "./FlowTable.jsx";
 import OperationPanel from "./NewOperation/OperationPanel.jsx";
+import { useFlowTypes } from "../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useOperationDetails } from "../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
 import { useCapitalFlowLPOperationAllocation } from "../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
 import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
@@ -16,11 +17,11 @@ export default function CapitalFlows() {
   const shareClasses = outlet.shareClasses || [];
   const fundId = outlet.fundId;
   const commitments = outlet.commitments;
-
+  console.log("[CapitalFlows] outlet:", outlet);
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
   const [breakdown, setBreakdown] = useState("operations");
-
+  const { flowTypes, fetchFlowTypes } = useFlowTypes()
   const [opOpen, setOpOpen] = useState(false);
   const [opMode, setOpMode] = useState("new");
   const [selectedOp, setSelectedOp] = useState(null);
@@ -37,6 +38,7 @@ export default function CapitalFlows() {
     isLoading: allocLoading,
     error: allocError,
     fetchAllAllocations,
+    createAllocation,
   } = useCapitalFlowLPOperationAllocation(fundId, null);
 
   const loadData = useCallback(async () => {
@@ -45,11 +47,15 @@ export default function CapitalFlows() {
       fetchOperations().catch(() => {}),
       fetchAllAllocations().catch(() => {}),
     ]);
-  }, [fundId, fetchOperations, fetchAllAllocations]);
+  }, [fundId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    fetchFlowTypes?.().catch(() => {});
+  }, [fetchFlowTypes]);
 
   const handleNewOperation = () => {
     setSelectedOp(null);
@@ -117,6 +123,8 @@ export default function CapitalFlows() {
             operationFilter={operationFilter}
             search={search}
             breakdown={breakdown}
+            shareClasses={shareClasses}
+            flowTypes={flowTypes}
             onSelectOperation={handleSelectOperation}
             operations={operations}
             lpAllocations={lpAllocations}
@@ -135,6 +143,9 @@ export default function CapitalFlows() {
           fundId={fundId}
           onClose={handleClosePanel}
           commitments={commitments}
+          createOperationLPAllocation={createAllocation}
+          existingAllocations={lpAllocations}
+          fetchAllAllocations={fetchAllAllocations}
         />
       )}
     </div>
