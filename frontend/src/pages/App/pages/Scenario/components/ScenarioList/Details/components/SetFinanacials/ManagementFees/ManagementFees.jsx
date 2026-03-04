@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useMasterManFees } from '../../../../../../../../hooks/Scenarios/useScenarioMasterManFee';
-import { PlusIcon, CloseIcon } from '../Icons'; 
+import { PlusIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';

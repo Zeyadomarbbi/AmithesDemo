@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDownIcon, PlusIcon, RightArrowIcon, CheckMarkIcon } from '../Icons'; 
+import { PlusIcon, CheckMarkIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDownIcon, RightArrowIcon } from '/src/components/Icons/DirectionIcons';
 import AddNewTimeframeModal from './AddNewTimeframeModal/AddNewTimeframeModal';
 import { PermissionGate } from '../../hooks/Auth/PermissionGate';
 import './QuarterSelector.css';

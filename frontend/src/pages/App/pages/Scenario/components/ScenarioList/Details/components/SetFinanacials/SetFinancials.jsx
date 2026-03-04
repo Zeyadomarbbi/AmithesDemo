@@ -4,7 +4,7 @@ import ManagementFees from './ManagementFees/ManagementFees';
 import { useScenarioFinancialsProjections } from '../../../../../../../hooks/Scenarios/useScenarioFinancialsProjections';
 import Toast from '../../../../../../../components/Toast/Toast'; 
 import DDFees from './DDFees/DDFees';
-import { DownloadIcon, PlusIcon, MinusIcon } from './Icons';
+import { DownloadIcon, PlusIcon, MinusIcon } from '/src/components/Icons/InteractiveIcons';
 import './SetFinancials.css';
 
 function SetFinancials({ fundId, scenarioId }) {

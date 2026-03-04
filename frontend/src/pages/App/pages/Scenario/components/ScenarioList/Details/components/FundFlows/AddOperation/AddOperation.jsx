@@ -1,7 +1,7 @@
 // AddOperation.js
 import React, { useState, useEffect } from 'react';
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput'; 
-import { CloseIcon } from '../Icons';
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import './AddOperation.css';
 
 const AddOperation = ({ 

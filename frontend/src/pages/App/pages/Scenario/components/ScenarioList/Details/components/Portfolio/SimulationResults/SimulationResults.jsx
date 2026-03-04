@@ -3,7 +3,7 @@ import { OperationsTable } from './KPIs/Operations';
 import { WaterfallTable, PerformanceTable } from './KPIs/Shares';
 import { useScenarioWaterfall } from './utils/useScenarioWaterfall'; 
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
-import { ChevronDoubleLeftIcon } from '../Icons'; 
+import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons'; 
 import './SimulationResults.css';
 
 const SimulationResults = ({ scenarioId, fundId, isOpen, onToggle, refreshTrigger }) => {

@@ -1,7 +1,9 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlowTable/FlowTable.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import "./FlowTable.css";
 import { SortIcon } from "../../Icons.jsx";
+import { useTableSort, SortableHeaderRenderer } from '/src/components/Sort/TableSort';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '/src/components/useFormatter';
 
 /* ===================== COLUMN DEFINITIONS ===================== */
 
@@ -81,9 +83,6 @@ const SHARE_CLASS_COLUMNS = {
 
 /* ===================== HELPERS ===================== */
 
-// Map operation_type_id -> category
-// Based on real API data: type_id 4 = Distribution, others = Capital call
-// The operations API also returns operation_type_name when available
 function getCategory(op = {}) {
   const name = String(op?.operation_type_name ?? "").toLowerCase();
   if (name.includes("distribution")) return "Distribution";
@@ -110,15 +109,16 @@ export default function FlowTable({
   search,
   breakdown,
   onSelectOperation,
-  operations = [],       // from useOperationDetails
-  lpAllocations = [],    // from useCapitalFlowLPOperationAllocation fetchAllAllocations
+  operations = [],
+  lpAllocations = [],
   lps = [],
 }) {
-  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
+  const formatNumber = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+  const formatDate = useDateFormatter();
 
   const view = getViewFromFilter(operationFilter);
 
-  // ── Build a lookup: operationId → operation ────────────────────────────────
   const operationById = useMemo(() => {
     const map = {};
     (Array.isArray(operations) ? operations : []).forEach((op) => {
@@ -128,44 +128,36 @@ export default function FlowTable({
     return map;
   }, [operations]);
 
-  // ── Build rows for OPERATIONS breakdown ───────────────────────────────────
   const operationRows = useMemo(() => {
     return (Array.isArray(operations) ? operations : []).map((op) => {
       const opId = op?.lps_operation_details_id ?? op?.id;
       const category = getCategory(op);
       const isDist = category === "Distribution";
 
-      // Sum LP allocations for this operation (API returns strings — parse them)
       const opAllocs = (Array.isArray(lpAllocations) ? lpAllocations : []).filter(
         (a) => String(a?.lps_operation_details_id) === String(opId)
       );
       const totalCapitalCall = opAllocs.reduce((s, a) => s + Number(a?.capital_call ?? 0), 0);
       const totalSharesIssued = opAllocs.reduce((s, a) => s + Number(a?.shares_issued ?? 0), 0);
-      // overall_percentage_of_commitment is a decimal (0..1) — multiply by 100 for display
       const overallPct = Number(op?.overall_percentage_of_commitment ?? 0) * 100;
 
       return {
         id: String(opId),
         _raw: op,
         category,
-        // API uses operation_name not name
         label: op?.operation_name ?? op?.name ?? `Operation ${opId}`,
         date: op?.due_date ?? op?.notice_date ?? null,
-        // Capital call fields
         calledAmount: isDist ? null : totalCapitalCall,
         calledPercent: isDist ? null : overallPct,
         sharesIssued: isDist ? null : totalSharesIssued,
-        // Distribution fields
         distribAmount: isDist ? totalCapitalCall : null,
         distribPercent: isDist ? overallPct : null,
         sharesRedeemed: isDist ? 0 : null,
-        // Shared
         netCum: isDist ? null : Number(op?.total_operation_amount ?? 0),
       };
     });
   }, [operations, lpAllocations]);
 
-  // ── Build rows for LPS breakdown ──────────────────────────────────────────
   const lpsRows = useMemo(() => {
     return (Array.isArray(lpAllocations) ? lpAllocations : []).map((alloc) => {
       const opId = String(alloc?.lps_operation_details_id ?? "");
@@ -173,7 +165,6 @@ export default function FlowTable({
       const category = getCategory(op || {});
       const isDist = category === "Distribution";
       const lpName = getLpName(alloc?.lp_id, lps);
-      // API returns strings — parse them
       const capitalCall = Number(alloc?.capital_call ?? 0);
       const calledPct = Number(alloc?.called_percentage ?? 0) * 100;
       const sharesIssued = Number(alloc?.shares_issued ?? 0);
@@ -194,9 +185,7 @@ export default function FlowTable({
     });
   }, [lpAllocations, operationById, lps]);
 
-  // ── Build rows for SHARE CLASS breakdown ──────────────────────────────────
   const shareClassRows = useMemo(() => {
-    // Group lpAllocations by share_class_id
     const byClass = {};
     (Array.isArray(lpAllocations) ? lpAllocations : []).forEach((alloc) => {
       const scId = String(alloc?.share_class_id ?? "-");
@@ -237,7 +226,6 @@ export default function FlowTable({
 
     return Object.values(byClass).map((entry) => ({
       ...entry,
-      // Average the percentage
       calledPercent: entry._count > 0 ? entry.calledPercent / entry._count : 0,
       distribPercent: entry._count > 0 ? entry.distribPercent / entry._count : 0,
       calledAmount: entry._isDist ? null : entry.calledAmount,
@@ -247,7 +235,6 @@ export default function FlowTable({
     }));
   }, [lpAllocations, operationById]);
 
-  // ── Select correct rows + columns based on breakdown ──────────────────────
   const { baseRows, columnsByView } = useMemo(() => {
     if (breakdown === "lps") return { baseRows: lpsRows, columnsByView: LPS_COLUMNS };
     if (breakdown === "shareClasses") return { baseRows: shareClassRows, columnsByView: SHARE_CLASS_COLUMNS };
@@ -255,27 +242,17 @@ export default function FlowTable({
   }, [breakdown, operationRows, lpsRows, shareClassRows]);
 
   const columns = columnsByView[view] ?? columnsByView.all;
-  const sortableKeys = columns.filter((c) => c.sortable).map((c) => c.key);
 
-  const handleSort = (key) => {
-    if (!sortableKeys.includes(key)) return;
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  const rows = useMemo(() => {
+  // Filter rows before passing to useTableSort
+  const filteredRows = useMemo(() => {
     let data = [...baseRows];
 
-    // Filter by operation type
     if (view === "capital") {
       data = data.filter((r) => r.category === "Capital call");
     } else if (view === "distribution") {
       data = data.filter((r) => r.category === "Distribution");
     }
 
-    // Search
     if (search && search.trim()) {
       const s = search.toLowerCase();
       data = data.filter((r) => {
@@ -285,29 +262,11 @@ export default function FlowTable({
       });
     }
 
-    // Sort
-    const activeKey = sortableKeys.includes(sortConfig.key) ? sortConfig.key : sortableKeys[0];
-    if (activeKey) {
-      data.sort((a, b) => {
-        let aVal = a[activeKey];
-        let bVal = b[activeKey];
-        const col = columns.find((c) => c.key === activeKey);
-        if (col?.type === "date") {
-          aVal = aVal ? new Date(aVal).getTime() : null;
-          bVal = bVal ? new Date(bVal).getTime() : null;
-        }
-        if (aVal === null || aVal === undefined) return 1;
-        if (bVal === null || bVal === undefined) return -1;
-        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
     return data;
-  }, [baseRows, view, search, sortConfig, sortableKeys, columns, breakdown]);
+  }, [baseRows, view, search, breakdown]);
 
-  // ── Totals row ─────────────────────────────────────────────────────────────
+  const { sorted: rows, sortKey, toggleSort } = useTableSort(filteredRows, "date");
+
   const totals = useMemo(() => {
     const obj = {};
     columns.forEach((col) => {
@@ -323,30 +282,12 @@ export default function FlowTable({
     return obj;
   }, [rows, columns]);
 
-  /* ── Formatters ── */
-  const formatMoney = (v) => {
-    if (v === null || v === undefined || v === "" || (typeof v === "number" && isNaN(v))) return "-";
-    return Number(v).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  };
-
-  const formatPercent = (v) => {
-    if (v === null || v === undefined || (typeof v === "number" && isNaN(v))) return "-";
-    return `${Number(v).toFixed(2)}%`;
-  };
-
-  const formatDate = (iso) => {
-    if (!iso) return "-";
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-    });
-  };
-
   const formatCell = (row, col) => {
     const value = row[col.key];
     if (value === null || value === undefined || value === "") return "-";
     switch (col.type) {
       case "date": return formatDate(value);
-      case "number": return formatMoney(value);
+      case "number": return formatNumber(value);
       case "percent": return formatPercent(value);
       default: return value;
     }
@@ -356,7 +297,7 @@ export default function FlowTable({
     const value = totals[col.key];
     if (value === null || value === undefined || isNaN(value)) return "";
     if (col.type === "percent") return formatPercent(value);
-    if (col.type === "number") return formatMoney(value);
+    if (col.type === "number") return formatNumber(value);
     return "";
   };
 
@@ -374,16 +315,18 @@ export default function FlowTable({
             <thead>
               <tr>
                 {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    onClick={() => handleSort(col.key)}
-                    className={col.sortable ? "cf-sortable" : undefined}
-                  >
-                    {col.header}
-                    {col.sortable && (
-                      <span className="cf-sort">
-                        <SortIcon />
-                      </span>
+                  <th key={col.key} className={col.align === "right" ? "cf-num" : undefined}>
+                    {col.sortable ? (
+                      <SortableHeaderRenderer
+                        label={col.header}
+                        columnKey={col.key}
+                        currentSortKey={sortKey}
+                        toggleSort={toggleSort}
+                        center={col.align === "right"}
+                        showCurrency={false}
+                      />
+                    ) : (
+                      col.header
                     )}
                   </th>
                 ))}

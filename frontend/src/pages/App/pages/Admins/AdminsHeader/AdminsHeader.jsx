@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SearchBar from '../../../../../components/SearchBar/SearchBar'
-import { PlusIcon } from '../Icons'; 
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import AdminPanel from '../AdminPanel/AdminPanel'; 
 import './AdminsHeader.css';
 

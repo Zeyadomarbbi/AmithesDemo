@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  MoreVerticalIcon, 
-  EditIcon, 
-  DuplicateIcon, 
-  DeleteIcon 
-} from '../../../../Icons'; 
+import { MoreVerticalIcon } from '/src/components/Icons/MiscIcons';
+import { EditIcon, DuplicateIcon, DeleteIcon } from '/src/components/Icons/InteractiveIcons';
 
 // IMPORT THE CSS HERE
 import './HeaderActionsMenu.css'; 

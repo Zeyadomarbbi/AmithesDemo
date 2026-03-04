@@ -1,7 +1,7 @@
 // frontend/src/pages/App/pages/Settings/components/ManagementFees/components/Phase2.jsx
 import React from "react";
 import DateInputWithPicker from "../../../../../../../components/DateComponents/DateInput.jsx"; 
-import { PercentageIcon } from "../../../../../../../components/Icons/WaterfallIcons.jsx";
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import "./Phase.css";
 
 const Phase2 = ({ phaseName, values, onChange }) => {

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { PercentageIcon } from "../../../../../../../components/Icons/WaterfallIcons";
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import "./Steps.css";
 
 const Step2 = ({ values, onChange, shareClasses = [] }) => {

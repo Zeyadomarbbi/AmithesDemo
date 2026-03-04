@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SearchIcon } from '../Icons';
+import { SearchIcon } from '/src/components/Icons/InteractiveIcons';
 import './SearchBar.css';
 
 function SearchBar({ placeholder, onSearch, className, containerClassName }) {

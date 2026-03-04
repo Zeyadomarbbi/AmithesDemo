@@ -1,6 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom"; // Essential for layering
-import { ErrorIcon, InfoIcon, CloseToastIcon } from "./Icons";
+import { InfoIcon, ErrorIcon } from '/src/components/Icons/MiscIcons';
+import { CloseToastIcon } from '/src/components/Icons/InteractiveIcons';
 import "./Toast.css";
 
 export default function Prompt({ 

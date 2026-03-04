@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react'; 
 import { Link } from 'react-router-dom';
-import { MoreVerticalIcon, ArrowRightIcon, DeleteIcon } from '../Icons'; 
+import { MoreVerticalIcon } from '/src/components/Icons/MiscIcons';
+import { ArrowRightIcon } from '/src/components/Icons/DirectionIcons';
+import { DeleteIcon } from '/src/components/Icons/InteractiveIcons'; 
 import './Cards.css';
 
 function ScenarioCard({ id, fundId, title, author, createdDate, description, isSelected, onToggle, onDelete }) {

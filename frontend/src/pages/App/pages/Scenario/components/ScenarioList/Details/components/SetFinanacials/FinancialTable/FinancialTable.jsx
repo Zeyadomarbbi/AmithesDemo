@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FinancialTable.css';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
-import { SortIcon } from './Icons'; 
+import { SortIcon } from '/src/components/Icons/InteractiveIcons';
 
 const parseValue = (value) => {
     if (value === null || value === undefined || value === '') return 0;

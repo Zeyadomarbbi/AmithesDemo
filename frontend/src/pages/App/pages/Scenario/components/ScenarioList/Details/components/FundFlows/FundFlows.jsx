@@ -8,7 +8,7 @@ import Distributions from './Distributions/Distributions';
 import AddOperation from './AddOperation/AddOperation';
 import Toast from '../../../../../../../components/Toast/Toast';
 import { PermissionGate } from '../../../../../../../../../hooks/Auth/PermissionGate';
-import { PlusIcon } from './Icons';
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 
 // Hooks
 import { useScenarioFFCapitalCall } from '../../../../../../../hooks/Scenarios/useScenarioFFCapitalCall';

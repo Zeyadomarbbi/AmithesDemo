@@ -1,5 +1,6 @@
 import React from 'react';
-import { CloseIcon, ChevronDoubleLeftIcon } from '../../Icons'; 
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons'; 
 import './PanelHeader.css';
 
 function PanelHeader({ onClose, title, description }) {

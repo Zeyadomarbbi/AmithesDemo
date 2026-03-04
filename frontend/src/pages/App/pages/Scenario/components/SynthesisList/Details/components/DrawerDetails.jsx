@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../components/Sort/TableSort';
-import { DoubleArrowLeftIcon, MaximizeIcon, PlusIcon, MinusIcon, CloseIcon } from '../../Icons';
+import { DoubleArrowLeftIcon } from '/src/components/Icons/DirectionIcons';
+import { MaximizeIcon, PlusIcon, MinusIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../components/useFormatter';
 import useScenarioSynthesisKPIs from './useScenarioSynthesisKPIs';
 import './DrawerDetails.css';

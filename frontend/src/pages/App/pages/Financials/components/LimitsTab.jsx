@@ -4,7 +4,7 @@ import { PermissionGate } from "../../../../../hooks/Auth/PermissionGate.jsx";
 import "./limitstab/Limits.css";
 
 import NewLimitDrawer from "./limitstab/NewLimitDrawer.jsx";
-import { SortIcon, PlusIcon } from "../../../../../components/Icons.jsx";
+import { SortIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 
 // Import Hooks and Utils for QuarterSelector
 import QuarterSelector from "../../../../../components/QuarterSelection/QuarterSelector";
