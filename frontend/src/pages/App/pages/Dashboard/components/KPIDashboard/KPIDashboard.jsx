@@ -127,7 +127,7 @@ function KPIDashboard() {
     const irr = casData.irr;
     const fmt = (v) => v != null ? (v / 1_000_000).toFixed(2) : 'N/A';
     const fmtX = (v) => v != null ? `${v.toFixed(2)}x` : 'N/A';
-    const fmtPct = (v) => v != null ? `${(v * 100).toFixed(2)}%` : 'N/A';
+    const fmtPct = (v) => v != null ? `${(v).toFixed(2)}%` : 'N/A';
 
     return [
       { label: 'Total Commitments', value: fmt(k.commitment?.total) },
