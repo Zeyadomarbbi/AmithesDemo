@@ -1,9 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect  } from "react";
 import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector.jsx";
+import ElementSelector from "./components/ElementSelector.jsx";
+import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes.jsx";
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import { useCASKPIs } from "../../../../hooks/LPsStatement/useCASKPIs.js";
+import Toast from "../../../../components/Toast/Toast.jsx";
 import CapitalAccountTable from "./components/CapitalAccountTable.jsx";
 import "./CapitalAccountStatement.css";
 
@@ -78,24 +81,27 @@ export default function CapitalAccountStatement() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   const { quarters, isLoading: quartersLoading, setQuarters } = useTimeframes(fundId);
-  const { data: shareClassesData, isLoading: scLoading }      = useShareClasses(fundId);
+  const { data: shareClassesData, isLoading: scLoading } = useShareClasses(fundId);
+  const [selectedElements, setSelectedElements] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [adjustedNavValues, setAdjustedNavValues] = useState({});
 
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
-    return qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || [];
+      return qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || [];
   }, [location.search]);
 
-  const { data: casData, isLoading: casLoading, isError } = useCASKPIs(fundId, selectedTimeframeIds[0]);
+  const { data: casData, isLoading: casLoading, isError, saveAdjustedNav } = useCASKPIs(fundId, selectedTimeframeIds[0]);
+
   const mapped = useMemo(() => mapServiceData(casData), [casData]);
-  console.log("casData ", casData)
-  console.log("mapped ", mapped)
   const columns = useMemo(() => {
-    const baseColumns = [{ key: "total", label: "Total (€)" }];
+    const baseColumns = [{ key: "total", label: "Total" }];
     if (!shareClassesData) return baseColumns;
 
     const dynamicColumns = shareClassesData.map((sc) => ({
       key:   sc.share_class_name,
-      label: `${sc.share_class_name} (€)`,
+      label: `${sc.share_class_name}`,
     }));
 
     return [...baseColumns, ...dynamicColumns];
@@ -109,10 +115,22 @@ export default function CapitalAccountStatement() {
     navigate({ search: qp.toString() }, { replace: true });
   };
 
+  useEffect(() => {
+    if (casData?.adjusted_nav) {
+      setAdjustedNavValues(casData.adjusted_nav);
+    }
+  }, [casData]);
+
   const handleToggleTimeframe = (id) => {
     const numId = Number(id);
     if (!Number.isFinite(numId)) return;
     setTimeframesInUrl(selectedTimeframeIds.includes(numId) ? [] : [numId]);
+  };
+
+  const handleToggleElement = (key) => {
+    setSelectedElements((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
   };
 
   const handleSaveNew = async (newTimeframe) => {
@@ -157,6 +175,24 @@ export default function CapitalAccountStatement() {
     }
   }, [selectedTimeframeIds.length, quarters]);
 
+  const visibleColumns = useMemo(() => {
+    if (!columns) return [];
+    if (selectedElements.length === 0) return columns; // show all
+    return columns.filter((c) => c.key === "total" || selectedElements.includes(c.key));
+  }, [columns, selectedElements]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveAdjustedNav(adjustedNavValues);
+      setToast({ type: "success", title: "Saved", message: "Adjusted NAV has been saved." });
+    } catch (err) {
+      setToast({ type: "error", title: "Error", message: "Failed to save Adjusted NAV." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const isLoading = scLoading || casLoading;
 
   return (
@@ -172,21 +208,59 @@ export default function CapitalAccountStatement() {
             isSingle={true}
           />
         </div>
+          <ElementSelector
+            options={(shareClassesData ?? []).map((sc) => ({
+              key: sc.share_class_name,
+              label: sc.share_class_name,
+            }))}
+            selected={selectedElements}
+            onChange={handleToggleElement}
+          />
       </div>
 
-      <CapitalAccountTable
-        columns={columns}
-        data={sortedKpiRows}
-        navDetails={mapped?.navDetails ?? []}
-        isLoading={isLoading}
-        isError={isError}
-        onSort={(key) =>
-          setSortConfig((prev) => ({
-            key,
-            direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-          }))
-        }
-      />
+      {isLoading ? (
+        <PageSpinner label="Loading statement data..." />
+      ) : isError ? (
+        <PageError message="There was an error fetching the Capital Account Statement. Please try again later." />
+      ) : (
+        <CapitalAccountTable
+          columns={visibleColumns}
+          data={sortedKpiRows}
+          navDetails={mapped?.navDetails ?? []}
+          isLoading={isLoading}
+          isError={isError}
+          adjustedNavValues={adjustedNavValues}
+          setAdjustedNavValues={setAdjustedNavValues}
+          onSaveAdjustedNav={null}
+          onSort={(key) =>
+            setSortConfig((prev) => ({
+              key,
+              direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+            }))
+          }
+        />
+      )}
+
+      <div className="fund-identity-footer">
+        <div className="fund-identity-actions">
+          <button
+            className="fund-identity-btn-save"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </section>
   );
 }

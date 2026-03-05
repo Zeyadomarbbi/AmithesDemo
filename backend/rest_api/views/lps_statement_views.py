@@ -24,7 +24,8 @@ from ..models import (
     LPsOperationLPAllocation,
     FundClosing, 
     LPsFundCommitment,
-    CapitalAccountKpiCache
+    CapitalAccountKpiCache,
+    CapitalAccountAdjustedNav
 )
 
 from ..serializers import (
@@ -1040,7 +1041,32 @@ class CapitalAccountStatementKPIView(APIView):
             return error
 
         result = self._get_or_compute(fund_id, timeframe_id)
+
+        adj = CapitalAccountAdjustedNav.objects.filter(
+            fund_id_id=fund_id,
+            timeframe_id_id=timeframe_id
+        ).first()
+        result["adjusted_nav"] = adj.adjusted_nav if adj else {}
+
         return Response(result, status=status.HTTP_200_OK)
+    
+    def post(self, request, fund_id):
+        timeframe_id = request.data.get("timeframe_id")
+        adjusted_nav = request.data.get("adjusted_nav")  # dict: { "total": 123, "Class A": 456, ... }
+
+        if not timeframe_id:
+            return Response({"error": "timeframe_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if adjusted_nav is None:
+            return Response({"error": "adjusted_nav is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        CapitalAccountAdjustedNav.objects.update_or_create(
+            fund_id_id=fund_id,
+            timeframe_id_id=timeframe_id,
+            defaults={"adjusted_nav": adjusted_nav}
+        )
+
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 
 class BulkCapitalAccountStatementKPIView(APIView):
 

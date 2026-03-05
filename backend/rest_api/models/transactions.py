@@ -773,3 +773,14 @@ class ScenarioFinancialsProjection(models.Model):
     def category_name(self):
         # Assumes FinancialLineItem has a 'category' FK
         return self.line_item.category.name
+
+class CapitalAccountAdjustedNav(models.Model):
+    fund_id = models.ForeignKey('Fund', on_delete=models.DO_NOTHING, db_column='fund_id')
+    timeframe_id = models.ForeignKey('Timeframe', on_delete=models.CASCADE, db_column="timeframe_id")
+    adjusted_nav = models.JSONField(default=dict)  # { "total": 123, "Class A": 456 }
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False  # Set to True if you want Django to manage this table
+        db_table = 'capital_account_adjusted_nav'
+        unique_together = ("fund_id", "timeframe_id")

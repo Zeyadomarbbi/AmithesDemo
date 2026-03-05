@@ -31,9 +31,21 @@ export function useCASKPIs(fundId, timeframeId) {
     }
   }, [fundId, timeframeId, api]);
 
+  const saveAdjustedNav = useCallback(async (adjustedNav) => {
+    if (!fundId || !timeframeId) return;
+    try {
+      await api.post(`/api/funds/${fundId}/cas-kpis/`, {
+        timeframe_id: timeframeId,
+        adjusted_nav: adjustedNav,
+      });
+    } catch (err) {
+      console.error('Failed to save adjusted NAV:', err);
+    }
+  }, [fundId, timeframeId, api]);
+
   useEffect(() => {
     fetchCASKPIs();
   }, [fetchCASKPIs]);
 
-  return { data, isLoading, error, refetch: fetchCASKPIs };
+  return { data, isLoading, error, refetch: fetchCASKPIs, saveAdjustedNav };
 }

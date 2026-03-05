@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDownIcon, PlusIcon, RightArrowIcon, CheckMarkIcon } from '../Icons'; 
 import AddNewTimeframeModal from './AddNewTimeframeModal/AddNewTimeframeModal';
 import { PermissionGate } from '../../hooks/Auth/PermissionGate';
+import SearchBar from '../SearchBar/SearchBar';
 import './QuarterSelector.css';
 
 function QuarterSelector({ 
@@ -16,7 +17,7 @@ function QuarterSelector({
     const [isOpen, setIsOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const wrapperRef = useRef(null);
-
+    const [searchTerm, setSearchTerm] = useState(""); // Track search locally
     // --- SANITIZE SELECTION ---
     // This ensures that [0] or [NaN] from URL parsing never affects the UI
     const validSelection = isSingle 
@@ -56,7 +57,14 @@ function QuarterSelector({
     };
 
     const label = getButtonLabel();
-
+    const filteredOptions = useMemo(() => {
+        return options.filter(opt => {
+            const label = String(opt.display_label || "").toLowerCase();
+            const date = String(opt.date || "").toLowerCase();
+            const query = searchTerm.toLowerCase();
+            return label.includes(query) || date.includes(query);
+        });
+    }, [options, searchTerm]);
     // Limit Check (using sanitized list)
     const isAtLimit = !isSingle && maxSelections !== null && validSelection.length >= maxSelections;
 
@@ -68,7 +76,7 @@ function QuarterSelector({
                 style={{ opacity: isLoading ? 0.7 : 1 }}
             >
                 <div className="quarter-text-group">
-                    <span className="quarter-part">{label}</span>
+                    <span className="quarter-part">{getButtonLabel()}</span>
                 </div>
                 <div className={`quarter-icon ${isOpen ? 'open' : ''}`}>
                     <ChevronDownIcon />
@@ -77,61 +85,69 @@ function QuarterSelector({
 
             {isOpen && (
                 <div className="quarter-dropdown">
-                    <div className="quarter-list">
-                        {options.map((item) => {
-                            const isActive = isSingle
-                                ? Number(validSelection) === Number(item.id)
-                                : validSelection.includes(item.id); // Check against valid list
-
-                            // Disable if at limit AND not currently selected
-                            const isDisabled = !isActive && isAtLimit;
-
-                            return (
-                                <div 
-                                    key={item.id} 
-                                    className={`quarter-item ${isActive ? 'selected' : ''}`}
-                                    style={{ 
-                                        opacity: isDisabled ? 0.5 : 1, 
-                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                        pointerEvents: isDisabled ? 'none' : 'auto' 
-                                    }}
-                                    onClick={() => {
-                                        if (isDisabled) return;
-                                        onChange(item.id);
-                                        if (isSingle) setIsOpen(false);
-                                    }}
-                                >
-                                    {!isSingle && (
-                                        <div className={`qs-checkbox ${isActive ? 'checked' : ''}`}>
-                                            {isActive && <CheckMarkIcon />}
-                                        </div>
-                                    )}
-
-                                    <span className="item-label-bold">
-                                        {item.display_label}
-                                    </span>
-                                    
-                                    <div className="item-details-group">
-                                        <span className="item-arrow-icon">
-                                            <RightArrowIcon />
-                                        </span>
-                                        <span className="item-date">{item.date}</span>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    {/* Inline Search Bar */}
+                    <div className="quarter-search-wrapper" style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                        <SearchBar 
+                            placeholder="Filter timeframes..." 
+                            onSearch={setSearchTerm} 
+                        />
                     </div>
+
+                    <div className="quarter-list" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map((item) => {
+                                const isActive = isSingle
+                                    ? Number(validSelection) === Number(item.id)
+                                    : validSelection.includes(item.id);
+
+                                const isDisabled = !isActive && isAtLimit;
+
+                                return (
+                                    <div 
+                                        key={item.id} 
+                                        className={`quarter-item ${isActive ? 'selected' : ''}`}
+                                        style={{ 
+                                            opacity: isDisabled ? 0.5 : 1, 
+                                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                            pointerEvents: isDisabled ? 'none' : 'auto' 
+                                        }}
+                                        onClick={() => {
+                                            if (isDisabled) return;
+                                            onChange(item.id);
+                                            if (isSingle) setIsOpen(false);
+                                        }}
+                                    >
+                                        {!isSingle && (
+                                            <div className={`qs-checkbox ${isActive ? 'checked' : ''}`}>
+                                                {isActive && <CheckMarkIcon />}
+                                            </div>
+                                        )}
+                                        <span className="item-label-bold">{item.display_label}</span>
+                                        <div className="item-details-group">
+                                            <span className="item-arrow-icon"><RightArrowIcon /></span>
+                                            <span className="item-date">{item.date}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                                No results found
+                            </div>
+                        )}
+                    </div>
+
                     <PermissionGate>
-                    <button 
-                        className="add-timeframe-btn" 
-                        onClick={() => {
-                            setIsModalOpen(true);
-                            setIsOpen(false);
-                        }}
-                    >
-                        <span className="add-icon"><PlusIcon /></span>
-                        <span className="add-text">Add a new timeframe</span>
-                    </button>
+                        <button 
+                            className="add-timeframe-btn" 
+                            onClick={() => {
+                                setIsModalOpen(true);
+                                setIsOpen(false);
+                            }}
+                        >
+                            <span className="add-icon"><PlusIcon /></span>
+                            <span className="add-text">Add a new timeframe</span>
+                        </button>
                     </PermissionGate>
                 </div>
             )}
