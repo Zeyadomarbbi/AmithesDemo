@@ -1,7 +1,7 @@
 // CreateSynthesisModal.jsx
 import React, { useState } from 'react';
 import './CreateSynthesisModal.css';
-import { CloseIcon } from '../Icons';
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 
 function CreateSynthesisModal({ selectedScenarioIds, allScenarios, onSave, onClose }) {
     const [name, setName] = useState('');

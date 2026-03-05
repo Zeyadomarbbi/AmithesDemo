@@ -7,11 +7,8 @@ import { useFundData } from '../../hooks/Core/FundContext';
 import { useActiveFund } from '../../hooks/useActiveFund';
 import Toast from '../Toast/Toast';
 import SearchBar from '../../../../components/SearchBar/SearchBar';
-import { 
-  DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
-  LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
-  SettingsIcon, ChevronDownIcon, ProfileExpandIcon
-} from '../Icons';
+import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon } from '/src/components/Icons/MiscIcons';
+import { ChevronDownIcon, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
 
 import './SidePanel.css';
 
@@ -167,7 +164,7 @@ function SidePanel() {
           {hasActiveFund && (
             <nav className="side-panel-nav">
               <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
-                <DashboardIcon /> <span>Dashboard</span>
+                <DashboardTabIcon /> <span>Dashboard</span>
               </NavLink>
               <NavLink to={`/funds/${activeFundId}/lps-statement`} className="nav-item">
                 <LPsIcon /> <span>LPs Statement</span>

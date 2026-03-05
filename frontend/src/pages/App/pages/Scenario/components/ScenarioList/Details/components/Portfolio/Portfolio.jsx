@@ -7,7 +7,8 @@ import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
 import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
 // Components
-import { PlusIcon, ChevronDoubleLeftIcon } from "./Icons"; // Ensure ChevronDoubleLeftIcon is imported
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons';
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';

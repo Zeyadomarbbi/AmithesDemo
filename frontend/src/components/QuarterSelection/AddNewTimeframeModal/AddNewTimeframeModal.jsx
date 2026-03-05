@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import DateInputWithPicker from '../../DateComponents/DateInput'; 
-import { CloseIcon } from '../../Icons'; 
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons'; 
 import './AddNewTimeframeModal.css';
 
 const AddNewTimeframeModal = ({ isOpen, onClose, onSave, existingDates = [] }) => {

@@ -134,7 +134,8 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
   }
 
 export default function LPsRegister() {
-  const { fundId } = useOutletContext();
+  const outlet = useOutletContext() || {};
+  const fundId = outlet.fundId;
 
   /* --- State --- */
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,7 +150,7 @@ export default function LPsRegister() {
 
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
-  const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
+  const shareClasses = outlet.shareClasses || [];
   const { limitedPartners, fetchLimitedPartners, updateLimitedPartner } = useLimitedPartners();
   const { commitments, fetchCommitments, updateCommitment, createCommitment } = useLimitedPartnerFundCommitment(fundId);
   const { countries, isLoading: countriesLoading } = useCountries();
@@ -213,7 +214,7 @@ export default function LPsRegister() {
     setSelectedLP(lp);
   }, [fetchCommitments]);
   
-  const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading || classesLoading;
+  const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading;
 return (
   <div className="lp-register-container">
 
@@ -288,7 +289,6 @@ return (
       countries={countries}
       countriesLoading={countriesLoading}
       shareClasses={shareClasses}
-      classesLoading={classesLoading}
       currencies={currencies}
       currenciesLoading={currenciesLoading}
     />

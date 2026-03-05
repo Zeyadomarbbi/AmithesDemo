@@ -1,5 +1,5 @@
 import React from 'react';
-import { DoneIcon, CloseIcon } from '../../../../Icons';
+import { DoneIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import './Toast.css'; 
 
 function Toast({ show, onClose }) {

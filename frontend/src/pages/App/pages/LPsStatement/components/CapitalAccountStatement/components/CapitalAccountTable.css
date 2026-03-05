@@ -225,6 +225,23 @@
   background-color: #f3f4f6 !important;
 }
 
+.lp-cas-adjusted-input {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: inherit;
+    text-align: center;
+    background: #f9fafb;
+    outline: none;
+    font-family: "Inter", sans-serif;
+}
+
+.lp-cas-adjusted-input:focus {
+    border-color: #6b7280;
+    background: #fff;
+}
+
 /* ===========================================
    KPI / VALUE CELL WEIGHT OVERRIDES
    =========================================== */

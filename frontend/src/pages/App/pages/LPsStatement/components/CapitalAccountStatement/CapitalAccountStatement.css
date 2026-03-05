@@ -23,6 +23,34 @@
   gap: 10px;
 }
 
+.lp-cas-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-cas-btn-download {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  height: 40px;
+  background: #fff;
+  color: #375A89;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.lp-cas-btn-download:hover {
+  background: #F8FAFC;
+}
+
 .lp-cas-filter-btn {
   box-sizing: border-box;
   display: flex;

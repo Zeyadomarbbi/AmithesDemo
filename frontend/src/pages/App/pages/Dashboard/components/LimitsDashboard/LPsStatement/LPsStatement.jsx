@@ -1,6 +1,6 @@
 import React from 'react';
 import './LPsStatement.css';
-import { SortIcon } from '.././Icons'; // Adjust path if needed
+import { SortIcon } from '/src/components/Icons/InteractiveIcons';
 
 function LPsStatement({ data }) { // Accept data as prop
   // data is now received from LimitsDashboard

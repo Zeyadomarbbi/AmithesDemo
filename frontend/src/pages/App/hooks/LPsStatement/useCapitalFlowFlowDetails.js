@@ -45,11 +45,12 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   };
 
   // PATCH: Update an existing flow
-  const updateFlow = async (flowId, updateData) => {
+  const updateFlow = async (targetOperationId, flowId, updateData) => {
+    const endpoint = `/api/funds/${fundId}/operations/${targetOperationId}/flows/${flowId}/`;
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.patch(`${baseEndpoint}${flowId}/`, updateData);
+      const response = await api.patch(endpoint, updateData);
       setFlows((prev) =>
         prev.map((f) => (f.operation_flow_id === flowId ? response : f))
       );

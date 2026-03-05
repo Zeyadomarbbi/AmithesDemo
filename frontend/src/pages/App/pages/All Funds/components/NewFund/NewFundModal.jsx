@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
 import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
+import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import "./NewFundModal.css";
 
 // Helper to get ISO format "YYYY-MM-DD" for backend compatibility
@@ -128,6 +129,26 @@ export default function NewFundModal({ open, onClose, onCreate }) {
                 triggerClassName="nf-input nf-select nf-select-trigger"
               />
             </div>
+              <div className={`nf-select-wrapper ${isSelectOpen ? "is-open" : ""}`}>
+                <select
+                  className="nf-input nf-select"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  onFocus={() => setIsSelectOpen(true)}
+                  onBlur={() => setIsSelectOpen(false)}
+                  disabled={isLoading}
+                >
+                  <option value="">
+                    {isLoading ? "Loading..." : "Please select a currency"}
+                  </option>
+                  {currencies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.symbol})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon />
+              </div>
           </div>
         </div>
 

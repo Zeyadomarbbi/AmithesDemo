@@ -1,7 +1,7 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/ShareClasses.jsx
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { PlusIcon } from "../../../../../../components/Icons/icons2.jsx"; 
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons'; 
 import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";

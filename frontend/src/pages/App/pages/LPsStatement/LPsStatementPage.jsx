@@ -10,8 +10,9 @@ import {
 import "./LPsStatementPage.css";
 
 /* Hooks (DO NOT CHANGE THEIR FILES) */
-import { useLimitedPartners } from "/src/pages/App/hooks/LPsStatement/useLimitedPartners.jsx";
-import { useLimitedPartnerFundCommitment } from "/src/pages/App/hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import { useLimitedPartners } from "../../hooks/LPsStatement/useLimitedPartners.jsx";
+import { useLimitedPartnerFundCommitment } from "../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import { useShareClasses } from "../../hooks/useShareClass.js";
 
 const TABS = [
   { label: "LPs Register", path: "lps-register" },
@@ -56,7 +57,7 @@ export default function LPsStatementPage() {
 
   // ✅ LP identity list
   const { limitedPartners, fetchLimitedPartners } = useLimitedPartners();
-
+  const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
   // ✅ Commitments list (fund-scoped)
   const {
     commitments,
@@ -184,6 +185,7 @@ export default function LPsStatementPage() {
               fundId,
               lps, // ✅ normalized for Operation Step2/3 + can be used by LPsRegister if you want
               limitedPartnersRaw: limitedPartners, // ✅ raw hook output (in case other pages rely on original fields)
+              shareClasses,
               commitments, // ✅ fund commitments list
               reloadAll, // ✅ refresh LPs + commitments
               isLoadingLps: isLoadingLps || isLoadingCommitments,

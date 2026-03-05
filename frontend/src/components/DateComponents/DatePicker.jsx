@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { ChevronLeft, ChevronRight } from '../Icons'; 
+import { ChevronLeft, ChevronRight } from '/src/components/Icons/DirectionIcons'; 
 
 import './DatePicker.css';
 

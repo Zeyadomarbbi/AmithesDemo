@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusIcon } from './Icons'; 
+import { PlusIconWhite } from '/src/components/Icons/InteractiveIcons'; 
 import { PermissionGate } from '../../../../../../hooks/Auth/PermissionGate'; // Import PermissionGate
 import SearchBar from '../../../../../../components/SearchBar/SearchBar'
 import './ScenarioControls.css';
@@ -32,7 +32,7 @@ function ScenarioControls({ onAddClick, selectedScenarioCount, onCreateSynthesis
                         </button>
                     )}
                     <button className="add-scenario-button" onClick={onAddClick}>
-                        <PlusIcon />
+                        < PlusIconWhite />
                         <span>Add new scenario</span>
                     </button>
                 </div>

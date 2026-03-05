@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
-import { CloseIcon } from '../../../Icons'; 
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../../../components/Sort/TableSort';
 import Prompt from '../../../../../../../../../../components/Toast/Prompt';

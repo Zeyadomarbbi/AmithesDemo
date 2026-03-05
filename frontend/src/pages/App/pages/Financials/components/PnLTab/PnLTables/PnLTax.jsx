@@ -1,12 +1,6 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
 import React, { useEffect, useRef, useState } from "react";
-import {
-  EditLineIcon,
-  MinusIcon,
-  PlusIconWhite,
-  TrashBinIcon,
-  KebabIcon,
-} from "../../../../../components/Icons.jsx";
+import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, KebabIcon } from '/src/components/Icons/InteractiveIcons';
 import "./FinancialTables.css";
 
 const PnLTax = ({

@@ -3,13 +3,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
-import {
-  RefreshUpIcon,
-  DownloadIcon,
-  EditLineIcon,
-  AddFileIcon,
-  PlusIcon,
-} from "../../../../components/Icons.jsx";
+import { RefreshUpIcon, DownloadIcon, EditLineIcon, AddFileIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import Toast from "../../../../components/Toast/Toast.jsx";
 import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";

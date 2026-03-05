@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useCountries } from "../../../../../../../../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../../../../../../../../hooks/Reference/useCurrencies";
 import { usePortfolio } from "../../../../../../../../../hooks/Portfolio/usePortfolio.js";
-import { CloseIcon, AddNewDocIcon, ChevronDownIcon, PercentageIcon } from "../../Icons.jsx";
+import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import "./NewInvestmentModal.css";
 
 const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
