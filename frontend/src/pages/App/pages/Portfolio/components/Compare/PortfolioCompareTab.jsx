@@ -35,6 +35,7 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   // Local UI State
   const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
   const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
+  const [investmentSearchTerm, setInvestmentSearchTerm] = useState("");
   
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
 
@@ -62,6 +63,12 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
       return next;
     });
   }, [fundInvestments]);
+
+  useEffect(() => {
+    if (!isInvDropdownOpen && investmentSearchTerm) {
+      setInvestmentSearchTerm("");
+    }
+  }, [isInvDropdownOpen, investmentSearchTerm]);
   
   // 3. Filter Rows
   const visibleRows = useMemo(() => {
@@ -110,6 +117,14 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     return `Investments (${selectedInvestmentIds.length})`;
   })();
 
+  const filteredInvestmentOptions = useMemo(() => {
+    const q = String(investmentSearchTerm || "").trim().toLowerCase();
+    if (!q) return fundInvestments;
+    return fundInvestments.filter((inv) =>
+      String(inv?.name || "").toLowerCase().includes(q)
+    );
+  }, [fundInvestments, investmentSearchTerm]);
+
   return (
     <section className="compare-section">
       {/* FILTER ROW */}
@@ -130,6 +145,15 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
             
             {isInvDropdownOpen && (
                 <div className="quarter-dropdown">
+                    <div className="quarter-search-wrapper">
+                      <input
+                        type="text"
+                        className="quarter-search-input"
+                        placeholder="Search investment..."
+                        value={investmentSearchTerm}
+                        onChange={(e) => setInvestmentSearchTerm(e.target.value)}
+                      />
+                    </div>
                     <div className="quarter-list">
                         <div 
                             className={`quarter-item ${selectedInvestmentIds.length === 0 ? 'selected' : ''}`}
@@ -137,7 +161,7 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
                         >
                             <span className="item-label-bold">All Investments</span>
                         </div>
-                        {fundInvestments.map((inv) => (
+                        {filteredInvestmentOptions.map((inv) => (
                             <div 
                                 key={inv.id} 
                                 className={`quarter-item ${selectedInvestmentIds.some(id => String(id) === String(inv.id)) ? 'selected' : ''}`}
@@ -152,6 +176,9 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
                                 <span className="item-label-bold">{inv.name}</span>
                             </div>
                         ))}
+                        {!filteredInvestmentOptions.length && (
+                          <div className="quarter-no-results">No matches found</div>
+                        )}
                     </div>
                 </div>
             )}

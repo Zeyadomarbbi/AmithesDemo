@@ -34,6 +34,7 @@ const FxChartsView = ({ shared }) => {
 
   const [selectedInvestmentKey, setSelectedInvestmentKey] = React.useState("all");
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
 
   const investmentOptions = React.useMemo(
     () => [
@@ -50,6 +51,18 @@ const FxChartsView = ({ shared }) => {
     const stillValid = investmentOptions.some((opt) => opt.key === selectedInvestmentKey);
     if (!stillValid) setSelectedInvestmentKey("all");
   }, [investmentOptions, selectedInvestmentKey]);
+
+  React.useEffect(() => {
+    if (!isDropdownOpen && searchTerm) setSearchTerm("");
+  }, [isDropdownOpen, searchTerm]);
+
+  const filteredInvestmentOptions = React.useMemo(() => {
+    const q = String(searchTerm || "").trim().toLowerCase();
+    if (!q) return investmentOptions;
+    return investmentOptions.filter((option) =>
+      String(option?.label || "").toLowerCase().includes(q)
+    );
+  }, [investmentOptions, searchTerm]);
 
   const filteredInvestments = React.useMemo(() => {
     if (selectedInvestmentKey === "all") return dealsInvestments;
@@ -128,7 +141,16 @@ const FxChartsView = ({ shared }) => {
 
               {isDropdownOpen && (
                 <div className="custom-dropdown-menu">
-                  {investmentOptions.map((option) => (
+                  <div className="quarter-search-wrapper">
+                    <input
+                      type="text"
+                      className="quarter-search-input"
+                      placeholder="Search investment..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  {filteredInvestmentOptions.map((option) => (
                     <div
                       key={option.key}
                       className={`dropdown-item ${selectedInvestmentKey === option.key ? "active" : ""}`}
@@ -140,6 +162,9 @@ const FxChartsView = ({ shared }) => {
                       {option.label}
                     </div>
                   ))}
+                  {!filteredInvestmentOptions.length && (
+                    <div className="quarter-no-results">No matches found</div>
+                  )}
                 </div>
               )}
             </div>

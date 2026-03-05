@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
+import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import "./NewFundModal.css";
 
@@ -21,7 +22,6 @@ export default function NewFundModal({ open, onClose, onCreate }) {
   const [shortName, setShortName] = useState("");
   const [formationDate, setFormationDate] = useState(null);
   const [currency, setCurrency] = useState("");
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
   useEffect(() => {
     if (open) {
       setLegalName("");
@@ -112,6 +112,23 @@ export default function NewFundModal({ open, onClose, onCreate }) {
             <label className="nf-label">
               Fund currency<span className="nf-required">*</span>
             </label>
+            <div className="nf-select-wrapper">
+              <SearchableSelect
+                options={currencies.map((c) => ({
+                  ...c,
+                  name: c.currency_name || c.name || c.currency_code || c.code || "",
+                  code: c.currency_code || c.code || "",
+                }))}
+                value={currency}
+                onChange={(val) => setCurrency(val)}
+                placeholder={isLoading ? "Loading..." : "Please select a currency"}
+                disabled={isLoading}
+                labelKey="name"
+                valueKey="id"
+                secondaryLabelKey="code"
+                triggerClassName="nf-input nf-select nf-select-trigger"
+              />
+            </div>
               <div className={`nf-select-wrapper ${isSelectOpen ? "is-open" : ""}`}>
                 <select
                   className="nf-input nf-select"

@@ -111,6 +111,27 @@
   width: 100%;
 }
 
+.nf-select-wrapper .custom-select-container {
+  width: 100%;
+}
+
+.nf-select-wrapper .nf-select-trigger {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.nf-select-wrapper .custom-select-dropdown {
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  z-index: 9999;
+}
+
 /* Position the icon at the end */
 .nf-select-wrapper svg {
   position: absolute;

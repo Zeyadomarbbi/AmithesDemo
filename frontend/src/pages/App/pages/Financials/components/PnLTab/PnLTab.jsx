@@ -9,6 +9,7 @@ import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimef
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
 import PnLTax from "./PnLTables/PnLTax.jsx";
+import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
 
 // Import the new hooks
 import { usePnLApi } from "../../../../hooks/Financials/usePnLApi"; 
@@ -242,7 +243,42 @@ const PnLTab = () => {
     setTaxValues((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleDownload = () => console.log("DOWNLOAD", { fundId: effectiveFundId, selectedTimeframeIds });
+  const handleDownload = () => {
+    const periodHeaders = headerPeriods.map((p) => getPeriodLabel(p));
+
+    const buildSectionRows = (lines, values, totals, sectionName) => {
+      const rows = [
+        ["Line Item", ...periodHeaders],
+        ...(lines || []).map((line, idx) => {
+          const byPeriod = values?.[idx]?.byPeriod || {};
+          return [
+            line?.label || line?.name || "",
+            ...headerPeriods.map((p) => Number(byPeriod[String(p.id)] || 0)),
+          ];
+        }),
+        [
+          `Total ${sectionName}`,
+          ...headerPeriods.map((p) => Number(totals?.[p.id] || 0)),
+        ],
+      ];
+      return rows;
+    };
+
+    const netRows = [
+      ["Metric", ...periodHeaders],
+      [
+        "Net Profit / Net loss",
+        ...headerPeriods.map((p) => Number(netByPeriod?.[p.id] || 0)),
+      ],
+    ];
+
+    exportWorkbook(`pnl-fund-${effectiveFundId}.xlsx`, [
+      { name: "Income", rows: buildSectionRows(incomeLines, incomeValues, totalIncomeByPeriod, "Income") },
+      { name: "Expense", rows: buildSectionRows(expenseLines, expenseValues, totalExpensesByPeriod, "Expense") },
+      { name: "Tax", rows: buildSectionRows(taxLines, taxValues, totalTaxByPeriod, "Tax") },
+      { name: "Net", rows: netRows },
+    ]);
+  };
 
   /* -----------------------------
      SAVE DB PIPELINE

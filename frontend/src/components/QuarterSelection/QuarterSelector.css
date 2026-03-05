@@ -78,6 +78,7 @@
   white-space: nowrap;
 }
 
+
 /* --- LIST ITEMS --- */
 .quarter-list {
   display: flex;
@@ -86,6 +87,7 @@
   overflow-y: auto;
   gap: 2px;
 }
+
 
 /* UNIFIED ITEM LAYOUT */
 .quarter-item {
