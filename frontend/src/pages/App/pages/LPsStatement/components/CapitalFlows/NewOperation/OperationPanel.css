@@ -62,12 +62,6 @@
   align-items: flex-start;
 }
 
-.opw-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .opw-title {
   margin: 0;
   font-size: 18px;
@@ -89,13 +83,24 @@
   color: #6b7280;
 }
 
+
+.opw-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+}
+
+
+
 /* =========================================================
    ✅ TOP STEP TABS (like your screenshot)
    ========================================================= */
 .opw-tabs {
   display: flex;
   align-items: flex-end;
-  gap: 28px;
+  gap: 14px;
   padding-top: 6px;
   border-bottom: 1px solid #e5e7eb; /* light divider line */
 }

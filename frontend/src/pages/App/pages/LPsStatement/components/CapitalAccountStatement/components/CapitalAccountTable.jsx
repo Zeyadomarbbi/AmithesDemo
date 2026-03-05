@@ -4,47 +4,10 @@ import { useNumberFormatter, usePercentageFormatter } from '../../../../../../..
 import { PlusIcon, MinusIcon } from "../../../Icons.jsx";
 import './CapitalAccountTable.css'
 
-function TableSpinner() {
-    return (
-        <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(255,255,255,0.75)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 10,
-            gap: 12,
-        }}>
-            <style>{`
-                @keyframes spin { to { transform: rotate(360deg); } }
-            `}</style>
-            <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                border: '2.5px solid #e5e7eb',
-                borderTopColor: '#6b7280',
-                animation: 'spin 0.75s linear infinite',
-            }} />
-            <span style={{
-                fontSize: 12,
-                color: '#9ca3af',
-                letterSpacing: '0.03em',
-                fontWeight: 500,
-            }}>
-                Loading Capital Account Statement KPIs
-            </span>
-        </div>
-    );
-}
-
-export default function CapitalAccountTable({ columns, data, navDetails, isLoading }) {
+export default function CapitalAccountTable({ columns, data, navDetails, isLoading, adjustedNavValues, setAdjustedNavValues, onSaveAdjustedNav }) {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdjustedOpen, setIsAdjustedOpen] = useState(false);
-    
+
     const formatNumber = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
 
@@ -61,7 +24,6 @@ export default function CapitalAccountTable({ columns, data, navDetails, isLoadi
 
     return (
         <div className="lp-cas-table-wrapper" style={{ position: 'relative' }}>
-            {isLoading && <TableSpinner />}
 
             <table className="lp-cas-table">
                 <thead>
@@ -144,7 +106,22 @@ export default function CapitalAccountTable({ columns, data, navDetails, isLoadi
                                     <tr className="lp-cas-adjusted-row">
                                         <td className="lp-cas-kpi-cell"><span>Adjusted NAV</span></td>
                                         {columns.map((col) => (
-                                            <td key={col.key} className="lp-cas-value-cell">-</td>
+                                            <td key={col.key} className="lp-cas-value-cell">
+                                                <input
+                                                    type="number"
+                                                    className="lp-cas-adjusted-input"
+                                                    value={adjustedNavValues[col.key] ?? ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setAdjustedNavValues((prev) => ({
+                                                            ...prev,
+                                                            [col.key]: val === "" ? "" : Number(val),
+                                                        }));
+                                                    }}
+                                                    onBlur={() => onSaveAdjustedNav?.(adjustedNavValues)}
+                                                    placeholder=""
+                                                />
+                                            </td>
                                         ))}
                                     </tr>
                                 )}

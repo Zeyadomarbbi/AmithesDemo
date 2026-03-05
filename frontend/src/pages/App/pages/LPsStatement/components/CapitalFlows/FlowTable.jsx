@@ -1,94 +1,34 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlowTable/FlowTable.jsx
 import React, { useMemo } from "react";
 import "./FlowTable.css";
+import { useNumberFormatter, useDateFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter.js";
 import { SortIcon } from "../../Icons.jsx";
 import { useTableSort, SortableHeaderRenderer } from '/src/components/Sort/TableSort';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '/src/components/useFormatter';
-
-/* ===================== COLUMN DEFINITIONS ===================== */
-
-const OPERATIONS_COLUMNS = {
-  all: [
-    { key: "label", header: "Operations", sortable: true, type: "text" },
-    { key: "date", header: "Date", sortable: true, type: "date" },
-    { key: "calledAmount", header: "Called amount (€)", sortable: true, type: "number", align: "right" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "distribAmount", header: "Distrib. amount (€)", sortable: true, type: "number", align: "right" },
-    { key: "distribPercent", header: "% Distributed", sortable: true, type: "percent", align: "right" },
-    { key: "sharesIssued", header: "Total shares issued", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-    { key: "netCum", header: "Net cum. (€)", sortable: true, type: "number", align: "right" },
-  ],
-  capital: [
-    { key: "label", header: "Operations", sortable: false, type: "text" },
-    { key: "date", header: "Date", sortable: true, type: "date" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "calledAmount", header: "Called am. (€)", sortable: true, type: "number", align: "right" },
-  ],
-  distribution: [
-    { key: "label", header: "Operations", sortable: false, type: "text" },
-    { key: "date", header: "Date", sortable: true, type: "date" },
-    { key: "distribPercent", header: "% Distributed", sortable: true, type: "percent", align: "right" },
-    { key: "distribAmount", header: "Distrib. am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-  ],
-};
-
-const LPS_COLUMNS = {
-  all: [
-    { key: "lp", header: "LPs", sortable: false, type: "text" },
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "calledAmount", header: "Called am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesIssued", header: "Total shares issued", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-  ],
-  capital: [
-    { key: "lp", header: "LPs", sortable: false, type: "text" },
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "calledAmount", header: "Called am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesIssued", header: "Total shares issued", sortable: true, type: "number", align: "right" },
-  ],
-  distribution: [
-    { key: "lp", header: "LPs", sortable: false, type: "text" },
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "distribPercent", header: "% Distributed", sortable: true, type: "percent", align: "right" },
-    { key: "distribAmount", header: "Distrib. am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-  ],
-};
-
-const SHARE_CLASS_COLUMNS = {
-  all: [
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "calledAmount", header: "Called am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesIssued", header: "Total shares issued", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-  ],
-  capital: [
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "calledPercent", header: "% Called", sortable: true, type: "percent", align: "right" },
-    { key: "calledAmount", header: "Called am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesIssued", header: "Total shares issued", sortable: true, type: "number", align: "right" },
-  ],
-  distribution: [
-    { key: "shareClass", header: "Share class", sortable: false, type: "text" },
-    { key: "distribPercent", header: "% Distributed", sortable: true, type: "percent", align: "right" },
-    { key: "distribAmount", header: "Distrib. am. (€)", sortable: true, type: "number", align: "right" },
-    { key: "sharesRedeemed", header: "Total shares redeemed", sortable: true, type: "number", align: "right" },
-  ],
-};
 
 /* ===================== HELPERS ===================== */
 
 function getCategory(op = {}) {
   const name = String(op?.operation_type_name ?? "").toLowerCase();
-  if (name.includes("distribution")) return "Distribution";
-  const id = Number(op?.operation_type_id ?? op?.operation_type ?? 0);
-  if (id === 4) return "Distribution";
-  return "Capital call";
+  if (name.includes("distribution")) return "distribution";
+  const id = Number(op?.operation_type_id ?? 0);
+  if (id === 4) return "distribution";
+  return "capital";
+}
+
+function fmt(v) {
+  if (v === null || v === undefined || (typeof v === "number" && isNaN(v))) return "-";
+  return Number(v).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined || (typeof v === "number" && isNaN(v))) return "-";
+  return `${Number(v).toFixed(2)}%`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getLpName(lpId, lps = []) {
@@ -96,11 +36,9 @@ function getLpName(lpId, lps = []) {
   return found?.name ?? found?.fullName ?? `LP ${lpId}`;
 }
 
-const getViewFromFilter = (filter) => {
-  if (filter === "Capital call") return "capital";
-  if (filter === "Distribution") return "distribution";
-  return "all";
-};
+function isEqualizationFlow(f) {
+  return String(f.flow_type_id) === "13" || String(f.flow_name ?? "").toLowerCase() === "equalization";
+}
 
 /* ===================== COMPONENT ===================== */
 
@@ -121,15 +59,35 @@ export default function FlowTable({
 
   const operationById = useMemo(() => {
     const map = {};
-    (Array.isArray(operations) ? operations : []).forEach((op) => {
-      const id = op?.lps_operation_details_id ?? op?.id;
-      if (id) map[String(id)] = op;
+    (Array.isArray(flowTypes) ? flowTypes : []).forEach((ft) => {
+      map[String(ft.flow_type_id)] = ft.name ?? `Flow ${ft.flow_type_id}`;
     });
     return map;
-  }, [operations]);
+  }, [flowTypes]);
+
+  // ── Dynamic flow columns: deduplicated by flow_type_id ────────────────────
+  const dynamicFlowCols = useMemo(() => {
+    const seen = new Map(); // flow_type_id -> col def
+    filteredOps.forEach((op) => {
+      (op.flows ?? []).forEach((f) => {
+        const typeId = String(f.flow_type_id ?? "");
+        if (!typeId || seen.has(typeId) || isEqualizationFlow(f)) return;
+        seen.set(typeId, {
+          key: `flow__${typeId}`,
+          header: flowTypeLookup[typeId] ?? f.flow_name ?? `Flow ${typeId}`,
+          flowTypeId: typeId,
+          type: "number",
+          align: "right",
+          sortable: true,
+          isDynamic: true,
+        });
+      });
+    });
+    return Array.from(seen.values());
+  }, [filteredOps, flowTypeLookup]);
 
   const operationRows = useMemo(() => {
-    return (Array.isArray(operations) ? operations : []).map((op) => {
+    return filteredOps.map((op) => {
       const opId = op?.lps_operation_details_id ?? op?.id;
       const category = getCategory(op);
       const isDist = category === "Distribution";
@@ -140,6 +98,16 @@ export default function FlowTable({
       const totalCapitalCall = opAllocs.reduce((s, a) => s + Number(a?.capital_call ?? 0), 0);
       const totalSharesIssued = opAllocs.reduce((s, a) => s + Number(a?.shares_issued ?? 0), 0);
       const overallPct = Number(op?.overall_percentage_of_commitment ?? 0) * 100;
+      const totalAmount = Number(op?.total_operation_amount ?? 0);
+
+      const flowAmounts = {};
+      (op.flows ?? []).forEach((f) => {
+        if (isEqualizationFlow(f)) return;
+        const typeId = String(f.flow_type_id ?? "");
+        if (!typeId) return;
+        const key = `flow__${typeId}`;
+        flowAmounts[key] = (flowAmounts[key] ?? 0) + Number(f.computed_total_amount ?? 0);
+      });
 
       return {
         id: String(opId),
@@ -169,19 +137,41 @@ export default function FlowTable({
       const calledPct = Number(alloc?.called_percentage ?? 0) * 100;
       const sharesIssued = Number(alloc?.shares_issued ?? 0);
 
-      return {
-        id: String(alloc?.lp_operation_allocation_id),
-        _raw: alloc,
-        category,
-        lp: lpName,
-        shareClass: alloc?.share_class_id ? `Class ${alloc.share_class_id}` : "-",
-        calledPercent: isDist ? null : calledPct,
-        calledAmount: isDist ? null : capitalCall,
-        sharesIssued: isDist ? null : sharesIssued,
-        distribPercent: isDist ? calledPct : null,
-        distribAmount: isDist ? capitalCall : null,
-        sharesRedeemed: isDist ? 0 : null,
-      };
+    // Drive rows from nested lp_allocations
+    (op.flows ?? []).forEach((f) => {
+      if (isEqualizationFlow(f)) return;
+      const typeId = String(f.flow_type_id ?? "");
+
+      (f.lp_allocations ?? []).forEach((alloc) => {
+        const lpId = String(alloc.lp_id);
+        const amount = Number(alloc.allocated_amount ?? 0);
+
+        if (!byLp[lpId]) {
+          const scId = scByLp[lpId] ?? null;
+          byLp[lpId] = {
+            id: `lp-${lpId}`,
+            category,
+            lp: getLpName(lpId, lps),
+            shareClass: scId ? (shareClassLookup[scId] ?? `Class ${scId}`) : "-",
+            calledAmount: 0,
+            calledPercent: 0,
+            distribAmount: 0,
+            distribPercent: 0,
+            _calledPctCount: 0,
+            _distribPctCount: 0,
+            _totalCapitalCall: 0,
+            _totalCommitment: 0,
+            _totalDistrib: 0,
+          };
+        }
+
+        const entry = byLp[lpId];
+
+        if (typeId) {
+          const key = `flow__${typeId}`;
+          entry[key] = (entry[key] ?? 0) + amount;
+        }
+      });
     });
   }, [lpAllocations, operationById, lps]);
 
@@ -213,15 +203,75 @@ export default function FlowTable({
       const calledPct = Number(alloc?.called_percentage ?? 0) * 100;
       const sharesIssued = Number(alloc?.shares_issued ?? 0);
 
+    // Enrich with called_percentage from opAllocs
+    opAllocs.forEach((a) => {
+      const lpId = String(a.lp_id);
+      if (!byLp[lpId]) return;
       if (isDist) {
-        entry.distribAmount += capitalCall;
-        entry.distribPercent += calledPct;
+        byLp[lpId].distribAmount += Number(a.capital_call ?? 0);
+        byLp[lpId]._totalDistrib += Number(a.capital_call ?? 0);
       } else {
-        entry.calledAmount += capitalCall;
-        entry.calledPercent += calledPct;
-        entry.sharesIssued += sharesIssued;
+        byLp[lpId].calledAmount += Number(a.capital_call ?? 0);
+        byLp[lpId]._totalCapitalCall += Number(a.capital_call ?? 0);
+        byLp[lpId]._totalCommitment = Math.max(
+          byLp[lpId]._totalCommitment,
+          Number(a.commitment_amount ?? 0)
+        );
       }
-      entry._count += 1;
+    });
+  });
+
+  return Object.values(byLp).map((entry) => ({
+    ...entry,
+    calledPercent: entry._totalCommitment > 0
+      ? (entry._totalCapitalCall / entry._totalCommitment) * 100
+      : 0,
+    distribPercent: entry._totalCommitment > 0
+      ? (entry._totalDistrib / entry._totalCommitment) * 100
+      : 0,
+    calledAmount: entry.calledAmount || null,
+    distribAmount: entry.distribAmount || null,
+  }));
+}, [filteredOps, lpAllocations, lps, shareClassLookup]);
+  // ── Build Share Class rows ─────────────────────────────────────────────────
+const shareClassRows = useMemo(() => {
+  const byClass = {};
+  const pctBySc = {};
+  filteredOps.forEach((op) => {
+    const category = getCategory(op);
+    const isDist = category === "distribution";
+
+    // Build sc lookup from op.lp_allocations (same source as lpRows)
+    const opAllocs = op.lp_allocations ?? [];
+    const scByLp = {};
+    
+    opAllocs.forEach((a) => {
+      if (a.share_class_id) {
+        scByLp[String(a.lp_id)] = String(a.share_class_id);
+        const scId = String(a.share_class_id);
+        const lpId = String(a.lp_id);
+        if (!pctBySc[scId]) pctBySc[scId] = { call: 0, lpCommitments: {} };
+        pctBySc[scId].call += Number(a.capital_call ?? 0);
+        pctBySc[scId].lpCommitments[lpId] = Number(a.commitment_amount ?? 0);
+
+        // ADD: accumulate calledAmount/distribAmount from capital_call
+        if (!byClass[scId]) {
+          byClass[scId] = {
+            id: `sc-${scId}`,
+            category,
+            shareClass: shareClassLookup[scId] ?? `Class ${scId}`,
+            calledAmount: 0,
+            distribAmount: 0,
+            calledPercent: 0,
+            distribPercent: 0,
+          };
+        }
+        if (isDist) {
+          byClass[scId].distribAmount += Number(a.capital_call ?? 0);
+        } else {
+          byClass[scId].calledAmount += Number(a.capital_call ?? 0);
+        }
+      }
     });
 
     return Object.values(byClass).map((entry) => ({
@@ -256,9 +306,8 @@ export default function FlowTable({
     if (search && search.trim()) {
       const s = search.toLowerCase();
       data = data.filter((r) => {
-        if (breakdown === "operations") return (r.label || "").toLowerCase().includes(s);
-        if (breakdown === "lps") return (r.lp || "").toLowerCase().includes(s);
-        return (r.shareClass || "").toLowerCase().includes(s);
+        const label = r.label ?? r.lp ?? r.shareClass ?? "";
+        return label.toLowerCase().includes(s);
       });
     }
 
@@ -279,8 +328,6 @@ export default function FlowTable({
         }
       });
     });
-    return obj;
-  }, [rows, columns]);
 
   const formatCell = (row, col) => {
     const value = row[col.key];
@@ -303,13 +350,9 @@ export default function FlowTable({
 
   return (
     <div className="cf-root">
-      {rows.length === 0 && (
-        <div style={{ padding: "32px 16px", textAlign: "center", color: "#667085", fontSize: 14 }}>
-          No operations found.
-        </div>
-      )}
-
-      {rows.length > 0 && (
+      {rows.length === 0 ? (
+        <div className="cf-empty">No operations found.</div>
+      ) : (
         <div className="cf-table-wrapper">
           <table className="cf-table">
             <thead>
@@ -336,8 +379,8 @@ export default function FlowTable({
               {rows.map((r) => (
                 <tr
                   key={r.id}
-                  onClick={() => breakdown === "operations" && onSelectOperation?.(r._raw)}
-                  style={breakdown === "operations" ? { cursor: "pointer" } : undefined}
+                  onClick={() => isClickable && onSelectOperation?.(r._raw)}
+                  className={isClickable ? "cf-row--clickable" : undefined}
                 >
                   {columns.map((col) => (
                     <td
@@ -350,12 +393,12 @@ export default function FlowTable({
                 </tr>
               ))}
               <tr className="cf-total-row">
-                {columns.map((col, index) => (
+                {columns.map((col, i) => (
                   <td
                     key={col.key}
                     className={col.align === "right" ? "cf-num" : undefined}
                   >
-                    {index === 0 ? "Total" : formatTotalCell(col)}
+                    {i === 0 ? "Total" : formatTotal(col)}
                   </td>
                 ))}
               </tr>

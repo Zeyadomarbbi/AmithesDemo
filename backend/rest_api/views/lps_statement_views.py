@@ -24,7 +24,8 @@ from ..models import (
     LPsOperationLPAllocation,
     FundClosing, 
     LPsFundCommitment,
-    CapitalAccountKpiCache
+    CapitalAccountKpiCache,
+    CapitalAccountAdjustedNav
 )
 
 from ..serializers import (
@@ -346,34 +347,33 @@ class FlowTypeList(generics.ListAPIView):
 class LPsOperationDetailsViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationDetailsSerializer
     queryset = LPsOperationDetails.objects.all()
-    lookup_field = 'pk' # Or 'lps_operation_details_id'
+    lookup_field = 'pk'
 
     def get_queryset(self):
-        # Filters by fund_id from URL
         return self.queryset.filter(fund_id=self.kwargs.get('fund_id')).order_by('-pk')
 
     def perform_create(self, serializer):
-        raw = self.request.data
-        fund_id = self.kwargs.get('fund_id')
-        
-        # Explicitly include the field in the payload
-        op_id = _insert_operation_details(
-            fund_id=int(fund_id),
-            payload={
-                **serializer.validated_data,
-                "total_fund_commitment": serializer.validated_data.get("total_fund_commitment"),
-                "total_operation_amount": raw.get("total_operation_amount", 0),
-                "overall_percentage_of_commitment": raw.get("overall_percentage_of_commitment", 0),
-            },
-            request=self.request
-        )
-        return op_id
+        return serializer.save(fund_id=self.kwargs.get('fund_id'))
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        op_id = self.perform_create(serializer)
-        return Response({"lps_operation_details_id": op_id}, status=status.HTTP_201_CREATED)
+        instance = self.perform_create(serializer)
+        return Response(
+            {"lps_operation_details_id": instance.lps_operation_details_id},
+            status=status.HTTP_201_CREATED
+        )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        return Response(
+            {"lps_operation_details_id": instance.lps_operation_details_id},
+            status=status.HTTP_200_OK
+        )
 
 class LPsOperationFlowViewSet(viewsets.ModelViewSet):
     serializer_class = LPsOperationFlowSerializer
@@ -1041,7 +1041,32 @@ class CapitalAccountStatementKPIView(APIView):
             return error
 
         result = self._get_or_compute(fund_id, timeframe_id)
+
+        adj = CapitalAccountAdjustedNav.objects.filter(
+            fund_id_id=fund_id,
+            timeframe_id_id=timeframe_id
+        ).first()
+        result["adjusted_nav"] = adj.adjusted_nav if adj else {}
+
         return Response(result, status=status.HTTP_200_OK)
+    
+    def post(self, request, fund_id):
+        timeframe_id = request.data.get("timeframe_id")
+        adjusted_nav = request.data.get("adjusted_nav")  # dict: { "total": 123, "Class A": 456, ... }
+
+        if not timeframe_id:
+            return Response({"error": "timeframe_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if adjusted_nav is None:
+            return Response({"error": "adjusted_nav is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        CapitalAccountAdjustedNav.objects.update_or_create(
+            fund_id_id=fund_id,
+            timeframe_id_id=timeframe_id,
+            defaults={"adjusted_nav": adjusted_nav}
+        )
+
+        return Response({"ok": True}, status=status.HTTP_200_OK)
 
 class BulkCapitalAccountStatementKPIView(APIView):
 
