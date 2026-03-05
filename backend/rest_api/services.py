@@ -169,8 +169,18 @@ class CapitalAccountService:
         pnl_data         = self.fetch_net_pnl()
         commitments      = self.fetch_commitments()
         shares           = self.fetch_shares()
+        lps              = self.fetch_lps()
+        lp_calls         = self.fetch_lp_capital_calls()
         cash_flow_table  = self.fetch_cash_flow_table(waterfall_config)
         basic_kpis       = self.compute_kpis_basic(commitments, cash_flow_table, pnl_data, waterfall_config, shares, share_classes)
+        lp_kpis = self.compute_lp_kpis(
+            lps,
+            lp_calls,
+            basic_kpis['distributed']['total'],
+            commitments['total'],
+            basic_kpis['nav']['by_share_class'],
+            commitments['by_share_class'],
+        )
         irr_data         = self.compute_irr(
             cash_flow_table,
             basic_kpis['waterfall_payments'],
@@ -184,8 +194,56 @@ class CapitalAccountService:
             'shares':           shares,
             'cash_flow_table':  cash_flow_table,
             'basic_kpis':       basic_kpis,
+            'lp_kpis':          lp_kpis,
             'irr':              irr_data,
         }
+
+    def fetch_lps(self) -> dict:
+        q = """
+            SELECT lp.lp_id, lp.name, sc.share_class_name,
+                SUM(c.commitment_amount) AS total_commitment
+            FROM lps_fund_commitments c
+            JOIN lps_limited_partner lp ON c.lp_id = lp.lp_id
+            JOIN share_class sc ON c.share_class_id = sc.share_class_id
+            JOIN lps_fund_closings fc ON c.lps_fund_closing_period_id = fc.lps_fund_closing_period_id
+            WHERE c.fund_id = %s
+            AND c.is_deleted = FALSE
+            AND fc.date <= (SELECT date FROM timeframe WHERE timeframe_id = %s)
+            GROUP BY lp.lp_id, lp.name, sc.share_class_name
+            ORDER BY lp.name;
+        """
+        lps = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id, self.timeframe_id])
+            for lp_id, lp_name, sc_name, commitment in c.fetchall():
+                lps[lp_id] = {
+                    'name': lp_name,
+                    'share_class': sc_name,
+                    'commitment': float(commitment) if commitment else 0.0,
+                }
+        return lps
+    
+    def fetch_lp_capital_calls(self) -> dict:
+        q = """
+            SELECT al.lp_id, SUM(al.capital_call) AS total_called,
+                MAX(al.commitment_amount) AS commitment_amount
+            FROM lps_operation_lp_allocations al
+            JOIN lps_operation_details od ON al.lps_operation_details_id = od.lps_operation_details_id
+            JOIN lps_operation_type ot ON od.operation_type_id = ot.operation_type_id
+            WHERE od.fund_id = %s
+            AND od.due_date <= (SELECT date FROM timeframe WHERE timeframe_id = %s)
+            AND ot.name IN ('Capital Call', 'Capital Call / Equalization', 'Equalization')
+            GROUP BY al.lp_id;
+        """
+        result = {}
+        with connection.cursor() as c:
+            c.execute(q, [self.fund_id, self.timeframe_id])
+            for lp_id, total_called, commitment in c.fetchall():
+                result[lp_id] = {
+                    'capital_called': float(total_called) if total_called else 0.0,
+                    'commitment': float(commitment) if commitment else 0.0,
+                }
+        return result
 
     def fetch_waterfall_config(self) -> dict:
         config = {}
@@ -487,6 +545,52 @@ class CapitalAccountService:
         }
 
         return {'fund_irr': fund_irr, 'by_share_class': by_sc}
+
+    def compute_lp_kpis(self, lps: dict, lp_calls: dict, distributed_total: float, total_commitment: float, nav_by_sc: dict, commitment_by_sc: dict) -> dict:
+        # Build total commitment per share class from LP data
+        sc_commitment_totals = {}
+        for lp_id, lp_data in lps.items():
+            sc = lp_data['share_class']
+            sc_commitment_totals[sc] = sc_commitment_totals.get(sc, 0.0) + lp_data['commitment']
+
+        result = {}
+        for lp_id, lp_data in lps.items():
+            commitment     = lp_data['commitment']
+            sc             = lp_data['share_class']
+            capital_called = lp_calls.get(lp_id, {}).get('capital_called', 0.0)
+            undrawn        = commitment - capital_called
+
+            lp_distributed = (
+                distributed_total * (commitment / total_commitment)
+                if total_commitment else 0.0
+            )
+
+            # NAV split: LP weight within its share class
+            sc_nav         = nav_by_sc.get(sc, 0.0)
+            sc_total_commit = sc_commitment_totals.get(sc, 0.0)
+            lp_nav         = sc_nav * (commitment / sc_total_commit) if sc_total_commit else 0.0
+
+            pct_called      = round((capital_called  / commitment) * 100, 4) if commitment else 0.0
+            pct_distributed = round((lp_distributed  / commitment) * 100, 4) if commitment else 0.0
+            rvpi            = (lp_nav        / capital_called) if capital_called else 0.0
+            dpi             = (lp_distributed / capital_called) if capital_called else 0.0
+            tvpi            = rvpi + dpi
+
+            result[lp_id] = {
+                'name':            lp_data['name'],
+                'share_class':     sc,
+                'commitment':      commitment,
+                'capital_called':  capital_called,
+                'undrawn':         undrawn,
+                'nav':             lp_nav,
+                'distributed':     lp_distributed,
+                'pct_called':      pct_called,
+                'pct_distributed': pct_distributed,
+                'rvpi':            rvpi,
+                'dpi':             dpi,
+                'tvpi':            tvpi,
+            }
+        return result
 
     def compute_kpis_basic(
         self,

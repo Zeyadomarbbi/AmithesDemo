@@ -38,12 +38,12 @@ function ElementSelector({ options = [], selected = [], onChange }) {
 
   const getButtonLabel = () => {
     const count = selected.length;
-    if (count === 0) return 'All classes';
+    if (count === 0) return 'All elements';
     if (count === 1) {
       const found = options.find((o) => o.key === selected[0]);
-      return found ? found.label : 'All classes';
+      return found ? found.label : 'All elements';
     }
-    return `Classes (${count})`;
+    return `Elements (${count})`;
   };
 
   return (
