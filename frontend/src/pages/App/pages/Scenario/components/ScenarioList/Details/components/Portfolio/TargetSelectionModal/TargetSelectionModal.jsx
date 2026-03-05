@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CloseIcon } from '../Icons'; 
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons'; 
 import { useTargetMode } from '../../../../../../../../hooks/Scenarios/useTargetMode';
 import './TargetSelectionModal.css';
 

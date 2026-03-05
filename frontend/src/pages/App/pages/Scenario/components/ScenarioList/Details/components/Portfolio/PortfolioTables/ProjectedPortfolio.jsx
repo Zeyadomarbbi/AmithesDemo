@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  LockOpenIcon,
-  LockClosedIcon,
-  SensitivityIcon,
-} from "../Icons";
+import { LockOpenIcon, LockClosedIcon } from '/src/components/Icons/InteractiveIcons';
+import { SensitivityIcon } from '/src/components/Icons/MiscIcons';
 import DateInputWithPicker from "../../../../../../../../../../components/DateComponents/DateInput";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../../../components/Sort/TableSort";
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';

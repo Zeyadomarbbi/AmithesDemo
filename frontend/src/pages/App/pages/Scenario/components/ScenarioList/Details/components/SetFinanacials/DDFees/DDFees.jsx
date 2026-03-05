@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useScenarioDDFees } from '../../../../../../../../hooks/Scenarios/useScenarioDDFees'; 
-import { CloseIcon } from '../Icons'; 
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import Toast from '../../../../../../../../components/Toast/Toast'; 
 import './DDFees.css';
 

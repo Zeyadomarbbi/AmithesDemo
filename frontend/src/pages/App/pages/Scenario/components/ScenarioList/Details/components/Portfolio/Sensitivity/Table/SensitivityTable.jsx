@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDownIcon } from '../../Icons';
+import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import './SensitivityTable.css';
 
 const StyledInput = ({ value, onChange, className, type = "text" }) => (

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import './AllOperations.css';
-import { SortIcon } from '../Icons'; 
+import { SortIcon } from '/src/components/Icons/InteractiveIcons';
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 import { useScenarioFFAllOperations } from '../../../../../../../../hooks/Scenarios/useScenarioFFAllOperations'; 
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../../components/useFormatter';

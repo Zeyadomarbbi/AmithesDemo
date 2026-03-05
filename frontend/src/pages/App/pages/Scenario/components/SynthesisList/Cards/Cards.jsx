@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MoreVerticalIcon, DashboardIcon, DeleteIcon} from '../Icons'; 
+import { MoreVerticalIcon, DashboardIcon } from '/src/components/Icons/MiscIcons';
+import { DeleteIcon } from '/src/components/Icons/InteractiveIcons';
 import './Cards.css';
 
 function SynthesisCards({ id, fundId, title, author, createdDate, links, description, onDelete}) {

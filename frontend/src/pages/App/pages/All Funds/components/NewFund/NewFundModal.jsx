@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
-import { ChevronDown } from "../Icons";
+import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import "./NewFundModal.css";
 
 // Helper to get ISO format "YYYY-MM-DD" for backend compatibility

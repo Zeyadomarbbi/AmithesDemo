@@ -8,7 +8,7 @@ import NewFundModal from "./components/NewFund/NewFundModal";
 import KPIsTable from "./components/Kpi/KPIsTable";
 import Toast from "../../components/Toast/Toast";
 import SearchBar from "../../../../components/SearchBar/SearchBar";
-import { PlusIcon } from "../../../../components/Icons";
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import { PageSpinner, PageError } from "../../../../components/LoadingScreens/LoadingScreens";
 import "./AllFundsPage.css";
 

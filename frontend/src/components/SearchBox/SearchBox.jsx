@@ -1,6 +1,6 @@
 import React from "react";
 import "./SearchBox.css";
-import { SearchIcon } from "../Icons.jsx";
+import { SearchIcon } from '/src/components/Icons/InteractiveIcons';
 
 export default function SearchBox({
   value,
