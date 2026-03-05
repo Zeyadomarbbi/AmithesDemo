@@ -3,8 +3,7 @@ from django.urls import path
 from ..views.lps_statement_views import (LimitedPartnerViewSet, LPsFundCommitmentViewSet,     LimitedPartnerViewSet,
     LPsFundCommitmentViewSet,
 
-    ClosingPeriodList,
-    ClosingPeriodDetail,
+
     FundClosingListCreate,
     FundClosingDetail,
 
@@ -15,13 +14,9 @@ from ..views.lps_statement_views import (LimitedPartnerViewSet, LPsFundCommitmen
     LPsOperationFlowViewSet,
     LPsFlowLPAllocationViewSet,
     LPsOperationLPAllocationViewSet,
-    # OperationFullCreate,
+    )
 
-    # ✅ Step 3
-    OperationStep3Preview,
-    OperationStep3Confirm)
-
-from ..views import ClosingPeriodList, ClosingPeriodDetail, FundClosingListCreate, FundClosingDetail
+from ..views import  FundClosingListCreate, FundClosingDetail
 
 limited_partner_list = LimitedPartnerViewSet.as_view({
     "get": "list",
@@ -104,8 +99,6 @@ lp_operation_summary = LPsOperationLPAllocationViewSet.as_view({
 # })
 
 urlpatterns = [
-    path('closing-periods/', ClosingPeriodList.as_view(), name='closing-period-list'),
-    path('closing-periods/<int:closing_id>/', ClosingPeriodDetail.as_view(), name='closing-period-detail'),
     path('limited-partners/', limited_partner_list),
     path('limited-partners/<int:pk>/', limited_partner_detail),
     path("operation-types/", OperationTypeList.as_view(), name="operation-type-list"),

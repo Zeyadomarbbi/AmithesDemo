@@ -309,15 +309,11 @@ class FinancialEntry(models.Model):
 class FundClosing(models.Model):
     lps_fund_closing_period_id = models.AutoField(primary_key=True)
     fund = models.ForeignKey(
-        "Fund", 
-        on_delete=models.CASCADE, 
+        "Fund",
+        on_delete=models.CASCADE,
         db_column="fund_id",
     )
-    closing_period = models.ForeignKey(
-        'ClosingPeriod', 
-        on_delete=models.CASCADE,
-        db_column="closing_id"  # Explicitly map to the DB column name
-    )
+    closing_name = models.CharField(max_length=50)
     date = models.DateField()
     description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -326,7 +322,7 @@ class FundClosing(models.Model):
     class Meta:
         managed = False
         db_table = 'lps_fund_closings'
-        unique_together = ('fund', 'closing_period')
+        unique_together = ('fund', 'closing_name')
 
 class LPsFundCommitment(models.Model):
     commitment_id = models.AutoField(primary_key=True)

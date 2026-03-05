@@ -2,7 +2,7 @@ from rest_framework import serializers
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum
 
-from ..models.reference import ClosingPeriod, LPsOperationFlowType, LPsOperationType
+from ..models.reference import LPsOperationFlowType, LPsOperationType
 from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationFlowLPAllocation, LPsOperationLPAllocation
 from ..models.core import LimitedPartner
 
@@ -42,27 +42,20 @@ def _normalize_fraction(v: Decimal | None, field_name: str) -> Decimal | None:
     raise serializers.ValidationError(
         {field_name: "Must be between 0..1 (or 0..100 as percent)."}
     )
-    
-class ClosingPeriodSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClosingPeriod
-        fields = '__all__'
+
 
 class FundClosingSerializer(serializers.ModelSerializer):
-    # This grabs the closing_name from the related ClosingPeriod model
-    closing_name = serializers.CharField(source='closing_period.closing_name', read_only=True)
 
     class Meta:
         model = FundClosing
         fields = [
-            'lps_fund_closing_period_id', 
-            'date', 
-            'created_at', 
-            'created_by', 
+            'lps_fund_closing_period_id',
+            'date',
+            'created_at',
+            'created_by',
             'description',
-            'fund', 
-            'closing_period', 
-            'closing_name' # Add this
+            'fund',
+            'closing_name',
         ]
 
 class LimitedPartnerSerializer(serializers.ModelSerializer):
