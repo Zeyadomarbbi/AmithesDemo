@@ -1,5 +1,6 @@
 import React from "react";
-import { ChevronDownIcon, EuroCurrencyIcon, MoreActionsButton } from "../../../../../Icons.jsx";
+import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import { EuroCurrencyIcon, MoreActionsButton } from "../../../../../Icons.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -17,51 +18,46 @@ export default function TranchCard({
   onSaveTranche,
   totalTranches 
 }) {
+  console.log("periods", periods);
+  const updateField = (field) => (val) => {
+    onUpdateField(realIndex, field)({ target: { value: val } });
+  };
 
   // --- COLLAPSED / SUMMARY VIEW ---
-  // Matches the style of shares-mini-row in NewLPDrawer
   if (tranch.collapsed) {
-    const selectedShare = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
+    const selectedShare  = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
     const selectedCurrency = currencies?.find(c => String(c.id) === String(tranch.currencyId));
     const selectedPeriod = periods?.find(p => String(p.id) === String(tranch.closingId));
 
+
     return (
       <div className="shares-mini-row" onClick={() => onSaveTranche(realIndex)} style={{ cursor: "pointer" }}>
-        {/* Column 1: Share Type */}
         <div className="mini-row-column">
           <span className="mini-row-label">Type of share</span>
           <div className="share-badge">
             {selectedShare?.share_class_name || "-"}
           </div>
         </div>
-
-        {/* Column 2: Currency */}
         <div className="mini-row-column">
           <span className="mini-row-label">Currency</span>
           <span className="mini-row-value">
             {selectedCurrency ? `${selectedCurrency.name} (${selectedCurrency.code})` : "-"}
           </span>
         </div>
-
-        {/* Column 3: Commitment */}
         <div className="mini-row-column">
           <span className="mini-row-label">Amount</span>
           <span className="mini-row-value">
             {tranch.commitment ? `${Number(tranch.commitment).toLocaleString("fr-FR")} ${selectedCurrency?.symbol || ""}` : "-"}
           </span>
         </div>
-
-        {/* Column 4: Closing */}
         <div className="mini-row-column">
           <span className="mini-row-label">Closing</span>
           <span className="mini-row-value">
             {selectedPeriod?.name || "-"}
           </span>
         </div>
-
-        {/* Actions */}
         <div className="mini-row-dots">
-          <MoreActionsButton/>
+          <MoreActionsButton />
         </div>
       </div>
     );
@@ -76,49 +72,31 @@ export default function TranchCard({
       <div className="lp-drawer-grid-2">
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Type of share*</label>
-          <div className="lp-drawer-field-input-with-icon">
-            <select
-              className="lp-drawer-field-input select-input"
-              value={tranch.shareClassId}
-              onChange={onUpdateField(realIndex, "shareClassId")}
-              disabled={isSubmitting}
-            >
-              <option value="" disabled hidden>
-                {classesLoading ? "Loading..." : "Select Share Class"}
-              </option>
-              {dbShareClasses?.map((sc) => (
-                <option key={sc.share_class_id} value={sc.share_class_id}>
-                  {sc.share_class_name}
-                </option>
-              ))}
-            </select>
-            <span className="lp-drawer-field-icon lp-drawer-field-icon-chevron"><ChevronDownIcon /></span>
-          </div>
+          <SearchableSelect
+            options={dbShareClasses ?? []}
+            value={tranch.shareClassId}
+            onChange={updateField("shareClassId")}
+            placeholder={classesLoading ? "Loading..." : "Select Share Class"}
+            labelKey="share_class_name"
+            valueKey="share_class_id"
+            disabled={isSubmitting || classesLoading}
+            triggerClassName="lp-drawer-field-input"
+          />
         </div>
 
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Currency*</label>
-          <div className="lp-drawer-field-input-with-icon">
-            <select
-              className="lp-drawer-field-input select-input" // This class is vital
-              value={tranch.currencyId}
-              onChange={onUpdateField(realIndex, "currencyId")}
-              disabled={isSubmitting || currenciesLoading}
-            >
-              <option value="" disabled hidden>
-                {currenciesLoading ? "Loading..." : "Select Currency"}
-              </option>
-              {currencies?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.code}) - {c.symbol}
-                </option>
-              ))}
-            </select>
-            {/* This span will now be the only visible arrow */}
-            <span className="lp-drawer-field-icon-chevron">
-              <ChevronDownIcon />
-            </span>
-          </div>
+          <SearchableSelect
+            options={currencies ?? []}
+            value={tranch.currencyId}
+            onChange={updateField("currencyId")}
+            placeholder={currenciesLoading ? "Loading..." : "Select Currency"}
+            labelKey="name"
+            valueKey="id"
+            secondaryLabelKey="code"
+            disabled={isSubmitting || currenciesLoading}
+            triggerClassName="lp-drawer-field-input"
+          />
         </div>
       </div>
 
@@ -140,21 +118,17 @@ export default function TranchCard({
         </div>
 
         <div className="lp-drawer-field">
-          <label className="lp-drawer-field-label">Closing *</label>
-          <div className="lp-drawer-field-input-with-icon">
-            <select
-              className="lp-drawer-field-input select-input"
-              value={tranch.closingId}
-              onChange={onUpdateField(realIndex, "closingId")}
-              disabled={isSubmitting}
-            >
-              <option value="" disabled hidden>Select Closing</option>
-              {periods.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <span className="lp-drawer-field-icon lp-drawer-field-icon-chevron"><ChevronDownIcon /></span>
-          </div>
+          <label className="lp-drawer-field-label">Closing*</label>
+          <SearchableSelect
+            options={periods ?? []}
+            value={tranch.closingId}
+            onChange={updateField("closingId")}
+            placeholder="Select Closing"
+            labelKey="name"
+            valueKey="id"
+            disabled={isSubmitting}
+            triggerClassName="lp-drawer-field-input"
+          />
         </div>
       </div>
 

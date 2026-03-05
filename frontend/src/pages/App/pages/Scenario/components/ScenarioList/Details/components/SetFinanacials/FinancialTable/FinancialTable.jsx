@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FinancialTable.css';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
+import { downloadFinancialsAsExcel } from "../utils/downloadFinancialsAsExcel.js";
 import { SortIcon } from '/src/components/Icons/InteractiveIcons';
 
 const parseValue = (value) => {
@@ -12,7 +13,7 @@ const parseValue = (value) => {
     return parseFloat(cleanValue) || 0;
 };
 
-const FinancialTable = ({ years, rows = [], localChanges = {}, onCellChange }) => {
+export default function FinancialTable({ years, rows = [], localChanges = {}, onCellChange, triggerDownload }) {
     const formatNumber = useNumberFormatter();
     const [financialRows, setFinancialRows] = useState([]);
 
@@ -60,6 +61,11 @@ const FinancialTable = ({ years, rows = [], localChanges = {}, onCellChange }) =
             { label: 'Net Profit/Loss', type: 'net-profit' }
         ]);
     }, [rows, years, localChanges]);
+
+    useEffect(() => {
+        if (!triggerDownload) return;
+        downloadFinancialsAsExcel({ years, financialRows, calculateNetProfitTotal, getYearValue });
+    }, [triggerDownload]); // only fires when triggerDownload changes
 
     const calculateRowTotal = (row) => {
         let sum = 0;
@@ -239,5 +245,3 @@ const FinancialTable = ({ years, rows = [], localChanges = {}, onCellChange }) =
         </div>
     );
 };
-
-export default FinancialTable;
