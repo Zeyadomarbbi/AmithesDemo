@@ -56,7 +56,6 @@ function QuarterSelector({
     };
 
     const label = getButtonLabel();
-
     // Limit Check (using sanitized list)
     const isAtLimit = !isSingle && maxSelections !== null && validSelection.length >= maxSelections;
 

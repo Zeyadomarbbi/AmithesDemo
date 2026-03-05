@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./NewInvestmentModal.css";
 import { useCountries } from "../../../../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../../../../hooks/Reference/useCurrencies";
+import SearchableSelect from "../../../../../../../components/SearchBar/SearchableSelect.jsx";
 
 const NewInvestmentModal = ({ onClose, onSave }) => {
   const [name, setName] = useState("");
@@ -106,19 +107,20 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
 
             <div className="form-group">
               <label>Geography*</label>
-              <select value={countryId} onChange={(e) => setCountryId(e.target.value)}>
-                <option value="">Select a country</option>
-                {countries.map((c) => {
-                  const name = c.name || c.country_name || "";
-                  const code = c.iso3 || c.iso3_code || c.iso2 || c.iso2_code || "";
-                  const label = code ? `${name} (${code})` : name;
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
+              <SearchableSelect
+                options={countries.map((c) => ({
+                  ...c,
+                  name: c.name || c.country_name || "",
+                  code: c.iso3 || c.iso3_code || c.iso2 || c.iso2_code || "",
+                }))}
+                value={countryId}
+                onChange={(val) => setCountryId(val)}
+                placeholder="Select a country"
+                labelKey="name"
+                valueKey="id"
+                secondaryLabelKey="code"
+                triggerClassName="modal-searchable-trigger"
+              />
             </div>
 
             <div className="form-group">
@@ -136,19 +138,21 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
 
             <div className="form-group">
               <label>Local Currency*</label>
-              <select value={currencyId} onChange={(e) => setCurrencyId(e.target.value)}>
-                <option value="">Select a currency</option>
-                {currencies.map((c) => {
-                  const code = c.currency_code || c.code || "";
-                  const name = c.currency_name || c.name || code;
-                  const symbol = c.currency_symbol || c.symbol || "";
-                  return (
-                    <option key={c.id} value={c.id}>
-                      {`${name} (${code}) ${symbol}`.trim()}
-                    </option>
-                  );
-                })}
-              </select>
+              <SearchableSelect
+                options={currencies.map((c) => ({
+                  ...c,
+                  name: c.currency_name || c.name || c.currency_code || c.code || "",
+                  code: c.currency_code || c.code || "",
+                  symbol: c.currency_symbol || c.symbol || "",
+                }))}
+                value={currencyId}
+                onChange={(val) => setCurrencyId(val)}
+                placeholder="Select a currency"
+                labelKey="name"
+                valueKey="id"
+                secondaryLabelKey="code"
+                triggerClassName="modal-searchable-trigger"
+              />
             </div>
           </div>
         </div>

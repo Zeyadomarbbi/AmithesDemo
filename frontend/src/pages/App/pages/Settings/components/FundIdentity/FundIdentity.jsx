@@ -168,14 +168,19 @@ const FundIdentity = () => {
           <label className="fund-identity-label">Fund currency<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
             <SearchableSelect
-              options={currencies}
+              options={currencies.map((c) => ({
+                ...c,
+                name: c.currency_name || c.name || c.currency_code || c.code || "",
+                code: c.currency_code || c.code || "",
+                symbol: c.currency_symbol || c.symbol || "",
+              }))}
               value={formData.currency_id}
               onChange={(val) => handleChange("currency_id")({ target: { value: val } })}
               placeholder={currenciesLoading ? "Loading..." : "Please select"}
               disabled={currenciesLoading}
               labelKey="name"
               valueKey="id"
-              secondaryLabelKey="symbol"
+              secondaryLabelKey="code"
               triggerClassName="fund-identity-input-inner"
             />
           </div>

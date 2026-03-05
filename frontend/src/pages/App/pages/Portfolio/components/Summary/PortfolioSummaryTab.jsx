@@ -9,6 +9,7 @@ import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimef
 import NewInvestmentModal from "./components/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
 import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
+import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
 /* ===== Styles ===== */
 import "./PortfolioSummaryTab.css";
 
@@ -482,6 +483,78 @@ const PortfolioSummaryTab = () => {
     [totalRows]
   );
 
+  const handleDownloadExcel = () => {
+    const sectionHeaders = [
+      "Name",
+      "Geography",
+      "Cost",
+      "Dividends / Interests",
+      "MOIC LC (incl. dividends)",
+      "MOIC EUR (excl. dividends)",
+      "Gross IRR EUR",
+      "Fair Value",
+      "Gain",
+    ];
+
+    const buildSectionRows = (rows, subtotal) => {
+      const body = rows.map((r) => [
+        r.name,
+        r.country,
+        toNumber(r.cost),
+        toNumber(calcDividendsTotal(r)),
+        toNumber(calcMoicLcIncl(r)),
+        toNumber(calcMoicExcl(r)),
+        toNumber(r.irr),
+        toNumber(calcValue(r)),
+        toNumber(calcGain(r)),
+      ]);
+
+      return [
+        sectionHeaders,
+        ...body,
+        [
+          "Sub Total",
+          "",
+          toNumber(subtotal.cost),
+          toNumber(subtotal.dividends),
+          toNumber(subtotal.moicLcIncl),
+          toNumber(subtotal.moicExcl),
+          toNumber(subtotal.irr),
+          toNumber(subtotal.value),
+          toNumber(subtotal.gain),
+        ],
+      ];
+    };
+
+    const totalRowsSheet = [
+      [
+        "Total Cost",
+        "Total Dividends / Interests",
+        "Total MOIC LC (incl. dividends)",
+        "Total MOIC EUR (excl. dividends)",
+        "Total Gross IRR EUR",
+        "Total Fair Value",
+        "Total Gain",
+      ],
+      [
+        toNumber(total.cost),
+        toNumber(total.dividends),
+        toNumber(total.moicLcIncl),
+        toNumber(total.moicExcl),
+        toNumber(total.irr),
+        toNumber(total.value),
+        toNumber(total.gain),
+      ],
+    ];
+
+    exportWorkbook(`portfolio-summary-fund-${numericFundId}.xlsx`, [
+      { name: "Unrealized", rows: buildSectionRows(unrealizedRows, unrealizedSubtotal) },
+      { name: "Realized", rows: buildSectionRows(realizedRows, realizedSubtotal) },
+      { name: "Unallocated", rows: buildSectionRows(unallocatedRows, unallocatedSubtotal) },
+      { name: "Total", rows: totalRowsSheet },
+    ]);
+  };
+
   /* ================= Render ================= */
   return (
     <>
@@ -499,7 +572,7 @@ const PortfolioSummaryTab = () => {
         </div>
 
         <div className="toolbar-right">
-          <button className="ghost-btn">
+          <button className="ghost-btn" onClick={handleDownloadExcel}>
             <DownloadIcon />
             <span>Download</span>
           </button>

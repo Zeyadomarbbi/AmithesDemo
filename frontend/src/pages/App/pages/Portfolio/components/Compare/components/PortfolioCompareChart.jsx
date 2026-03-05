@@ -20,6 +20,7 @@ const PortfolioCompareChart = ({
   const selectedOption = options.find((opt) => opt.key === selectedKey) || null;
   const selectedLabel = selectedOption?.label || "Select Column";
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
   const containerRef = React.useRef(null);
   const [chartWidth, setChartWidth] = React.useState(900);
 
@@ -34,6 +35,18 @@ const PortfolioCompareChart = ({
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
+
+  React.useEffect(() => {
+    if (!isDropdownOpen && searchTerm) setSearchTerm("");
+  }, [isDropdownOpen, searchTerm]);
+
+  const filteredOptions = React.useMemo(() => {
+    const q = String(searchTerm || "").trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((option) =>
+      String(option?.label || "").toLowerCase().includes(q)
+    );
+  }, [options, searchTerm]);
 
   return (
     <section className="compare-chart-section">
@@ -57,8 +70,17 @@ const PortfolioCompareChart = ({
 
             {isDropdownOpen && (
               <div className="quarter-dropdown" style={{ minWidth: "100%" }}>
+                <div className="quarter-search-wrapper">
+                  <input
+                    type="text"
+                    className="quarter-search-input"
+                    placeholder="Search column..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
                 <div className="quarter-list">
-                  {options.map((option) => (
+                  {filteredOptions.map((option) => (
                     <div
                       key={option.key}
                       className={`quarter-item ${selectedKey === option.key ? "selected" : ""}`}
@@ -70,6 +92,9 @@ const PortfolioCompareChart = ({
                       <span className="item-label-bold">{option.label}</span>
                     </div>
                   ))}
+                  {!filteredOptions.length && (
+                    <div className="quarter-no-results">No matches found</div>
+                  )}
                 </div>
               </div>
             )}
