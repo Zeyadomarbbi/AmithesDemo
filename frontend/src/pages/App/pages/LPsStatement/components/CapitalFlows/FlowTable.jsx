@@ -1,10 +1,8 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlowTable/FlowTable.jsx
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import "./FlowTable.css";
 import { useNumberFormatter, useDateFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter.js";
-import { SortIcon } from "../../Icons.jsx";
-import { useTableSort, SortableHeaderRenderer } from '/src/components/Sort/TableSort';
-import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '/src/components/useFormatter';
+import { SortIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 
 /* ===================== HELPERS ===================== */
 
@@ -47,17 +45,42 @@ export default function FlowTable({
   search,
   breakdown,
   onSelectOperation,
+  shareClasses = [],
+  flowTypes = [],
   operations = [],
   lpAllocations = [],
   lps = [],
 }) {
+  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
   const formatNumber = useNumberFormatter();
-  const formatPercent = usePercentageFormatter();
+  const formatPercentage = usePercentageFormatter();
   const formatDate = useDateFormatter();
+  const view = operationFilter === "Capital call"
+    ? "capital"
+    : operationFilter === "Distribution"
+    ? "distribution"
+    : "all";
 
-  const view = getViewFromFilter(operationFilter);
+  // ── Filter operations by view ──────────────────────────────────────────────
+  const filteredOps = useMemo(() => {
+    const ops = Array.isArray(operations) ? operations : [];
+    if (view === "capital") return ops.filter((op) => getCategory(op) === "capital");
+    if (view === "distribution") return ops.filter((op) => getCategory(op) === "distribution");
+    return ops;
+  }, [operations, view]);
 
-  const operationById = useMemo(() => {
+  const shareClassLookup = useMemo(() => {
+    const map = {};
+    (Array.isArray(shareClasses) ? shareClasses : []).forEach((sc) => {
+      const id = String(sc?.share_class_id ?? sc?.id ?? "");
+      const name = sc?.share_class_name ?? sc?.name ?? null;
+      if (id && name) map[id] = name;
+    });
+    return map;
+  }, [shareClasses]);
+
+  // ── Flow type lookup: flow_type_id -> name ─────────────────────────────────
+  const flowTypeLookup = useMemo(() => {
     const map = {};
     (Array.isArray(flowTypes) ? flowTypes : []).forEach((ft) => {
       map[String(ft.flow_type_id)] = ft.name ?? `Flow ${ft.flow_type_id}`;
@@ -86,17 +109,12 @@ export default function FlowTable({
     return Array.from(seen.values());
   }, [filteredOps, flowTypeLookup]);
 
+  // ── Build operation rows ───────────────────────────────────────────────────
   const operationRows = useMemo(() => {
     return filteredOps.map((op) => {
       const opId = op?.lps_operation_details_id ?? op?.id;
       const category = getCategory(op);
-      const isDist = category === "Distribution";
-
-      const opAllocs = (Array.isArray(lpAllocations) ? lpAllocations : []).filter(
-        (a) => String(a?.lps_operation_details_id) === String(opId)
-      );
-      const totalCapitalCall = opAllocs.reduce((s, a) => s + Number(a?.capital_call ?? 0), 0);
-      const totalSharesIssued = opAllocs.reduce((s, a) => s + Number(a?.shares_issued ?? 0), 0);
+      const isDist = category === "distribution";
       const overallPct = Number(op?.overall_percentage_of_commitment ?? 0) * 100;
       const totalAmount = Number(op?.total_operation_amount ?? 0);
 
@@ -115,27 +133,32 @@ export default function FlowTable({
         category,
         label: op?.operation_name ?? op?.name ?? `Operation ${opId}`,
         date: op?.due_date ?? op?.notice_date ?? null,
-        calledAmount: isDist ? null : totalCapitalCall,
+        calledAmount: isDist ? null : totalAmount,
         calledPercent: isDist ? null : overallPct,
-        sharesIssued: isDist ? null : totalSharesIssued,
-        distribAmount: isDist ? totalCapitalCall : null,
+        distribAmount: isDist ? totalAmount : null,
         distribPercent: isDist ? overallPct : null,
-        sharesRedeemed: isDist ? 0 : null,
-        netCum: isDist ? null : Number(op?.total_operation_amount ?? 0),
+        netCum: isDist ? -totalAmount : totalAmount,
+        ...flowAmounts,
       };
     });
-  }, [operations, lpAllocations]);
+  }, [filteredOps]);
 
-  const lpsRows = useMemo(() => {
-    return (Array.isArray(lpAllocations) ? lpAllocations : []).map((alloc) => {
-      const opId = String(alloc?.lps_operation_details_id ?? "");
-      const op = operationById[opId];
-      const category = getCategory(op || {});
-      const isDist = category === "Distribution";
-      const lpName = getLpName(alloc?.lp_id, lps);
-      const capitalCall = Number(alloc?.capital_call ?? 0);
-      const calledPct = Number(alloc?.called_percentage ?? 0) * 100;
-      const sharesIssued = Number(alloc?.shares_issued ?? 0);
+  // ── Build LP rows ──────────────────────────────────────────────────────────
+const lpRows = useMemo(() => {
+  const byLp = {};
+
+  filteredOps.forEach((op) => {
+    const category = getCategory(op);
+    const isDist = category === "distribution";
+
+    // Get called_percentage per LP from parent lpAllocations (optional enrichment)
+    const opAllocs = op.lp_allocations ?? [];
+    const pctByLp = {};
+    const scByLp = {};
+    opAllocs.forEach((a) => {
+      pctByLp[String(a.lp_id)] = Number(a.called_percentage ?? 0) * 100;
+      if (a.share_class_id) scByLp[String(a.lp_id)] = String(a.share_class_id);
+    });
 
     // Drive rows from nested lp_allocations
     (op.flows ?? []).forEach((f) => {
@@ -173,35 +196,6 @@ export default function FlowTable({
         }
       });
     });
-  }, [lpAllocations, operationById, lps]);
-
-  const shareClassRows = useMemo(() => {
-    const byClass = {};
-    (Array.isArray(lpAllocations) ? lpAllocations : []).forEach((alloc) => {
-      const scId = String(alloc?.share_class_id ?? "-");
-      const opId = String(alloc?.lps_operation_details_id ?? "");
-      const op = operationById[opId];
-      const isDist = getCategory(op || {}) === "Distribution";
-
-      if (!byClass[scId]) {
-        byClass[scId] = {
-          id: `sc-${scId}`,
-          category: isDist ? "Distribution" : "Capital call",
-          shareClass: `Class ${scId}`,
-          calledAmount: 0,
-          calledPercent: 0,
-          sharesIssued: 0,
-          distribAmount: 0,
-          distribPercent: 0,
-          sharesRedeemed: 0,
-          _count: 0,
-          _isDist: isDist,
-        };
-      }
-      const entry = byClass[scId];
-      const capitalCall = Number(alloc?.capital_call ?? 0);
-      const calledPct = Number(alloc?.called_percentage ?? 0) * 100;
-      const sharesIssued = Number(alloc?.shares_issued ?? 0);
 
     // Enrich with called_percentage from opAllocs
     opAllocs.forEach((a) => {
@@ -274,36 +268,161 @@ const shareClassRows = useMemo(() => {
       }
     });
 
-    return Object.values(byClass).map((entry) => ({
-      ...entry,
-      calledPercent: entry._count > 0 ? entry.calledPercent / entry._count : 0,
-      distribPercent: entry._count > 0 ? entry.distribPercent / entry._count : 0,
-      calledAmount: entry._isDist ? null : entry.calledAmount,
-      sharesIssued: entry._isDist ? null : entry.sharesIssued,
-      distribAmount: entry._isDist ? entry.distribAmount : null,
-      sharesRedeemed: entry._isDist ? entry.sharesRedeemed : null,
-    }));
-  }, [lpAllocations, operationById]);
+    (op.flows ?? []).forEach((f) => {
+      if (isEqualizationFlow(f)) return;
+      const typeId = String(f.flow_type_id ?? "");
+      if (!typeId) return;
+      const key = `flow__${typeId}`;
 
-  const { baseRows, columnsByView } = useMemo(() => {
-    if (breakdown === "lps") return { baseRows: lpsRows, columnsByView: LPS_COLUMNS };
-    if (breakdown === "shareClasses") return { baseRows: shareClassRows, columnsByView: SHARE_CLASS_COLUMNS };
-    return { baseRows: operationRows, columnsByView: OPERATIONS_COLUMNS };
-  }, [breakdown, operationRows, lpsRows, shareClassRows]);
+      (f.lp_allocations ?? []).forEach((alloc) => {
+        const lpId = String(alloc.lp_id);
+        const scId = scByLp[lpId];
+        if (!scId) return;
+        const amount = Number(alloc.allocated_amount ?? 0);
 
-  const columns = columnsByView[view] ?? columnsByView.all;
+        if (!byClass[scId]) {
+          byClass[scId] = {
+            id: `sc-${scId}`,
+            category,
+            shareClass: shareClassLookup[scId] ?? `Class ${scId}`,
+            calledAmount: 0,
+            calledPercent: 0,
+            distribAmount: 0,
+            distribPercent: 0,
+          };
+        }
 
-  // Filter rows before passing to useTableSort
-  const filteredRows = useMemo(() => {
-    let data = [...baseRows];
+        const entry = byClass[scId];
+        entry[key] = (entry[key] ?? 0) + amount;
+      });
+    });
 
-    if (view === "capital") {
-      data = data.filter((r) => r.category === "Capital call");
-    } else if (view === "distribution") {
-      data = data.filter((r) => r.category === "Distribution");
+    // Enrich with called_percentage
+    Object.entries(pctBySc).forEach(([scId, { call, lpCommitments }]) => {
+      if (!byClass[scId]) return;
+      const totalCommitment = Object.values(lpCommitments).reduce((s, v) => s + v, 0);
+      const pct = totalCommitment > 0 ? (call / totalCommitment) * 100 : 0;
+      byClass[scId].calledPercent = pct;
+      byClass[scId].distribPercent = pct;
+    });
+  });
+
+  return Object.values(byClass).map((entry) => ({
+    ...entry,
+    calledAmount: entry.calledAmount || null,
+    distribAmount: entry.distribAmount || null,
+  }));
+}, [filteredOps, shareClassLookup]);
+
+  // ── Select rows ────────────────────────────────────────────────────────────
+  const baseRows = useMemo(() => {
+    if (breakdown === "lps") return lpRows;
+    if (breakdown === "shareClasses") return shareClassRows;
+    return operationRows;
+  }, [breakdown, operationRows, lpRows, shareClassRows]);
+
+  // ── Static columns ─────────────────────────────────────────────────────────
+  const staticColumns = useMemo(() => {
+    if (breakdown === "operations") {
+      if (view === "all") return [
+        { key: "label",         header: "Operation",           type: "text",    sortable: true },
+        { key: "date",          header: "Date",                type: "date",    sortable: true },
+        { key: "calledAmount",  header: "Called amount (€)",   type: "number",  sortable: true, align: "right" },
+        { key: "calledPercent", header: "% Called",            type: "percent", sortable: true, align: "right" },
+        { key: "distribAmount", header: "Distrib. amount (€)", type: "number",  sortable: true, align: "right" },
+        { key: "distribPercent",header: "% Distributed",       type: "percent", sortable: true, align: "right" },
+        { key: "netCum",        header: "Net cum. (€)",        type: "number",  sortable: true, align: "right" },
+      ];
+      if (view === "capital") return [
+        { key: "label",         header: "Operation",           type: "text",    sortable: true },
+        { key: "date",          header: "Date",                type: "date",    sortable: true },
+        { key: "calledPercent", header: "% Called",            type: "percent", sortable: true, align: "right" },
+        { key: "calledAmount",  header: "Called am. (€)",      type: "number",  sortable: true, align: "right" },
+      ];
+      return [
+        { key: "label",         header: "Operation",           type: "text",    sortable: true },
+        { key: "date",          header: "Date",                type: "date",    sortable: true },
+        { key: "distribPercent",header: "% Distributed",       type: "percent", sortable: true, align: "right" },
+        { key: "distribAmount", header: "Distrib. am. (€)",    type: "number",  sortable: true, align: "right" },
+      ];
     }
 
-    if (search && search.trim()) {
+    if (breakdown === "lps") {
+      if (view === "capital") return [
+        { key: "lp",            header: "LPs",                 type: "text",    sortable: false },
+        { key: "shareClass",    header: "Share class",         type: "text",    sortable: false },
+        { key: "calledPercent", header: "% Called",            type: "percent", sortable: true, align: "right" },
+        { key: "calledAmount",  header: "Called am. (€)",      type: "number",  sortable: true, align: "right" },
+      ];
+      if (view === "distribution") return [
+        { key: "lp",            header: "LPs",                 type: "text",    sortable: false },
+        { key: "shareClass",    header: "Share class",         type: "text",    sortable: false },
+        { key: "distribPercent",header: "% Distributed",       type: "percent", sortable: true, align: "right" },
+        { key: "distribAmount", header: "Distrib. am. (€)",    type: "number",  sortable: true, align: "right" },
+      ];
+      return [
+        { key: "lp",            header: "LPs",                 type: "text",    sortable: false },
+        { key: "shareClass",    header: "Share class",         type: "text",    sortable: false },
+        { key: "calledPercent", header: "% Called",            type: "percent", sortable: true, align: "right" },
+        { key: "calledAmount",  header: "Called am. (€)",      type: "number",  sortable: true, align: "right" },
+        { key: "distribPercent",header: "% Distributed",       type: "percent", sortable: true, align: "right" },
+        { key: "distribAmount", header: "Distrib. am. (€)",    type: "number",  sortable: true, align: "right" },
+      ];
+    }
+
+    // shareClasses
+    if (view === "capital") return [
+      { key: "shareClass",    header: "Share class",           type: "text",    sortable: false },
+      { key: "calledPercent", header: "% Called",              type: "percent", sortable: true, align: "right" },
+      { key: "calledAmount",  header: "Called am. (€)",        type: "number",  sortable: true, align: "right" },
+    ];
+    if (view === "distribution") return [
+      { key: "shareClass",    header: "Share class",           type: "text",    sortable: false },
+      { key: "distribPercent",header: "% Distributed",         type: "percent", sortable: true, align: "right" },
+      { key: "distribAmount", header: "Distrib. am. (€)",      type: "number",  sortable: true, align: "right" },
+    ];
+    return [
+      { key: "shareClass",    header: "Share class",           type: "text",    sortable: false },
+      { key: "calledPercent", header: "% Called",              type: "percent", sortable: true, align: "right" },
+      { key: "calledAmount",  header: "Called am. (€)",        type: "number",  sortable: true, align: "right" },
+      { key: "distribPercent",header: "% Distributed",         type: "percent", sortable: true, align: "right" },
+      { key: "distribAmount", header: "Distrib. am. (€)",      type: "number",  sortable: true, align: "right" },
+    ];
+  }, [view, breakdown]);
+
+  // Insert dynamic cols before last static col, only for capital/distribution views
+const columns = useMemo(() => {
+    if (view === "all") return staticColumns;
+
+    // Find the index of the main amount column (calledAmount or distribAmount)
+    const amountIndex = staticColumns.findIndex(
+      (c) => c.key === "calledAmount" || c.key === "distribAmount"
+    );
+
+    if (amountIndex === -1) {
+      return [...staticColumns, ...dynamicFlowCols];
+    }
+
+    const before = staticColumns.slice(0, amountIndex + 1); // Up to and including Amount
+    const after = staticColumns.slice(amountIndex + 1);    // Everything else
+
+    return [...before, ...dynamicFlowCols, ...after];
+  }, [staticColumns, dynamicFlowCols, view]);
+
+  // ── Sort ───────────────────────────────────────────────────────────────────
+  const handleSort = (key) => {
+    const col = columns.find((c) => c.key === key);
+    if (!col?.sortable) return;
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const rows = useMemo(() => {
+    let data = [...baseRows];
+
+    if (search?.trim()) {
       const s = search.toLowerCase();
       data = data.filter((r) => {
         const label = r.label ?? r.lp ?? r.shareClass ?? "";
@@ -311,11 +430,27 @@ const shareClassRows = useMemo(() => {
       });
     }
 
+    const col = columns.find((c) => c.key === sortConfig.key);
+    if (col?.sortable) {
+      data.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        if (col.type === "date") {
+          aVal = aVal ? new Date(aVal).getTime() : null;
+          bVal = bVal ? new Date(bVal).getTime() : null;
+        }
+        if (aVal === null || aVal === undefined) return 1;
+        if (bVal === null || bVal === undefined) return -1;
+        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
     return data;
-  }, [baseRows, view, search, breakdown]);
+  }, [baseRows, search, sortConfig, columns]);
 
-  const { sorted: rows, sortKey, toggleSort } = useTableSort(filteredRows, "date");
-
+  // ── Totals ─────────────────────────────────────────────────────────────────
   const totals = useMemo(() => {
     const obj = {};
     columns.forEach((col) => {
@@ -329,24 +464,57 @@ const shareClassRows = useMemo(() => {
       });
     });
 
-  const formatCell = (row, col) => {
-    const value = row[col.key];
-    if (value === null || value === undefined || value === "") return "-";
+    // Override percent totals — sum of % makes no sense, compute from amounts
+    if (obj.calledPercent !== undefined && obj.calledAmount !== undefined) {
+      // Get total_fund_commitment from the latest operation by due_date
+      const latestOp = [...filteredOps].sort((a, b) =>
+        new Date(b.due_date ?? b.notice_date ?? 0) - new Date(a.due_date ?? a.notice_date ?? 0)
+      )[0];
+      const tfc = Number(latestOp?.total_fund_commitment ?? 0);
+      obj.calledPercent = tfc > 0 ? (obj.calledAmount / tfc) * 100 : 0;
+    }
+    if (obj.distribPercent !== undefined && obj.distribAmount !== undefined) {
+      const latestOp = [...filteredOps].sort((a, b) =>
+        new Date(b.due_date ?? b.notice_date ?? 0) - new Date(a.due_date ?? a.notice_date ?? 0)
+      )[0];
+      const tfc = Number(latestOp?.total_fund_commitment ?? 0);
+      obj.distribPercent = tfc > 0 ? (obj.distribAmount / tfc) * 100 : 0;
+    }
+
+    return obj;
+  }, [rows, columns, filteredOps]);
+
+const formatCell = (row, col) => {
+    const v = row[col.key];
+    if (v === null || v === undefined || v === "") return "-";
+    
     switch (col.type) {
-      case "date": return formatDate(value);
-      case "number": return formatNumber(value);
-      case "percent": return formatPercent(value);
-      default: return value;
+      case "date":
+        return formatDate(v);
+      case "number":
+        return formatNumber(v);
+      case "percent":
+        return formatPercentage(v);
+      default:
+        return v;
     }
   };
 
-  const formatTotalCell = (col) => {
-    const value = totals[col.key];
-    if (value === null || value === undefined || isNaN(value)) return "";
-    if (col.type === "percent") return formatPercent(value);
-    if (col.type === "number") return formatNumber(value);
-    return "";
+  const formatTotal = (col) => {
+    const v = totals[col.key];
+    if (v === null || v === undefined || isNaN(v)) return "";
+    
+    switch (col.type) {
+      case "number":
+        return formatNumber(v);
+      case "percent":
+        return formatPercentage(v);
+      default:
+        return "";
+    }
   };
+
+  const isClickable = breakdown === "operations";
 
   return (
     <div className="cf-root">
@@ -358,18 +526,20 @@ const shareClassRows = useMemo(() => {
             <thead>
               <tr>
                 {columns.map((col) => (
-                  <th key={col.key} className={col.align === "right" ? "cf-num" : undefined}>
-                    {col.sortable ? (
-                      <SortableHeaderRenderer
-                        label={col.header}
-                        columnKey={col.key}
-                        currentSortKey={sortKey}
-                        toggleSort={toggleSort}
-                        center={col.align === "right"}
-                        showCurrency={false}
-                      />
-                    ) : (
-                      col.header
+                  <th
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    className={[
+                      col.sortable ? "cf-sortable" : "",
+                      col.align === "right" ? "cf-num" : "",
+                      sortConfig.key === col.key ? "cf-sorted" : "",
+                    ].filter(Boolean).join(" ") || undefined}
+                  >
+                    {col.header}
+                    {col.sortable && (
+                      <span className="cf-sort">
+                        <SortIcon />
+                      </span>
                     )}
                   </th>
                 ))}

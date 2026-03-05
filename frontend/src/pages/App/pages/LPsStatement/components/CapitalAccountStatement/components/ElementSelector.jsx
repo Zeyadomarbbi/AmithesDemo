@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDownIcon } from '../../../Icons';
-import { CheckMarkIcon } from '../../../../../../../components/Icons';
+import { ChevronDownIcon } from '../../../../../../../components/Icons/DirectionIcons';
+import { CheckMarkIcon } from '../../../../../../../components/Icons/InteractiveIcons';
 import SearchBar from '../../../../../../../components/SearchBar/SearchBar';
 import './ElementSelector.css';
 

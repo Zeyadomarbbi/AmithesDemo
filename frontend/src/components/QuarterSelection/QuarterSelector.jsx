@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDownIcon, PlusIcon, RightArrowIcon, CheckMarkIcon } from '../Icons'; 
+import { ChevronDownIcon, RightArrowIcon } from '../../components/Icons/DirectionIcons'; 
+import { PlusIcon } from '../../components/Icons/InteractiveIcons'; 
+import { CheckMarkIcon } from '../../components/Icons/InteractiveIcons'; 
 import AddNewTimeframeModal from './AddNewTimeframeModal/AddNewTimeframeModal';
 import { PermissionGate } from '../../hooks/Auth/PermissionGate';
 import SearchBar from '../SearchBar/SearchBar';

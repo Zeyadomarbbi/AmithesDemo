@@ -130,7 +130,7 @@ export default function NewFundModal({ open, onClose, onCreate }) {
                     </option>
                   ))}
                 </select>
-                <ChevronDown />
+                <ChevronDownIcon />
               </div>
           </div>
         </div>
