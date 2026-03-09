@@ -12,11 +12,8 @@
   align-items: center;
   padding: 8px 12px;
   gap: 8px;
-  
-  /* CHANGED: Replace fixed width with min-width and auto width */
   width: auto;      
-  max-width: 100%;  /* Prevents it from breaking parent containers */
-
+  max-width: 100%;  
   height: 40px;
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
@@ -31,6 +28,11 @@
 .quarter-selector-button.active {
   background-color: #F8FAFC; 
   border-color: rgba(204, 205, 206, 0.5);
+}
+
+.quarter-selector-button.loading {
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .quarter-text-group {
@@ -78,23 +80,25 @@
   white-space: nowrap;
 }
 
+.quarter-search-wrapper {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
 
 /* --- LIST ITEMS --- */
 .quarter-list {
   display: flex;
   flex-direction: column;
-  max-height: 300px;
+  max-height: 250px;
   overflow-y: auto;
   gap: 2px;
 }
 
-
 /* UNIFIED ITEM LAYOUT */
 .quarter-item {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  justify-content: flex-start; /* Aligns checkbox/label to left */
-  gap: 12px; 
+  justify-content: space-between;
   padding: 8px 12px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -112,6 +116,39 @@
   background-color: #F8FAFC; 
 }
 
+.quarter-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.quarter-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+}
+
+.edit-action {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.edit-action:hover {
+  opacity: 1;
+}
+
+.quarter-empty-state {
+  padding: 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
 /* --- CHECKBOX STYLING --- */
 .qs-checkbox {
   width: 16px;
@@ -127,8 +164,8 @@
 }
 
 .qs-checkbox.checked {
-  background-color: #F7A93B; /* Updated Color */
-  border-color: #F7A93B;     /* Updated Color */
+  background-color: #F7A93B; 
+  border-color: #F7A93B;    
 }
 
 /* --- TEXT & DETAILS --- */

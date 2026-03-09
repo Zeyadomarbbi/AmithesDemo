@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { saveNewTimeframe, useTimeframes } from "../../../../hooks/Core/useTimeframes";
+import { useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 import { API_BASE_URL } from "../../../../../../hooks/api/apiConfig";
 
 export const parseFxValue = (value) => {
@@ -465,8 +465,8 @@ export const useFxDealsRows = (
   return { investments, isLoading };
 };
 
-export const useFxDealsTimeframes = (fundId, maxSelections = null) => {
-  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
+export const useFxDealsTimeframes = (maxSelections = null) => {
+  const { quarters, isLoading, saveTimeframe } = useTimeframeContext();
   const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
   const [debouncedSelectedTimeframeIds, setDebouncedSelectedTimeframeIds] = useState([]);
 
@@ -485,58 +485,37 @@ export const useFxDealsTimeframes = (fundId, maxSelections = null) => {
     const timeoutId = setTimeout(() => {
       setDebouncedSelectedTimeframeIds(selectedTimeframeIds);
     }, 1000);
-
     return () => clearTimeout(timeoutId);
   }, [selectedTimeframeIds]);
 
-  const handleToggleTimeframe = useCallback(
-    (timeframeId) => {
-      const id = Number(timeframeId);
-      if (!Number.isFinite(id)) return;
+  const handleToggleTimeframe = useCallback((timeframeId) => {
+    const id = Number(timeframeId);
+    if (!Number.isFinite(id)) return;
+    setSelectedTimeframeIds((prev) => {
+      if (prev.includes(id)) return prev.filter((item) => item !== id);
+      const next = [...prev, id];
+      if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) return next.slice(-Number(maxSelections));
+      return next;
+    });
+  }, [maxSelections]);
 
-      setSelectedTimeframeIds((prev) => {
-        if (prev.includes(id)) {
-          return prev.filter((item) => item !== id);
-        }
-        const next = [...prev, id];
-        if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) {
-          return next.slice(-Number(maxSelections));
-        }
-        return next;
-      });
-    },
-    [maxSelections]
-  );
+  const handleSaveTimeframe = useCallback(async (newTimeframe) => {
+    const saved = await saveTimeframe(newTimeframe);
+    setSelectedTimeframeIds((prev) => {
+      const next = [...prev, Number(saved.id)];
+      if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) return next.slice(-Number(maxSelections));
+      return next;
+    });
+    return saved;
+  }, [maxSelections, saveTimeframe]);
 
-  const handleSaveTimeframe = useCallback(
-    async (newTimeframe) => {
-      const saved = await saveNewTimeframe(fundId, newTimeframe);
-      setQuarters((prev) => [...prev, saved]);
-      setSelectedTimeframeIds((prev) => {
-        const next = [...prev, Number(saved.id)];
-        if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) {
-          return next.slice(-Number(maxSelections));
-        }
-        return next;
-      });
-      return saved;
-    },
-    [fundId, maxSelections, setQuarters]
-  );
-
-  const selectedTimeframes = useMemo(
-    () =>
-      quarters.filter((quarter) =>
-        selectedTimeframeIds.includes(Number(quarter.id))
-      ),
+  const selectedTimeframes = useMemo(() =>
+    quarters.filter((quarter) => selectedTimeframeIds.includes(Number(quarter.id))),
     [quarters, selectedTimeframeIds]
   );
 
-  const debouncedSelectedTimeframes = useMemo(
-    () =>
-      quarters.filter((quarter) =>
-        debouncedSelectedTimeframeIds.includes(Number(quarter.id))
-      ),
+  const debouncedSelectedTimeframes = useMemo(() =>
+    quarters.filter((quarter) => debouncedSelectedTimeframeIds.includes(Number(quarter.id))),
     [quarters, debouncedSelectedTimeframeIds]
   );
 

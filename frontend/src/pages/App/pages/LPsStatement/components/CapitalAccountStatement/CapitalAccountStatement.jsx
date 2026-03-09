@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect  } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
-import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector.jsx";
+import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector.jsx";
+import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 import ElementSelector from "./components/ElementSelector.jsx";
 import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
-import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes.jsx";
 import { useCASKPIs } from "../../../../hooks/LPsStatement/useCASKPIs.js";
 import { downloadCASAsWord } from "./utils/downloadCASAsWord.js";
 import { DownloadIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
@@ -31,13 +31,9 @@ function mapServiceData(d) {
     return sc ? (d.irr.by_share_class?.[sc] ?? null) : (d.irr.fund_irr ?? null);
   };
 
-  // Build LP values lookup
   const lpKpis = d.lp_kpis ?? {};
   const lpVal = (lpId, metric) => lpKpis[lpId]?.[metric] ?? null;
-
-  // All column keys: total + scKeys + lpIds
   const lpIds = Object.keys(lpKpis).map(String);
-  const allKeys = [null, ...scKeys, ...lpIds]; // null = total
 
   const buildAllValues = (scGetter, lpGetter) => {
     const values = { total: scGetter(null) };
@@ -47,18 +43,18 @@ function mapServiceData(d) {
   };
 
   const kpiRows = [
-    { kpi: "Commitment",       values: buildAllValues((sc) => val("commitment", sc),      (id) => lpVal(id, "commitment")) },
-    { kpi: "Capital called",   values: buildAllValues((sc) => val("capital_called", sc),  (id) => lpVal(id, "capital_called")) },
-    { kpi: "Undrawn",          values: buildAllValues((sc) => val("undrawn", sc),          (id) => lpVal(id, "undrawn")) },
-    { kpi: "Distributed",      values: buildAllValues((sc) => val("distributed", sc),     (id) => lpVal(id, "distributed")) },
-    { kpi: "NAV",              values: buildAllValues((sc) => val("nav", sc),              (id) => lpVal(id, "nav")) },
+    { kpi: "Commitment",        values: buildAllValues((sc) => val("commitment", sc),        (id) => lpVal(id, "commitment")) },
+    { kpi: "Capital called",    values: buildAllValues((sc) => val("capital_called", sc),    (id) => lpVal(id, "capital_called")) },
+    { kpi: "Undrawn",           values: buildAllValues((sc) => val("undrawn", sc),           (id) => lpVal(id, "undrawn")) },
+    { kpi: "Distributed",       values: buildAllValues((sc) => val("distributed", sc),      (id) => lpVal(id, "distributed")) },
+    { kpi: "NAV",               values: buildAllValues((sc) => val("nav", sc),               (id) => lpVal(id, "nav")) },
     { kpi: "NAV per share", isExpandable: true,
-                               values: buildAllValues((sc) => val("nav_per_share", sc),   (_) => null) },
-    { kpi: "IRR", suffix: "%", values: buildAllValues(irrVal,                             (_) => null) },
-    { kpi: "TVPI", suffix: "x", values: buildAllValues((sc) => val("tvpi", sc),           (id) => lpVal(id, "tvpi")) },
-    { kpi: "RVPI", suffix: "x", values: buildAllValues((sc) => val("rvpi", sc),           (id) => lpVal(id, "rvpi")) },
-    { kpi: "DPI",  suffix: "x", values: buildAllValues((sc) => val("dpi", sc),            (id) => lpVal(id, "dpi")) },
-    { kpi: "Number of shares", values: buildAllValues((sc) => val("shares", sc),          (_) => null) },
+                                values: buildAllValues((sc) => val("nav_per_share", sc),     (_) => null) },
+    { kpi: "IRR", suffix: "%",  values: buildAllValues(irrVal,                              (_) => null) },
+    { kpi: "TVPI", suffix: "x", values: buildAllValues((sc) => val("tvpi", sc),             (id) => lpVal(id, "tvpi")) },
+    { kpi: "RVPI", suffix: "x", values: buildAllValues((sc) => val("rvpi", sc),             (id) => lpVal(id, "rvpi")) },
+    { kpi: "DPI",  suffix: "x", values: buildAllValues((sc) => val("dpi", sc),              (id) => lpVal(id, "dpi")) },
+    { kpi: "Number of shares",  values: buildAllValues((sc) => val("shares", sc),           (_) => null) },
     { kpi: "% Called",    suffix: "%", values: buildAllValues((sc) => val("pct_called", sc),      (id) => lpVal(id, "pct_called")) },
     { kpi: "% Distributed", suffix: "%", values: buildAllValues((sc) => val("pct_distributed", sc), (id) => lpVal(id, "pct_distributed")) },
   ];
@@ -83,18 +79,18 @@ function mapServiceData(d) {
   return { kpiRows, navDetails, scKeys, lpKpis };
 }
 
-export default function CapitalAccountStatement() {
-  const { fundId }    = useOutletContext();
-  const navigate      = useNavigate();
-  const location      = useLocation();
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+function CapitalAccountStatementContent() {
+  const { fundId }   = useOutletContext();
+  const navigate     = useNavigate();
+  const location     = useLocation();
+  const { quarters } = useTimeframeContext();
 
-  const { quarters, isLoading: quartersLoading, setQuarters } = useTimeframes(fundId);
+  const [sortConfig, setSortConfig]         = useState({ key: null, direction: "asc" });
   const [selectedElements, setSelectedElements] = useState([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [isSaving, setIsSaving]             = useState(false);
+  const [toast, setToast]                   = useState(null);
   const [adjustedNavValues, setAdjustedNavValues] = useState({});
-  const [breakdownMode, setBreakdownMode] = useState("shareclass"); // "shareclass" | "lp"
+  const [breakdownMode, setBreakdownMode]   = useState("shareclass");
 
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
@@ -102,38 +98,12 @@ export default function CapitalAccountStatement() {
   }, [location.search]);
 
   const { data: casData, isLoading: casLoading, isError, saveAdjustedNav } = useCASKPIs(fundId, selectedTimeframeIds[0]);
-  console.log("CAS Data:", casData);
+
   const mapped = useMemo(() => mapServiceData(casData), [casData]);
-  // Correct one, here lies LPs
-  // const columns = useMemo(() => {
-  //   const totalColumn = { key: "total", label: "Total", isTotal: true };
-
-  //   if (breakdownMode === "lp") {
-  //     const lpKpis = casData?.lp_kpis ?? {};
-  //     const lpColumns = Object.entries(lpKpis).map(([lpId, lp]) => ({
-  //       key:   String(lpId),
-  //       label: `${lp.name} (${lp.share_class})`,
-  //       type:  "lp",
-  //     }));
-  //     return [totalColumn, ...lpColumns];
-  //   }
-
-  //   const scColumns = Object.values(casData?.share_classes ?? {}).map((sc) => ({
-  //     key:   sc.name,
-  //     label: sc.name,
-  //     type:  "sc",
-  //   }));
-  //   return [totalColumn, ...scColumns];
-  // }, [casData, breakdownMode]);
 
   const columns = useMemo(() => {
     const totalColumn = { key: "total", label: "Total", isTotal: true };
-
-    if (breakdownMode === "lp") {
-      // LP columns — hidden for now
-      return [totalColumn];
-    }
-
+    if (breakdownMode === "lp") return [totalColumn];
     const scColumns = Object.values(casData?.share_classes ?? {}).map((sc) => ({
       key:   sc.name,
       label: sc.name,
@@ -151,15 +121,19 @@ export default function CapitalAccountStatement() {
   };
 
   useEffect(() => {
-    if (casData?.adjusted_nav) {
-      setAdjustedNavValues(casData.adjusted_nav);
-    }
+    if (casData?.adjusted_nav) setAdjustedNavValues(casData.adjusted_nav);
   }, [casData]);
 
-  // Reset selected elements whenever columns change (mode switch or data load)
   useEffect(() => {
     setSelectedElements(columns.map((c) => c.key));
   }, [columns]);
+
+  useEffect(() => {
+    if (selectedTimeframeIds.length === 0 && quarters?.length > 0) {
+      const latest = [...quarters].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      setTimeframesInUrl([latest.id]);
+    }
+  }, [selectedTimeframeIds.length, quarters]);
 
   const handleToggleTimeframe = (id) => {
     const numId = Number(id);
@@ -173,16 +147,6 @@ export default function CapitalAccountStatement() {
     );
   };
 
-  const handleSaveNew = async (newTimeframe) => {
-    try {
-      const formatted = await saveNewTimeframe(fundId, newTimeframe);
-      setQuarters((prev) => [...(Array.isArray(prev) ? prev : []), formatted]);
-      setTimeframesInUrl([Number(formatted.id)]);
-    } catch (error) {
-      console.error("CapitalAccountStatement: timeframe save error:", error);
-    }
-  };
-
   const parseCellNumber = (raw) => {
     if (raw == null) return null;
     const cleaned = String(raw).trim().replace(/\s/g, "").replace(/,/g, ".").replace(/[^\d.-]/g, "");
@@ -194,9 +158,8 @@ export default function CapitalAccountStatement() {
     const sourceData = mapped?.kpiRows;
     if (!sourceData) return [];
     if (!sortConfig.key) return sourceData;
-
-    const dir      = sortConfig.direction === "desc" ? -1 : 1;
-    const { key }  = sortConfig;
+    const dir     = sortConfig.direction === "desc" ? -1 : 1;
+    const { key } = sortConfig;
     return [...sourceData].sort((a, b) => {
       if (key === "kpi") return a.kpi.localeCompare(b.kpi) * dir;
       const aVal = parseCellNumber(a?.values?.[key]);
@@ -207,13 +170,6 @@ export default function CapitalAccountStatement() {
       return (aVal < bVal ? -1 : aVal > bVal ? 1 : 0) * dir;
     });
   }, [sortConfig, mapped]);
-
-  React.useEffect(() => {
-    if (selectedTimeframeIds.length === 0 && quarters?.length > 0) {
-      const latest = [...quarters].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-      setTimeframesInUrl([latest.id]);
-    }
-  }, [selectedTimeframeIds.length, quarters]);
 
   const visibleColumns = useMemo(() => {
     if (!columns) return [];
@@ -244,18 +200,13 @@ export default function CapitalAccountStatement() {
     });
   };
 
-  const isLoading = casLoading;
-
   return (
     <section className="lp-capital-account">
       <div className="lp-cas-topbar">
         <div className="lp-cas-period">
-          <QuarterSelector
-            options={quarters}
-            selected={selectedTimeframeIds}
+          <TimeframeSelector
+            selected={selectedTimeframeIds[0]}
             onChange={handleToggleTimeframe}
-            onSaveNew={handleSaveNew}
-            isLoading={quartersLoading}
             isSingle={true}
           />
         </div>
@@ -282,17 +233,14 @@ export default function CapitalAccountStatement() {
             Download
           </button>
           <ElementSelector
-            options={columns.map((col) => ({
-              key:   col.key,
-              label: col.label,
-            }))}
+            options={columns.map((col) => ({ key: col.key, label: col.label }))}
             selected={selectedElements}
             onChange={handleToggleElement}
           />
         </div>
       </div>
 
-      {isLoading ? (
+      {casLoading ? (
         <PageSpinner label="Loading statement data..." />
       ) : isError ? (
         <PageError message="There was an error fetching the Capital Account Statement. Please try again later." />
@@ -301,7 +249,7 @@ export default function CapitalAccountStatement() {
           columns={visibleColumns}
           data={sortedKpiRows}
           navDetails={mapped?.navDetails ?? []}
-          isLoading={isLoading}
+          isLoading={casLoading}
           isError={isError}
           adjustedNavValues={adjustedNavValues}
           setAdjustedNavValues={setAdjustedNavValues}
@@ -317,11 +265,7 @@ export default function CapitalAccountStatement() {
 
       <div className="fund-identity-footer">
         <div className="fund-identity-actions">
-          <button
-            className="fund-identity-btn-save"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+          <button className="fund-identity-btn-save" onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
@@ -336,5 +280,14 @@ export default function CapitalAccountStatement() {
         />
       )}
     </section>
+  );
+}
+
+export default function CapitalAccountStatement() {
+  const { fundId } = useOutletContext();
+  return (
+    <TimeframeProvider fundId={fundId}>
+      <CapitalAccountStatementContent />
+    </TimeframeProvider>
   );
 }

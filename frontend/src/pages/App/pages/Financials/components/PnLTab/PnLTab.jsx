@@ -1,24 +1,18 @@
-// src/pages/App/pages/Financials/components/PnLTab/PnLTab.jsx
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 
-import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
+import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
+import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 import { RefreshUpIcon, DownloadIcon, EditLineIcon, AddFileIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import Toast from "../../../../components/Toast/Toast.jsx";
-import { useTimeframes, saveNewTimeframe } from "../../../../hooks/Core/useTimeframes";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
 import PnLTax from "./PnLTables/PnLTax.jsx";
 import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
-
-// Import the new hooks
 import { usePnLApi } from "../../../../hooks/Financials/usePnLApi"; 
 import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload"; 
 import "./PnL.css";
 
-/* -----------------------------
-   helpers
------------------------------ */
 const makeId = (prefix) =>
   `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
@@ -57,10 +51,7 @@ function valuesMapToRows(lines, valueMap) {
   });
 }
 
-/* -----------------------------
-   component
------------------------------ */
-const PnLTab = () => {
+function PnLTabContent() {
   const { fundId } = useOutletContext();
   const params = useParams();
   const effectiveFundId = fundId || params?.fundId || params?.id || "";
@@ -68,34 +59,28 @@ const PnLTab = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { quarters, isLoading, setQuarters } = useTimeframes(effectiveFundId);
+  const { quarters, isLoading } = useTimeframeContext();
   const [toast, setToast] = useState(null);
   
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
-    return (
-      qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || []
-    );
+    return qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || [];
   }, [location.search]);
 
-  // Hook Integrations
   const { fetchPnL, upsertValue, createLineItem } = usePnLApi(effectiveFundId);
   const { fileInputRef, uploading, handleUploadClick, handleFileSelected } = usePnLUpload(effectiveFundId, selectedTimeframeIds);
 
   const setTimeframesInUrl = (ids) => {
     const qp = new URLSearchParams(location.search);
     const cleaned = (Array.isArray(ids) ? ids : []).map(Number).filter((n) => Number.isFinite(n));
-
     if (cleaned.length === 0) qp.delete("timeframes");
     else qp.set("timeframes", cleaned.join(","));
-
     navigate({ search: qp.toString() }, { replace: true });
   };
 
   const handleToggleTimeframe = (id) => {
     const numId = Number(id);
     if (!Number.isFinite(numId)) return;
-
     if (selectedTimeframeIds.includes(numId)) {
       setTimeframesInUrl(selectedTimeframeIds.filter((x) => x !== numId));
     } else {
@@ -103,22 +88,10 @@ const PnLTab = () => {
     }
   };
 
-  const handleSaveNew = async (newTimeframe) => {
-    try {
-      const formatted = await saveNewTimeframe(effectiveFundId, newTimeframe);
-      setQuarters((prev) => [...(Array.isArray(prev) ? prev : []), formatted]);
-      setTimeframesInUrl([...selectedTimeframeIds, Number(formatted.id)]);
-    } catch (error) {
-      console.error("PnLTab: Persistence error:", error);
-    }
-  };
-
-  // UI toggles
   const [showIncome, setShowIncome] = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
   const [showTax, setShowTax] = useState(true);
 
-  // Lines & Values
   const [incomeLines, setIncomeLines] = useState([]);
   const [expenseLines, setExpenseLines] = useState([]);
   const [taxLines, setTaxLines] = useState([]);
@@ -140,15 +113,12 @@ const PnLTab = () => {
     return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
   }, [sortedQuarters, selectedTimeframeIds]);
 
-  // Fetch logic extracted so it can be reused in the save workflow
   const loadPnL = useCallback(async () => {
     if (!effectiveFundId) return;
     setPnlLoading(true);
     setPnlError("");
-
     try {
       const data = await fetchPnL(selectedTimeframeIds);
-
       const normalizeLines = (arr) =>
         (arr || []).map((x) => ({
           ...x,
@@ -156,15 +126,12 @@ const PnLTab = () => {
           label: x.name ?? x.label ?? "",
           isCustom: false,
         }));
-
       const incLines = normalizeLines(data.incomeLines);
       const expLines = normalizeLines(data.expenseLines);
-      const taxLs = normalizeLines(data.taxLines);
-
+      const taxLs    = normalizeLines(data.taxLines);
       setIncomeLines(incLines);
       setExpenseLines(expLines);
       setTaxLines(taxLs);
-
       setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
       setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
       setTaxValues(valuesMapToRows(taxLs, data.taxValues));
@@ -175,9 +142,7 @@ const PnLTab = () => {
     }
   }, [effectiveFundId, selectedTimeframeIds, fetchPnL]);
 
-  useEffect(() => {
-    loadPnL();
-  }, [loadPnL]);
+  useEffect(() => { loadPnL(); }, [loadPnL]);
 
   useEffect(() => {
     setIncomeValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
@@ -185,7 +150,6 @@ const PnLTab = () => {
     setTaxValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
   }, [headerPeriods]);
 
-  // totals
   const totalIncomeByPeriod = useMemo(() => {
     const out = {};
     headerPeriods.forEach((p) => (out[p.id] = sumForPeriod(incomeValues, p.id)));
@@ -215,7 +179,6 @@ const PnLTab = () => {
     return out;
   }, [headerPeriods, totalIncomeByPeriod, totalExpensesByPeriod, totalTaxByPeriod]);
 
-  // row actions
   const addIncomeRow = () => {
     setIncomeLines((prev) => [...prev, { id: makeId("inc"), label: "", isCustom: true }]);
     setIncomeValues((prev) => [...(Array.isArray(prev) ? prev : []), { byPeriod: {} }]);
@@ -245,52 +208,32 @@ const PnLTab = () => {
 
   const handleDownload = () => {
     const periodHeaders = headerPeriods.map((p) => getPeriodLabel(p));
-
-    const buildSectionRows = (lines, values, totals, sectionName) => {
-      const rows = [
-        ["Line Item", ...periodHeaders],
-        ...(lines || []).map((line, idx) => {
-          const byPeriod = values?.[idx]?.byPeriod || {};
-          return [
-            line?.label || line?.name || "",
-            ...headerPeriods.map((p) => Number(byPeriod[String(p.id)] || 0)),
-          ];
-        }),
-        [
-          `Total ${sectionName}`,
-          ...headerPeriods.map((p) => Number(totals?.[p.id] || 0)),
-        ],
-      ];
-      return rows;
-    };
-
+    const buildSectionRows = (lines, values, totals, sectionName) => [
+      ["Line Item", ...periodHeaders],
+      ...(lines || []).map((line, idx) => {
+        const byPeriod = values?.[idx]?.byPeriod || {};
+        return [line?.label || line?.name || "", ...headerPeriods.map((p) => Number(byPeriod[String(p.id)] || 0))];
+      }),
+      [`Total ${sectionName}`, ...headerPeriods.map((p) => Number(totals?.[p.id] || 0))],
+    ];
     const netRows = [
       ["Metric", ...periodHeaders],
-      [
-        "Net Profit / Net loss",
-        ...headerPeriods.map((p) => Number(netByPeriod?.[p.id] || 0)),
-      ],
+      ["Net Profit / Net loss", ...headerPeriods.map((p) => Number(netByPeriod?.[p.id] || 0))],
     ];
-
     exportWorkbook(`pnl-fund-${effectiveFundId}.xlsx`, [
-      { name: "Income", rows: buildSectionRows(incomeLines, incomeValues, totalIncomeByPeriod, "Income") },
+      { name: "Income",  rows: buildSectionRows(incomeLines,  incomeValues,  totalIncomeByPeriod,   "Income") },
       { name: "Expense", rows: buildSectionRows(expenseLines, expenseValues, totalExpensesByPeriod, "Expense") },
-      { name: "Tax", rows: buildSectionRows(taxLines, taxValues, totalTaxByPeriod, "Tax") },
-      { name: "Net", rows: netRows },
+      { name: "Tax",     rows: buildSectionRows(taxLines,     taxValues,     totalTaxByPeriod,      "Tax") },
+      { name: "Net",     rows: netRows },
     ]);
   };
 
-  /* -----------------------------
-     SAVE DB PIPELINE
-  ----------------------------- */
   const [savingAll, setSavingAll] = useState(false);
-
   const isFilled = (v) => !(v === "" || v === null || v === undefined);
 
   const runInBatches = async (items, batchSize, fn) => {
     for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize);
-      await Promise.all(batch.map(fn));
+      await Promise.all(items.slice(i, i + batchSize).map(fn));
     }
   };
 
@@ -300,13 +243,9 @@ const PnLTab = () => {
       for (let i = 0; i < nextLines.length; i++) {
         const line = nextLines[i];
         if (!line?.isCustom) continue;
-
         const name = String(line?.label || "").trim();
-        if (!name) continue; 
-
-        // Uses the new hook method
+        if (!name) continue;
         const created = await createLineItem({ category, name });
-
         nextLines[i] = {
           ...line,
           id: created.line_item_id,
@@ -319,19 +258,16 @@ const PnLTab = () => {
       }
       return { nextLines, nextValues: values };
     };
-
-    const inc = await persistSection("income", incomeLines, incomeValues);
+    const inc = await persistSection("income",  incomeLines,  incomeValues);
     const exp = await persistSection("expense", expenseLines, expenseValues);
-    const tax = await persistSection("tax", taxLines, taxValues);
-
+    const tax = await persistSection("tax",     taxLines,     taxValues);
     setIncomeLines(inc.nextLines);
     setExpenseLines(exp.nextLines);
     setTaxLines(tax.nextLines);
-
     return {
-      incomeLines: inc.nextLines, incomeValues,
+      incomeLines:  inc.nextLines, incomeValues,
       expenseLines: exp.nextLines, expenseValues,
-      taxLines: tax.nextLines, taxValues,
+      taxLines:     tax.nextLines, taxValues,
     };
   };
 
@@ -340,13 +276,11 @@ const PnLTab = () => {
     (lines || []).forEach((line, idx) => {
       const lineItemId = Number(line?.id);
       if (!Number.isFinite(lineItemId)) return;
-
       const byPeriod = values?.[idx]?.byPeriod || {};
       headerPeriods.forEach((p) => {
         const timeframeId = Number(p.id);
         const raw = byPeriod[String(timeframeId)];
         if (!isFilled(raw)) return;
-
         jobs.push({ lineItemId, timeframeId, amount: Number(raw) });
       });
     });
@@ -359,30 +293,22 @@ const PnLTab = () => {
       setToast({ type: "error", title: "Selection Required", message: "Select at least one timeframe first." });
       return;
     }
-
     try {
       setSavingAll(true);
       setPnlError("");
-
       const updated = await persistCustomRows();
       const jobs = [
-        ...buildJobs(updated.incomeLines, updated.incomeValues),
+        ...buildJobs(updated.incomeLines,  updated.incomeValues),
         ...buildJobs(updated.expenseLines, updated.expenseValues),
-        ...buildJobs(updated.taxLines, updated.taxValues),
+        ...buildJobs(updated.taxLines,     updated.taxValues),
       ];
-
       if (jobs.length === 0) {
         setToast({ type: "info", title: "No Changes", message: "Nothing to save. Please fill some values first." });
         setSavingAll(false);
         return;
       }
-
-      // Uses the new hook method
       await runInBatches(jobs, 10, (payload) => upsertValue(payload));
-
-      // Reload grid
       await loadPnL();
-
       setToast({ type: "success", title: "Financials Saved", message: "Income, Expenses, and Tax data updated successfully." });
     } catch (e) {
       console.error(e);
@@ -421,31 +347,20 @@ const PnLTab = () => {
     <>
       <div className="toolbar-row">
         <div className="left-tools">
-          <QuarterSelector
-            options={quarters}
+          <TimeframeSelector
             selected={selectedTimeframeIds}
             onChange={handleToggleTimeframe}
-            onSaveNew={handleSaveNew}
-            isLoading={isLoading}
             isSingle={false}
           />
         </div>
-
         <div className="right-tools">
-          <button
-            className="ghost-btn"
-            type="button"
-            onClick={handleUploadClick}
-            disabled={!effectiveFundId || uploading}
-          >
+          <button className="ghost-btn" type="button" onClick={handleUploadClick} disabled={!effectiveFundId || uploading}>
             <RefreshUpIcon /> {uploading ? "Uploading..." : "Upload"}
           </button>
-
           <button className="ghost-btn" type="button" onClick={handleDownload}>
             <DownloadIcon /> Download
           </button>
         </div>
-
         <input
           ref={fileInputRef}
           type="file"
@@ -456,9 +371,8 @@ const PnLTab = () => {
       </div>
 
       {pnlLoading ? <div style={{ padding: 12 }}>Loading PnL…</div> : null}
-      {pnlError ? <div style={{ padding: 12, color: "crimson" }}>{pnlError}</div> : null}
+      {pnlError   ? <div style={{ padding: 12, color: "crimson" }}>{pnlError}</div> : null}
 
-      {/* INCOME */}
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
@@ -476,7 +390,6 @@ const PnLTab = () => {
         </div>
       </section>
 
-      {/* EXPENSES */}
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
@@ -494,7 +407,6 @@ const PnLTab = () => {
         </div>
       </section>
 
-      {/* TAX */}
       <section className="financials-card">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
@@ -512,7 +424,6 @@ const PnLTab = () => {
         </div>
       </section>
 
-      {/* NET */}
       <section className="financials-card financials-card--net">
         <div className="pnl-card-scroll" style={scopeVars}>
           <div className="pnl-grid-scope">
@@ -539,10 +450,23 @@ const PnLTab = () => {
           </button>
         </div>
       </div>
+
       {toast && (
         <Toast type={toast.type} title={toast.title} message={toast.message} onClose={() => setToast(null)} />
       )}
     </>
+  );
+}
+
+const PnLTab = () => {
+  const { fundId } = useOutletContext();
+  const params = useParams();
+  const effectiveFundId = fundId || params?.fundId || params?.id || "";
+
+  return (
+    <TimeframeProvider fundId={effectiveFundId}>
+      <PnLTabContent />
+    </TimeframeProvider>
   );
 };
 
