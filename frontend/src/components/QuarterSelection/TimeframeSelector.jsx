@@ -10,12 +10,36 @@ function TimeframeSelector({ selected, onChange, isSingle = true, maxSelections 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [toast, setToast] = useState(null);
+
     const handleSave = async (data) => {
-        const payload = editItem ? { ...data, id: editItem.id } : data;
-        const result = await saveTimeframe(payload);
-        if (!editItem) onChange(result.id);
-        setIsModalOpen(false);
-        setEditItem(null);
+        try {
+            const payload = editItem ? { ...data, id: editItem.id } : data;
+            const result = await saveTimeframe(payload);
+            if (!editItem) onChange(result.id);
+            setIsModalOpen(false);
+            setEditItem(null);
+            setToast({ type: "success", title: editItem ? "Timeframe updated" : "Timeframe created", message: `"${result.display_label}" has been saved.` });
+        } catch (err) {
+            setToast({ type: "error", title: "Save failed", message: err.message || "An error occurred." });
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteTimeframe(deleteTarget);
+            const remaining = quarters.filter(q => q.id !== deleteTarget);
+            if (remaining.length > 0) {
+                onChange(remaining[remaining.length - 1].id);
+            }
+            setToast({ type: "success", title: "Timeframe deleted", message: "The timeframe has been removed." });
+        } catch (err) {
+            setToast({ type: "error", title: "Delete failed", message: err.message || "An error occurred." });
+        } finally {
+            setDeleteTarget(null);
+            setIsModalOpen(false);
+            setEditItem(null);
+        }
     };
 
     return (
@@ -47,12 +71,15 @@ function TimeframeSelector({ selected, onChange, isSingle = true, maxSelections 
                     confirmLabel="Delete"
                     cancelLabel="Cancel"
                     onCancel={() => setDeleteTarget(null)}
-                    onConfirm={() => {
-                        deleteTimeframe(deleteTarget);
-                        setDeleteTarget(null);
-                        setIsModalOpen(false);
-                        setEditItem(null);
-                    }}
+                    onConfirm={handleDelete}
+                />
+            )}
+            {toast && (
+                <Toast
+                    type={toast.type}
+                    title={toast.title}
+                    message={toast.message}
+                    onClose={() => setToast(null)}
                 />
             )}
         </>

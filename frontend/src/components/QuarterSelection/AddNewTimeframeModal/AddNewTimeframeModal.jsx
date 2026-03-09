@@ -91,10 +91,8 @@ const AddNewTimeframeModal = ({
     };
 
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-            onDelete(editData.id);
-            onClose();
-        }
+        onDelete(editData.id);
+        onClose();
     };
 
     return ReactDOM.createPortal(
