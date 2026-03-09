@@ -89,7 +89,7 @@ def _invalidate_cache_for_investments(investment_ids):
 @receiver([post_save, post_delete], sender=PortfolioTransactionFlow)
 def invalidate_on_transaction_flow(sender, instance, **kwargs):
     PortfolioKpiCache.objects.filter(
-        fund_id=instance.fund_id
+        fund_id=instance.portfolio_investment.fund_id
     ).delete()
 
 @receiver([post_save, post_delete], sender=PortfolioFairValueFlow)

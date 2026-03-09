@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { xirr as xirrLib } from "@webcarrot/xirr";
 import { LockOpenIcon, LockClosedIcon } from '/src/components/Icons/InteractiveIcons';
 import { SensitivityIcon } from '/src/components/Icons/MiscIcons';
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
@@ -13,6 +14,20 @@ const parseVal = (v) => {
     return parseFloat(String(v || "").replace(/[^0-9.-]/g, "")) || 0;
 };
 
+const safeXirr = (cashflows) => {
+  try {
+    if (!cashflows || cashflows.length < 2) return null;
+    const hasPos = cashflows.some((c) => c.amount > 0);
+    const hasNeg = cashflows.some((c) => c.amount < 0);
+    if (!hasPos || !hasNeg) return null;
+    return xirrLib(cashflows);
+  } catch (err) {
+    console.error("XIRR Lib Error:", err);
+    return null;
+  }
+};
+
+
 const calculateExitDate = (firstInvestDate, duration) => {
     if (!firstInvestDate) return null;
     const startDate = new Date(firstInvestDate);
@@ -26,27 +41,67 @@ const calculateExitDate = (firstInvestDate, duration) => {
 const calculateExitValue = (cost, moic) => parseVal(cost) * parseVal(moic);
 
 const buildSummary = (rows) => {
-    if (!rows || rows.length === 0) return { avgDuration: 0, totalCost: 0, totalExitVal: 0, totalDividends: 0, avgIrr: 0, avgMoic: 0 };
-    let sum = { duration: 0, cost: 0, exit: 0, dividends: 0, irr: 0, moic: 0 };
+    if (!rows || rows.length === 0) {
+        return { avgDuration: 0, totalCost: 0, totalExitVal: 0, totalDividends: 0, totalIrr: 0, totalMoic: 0 };
+    }
+
+    let sum = { cost: 0, exit: 0, dividends: 0, durationWeight: 0 };
+    let aggregateCashflows = [];
+
     rows.forEach(r => {
         const cost = parseVal(r.display_cost || r.cost);
-        sum.duration  += parseVal(r.input_duration);
-        sum.cost      += cost;
-        sum.exit      += cost * parseVal(r.input_moic);
-        sum.dividends += parseVal(r.dividends_interests);
-        sum.irr       += parseVal(r.irr);
-        sum.moic      += parseVal(r.input_moic);
+        const duration = parseVal(r.input_duration);
+        const exitValue = parseVal(r.exit_value);
+        const exitDate = r.exit_date;
+        const dividends = parseVal(r.dividends_interests);
+
+        sum.cost += cost;
+        sum.exit += exitValue;
+        sum.dividends += dividends;
+        sum.durationWeight += (duration * cost); 
+
+        const flows = r.transaction_flows || [];
+        flows.forEach(f => {
+            if (f.is_deleted) return;
+            const type = (f.transaction_name || f.transaction_type_name || f.type || "").toLowerCase();
+            const amt = parseVal(f.amount); 
+            
+            let signedAmount = 0;
+            if (type.includes("invest") && !type.includes("divest")) {
+                signedAmount = -Math.abs(amt);
+            } else {
+                signedAmount = Math.abs(amt);
+            }
+            
+            aggregateCashflows.push({ date: new Date(f.date), amount: signedAmount });
+        });
+
+        if (exitDate && exitValue !== 0) {
+            aggregateCashflows.push({
+                date: new Date(exitDate),
+                amount: Math.abs(exitValue)
+            });
+        }
     });
-    const count = rows.length;
+
+    const totalMoic = sum.cost > 0 ? (sum.exit + sum.dividends) / sum.cost : 0;
+    const weightedDuration = sum.cost > 0 ? sum.durationWeight / sum.cost : 0;
+
+    aggregateCashflows.sort((a, b) => a.date - b.date);
+    const validCashflows = aggregateCashflows.filter(cf => cf.date instanceof Date && !isNaN(cf.date));
+    const totalIrr = safeXirr(validCashflows) || 0;
+
     return {
-        avgDuration:    sum.duration  / count,
-        totalCost:      sum.cost,
-        totalExitVal:   sum.exit,
+        avgDuration: weightedDuration,
+        totalCost: sum.cost,
+        totalExitVal: sum.exit,
         totalDividends: sum.dividends,
-        avgIrr:         sum.irr  / count,
-        avgMoic:        sum.moic / count,
+        totalIrr: totalIrr,
+        totalMoic: totalMoic,
     };
 };
+
+
 
 function PortfolioSection({
     title,
@@ -55,6 +110,7 @@ function PortfolioSection({
     rows = [],
     readOnly = false,
     activeMode = null,
+    hasActions = false, // Added to catch the prop passed from Portfolio.jsx
     onChangeRow,
     onRowClick,
     lockedRows = [],
@@ -73,8 +129,13 @@ function PortfolioSection({
     useEffect(() => { setLocalRows(rows); }, [rows]);
 
     const summary    = useMemo(() => buildSummary(localRows), [localRows]);
-    const showActionsColumn = activeMode === 'target' || activeMode === 'sensitivity';
-    const hasActions = !readOnly && showActionsColumn;
+    
+    // Determines if the 9th column should exist in the grid at all
+    const showActionsColumn = hasActions || activeMode === 'target' || activeMode === 'sensitivity';
+    
+    // Determines if THIS specific section should render the interactive buttons
+    const canShowButtons = !readOnly && showActionsColumn;
+    
     const baseColumns = 8;
     const COL_SPAN = showActionsColumn ? baseColumns + 1 : baseColumns;
 
@@ -129,7 +190,8 @@ function PortfolioSection({
                     <th className="scenario-pf-center">
                         <SortableHeaderRenderer label="Exit Date" columnKey="exit_date" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
                     </th>
-                    {showActionsColumn && <th className="scenario-pf-center">{!readOnly ? 'Actions' : ''}</th>}
+                    {/* Render column header but hide text if readOnly is true */}
+                    {showActionsColumn && <th className="scenario-pf-center">{canShowButtons ? 'Actions' : ''}</th>}
                 </tr>
             </thead>
 
@@ -197,7 +259,7 @@ function PortfolioSection({
 
                                 {showActionsColumn && (
                                     <td className="scenario-pf-center">
-                                        {hasActions && (
+                                        {canShowButtons && (
                                             <div className="scenario-pf-th-group" style={{ justifyContent: 'center' }}>
                                                 {activeMode === 'target' && (
                                                     <button
@@ -252,15 +314,16 @@ function PortfolioSection({
                         <input className="scenario-pf-input" value={formatNumber(summary.totalDividends)} readOnly />
                     </td>
                     <td className="scenario-pf-center">
-                        <input className="scenario-pf-input" value={formatPercent(summary.avgIrr)} readOnly />
+                        <input className="scenario-pf-input" value={formatPercent(summary.totalIrr*100)} readOnly />
                     </td>
                     <td className="scenario-pf-center">
-                        <input className="scenario-pf-input" value={`${summary.avgMoic.toFixed(2)}x`} readOnly />
+                        <input className="scenario-pf-input" value={`${summary.totalMoic.toFixed(2)}x`} readOnly />
                     </td>
                     <td className="scenario-pf-center">
                         <input className="scenario-pf-input" value="-" readOnly />
                     </td>
-                    {showActionsColumn && <td />}
+                    {/* Render empty styled cell so the background color spans correctly */}
+                    {showActionsColumn && <td className="scenario-pf-center" />}
                 </tr>
             </tbody>
         </>

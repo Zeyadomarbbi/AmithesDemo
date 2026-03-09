@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q, F
@@ -633,7 +634,12 @@ class PortfolioTransactionFlow(models.Model):
     divestment_percentage = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.CharField(max_length=150, null=True, blank=True)
+    created_by = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        db_column="created_by"
+    )
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
 

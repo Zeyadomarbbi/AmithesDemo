@@ -64,6 +64,7 @@
     vertical-align: middle;
     white-space: nowrap;
     padding: 12px;
+    
 }
 
 .scenario-pf-th-wrap {
@@ -207,6 +208,25 @@
     color: #FFFFFF !important;
     font-weight: 400;
     border-bottom: none;
+    /* Remove the radius from all cells first */
+    border-radius: 0; 
+}
+
+/* Apply radius only to the bottom-left of the first cell */
+.scenario-pf-summary-row td:first-child {
+    border-radius: 0 0 0 8px;
+}
+
+/* Apply radius only to the bottom-right of the last cell */
+.scenario-pf-summary-row td:last-child {
+    border-radius: 0 0 8px 0;
+}
+
+.scenario-pf-summary-row .scenario-pf-input[readonly] {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    font-weight: 400;
 }
 
 .scenario-pf-summary-row .scenario-pf-input[readonly] {
@@ -249,19 +269,24 @@
    ========================================= */
 .scenario-pf-sensitivity-expanded-row td {
     background-color: #FAFAF9;
-    padding: 0;
+    padding: 4px 12px;
 }
 
 /* =========================================
    11. SECTION SPACING
    ========================================= */
-.scenario-pf-section-header th {
+
+.scenario-pf-main-table thead tr:first-child th.scenario-pf-section-header {
     padding-top: 32px;
     padding-bottom: 8px;
     background: #fff;
+    border-top: none;
     border-bottom: none;
 }
 
+.scenario-pf-main-table thead:first-child tr:first-child th.scenario-pf-section-header {
+    padding-top: 0;
+}
 .scenario-pf-section-header:first-child th {
     padding-top: 0;
 }
