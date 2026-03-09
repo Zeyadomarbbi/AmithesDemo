@@ -6,6 +6,7 @@ import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scen
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
 import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
+import { PageSpinner, PageError } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
 // Components
 import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons';
@@ -344,7 +345,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
       }
   };
 
-  if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
+  if (loadInv || loadProj) return <PageSpinner label="Loading portfolio..." />;
   const hasActions = activeMode === 'target' || activeMode === 'sensitivity';
 
   return (
