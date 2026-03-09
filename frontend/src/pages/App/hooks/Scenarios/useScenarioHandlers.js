@@ -8,11 +8,19 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
     const [selectedScenarioIds, setSelectedScenarioIds] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
-        if (!fundId) return;
+        if (!fundId) {
+            setIsLoading(false);
+            return;
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        
         try {
-            // Simultaneous fetching using the api engine
             const [scData, synData] = await Promise.all([
                 api.get(`/api/funds/${fundId}/scenario_list/`),
                 api.get(`/api/funds/${fundId}/synthesis-details/`)
@@ -31,13 +39,17 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
             }));
 
             setSyntheses(formattedSyntheses);
-        } catch (error) {
-            console.error("Error loading data:", error);
+        } catch (err) {
+            console.error("Error loading data:", err);
+            const errorMessage = err.message || "Could not load scenarios or syntheses.";
+            setError(errorMessage);
             showToast({ 
                 title: "Load Failed", 
-                message: error.message || "Could not load scenarios or syntheses.", 
+                message: errorMessage, 
                 type: "error" 
             });
+        } finally {
+            setIsLoading(false);
         }
     }, [fundId, api, apiRowToScenario, showToast]);
 
@@ -163,7 +175,15 @@ export function useScenarioHandlers(fundId, author, apiRowToScenario, showToast)
     };
 
     return {
-        state: { scenarios, syntheses, selectedScenarioIds, isModalOpen, isSynthesisModalOpen },
+        state: { 
+            scenarios, 
+            syntheses, 
+            selectedScenarioIds, 
+            isModalOpen, 
+            isSynthesisModalOpen, 
+            isLoading,  // Return new state
+            error       // Return new state
+        },
         actions: {
             setIsModalOpen,
             setIsSynthesisModalOpen,

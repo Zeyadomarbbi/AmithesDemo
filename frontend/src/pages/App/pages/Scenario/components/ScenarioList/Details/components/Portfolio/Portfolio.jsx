@@ -14,9 +14,8 @@ import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestment
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
 
 // Portfolio Tables
-import RealizedPortfolio from "./PortfolioTables/RealizedPortfolio.jsx";
-import InvestedPortfolio from "./PortfolioTables/InvestedPortfolio.jsx";
-import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
+import PortfolioSection from "./PortfolioTables/PortfolioSection";
+
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import TargetFinalizationModal from "./TargetSelectionModal/TargetFinalizationModal.jsx";
 // Simulation Results
@@ -291,6 +290,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   };
 
   if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
+  const hasActions = activeMode === 'target' || activeMode === 'sensitivity';
 
   return (
     <div className="portfolio-tab-container" style={{ padding: 0 }}>
@@ -318,33 +318,42 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     )}
                 </div>
 
-                <RealizedPortfolio 
-                  fundId={fundId}
-                  scenarioId={scenarioId}
-                  realizedData={realizedData} 
-                />
-                
-                <InvestedPortfolio 
-                    fundId={fundId}
-                    scenarioId={scenarioId}
-                    activeMode={activeMode} 
-                    investedData={investedData} 
-                    onChangeRow={handleUpdateInput}
-                    onRowClick={(row) => setSelectedInvestmentId(row.id)}
-                    lockedRows={lockedRows}
-                    onToggleLock={handleToggleLock}
-                />
-                
-                <ProjectedPortfolio 
-                    fundId={fundId}
-                    scenarioId={scenarioId}
-                    activeMode={activeMode} 
-                    rows={projectedData} 
-                    onChangeRow={handleUpdateInput}
-                    onRowClick={(row) => setSelectedInvestmentId(row.id)} 
-                    lockedRows={lockedRows}
-                    onToggleLock={handleToggleLock}
-                />
+                <div className="scenario-pf-table-container no-borders">
+                    <table className="scenario-pf-main-table">
+                      <PortfolioSection
+                          title="Realized portfolio"
+                          rows={realizedData}
+                          readOnly
+                          hasActions={hasActions}
+                      />
+                      <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+                      <PortfolioSection
+                          title="Invested portfolio"
+                          fundId={fundId}
+                          scenarioId={scenarioId}
+                          rows={investedData}
+                          activeMode={activeMode}
+                          hasActions={hasActions}
+                          onChangeRow={handleUpdateInput}
+                          onRowClick={(row) => setSelectedInvestmentId(row.id)}
+                          lockedRows={lockedRows}
+                          onToggleLock={handleToggleLock}
+                      />
+                      <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+                      <PortfolioSection
+                          title="Projected portfolio"
+                          fundId={fundId}
+                          scenarioId={scenarioId}
+                          rows={projectedData}
+                          activeMode={activeMode}
+                          hasActions={hasActions}
+                          onChangeRow={handleUpdateInput}
+                          onRowClick={(row) => setSelectedInvestmentId(row.id)}
+                          lockedRows={lockedRows}
+                          onToggleLock={handleToggleLock}
+                      />
+                  </table>
+                </div>
                 <PermissionGate>
                   <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
                       <PlusIcon /> <span>New deal</span>
