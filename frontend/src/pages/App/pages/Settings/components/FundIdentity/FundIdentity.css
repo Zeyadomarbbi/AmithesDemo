@@ -139,20 +139,21 @@
   cursor: not-allowed;
 }
 
-.fund-identity-input .custom-select-arrow {
-  position: absolute;
-  right: 14px;
-  top: calc(50% - 6px);
-  width: 8px;
-  height: 8px;
-  border: solid #375A89;
-  border-width: 0 2px 2px 0;
-  padding: 0;
-  margin: 0;
-  transform: rotate(45deg);
+
+.fund-identity-input .custom-select-chevron {
+    margin-right: 12px;
 }
 
-.fund-identity-input .custom-select-arrow.up {
-  transform: rotate(-135deg);
-  top: calc(50% - 2px);
+.fund-identity-input .custom-select-container {
+    width: 100%;
+    height: 100%;
+}
+
+.fund-identity-input .custom-select-trigger {
+    height: 100%;
+    padding: 0 0 0 12px;
+}
+
+.fund-identity-input .custom-select-dropdown {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }

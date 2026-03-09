@@ -11,6 +11,7 @@
   justify-content: space-between;
   cursor: pointer;
   width: 100%;
+  position: relative;
   /* Removed hardcoded padding, background, and borders. 
      These are now inherited from .fund-identity-input-inner */
 }
@@ -52,17 +53,20 @@
   text-overflow: ellipsis;
 }
 
-.custom-select-arrow {
-  border: solid #666;
-  border-width: 0 2px 2px 0;
-  display: inline-block;
-  padding: 3px;
-  transition: transform 0.2s;
+.custom-select-chevron {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    margin-left: auto;
 }
 
-.custom-select-arrow.down { transform: rotate(45deg); }
-.custom-select-arrow.up { transform: rotate(-135deg); }
-
+.custom-select-chevron.up {
+    transform: rotate(180deg);
+}
 .custom-select-search-wrapper {
   width: 100%;
   padding: 8px;

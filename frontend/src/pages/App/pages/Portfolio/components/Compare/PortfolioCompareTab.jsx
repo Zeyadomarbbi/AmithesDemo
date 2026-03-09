@@ -4,6 +4,7 @@ import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
 
 import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
+import { PageError, PageSpinner } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import { ChevronDownIcon } from "../../icons.jsx";
 import {
   buildTotalRow,
@@ -34,13 +35,16 @@ function PortfolioCompareTabContent({ onSelectInvestment }) {
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
 
   const fallbackInvestments = PORTFOLIO_COMPARE_DATA[fundId] || [];
-  const { rows: compareRows, isLoading: isCompareLoading } = useCompareRows(
+  const { rows: compareRows, isLoading: isCompareLoading, error: compareError } = useCompareRows(
     fundId,
     activeQuarters,
     fallbackInvestments,
     portfolioDataset
   );
   const fundInvestments = compareRows;
+
+  // Block all derived work until both data sources are ready
+  const isFetching = isLoading || isCompareLoading;
 
   useEffect(() => {
     if (!fundInvestments.length) return;
@@ -61,7 +65,6 @@ function PortfolioCompareTabContent({ onSelectInvestment }) {
   }, [fundInvestments, selectedInvestmentIds]);
 
   const totalRow = useMemo(() => buildTotalRow(visibleRows, activeQuarters), [visibleRows, activeQuarters]);
-
   const compareOptions = useMemo(() => getCompareColumnOptions(activeQuarters), [activeQuarters]);
 
   const effectiveCompareColumn =
@@ -90,6 +93,9 @@ function PortfolioCompareTabContent({ onSelectInvestment }) {
     if (!q) return fundInvestments;
     return fundInvestments.filter((inv) => String(inv?.name || "").toLowerCase().includes(q));
   }, [fundInvestments, investmentSearchTerm]);
+
+  if (isFetching) return <PageSpinner label="Loading portfolio data..." />;
+  if (compareError) return <PageError message={compareError.message ?? compareError} />;
 
   return (
     <section className="compare-section">
