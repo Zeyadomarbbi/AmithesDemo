@@ -308,11 +308,9 @@ class ShareClassView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def destroy(self, request, fund_id, share_class_id):
+    def delete(self, request, fund_id, share_class_id):
         obj = get_object_or_404(self.get_queryset(fund_id, share_class_id))
-        obj.is_deleted = True
-        obj.updated_at = timezone.now()
-        obj.save(update_fields=['is_deleted', 'updated_at'])
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class FundManFeeCommitmentYearRetrieveView(generics.RetrieveAPIView):

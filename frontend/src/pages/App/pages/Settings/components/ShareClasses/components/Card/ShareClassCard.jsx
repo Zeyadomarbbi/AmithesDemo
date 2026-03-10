@@ -1,11 +1,9 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Card/ShareClassCard.jsx
-import React from "react";
-import { FileIcon, MoreActionsIcon } from '/src/components/Icons/InteractiveIcons';
-
+import React, { useState, useRef, useEffect } from "react";
+import { FileIcon, MoreActionsIcon, DeleteIcon } from '../../../../../../../../components/Icons/InteractiveIcons';
+import Prompt from '../../../../../../components/Toast/Prompt.jsx';
 import "./ShareClassCard.css";
 
-// 1. CONFIGURATION MAPS
-// Maps Database Value -> { Display Label, Badge Color }
 const ISSUANCE_MAP = {
   PRO_RATA_CALLED: { label: "Pro Rata Called", variant: "green" },
   UPFRONT: { label: "Upfront", variant: "blue" },
@@ -17,13 +15,23 @@ const DISTRIBUTION_MAP = {
 };
 
 const ShareClassCard = ({ shareClass }) => {
-  // 2. GET RAW VALUES
-  // Use the exact column names from your SQL schema (snake_case)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const rawIssuance = shareClass.issuance_method; 
   const rawDistribution = shareClass.distribution_method;
 
-  // 3. LOOKUP CONFIG
-  // If the value from DB exists in our map, use it. Otherwise fallback to raw text and gray.
   const issuanceConfig = ISSUANCE_MAP[rawIssuance] || { 
     label: rawIssuance || "–", 
     variant: "gray" 
@@ -34,13 +42,42 @@ const ShareClassCard = ({ shareClass }) => {
     variant: "gray" 
   };
 
+  const handleDeleteClick = () => {
+    setIsMenuOpen(false);
+    setIsPromptOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    // Delete logic execution point
+    setIsPromptOpen(false);
+  };
+
   return (
     <div className="share-card">
       <div className="share-card-header">
         <div className="share-card-title">{shareClass.share_class_name}</div>
-        <button type="button" className="share-card-menu-btn" aria-label="More actions">
-          <MoreActionsIcon />
-        </button>
+        <div className="share-card-menu-container" ref={menuRef}>
+          <button 
+            type="button" 
+            className="share-card-menu-btn" 
+            aria-label="More actions"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <MoreActionsIcon />
+          </button>
+          
+          {isMenuOpen && (
+            <div className="share-card-dropdown">
+              <button 
+                className="share-card-dropdown-item share-card-dropdown-delete" 
+                onClick={handleDeleteClick}
+              >
+                <DeleteIcon />
+                <span>Delete</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="share-card-meta">
@@ -81,13 +118,13 @@ const ShareClassCard = ({ shareClass }) => {
       </div>
 
       <div className="share-file-block">
-        {(shareClass.document_url) && (
+        {shareClass.document_url && (
           <a 
             href={shareClass.document_url} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="share-file-btn"
-            style={{ textDecoration: 'none' }} // remove underline
+            style={{ textDecoration: 'none' }}
           >
             <FileIcon />
             <span>{shareClass.document_name}</span>
@@ -95,6 +132,18 @@ const ShareClassCard = ({ shareClass }) => {
           </a>
         )}
       </div>
+
+      {isPromptOpen && (
+        <Prompt
+          title="Delete Share Class"
+          message={`Are you sure you want to delete ${shareClass.share_class_name}?`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          type="error"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setIsPromptOpen(false)}
+        />
+      )}
     </div>
   );
 };

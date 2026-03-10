@@ -5,9 +5,9 @@ import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";
-import Toast from "../../../../components/Toast/Toast.jsx"; // Import Toast
+import Toast from "../../../../components/Toast/Toast.jsx"; 
 import { useShareClasses } from "../../../../hooks/useShareClass"; 
-import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 
 import "./ShareClasses.css";
 
@@ -52,8 +52,8 @@ const ShareClasses = () => {
     return nameMatch || isinMatch;
   });
 
-  if (isLoading) return <div className="p-4 text-gray-500">Loading share classes...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
+  if (isLoading) return <PageSpinner label="Loading share classes..." />;
+  if (error) return <PageError message={error} />;
 
   return (
     <div className="share-classes-wrap">
@@ -66,7 +66,7 @@ const ShareClasses = () => {
 
       <div className="share-list">
         {filteredShareClasses.length === 0 ? (
-           <p className="no-shares-msg">No share classes found.</p>
+           <PageNoData message={searchTerm ? "No share classes found matching your search." : "No share classes found."} />
         ) : (
           filteredShareClasses.map((cls) => (
             <ShareClassCard key={cls.share_class_id} shareClass={cls} />

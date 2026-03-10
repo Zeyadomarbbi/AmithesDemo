@@ -60,7 +60,43 @@ export function PageError({ message }) {
         !
       </div>
       <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
-        Failed to load funds
+        Failed to load data
+      </span>
+      {message && (
+        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center' }}>
+          {message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function PageNoData({ message = "No data available" }) {
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      minHeight: 320,
+    }}>
+      <div style={{
+        width: 38,
+        height: 38,
+        borderRadius: '50%',
+        background: '#fffbeb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+        color: '#f59e0b',
+      }}>
+        ▲
+      </div>
+      <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
+        No data found
       </span>
       {message && (
         <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center' }}>
