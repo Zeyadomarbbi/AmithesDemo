@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import { useScenarioHandlers } from '../../hooks/Scenarios/useScenarioHandlers';
 import { useToast } from '../../components/Toast/useToast';
-import { PageSpinner, PageError } from '../../../../components/LoadingScreens/LoadingScreens';
+import { PageSpinner, PageError, PageNoData } from '../../../../components/LoadingScreens/LoadingScreens';
 import Toast from '../../components/Toast/Toast';
 import Prompt from '../../components/Toast/Prompt';
 import AddNewScenarioModal from './components/ScenarioControls/AddNewScenarioModal/AddNewScenarioModal';
@@ -56,6 +56,8 @@ function ScenariosPage() {
         s.description?.toLowerCase().includes(normalizedQuery)
     );
 
+    const hasNoData = filteredScenarios.length === 0 && filteredSyntheses.length === 0;
+    
     return (
         <div className="scenarios-page-container">
             <div className="scenarios-frame-1">
@@ -68,24 +70,35 @@ function ScenariosPage() {
                 onCreateSynthesisClick={() => actions.setIsSynthesisModalOpen(true)}
                 onSearch={setSearchQuery}
             />
-
-            <div className="scenarios-frame-3">
-                <ScenarioList
-                    title="List Of Scenario"
-                    scenarios={filteredScenarios}
-                    selectedIds={state.selectedScenarioIds}
-                    onToggleSelect={actions.toggleScenarioSelection}
-                    onDelete={(id) => actions.handleDeleteScenario(id, (syntheses) => setConflictPrompt({ scenarioId: id, syntheses }))}
+            {hasNoData ? (
+                /* Display PageNoData if both lists are empty */
+                <PageNoData 
+                    message={searchQuery 
+                        ? `No results matching "${searchQuery}"` 
+                        : "Start by creating your first scenario."
+                    } 
                 />
-            </div>
+            ) : (
+                <>
+                    <div className="scenarios-frame-3">
+                        <ScenarioList
+                            title="List Of Scenario"
+                            scenarios={filteredScenarios}
+                            selectedIds={state.selectedScenarioIds}
+                            onToggleSelect={actions.toggleScenarioSelection}
+                            onDelete={(id) => actions.handleDeleteScenario(id, (syntheses) => setConflictPrompt({ scenarioId: id, syntheses }))}
+                        />
+                    </div>
 
-            <div className="scenarios-frame-4">
-                <SynthesisList
-                    title="Scenario Synthesis"
-                    syntheses={filteredSyntheses}
-                    onDelete={actions.handleDeleteSynthesis}
-                />
-            </div>
+                    <div className="scenarios-frame-4">
+                        <SynthesisList
+                            title="Scenario Synthesis"
+                            syntheses={filteredSyntheses}
+                            onDelete={actions.handleDeleteSynthesis}
+                        />
+                    </div>
+                </>
+            )}
 
             {state.isModalOpen && (
                 <AddNewScenarioModal
