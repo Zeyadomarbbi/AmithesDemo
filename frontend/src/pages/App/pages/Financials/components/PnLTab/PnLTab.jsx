@@ -3,7 +3,7 @@ import { useParams, useOutletContext, useNavigate, useLocation } from "react-rou
 
 import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
-import { RefreshUpIcon, DownloadIcon, EditLineIcon, AddFileIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { RefreshUpIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import Toast from "../../../../components/Toast/Toast.jsx";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
@@ -104,13 +104,17 @@ function PnLTabContent() {
 
   const sortedQuarters = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
-    return list.slice().sort((a, b) => new Date(b.full_date || b.date) - new Date(a.full_date || a.date));
+    return list.slice().sort((a, b) => new Date(a.full_date || a.date) - new Date(b.full_date || b.date));
   }, [quarters]);
 
   const headerPeriods = useMemo(() => {
     if (!sortedQuarters?.length || selectedTimeframeIds.length === 0) return [];
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
-    return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
+    const filtered = sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
+    // Sort by the order they were selected (selectedTimeframeIds order)
+    return filtered.sort((a, b) =>
+      selectedTimeframeIds.indexOf(Number(a.id)) - selectedTimeframeIds.indexOf(Number(b.id))
+    );
   }, [sortedQuarters, selectedTimeframeIds]);
 
   const loadPnL = useCallback(async () => {
@@ -326,8 +330,6 @@ function PnLTabContent() {
         const label = getPeriodLabel(p);
         return (
           <div key={p.id || label} className="col-period">
-            <AddFileIcon />
-            <EditLineIcon />
             <span className="period-label">{label} <span>(€)</span></span>
           </div>
         );
@@ -338,8 +340,8 @@ function PnLTabContent() {
 
   const scopeVars = useMemo(() => ({
     "--pnl-cols": String(headerPeriods.length),
-    "--pnl-label-col": "minmax(260px, 1fr)",
-    "--pnl-period-col": "minmax(160px, 1fr)",
+    "--pnl-label-col": "260px",
+    "--pnl-period-col": "160px",
     "--pnl-actions-col": "110px",
   }), [headerPeriods.length]);
 

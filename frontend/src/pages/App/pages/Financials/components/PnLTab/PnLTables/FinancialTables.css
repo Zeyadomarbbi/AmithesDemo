@@ -80,7 +80,6 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  
 
   padding: 8px 16px;
 
@@ -98,7 +97,6 @@
   cursor: pointer;
   white-space: nowrap;
 }
-
 
 .pnl-income .pill-btn:focus,
 .pnl-income .pill-btn:focus-visible,
@@ -124,8 +122,6 @@
   box-sizing: border-box;
   border-bottom: 1px solid var(--border-soft);
   font-size: 14px;
-  
-  /* Add this */
   background-color: #ffffff; 
 }
 
@@ -141,14 +137,14 @@
 .pnl-tax .detail-label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .pnl-income .detail-label-text,
 .pnl-expenses .detail-label-text,
 .pnl-tax .detail-label-text {
-  flex: 1;
+  flex: none;
   min-width: 0;
   white-space: nowrap;
   font-family: var(--font-body);
@@ -345,11 +341,11 @@
   align-self: start !important;
   margin-top: 6px !important; 
 }
+
 /* table wrappers */
 .pnl-income,
 .pnl-expenses,
 .pnl-tax {
   background: #ffffff;
-  overflow: hidden; /* keep edges clean */
-  
+  overflow: hidden;
 }
