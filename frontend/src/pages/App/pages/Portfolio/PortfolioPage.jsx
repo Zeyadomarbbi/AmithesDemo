@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
 import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
+import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
 
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
@@ -28,30 +29,20 @@ const PortfolioPage = () => {
   };
 
   return (
-    <div className="portfolio-page">
-      <main className="portfolio-content">
-        <h1 className="portfolio-title">Portfolio</h1>
-
-        {/* Tabs */}
-        <div className="portfolio-tabs">
-          <NavLink to="summary" className="portfolio-tabs-tab">
-            Portfolio summary
-          </NavLink>
-          <NavLink to="fx" className="portfolio-tabs-tab">
-            Portfolio FX
-          </NavLink>
-          <NavLink to="limits" className="portfolio-tabs-tab">
-            Limits
-          </NavLink>
-          <NavLink to="compare" className="portfolio-tabs-tab">
-            Compare
-          </NavLink>
-        </div>
-
-        {/* Routed content receives the clean dataset */}
-        <Outlet context={{ fundId, portfolioDataset }} />
-      </main>
-    </div>
+    <TimeframeProvider fundId={fundId}>
+      <div className="portfolio-page">
+        <main className="portfolio-content">
+          <h1 className="portfolio-title">Portfolio</h1>
+          <div className="portfolio-tabs">
+            <NavLink to="summary" className="portfolio-tabs-tab">Portfolio summary</NavLink>
+            <NavLink to="fx" className="portfolio-tabs-tab">Portfolio FX</NavLink>
+            <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
+            <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
+          </div>
+          <Outlet context={{ fundId, portfolioDataset }} />
+        </main>
+      </div>
+    </TimeframeProvider>
   );
 };
 
