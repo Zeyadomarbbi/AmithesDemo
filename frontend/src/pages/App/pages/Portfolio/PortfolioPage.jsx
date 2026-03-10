@@ -34,7 +34,7 @@ const PortfolioPage = () => {
         <main className="portfolio-content">
           <h1 className="portfolio-title">Portfolio</h1>
           <div className="portfolio-tabs">
-            <NavLink to="summary" className="portfolio-tabs-tab">Portfolio summary</NavLink>
+            <NavLink to="summary" className="portfolio-tabs-tab">Portfolio Summary</NavLink>
             <NavLink to="fx" className="portfolio-tabs-tab">Portfolio FX</NavLink>
             <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
             <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
