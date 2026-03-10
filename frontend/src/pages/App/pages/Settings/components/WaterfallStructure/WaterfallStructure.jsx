@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import { useFundWaterfallSteps } from "../../../../hooks/Fund/useFundWaterfallSteps.js";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 
 import Step1 from "./components/Step1";
 import Step2 from "./components/Step2";
@@ -15,9 +16,11 @@ import "./WaterfallStructure.css";
 const WaterfallStructure = () => {
   const { fundId } = useOutletContext();
   const [internalSaving, setInternalSaving] = useState(false);
-  const [toast, setToast] = useState(null); // Toast state
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
+  const [toast, setToast] = useState(null); 
 
-  const { data: shareClasses, isLoading: scLoading } = useShareClasses(fundId);
+  const { data: shareClasses, isLoading: scLoading, error: scError } = useShareClasses(fundId);
   const { fetchFundSteps, createStep, updateStep, isLoading: wfLoading } = useFundWaterfallSteps();
 
   const isSaving = wfLoading || internalSaving;
@@ -92,15 +95,21 @@ const WaterfallStructure = () => {
     if (!fundId || scLoading) return;
 
     const loadData = async () => {
-      const dbSteps = await fetchFundSteps(fundId);
-      const s1 = dbSteps.find((s) => s.step_number === 1);
-      if (s1) setStep1Data(mapBackendToState(s1, 1));
-      const s2 = dbSteps.find((s) => s.step_number === 2);
-      if (s2) setStep2Data(mapBackendToState(s2, 2));
-      const s3 = dbSteps.find((s) => s.step_number === 3);
-      if (s3) setStep3Data(mapBackendToState(s3, 3));
-      const s4 = dbSteps.find((s) => s.step_number === 4);
-      if (s4) setStep4Data(mapBackendToState(s4, 4));
+      try {
+        const dbSteps = await fetchFundSteps(fundId);
+        const s1 = dbSteps.find((s) => s.step_number === 1);
+        if (s1) setStep1Data(mapBackendToState(s1, 1));
+        const s2 = dbSteps.find((s) => s.step_number === 2);
+        if (s2) setStep2Data(mapBackendToState(s2, 2));
+        const s3 = dbSteps.find((s) => s.step_number === 3);
+        if (s3) setStep3Data(mapBackendToState(s3, 3));
+        const s4 = dbSteps.find((s) => s.step_number === 4);
+        if (s4) setStep4Data(mapBackendToState(s4, 4));
+      } catch (err) {
+        setInitError(err.message || "Failed to load waterfall steps");
+      } finally {
+        setIsInitialLoading(false);
+      }
     };
 
     loadData();
@@ -184,7 +193,6 @@ const WaterfallStructure = () => {
       const s4 = freshData.find((s) => s.step_number === 4);
       if (s4) setStep4Data(mapBackendToState(s4, 4));
 
-      // Success Toast
       setToast({
         type: "success",
         title: "Waterfall Saved",
@@ -203,7 +211,11 @@ const WaterfallStructure = () => {
     }
   };
 
-  if (scLoading) return <div>Loading Share Classes...</div>;
+  if (scLoading || isInitialLoading) return <PageSpinner label="Loading waterfall structure..." />;
+  if (scError || initError) return <PageError message={scError || initError} />;
+  if (!shareClasses || shareClasses.length === 0) {
+    return <PageNoData message="In order to initiate Waterfall, Share Classes must be initiated." />;
+  }
 
   return (
     <div className="wf-wrapper">

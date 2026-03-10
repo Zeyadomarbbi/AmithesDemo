@@ -14,7 +14,7 @@ const DISTRIBUTION_MAP = {
   REDEMPTION_OF_SHARES: { label: "Redemption of Shares", variant: "purple" },
 };
 
-const ShareClassCard = ({ shareClass }) => {
+const ShareClassCard = ({ shareClass, onDelete }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const menuRef = useRef(null);
@@ -48,7 +48,7 @@ const ShareClassCard = ({ shareClass }) => {
   };
 
   const handleConfirmDelete = () => {
-    // Delete logic execution point
+    if (onDelete) onDelete();
     setIsPromptOpen(false);
   };
 

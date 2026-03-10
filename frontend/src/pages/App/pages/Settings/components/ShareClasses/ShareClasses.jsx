@@ -22,14 +22,13 @@ const ShareClasses = () => {
     isLoading, 
     error, 
     create,
+    remove,
     fetchAll 
   } = useShareClasses(fundId);
 
   const handleCreate = async (payload) => {
     try {
       await create(payload);
-      await fetchAll();
-      
       setToast({
         type: "success",
         title: "Share Class Created",
@@ -41,7 +40,23 @@ const ShareClasses = () => {
         title: "Creation Failed",
         message: err.message || "An error occurred while creating the share class."
       });
-      throw err;
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await remove(id);
+      setToast({
+        type: "success",
+        title: "Share Class Deleted",
+        message: "The share class has been successfully removed."
+      });
+    } catch (err) {
+      setToast({
+        type: "error",
+        title: "Deletion Failed",
+        message: err.message || "An error occurred while deleting the share class."
+      });
     }
   };
 
@@ -69,7 +84,11 @@ const ShareClasses = () => {
            <PageNoData message={searchTerm ? "No share classes found matching your search." : "No share classes found."} />
         ) : (
           filteredShareClasses.map((cls) => (
-            <ShareClassCard key={cls.share_class_id} shareClass={cls} />
+            <ShareClassCard 
+              key={cls.share_class_id} 
+              shareClass={cls} 
+              onDelete={() => handleDelete(cls.share_class_id)}
+            />
           ))
         )}
       </div>
