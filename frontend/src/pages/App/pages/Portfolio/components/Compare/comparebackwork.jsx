@@ -30,6 +30,19 @@ const canonicalType = (value) => {
   return "other";
 };
 
+const sumFlowsByTypeAsOfDate = (flows = [], cutoffDate, acceptedTypes = []) => {
+  const cutoff = new Date(cutoffDate);
+  const accepted = new Set(acceptedTypes);
+  return flows
+    .filter((flow) => flow?.date)
+    .filter((flow) => {
+      const d = new Date(flow.date);
+      return !Number.isNaN(d.getTime()) && d <= cutoff;
+    })
+    .filter((flow) => accepted.has(canonicalType(flow.transaction_name)))
+    .reduce((sum, flow) => sum + Math.abs(getAmountEur(flow)), 0);
+};
+
 const getAmountEur = (row) => {
   const direct = toNumber(row.amount);
   if (direct) return direct;
@@ -129,22 +142,22 @@ export const useCompareRows = (
           const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
           const timeframes = activeQuarters.reduce((acc, q) => {
             const cutoff = q.rawDate || q.date;
-            acc[q.id] = { cost: costAsOfDate(flows, cutoff), fv: fvAsOfDate(fairValues, cutoff) };
+            acc[q.id] = {
+              cost: costAsOfDate(flows, cutoff),
+              fv: fvAsOfDate(fairValues, cutoff),
+              dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+              divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
+            };
             return acc;
           }, {});
           return { id: investmentId, name: inv.name || `Investment #${investmentId}`, sector: inv.sector || "", timeframes };
         });
 
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0 ? true :
-          activeQuarters.some((q) => { const tf = row.timeframes[q.id] || {}; return toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0; })
-        );
-
         if (!isCancelled) {
           setRows((prev) => {
             const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
+            const nextSig = buildRowsSignature(mapped, activeQuarters);
+            return prevSig === nextSig ? prev : mapped;
           });
           setIsLoading(false);
         }
@@ -160,32 +173,42 @@ export const useCompareRows = (
         const investments = toSafeArray(investmentsPayload?.rows || investmentsPayload)
           .filter((row) => Number.isFinite(Number(row.investment_id ?? row.id)));
 
-        const mapped = await Promise.all(investments.map(async (inv) => {
-          const investmentId = Number(inv.investment_id ?? inv.id);
-          const [flowsRes, fvRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`),
-            fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`),
-          ]);
-          const flows      = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
-          const fairValues = fvRes.ok   ? toSafeArray(await fvRes.json())    : [];
-          const timeframes = activeQuarters.reduce((acc, q) => {
-            const cutoff = q.rawDate || q.date;
-            acc[q.id] = { cost: costAsOfDate(flows, cutoff), fv: fvAsOfDate(fairValues, cutoff) };
-            return acc;
-          }, {});
-          return { id: investmentId, name: inv.name || `Investment #${investmentId}`, sector: inv.sector || "", timeframes };
-        }));
+        const mapped = await Promise.all(
+          investments.map(async (inv) => {
+            const investmentId = Number(inv.investment_id ?? inv.id);
+            const [flowsRes, fvRes] = await Promise.all([
+              fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`),
+              fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`),
+            ]);
 
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0 ? true :
-          activeQuarters.some((q) => { const tf = row.timeframes[q.id] || {}; return toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0; })
+            const flows = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
+            const fairValues = fvRes.ok ? toSafeArray(await fvRes.json()) : [];
+
+            const timeframes = activeQuarters.reduce((acc, q) => {
+              const cutoff = q.rawDate || q.date;
+              acc[q.id] = {
+                cost: costAsOfDate(flows, cutoff),
+                fv: fvAsOfDate(fairValues, cutoff),
+                dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+                divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
+              };
+              return acc;
+            }, {});
+
+            return {
+              id: investmentId,
+              name: inv.name || `Investment #${investmentId}`,
+              sector: inv.sector || "",
+              timeframes,
+            };
+          })
         );
 
         if (!isCancelled) {
           setRows((prev) => {
             const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
+            const nextSig = buildRowsSignature(mapped, activeQuarters);
+            return prevSig === nextSig ? prev : mapped;
           });
         }
       } catch (error) {
@@ -212,10 +235,11 @@ export const useCompareRows = (
 export const buildTotalRow = (rows = [], activeQuarters = []) => {
   const total = { name: "Total", isTotal: true, timeframes: {} };
   activeQuarters.forEach((q) => {
-    total.timeframes[q.id] = {
-      cost: rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.cost), 0),
-      fv:   rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.fv),   0),
-    };
+    const cost = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.cost), 0);
+    const fv = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.fv), 0);
+    const dividends = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.dividends), 0);
+    const divestment = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.divestment), 0);
+    total.timeframes[q.id] = { cost, fv, dividends, divestment };
   });
   return total;
 };
@@ -235,25 +259,117 @@ export const diffBetweenNewestAndOldest = (row, key, activeQuarters = []) => {
   return formatCompareMoney(newestVal - oldestVal);
 };
 
-export const getCompareColumnOptions = (activeQuarters = []) => {
+export const getCompareTableColumnOptions = (activeQuarters = []) => {
   const options = [];
-  activeQuarters.forEach((q) => { options.push({ key: `cost:${q.id}`, label: `Cost ${q.display_label}` }); });
-  if (activeQuarters.length >= 2) options.push({ key: "change_cost", label: "Change in Cost" });
-  activeQuarters.forEach((q) => { options.push({ key: `fv:${q.id}`, label: `FV ${q.display_label}` }); });
-  if (activeQuarters.length >= 2) options.push({ key: "change_fv", label: "Change in FV" });
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `cost:${q.id}`,
+      label: `Cost ${q.display_label}`,
+    });
+  });
+
+  if (activeQuarters.length >= 2) {
+    options.push({
+      key: "change_cost",
+      label: "Change in Cost",
+    });
+  }
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `fv:${q.id}`,
+      label: `FV ${q.display_label}`,
+    });
+  });
+
+  if (activeQuarters.length >= 2) {
+    options.push({
+      key: "change_fv",
+      label: "Change in FV",
+    });
+  }
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `divestment:${q.id}`,
+      label: `Divestment ${q.display_label}`,
+    });
+  });
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `dividends:${q.id}`,
+      label: `Dividends ${q.display_label}`,
+    });
+  });
+
   return options;
 };
 
+export const getCompareChartMetricOptions = () => [
+  { key: "cost", label: "Cost" },
+  { key: "fair_value", label: "Fair Value" },
+  { key: "change_fv", label: "Change in Fair Value" },
+  { key: "divestment", label: "Divestment" },
+  { key: "dividends", label: "Dividends" },
+];
+
 export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => {
   if (!row || !columnKey) return 0;
-  if (columnKey.startsWith("cost:")) return toNumber(row?.timeframes?.[Number(columnKey.split(":")[1])]?.cost);
-  if (columnKey.startsWith("fv:"))   return toNumber(row?.timeframes?.[Number(columnKey.split(":")[1])]?.fv);
-  if (columnKey === "change_cost" || columnKey === "change_fv") {
-    if (activeQuarters.length < 2) return 0;
-    const key      = columnKey === "change_cost" ? "cost" : "fv";
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
-    return toNumber(row?.timeframes?.[newestId]?.[key]) - toNumber(row?.timeframes?.[oldestId]?.[key]);
+
+  if (columnKey.startsWith("cost:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.cost);
   }
+
+  if (columnKey.startsWith("fv:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.fv);
+  }
+
+  if (columnKey.startsWith("divestment:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.divestment);
+  }
+
+  if (columnKey.startsWith("dividends:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.dividends);
+  }
+
+  const newestId = activeQuarters[0]?.id;
+  const oldestId = activeQuarters[activeQuarters.length - 1]?.id;
+
+  if (columnKey === "cost") {
+    return toNumber(row?.timeframes?.[newestId]?.cost);
+  }
+
+  if (columnKey === "fair_value") {
+    return toNumber(row?.timeframes?.[newestId]?.fv);
+  }
+
+  if (columnKey === "divestment") {
+    return toNumber(row?.timeframes?.[newestId]?.divestment);
+  }
+
+  if (columnKey === "dividends") {
+    return toNumber(row?.timeframes?.[newestId]?.dividends);
+  }
+
+  if (columnKey === "change_cost") {
+    if (activeQuarters.length < 2) return 0;
+    const newestVal = toNumber(row?.timeframes?.[newestId]?.cost);
+    const oldestVal = toNumber(row?.timeframes?.[oldestId]?.cost);
+    return newestVal - oldestVal;
+  }
+
+  if (columnKey === "change_fv") {
+    if (activeQuarters.length < 2) return 0;
+    const newestVal = toNumber(row?.timeframes?.[newestId]?.fv);
+    const oldestVal = toNumber(row?.timeframes?.[oldestId]?.fv);
+    return newestVal - oldestVal;
+  }
+
   return 0;
 };
