@@ -143,15 +143,10 @@
 
 /* ===== Animation ===== */
 @keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
 }
+
 .portfolio-toolbar {
   display: flex;
   align-items: center;
@@ -163,12 +158,12 @@
   align-items: center;
   gap: 12px;
 }
-
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .portfolio-filter-indicator {
   display: inline-flex;
   align-items: center;
@@ -182,6 +177,7 @@
   border: 1px solid #c7d2fe;
   white-space: nowrap;
 }
+
 .ghost-btn {
   display: inline-flex;
   align-items: center;
@@ -194,10 +190,8 @@
   color: #475569;
   cursor: pointer;
 }
+.ghost-btn:hover { background: #f8fafc; }
 
-.ghost-btn:hover {
-  background: #f8fafc;
-}
 .primary-btn {
   display: inline-flex;
   align-items: center;
@@ -211,45 +205,38 @@
   font-weight: 500;
   cursor: pointer;
 }
+.primary-btn:hover { filter: brightness(0.95); }
 
-.primary-btn:hover {
-  filter: brightness(0.95);
-}
 /* ===== Subtotal / Total name cell ===== */
 .subtotal-name-cell {
   font-weight: 600;
   color: #ffffff;
-  padding-left: 12px;
-}
-.subtotal-name-cell span {
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 0.03em;
-}
-.subtotal-name-cell {
-  font-weight: 600;
   padding-left: 16px;
   white-space: nowrap;
 }
+
 .portfolio-section-header h2 {
-  font-size: 14px;      
-  font-weight: 500;     
+  font-size: 14px;
+  font-weight: 500;
   color: #0f172a;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .portfolio-count {
   font-size: 12px;
   font-weight: 400;
   color: #64748b;
 }
+
 .portfolio-section .portfolio-table-card {
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
 }
+
 .portfolio-section .portfolio-table-scroll {
   width: 100%;
   overflow-x: auto !important;
@@ -257,96 +244,30 @@
   scrollbar-gutter: stable;
   padding-bottom: 4px;
 }
+
 .portfolio-section .portfolio-table {
   width: max-content;
   min-width: 1400px;
 }
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar {
-  height: 8px !important;
-}
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track {
-  background: #e5e7eb !important;
-}
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb {
-  background: #94a3b8 !important;
-  border-radius: 8px !important;
-}
-.portfolio-section .portfolio-table-scroll {
-  scrollbar-width: auto !important;
-}
-.filter-btn {
-  padding: 0;
-  background: transparent;
-}
+
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb !important; }
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8 !important; border-radius: 8px !important; }
+.portfolio-section .portfolio-table-scroll { scrollbar-width: auto !important; }
+
+.filter-btn { padding: 0; background: transparent; }
+
 /* ===== Remove circle background from table icons ===== */
 .icon-circle-btn {
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: transparent;
-  border: none;
-  padding: 0;
-  box-shadow: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: auto; height: auto; border-radius: 0;
+  background: transparent; border: none; padding: 0;
+  box-shadow: none; display: flex; align-items: center; justify-content: center;
 }
+.icon-circle-btn:hover { background: transparent; }
 
-.icon-circle-btn:hover {
-  background: transparent;
-}
-/* ===== Table header background ===== */
-.portfolio-table thead {
-  background: #ffffff;
-}
-.portfolio-table th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #ffffff;
-}
-.portfolio-table th {
-  background: #ffffff;
-}
-/* ===== FORCE white header background ===== */
-.portfolio-table thead,
-.portfolio-table thead tr,
-.portfolio-table thead th {
-  background-color: #ffffff !important;
-}
-
-.portfolio-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-/* ===== Remove top line / border above table headers ===== */
-.portfolio-table thead,
-.portfolio-table thead tr,
-.portfolio-table thead th {
-  border-top: none !important;
-  box-shadow: none !important;
-}
-
-/* لو الخط جاي من الجدول نفسه */
-.portfolio-table {
-  border-top: none !important;
-}
-
-.portfolio-table-card {
-  border-top: none !important;
-}
-.portfolio-table thead th {
-  position: sticky;
-  top: 0;
-  background: #fff !important;
-  box-shadow: none !important;
-}
 /* =====================================
    FORCE REMOVE ANY LINE ABOVE HEADERS
    ===================================== */
-
-/* table + header */
 .portfolio-table,
 .portfolio-table thead,
 .portfolio-table thead tr,
@@ -356,7 +277,6 @@
   box-shadow: none !important;
 }
 
-/* card / wrapper */
 .portfolio-table-card,
 .portfolio-section,
 .portfolio-section-header {
@@ -364,7 +284,6 @@
   box-shadow: none !important;
 }
 
-/* kill pseudo elements (VERY IMPORTANT) */
 .portfolio-table-card::before,
 .portfolio-table-card::after,
 .portfolio-section::before,
@@ -373,28 +292,26 @@
   display: none !important;
 }
 
-/* sticky header safety */
 .portfolio-table thead th {
   background: #ffffff !important;
   position: sticky;
   top: 0;
   z-index: 5;
-}
-.portfolio-section-header {
-  border-bottom: 0px solid #e5e7eb; /* line خفيف */
-  padding-bottom: 12px;
-  margin-bottom: 0; /* مهم */
-}
-.portfolio-table th {
   white-space: nowrap;
   text-align: left;
   vertical-align: middle;
-  cursor: pointer; /* عشان يبين إنه قابل للضغط للترتيب مستقبلاً */
+  cursor: pointer;
 }
-/* ===== Portfolio Summary (Typography + Footer) ===== */
+
+.portfolio-section-header {
+  border-bottom: 0px solid #e5e7eb;
+  padding-bottom: 12px;
+  margin-bottom: 0;
+}
+
+/* ===== Portfolio Summary Typography ===== */
 .portfolio-section-header h2 {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 600;
   font-size: 16px;
   line-height: 24px;
@@ -405,7 +322,6 @@
 
 .portfolio-count {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 500;
   font-size: 16px;
   line-height: 24px;
@@ -416,7 +332,6 @@
 
 .portfolio-table thead th {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 500;
   font-size: 14px;
   line-height: 16px;
@@ -426,7 +341,6 @@
 
 .name-main {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
@@ -436,7 +350,6 @@
 
 .name-sub {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
@@ -446,7 +359,6 @@
 
 .portfolio-table tbody td {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
@@ -461,7 +373,6 @@
 
 .portfolio-subtotal-row .subtotal-name-cell {
   font-family: "Inter";
-  font-style: normal;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
@@ -469,33 +380,66 @@
   color: #ffffff;
 }
 
-/* Ensure subtotal/total numbers are white and aligned */
-.portfolio-subtotal-row td {
-  color: #ffffff;
-}
-
-/* Force footer numbers white in all three tables */
-.portfolio-table tbody .portfolio-subtotal-row td {
-  color: #ffffff !important;
-}
-
+.portfolio-subtotal-row td,
+.portfolio-table tbody .portfolio-subtotal-row td,
 .portfolio-table tbody .portfolio-subtotal-row td.col-highlight {
   color: #ffffff !important;
 }
 
-.portfolio-total-section .portfolio-table {
+/* ===== TOTAL SECTION — matches the three tables above ===== */
+.portfolio-total-section .portfolio-table-scroll {
   width: 100%;
-  min-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  padding-bottom: 4px;
 }
 
-.portfolio-total-section .portfolio-subtotal-row td,
-.portfolio-total-section .subtotal-name-cell {
-  padding-left: 10px;
+/* Same fixed width as the section tables so columns align */
+.portfolio-total-section .portfolio-table {
+  width: max-content;
+  min-width: 1400px;
+  table-layout: fixed;
+}
+
+/* Hide the label header row — values are self-explanatory in the blue row */
+.portfolio-total-section thead tr th {
+  font-family: "Inter";
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  padding: 8px 8px 4px;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+/* First two th (empty name + geography placeholders) */
+.portfolio-total-section thead tr th:first-child,
+.portfolio-total-section thead tr th:nth-child(2) {
+  border-bottom: none;
 }
 
 .portfolio-total-section .portfolio-subtotal-row td {
   color: #ffffff !important;
+  font-family: "Inter";
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
 }
+
+.portfolio-total-section .subtotal-name-cell {
+  padding-left: 16px;
+}
+
+/* scrollbar same style as other tables */
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb !important; }
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8 !important; border-radius: 8px !important; }
+.portfolio-total-section .portfolio-table-scroll { scrollbar-width: auto !important; }
 
 .toast {
   position: fixed;
@@ -514,9 +458,7 @@
   max-width: 420px;
 }
 
-.toast-error {
-  background: #b91c1c;
-}
+.toast-error { background: #b91c1c; }
 
 .toast-close {
   background: transparent;
@@ -526,4 +468,3 @@
   line-height: 1;
   cursor: pointer;
 }
-
