@@ -47,6 +47,30 @@ const formatFxRate = (rate) => {
 
 const toSafeArray = (value) => (Array.isArray(value) ? value : []);
 
+const canonicalFlowType = (value) => {
+  const type = String(value || "").trim().toLowerCase();
+  if (!type) return "";
+  if (type.includes("partial") && type.includes("divest")) return "Partial divestment";
+  if (type.includes("divest")) return "Divestment";
+  if (type.includes("dividend")) return "Dividend";
+  if (type.includes("interest")) return "Interest";
+  if (type.includes("investment")) return "Investment";
+  if (type.includes("invest")) return "Investment";
+  if (type.includes("other")) return "Other";
+  return type;
+};
+
+const getFlowTypeName = (flow) =>
+  flow?.transaction_name ??
+  flow?.transaction_type_name ??
+  flow?.transaction_type?.name ??
+  flow?.transaction_type ??
+  flow?.type ??
+  "";
+
+const isInvestmentCostFlow = (flow) =>
+  canonicalFlowType(getFlowTypeName(flow)) === "Investment";
+
 const pickLatestByDate = (rows, cutoffDate) => {
   const cutoff = cutoffDate ? new Date(cutoffDate) : null;
   const filtered = rows
@@ -66,7 +90,7 @@ const getSortedFlowsWithFx = (flows = []) =>
     .map((flow) => ({
       ...flow,
       __date: new Date(flow.date),
-      __fx: Number(flow.fx_rate),
+      __fx: Number(flow.fx_rate ?? flow.fxRate),
     }))
     .filter((flow) => !Number.isNaN(flow.__date.getTime()) && Number.isFinite(flow.__fx) && flow.__fx > 0)
     .sort((a, b) => a.__date - b.__date);
@@ -129,6 +153,32 @@ const getFxForExactQuarter = (rowsWithFx, referenceDate) => {
   return matched[matched.length - 1].__fx;
 };
 
+export const getLatestFxRowByCutoff = (rows = [], selectedTimeframes = []) => {
+  const validRows = rows
+    .filter((row) => row?.rawDate || row?.date)
+    .map((row) => ({
+      row,
+      date: new Date(row.rawDate || row.date),
+    }))
+    .filter((item) => !Number.isNaN(item.date.getTime()));
+
+  if (!validRows.length) return null;
+
+  const cutoffCandidates = selectedTimeframes
+    .map((tf) => new Date(tf?.rawDate || tf?.date))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a - b);
+
+  const cutoff = cutoffCandidates.length ? cutoffCandidates[cutoffCandidates.length - 1] : null;
+  const eligible = cutoff
+    ? validRows.filter((item) => item.date <= cutoff)
+    : validRows;
+  const targetPool = eligible.length ? eligible : validRows;
+  const latest = targetPool.sort((a, b) => a.date - b.date)[targetPool.length - 1];
+
+  return latest?.row || null;
+};
+
 export const resolveImpactKeys = (rows = [], selectedTimeframes = []) => {
   const dataRows = rows.filter((row) => row.type !== "total");
   const availableKeys = Object.keys(dataRows[0] || {}).filter(
@@ -181,7 +231,6 @@ export const splitDealRowsIntoTwoTables = (rows = []) => {
 const buildFxRowFromFlow = ({
   flow,
   investment,
-  allFlows,
   allFairValues = [],
   selectedTimeframes,
 }) => {
@@ -237,7 +286,6 @@ const buildFxRowFromFairValue = ({
   fairValue,
   investment,
   allFairValues,
-  fallbackFlows,
   selectedTimeframes,
 }) => {
   const fairValueLc = parseFxValue(fairValue.amount_lc);
@@ -261,7 +309,7 @@ const buildFxRowFromFairValue = ({
     date: formatDateDisplay(fairValue.date),
     fairValueOnDate: formatFxValue(fairValueDisplay),
     currency: investment.currency_code || "-",
-    fxRate: formatFxRate(fairValue.fx_rate),
+    fxRate: formatFxRate(fairValue.fx_rate ?? fairValue.fxRate),
     impactInception:
       oldestFx && latestFx
         ? formatFxValue(fairValueLc / latestFx - fairValueLc / oldestFx)
@@ -288,7 +336,12 @@ const buildFxRowFromFairValue = ({
         : "-";
     row[fxAsOfKey] = fxAtDate ? formatFxRate(fxAtDate) : "-";
     row[fairValueKey] = latestFairValue
-      ? formatFxValue(parseFxValue(latestFairValue.amount_lc))
+      ? formatFxValue(
+          Number.isFinite(Number(latestFairValue.amount)) &&
+            Number(latestFairValue.amount) !== 0
+            ? Number(latestFairValue.amount)
+            : parseFxValue(latestFairValue.amount_lc)
+        )
       : "-";
   });
 
@@ -327,13 +380,13 @@ export const useFxDealsRows = (
         const byInvestment = preloadedRows.map((investment) => {
           const investmentId = Number(investment.investment_id ?? investment.id);
           const flows = toSafeArray(preloadedFlows?.[investmentId]);
+          const costFlows = flows.filter(isInvestmentCostFlow);
           const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
 
-          const flowRows = flows.map((flow) =>
+          const flowRows = costFlows.map((flow) =>
             buildFxRowFromFlow({
               flow,
               investment,
-              allFlows: flows,
               allFairValues: fairValues,
               selectedTimeframes,
             })
@@ -343,7 +396,6 @@ export const useFxDealsRows = (
               fairValue,
               investment,
               allFairValues: fairValues,
-              fallbackFlows: flows,
               selectedTimeframes,
             })
           );
@@ -395,15 +447,15 @@ export const useFxDealsRows = (
             ]);
 
             const flows = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
+            const costFlows = flows.filter(isInvestmentCostFlow);
             const fairValues = fairValuesRes.ok
               ? toSafeArray(await fairValuesRes.json())
               : [];
 
-            const flowRows = flows.map((flow) =>
+            const flowRows = costFlows.map((flow) =>
               buildFxRowFromFlow({
                 flow,
                 investment,
-                allFlows: flows,
                 allFairValues: fairValues,
                 selectedTimeframes,
               })
@@ -413,7 +465,6 @@ export const useFxDealsRows = (
                 fairValue,
                 investment,
                 allFairValues: fairValues,
-                fallbackFlows: flows,
                 selectedTimeframes,
               })
             );

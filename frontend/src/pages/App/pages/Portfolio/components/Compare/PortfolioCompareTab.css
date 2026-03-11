@@ -9,6 +9,13 @@
 .compare-timeframes-row {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.compare-dropdown-search {
+  max-width: none;
+  min-width: 0;
+  width: 100%;
 }
 
 /* ===== Compare Table Card ===== */

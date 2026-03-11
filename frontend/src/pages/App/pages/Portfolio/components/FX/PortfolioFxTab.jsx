@@ -20,7 +20,7 @@ const PortfolioFxTab = () => {
   const { investments: dealsInvestments, isLoading: isDealsLoading } =
     useFxDealsRows(
       fundId,
-      timeframesState.quarters,
+      timeframesState.debouncedSelectedTimeframes,
       fallbackInvestments,
       portfolioDataset
     );

@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { parseFxValue } from "../../FXbackwork";
+import { getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
 import { ChevronDownIcon } from "../../Icons";
 import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import "./FxChartsView.css";
@@ -84,11 +84,8 @@ const FxChartsView = ({ shared }) => {
     const impactKey = `impact${normalizeLabel(timeframe.display_label)}`;
     const totalImpact = filteredInvestments.reduce((sum, investment) => {
       const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
-      const perInvestment = fvRows.reduce(
-        (rowSum, row) => rowSum + parseFxValue(row[impactKey]),
-        0
-      );
-      return sum + perInvestment;
+      const latestFvRow = getLatestFxRowByCutoff(fvRows, [timeframe]);
+      return sum + parseFxValue(latestFvRow?.[impactKey]);
     }, 0);
 
     return {
@@ -99,10 +96,8 @@ const FxChartsView = ({ shared }) => {
 
   const totalInception = filteredInvestments.reduce((sum, investment) => {
     const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
-    return (
-      sum +
-      fvRows.reduce((rowSum, row) => rowSum + parseFxValue(row.impactInception), 0)
-    );
+    const latestFvRow = getLatestFxRowByCutoff(fvRows, activeTimeframes);
+    return sum + parseFxValue(latestFvRow?.impactInception);
   }, 0);
 
   const finalChartData = [

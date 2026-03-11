@@ -34,6 +34,19 @@ const canonicalType = (value) => {
   return "other";
 };
 
+const sumFlowsByTypeAsOfDate = (flows = [], cutoffDate, acceptedTypes = []) => {
+  const cutoff = new Date(cutoffDate);
+  const accepted = new Set(acceptedTypes);
+  return flows
+    .filter((flow) => flow?.date)
+    .filter((flow) => {
+      const d = new Date(flow.date);
+      return !Number.isNaN(d.getTime()) && d <= cutoff;
+    })
+    .filter((flow) => accepted.has(canonicalType(flow.transaction_name)))
+    .reduce((sum, flow) => sum + Math.abs(getAmountEur(flow)), 0);
+};
+
 const getAmountEur = (row) => {
   const direct = toNumber(row.amount);
   if (direct) return direct;
@@ -179,6 +192,8 @@ export const useCompareRows = (
             acc[q.id] = {
               cost: costAsOfDate(flows, cutoff),
               fv: fvAsOfDate(fairValues, cutoff),
+              dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+              divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
             };
             return acc;
           }, {});
@@ -191,20 +206,11 @@ export const useCompareRows = (
           };
         });
 
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0
-            ? true
-            : activeQuarters.some((q) => {
-                const tf = row.timeframes[q.id] || {};
-                return toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0;
-              })
-        );
-
         if (!isCancelled) {
           setRows((prev) => {
             const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
+            const nextSig = buildRowsSignature(mapped, activeQuarters);
+            return prevSig === nextSig ? prev : mapped;
           });
           setIsLoading(false);
         }
@@ -237,6 +243,8 @@ export const useCompareRows = (
               acc[q.id] = {
                 cost: costAsOfDate(flows, cutoff),
                 fv: fvAsOfDate(fairValues, cutoff),
+                dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+                divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
               };
               return acc;
             }, {});
@@ -250,20 +258,11 @@ export const useCompareRows = (
           })
         );
 
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0
-            ? true
-            : activeQuarters.some((q) => {
-                const tf = row.timeframes[q.id] || {};
-                return (toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0);
-              })
-        );
-
         if (!isCancelled) {
           setRows((prev) => {
             const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
+            const nextSig = buildRowsSignature(mapped, activeQuarters);
+            return prevSig === nextSig ? prev : mapped;
           });
         }
       } catch (error) {
@@ -305,7 +304,9 @@ export const buildTotalRow = (rows = [], activeQuarters = []) => {
   activeQuarters.forEach((q) => {
     const cost = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.cost), 0);
     const fv = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.fv), 0);
-    total.timeframes[q.id] = { cost, fv };
+    const dividends = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.dividends), 0);
+    const divestment = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.divestment), 0);
+    total.timeframes[q.id] = { cost, fv, dividends, divestment };
   });
 
   return total;
@@ -330,7 +331,7 @@ export const diffBetweenNewestAndOldest = (row, key, activeQuarters = []) => {
   return formatCompareMoney(newestVal - oldestVal);
 };
 
-export const getCompareColumnOptions = (activeQuarters = []) => {
+export const getCompareTableColumnOptions = (activeQuarters = []) => {
   const options = [];
 
   activeQuarters.forEach((q) => {
@@ -361,8 +362,30 @@ export const getCompareColumnOptions = (activeQuarters = []) => {
     });
   }
 
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `divestment:${q.id}`,
+      label: `Divestment ${q.display_label}`,
+    });
+  });
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `dividends:${q.id}`,
+      label: `Dividends ${q.display_label}`,
+    });
+  });
+
   return options;
 };
+
+export const getCompareChartMetricOptions = () => [
+  { key: "cost", label: "Cost" },
+  { key: "fair_value", label: "Fair Value" },
+  { key: "change_fv", label: "Change in Fair Value" },
+  { key: "divestment", label: "Divestment" },
+  { key: "dividends", label: "Dividends" },
+];
 
 export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => {
   if (!row || !columnKey) return 0;
@@ -377,10 +400,37 @@ export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => 
     return toNumber(row?.timeframes?.[id]?.fv);
   }
 
+  if (columnKey.startsWith("divestment:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.divestment);
+  }
+
+  if (columnKey.startsWith("dividends:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.dividends);
+  }
+
+  const newestId = activeQuarters[0]?.id;
+  const oldestId = activeQuarters[activeQuarters.length - 1]?.id;
+
+  if (columnKey === "cost") {
+    return toNumber(row?.timeframes?.[newestId]?.cost);
+  }
+
+  if (columnKey === "fair_value") {
+    return toNumber(row?.timeframes?.[newestId]?.fv);
+  }
+
+  if (columnKey === "divestment") {
+    return toNumber(row?.timeframes?.[newestId]?.divestment);
+  }
+
+  if (columnKey === "dividends") {
+    return toNumber(row?.timeframes?.[newestId]?.dividends);
+  }
+
   if (columnKey === "change_cost") {
     if (activeQuarters.length < 2) return 0;
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
     const newestVal = toNumber(row?.timeframes?.[newestId]?.cost);
     const oldestVal = toNumber(row?.timeframes?.[oldestId]?.cost);
     return newestVal - oldestVal;
@@ -388,8 +438,6 @@ export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => 
 
   if (columnKey === "change_fv") {
     if (activeQuarters.length < 2) return 0;
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
     const newestVal = toNumber(row?.timeframes?.[newestId]?.fv);
     const oldestVal = toNumber(row?.timeframes?.[oldestId]?.fv);
     return newestVal - oldestVal;

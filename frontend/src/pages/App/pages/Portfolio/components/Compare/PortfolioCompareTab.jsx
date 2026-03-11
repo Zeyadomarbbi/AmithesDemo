@@ -4,12 +4,14 @@ import { PORTFOLIO_COMPARE_DATA } from "../../portfolioData";
 
 // Hooks and Components
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
+import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import { ChevronDownIcon } from "../../icons.jsx";
 import {
   buildTotalRow,
   diffBetweenNewestAndOldest,
   formatCompareMoney,
-  getCompareColumnOptions,
+  getCompareChartMetricOptions,
+  getCompareTableColumnOptions,
   getCompareValueByColumn,
   useCompareRows,
   useCompareTimeframes,
@@ -36,8 +38,9 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
   const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
   const [investmentSearchTerm, setInvestmentSearchTerm] = useState("");
-  
+  const [isColumnDropdownOpen, setIsColumnDropdownOpen] = useState(false);
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState([]);
 
   // --- DATA PROCESSING ---
 
@@ -84,10 +87,24 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   }, [visibleRows, activeQuarters]);
 
   // --- CHART DATA CALCULATION ---
-  const compareOptions = useMemo(
-    () => getCompareColumnOptions(activeQuarters),
+  const tableColumnOptions = useMemo(
+    () => getCompareTableColumnOptions(activeQuarters),
     [activeQuarters]
   );
+
+  const compareOptions = useMemo(
+    () => getCompareChartMetricOptions(),
+    []
+  );
+
+  useEffect(() => {
+    const validKeys = new Set(tableColumnOptions.map((opt) => opt.key));
+    setVisibleColumnKeys((prev) => {
+      const filtered = prev.filter((key) => validKeys.has(key));
+      if (filtered.length) return filtered;
+      return tableColumnOptions.map((opt) => opt.key);
+    });
+  }, [tableColumnOptions]);
 
   const effectiveCompareColumn =
     selectedCompareColumn && compareOptions.some((opt) => opt.key === selectedCompareColumn)
@@ -146,12 +163,12 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
             {isInvDropdownOpen && (
                 <div className="quarter-dropdown">
                     <div className="quarter-search-wrapper">
-                      <input
-                        type="text"
-                        className="quarter-search-input"
+                      <SearchBar
+                        key={isInvDropdownOpen ? "compare-investment-search-open" : "compare-investment-search-closed"}
                         placeholder="Search investment..."
-                        value={investmentSearchTerm}
-                        onChange={(e) => setInvestmentSearchTerm(e.target.value)}
+                        onSearch={setInvestmentSearchTerm}
+                        containerClassName="search-bar compare-dropdown-search"
+                        className="compare-dropdown-search-input"
                       />
                     </div>
                     <div className="quarter-list">
@@ -196,12 +213,52 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
             maxSelections={2}
           />
         </div>
+
+        <div className="quarter-selector-container">
+          <div
+            className={`quarter-selector-button ${isColumnDropdownOpen ? 'active' : ''}`}
+            onClick={() => setIsColumnDropdownOpen(!isColumnDropdownOpen)}
+          >
+            <div className="quarter-text-group">
+              <span className="quarter-part">Columns ({visibleColumnKeys.length})</span>
+            </div>
+            <div className={`quarter-icon ${isColumnDropdownOpen ? 'open' : ''}`}>
+              <ChevronDownIcon />
+            </div>
+          </div>
+
+          {isColumnDropdownOpen && (
+            <div className="quarter-dropdown">
+              <div className="quarter-list">
+                {tableColumnOptions.map((option) => {
+                  const isSelected = visibleColumnKeys.includes(option.key);
+                  return (
+                    <div
+                      key={option.key}
+                      className={`quarter-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        setVisibleColumnKeys((prev) =>
+                          prev.includes(option.key)
+                            ? prev.filter((key) => key !== option.key)
+                            : [...prev, option.key]
+                        );
+                      }}
+                    >
+                      <span className="item-label-bold">{option.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <PortfolioCompareTable 
         activeQuarters={activeQuarters}
         visibleRows={visibleRows}
         totalRow={totalRow}
+        visibleColumnKeys={visibleColumnKeys}
         onSelectInvestment={onSelectInvestment}
         formatMoney={formatCompareMoney}
         getDiff={(row, key) => diffBetweenNewestAndOldest(row, key, activeQuarters)}

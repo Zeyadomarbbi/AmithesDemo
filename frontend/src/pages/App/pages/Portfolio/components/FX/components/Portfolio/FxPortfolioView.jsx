@@ -3,6 +3,7 @@ import QuarterSelector from "../../../../../../../../components/QuarterSelection
 import { SortIcon } from "../../Icons";
 import {
   formatFxValue,
+  getLatestFxRowByCutoff,
   parseFxValue,
 } from "../../FXbackwork";
 import "../Deals/FxDealsView.css";
@@ -39,6 +40,7 @@ const FxPortfolioView = ({ fundId, shared }) => {
     .map((inv) => {
       const costRows = Array.isArray(inv.costRows) ? inv.costRows : [];
       const fvRows = Array.isArray(inv.fvRows) ? inv.fvRows : [];
+      const latestFvRow = getLatestFxRowByCutoff(fvRows, debouncedSelectedTimeframes);
 
       const fxEntry = fvRows.length
         ? fvRows
@@ -47,25 +49,9 @@ const FxPortfolioView = ({ fundId, shared }) => {
         : "-";
 
       const rowImpacts = timeframeColumns.reduce((acc, column) => {
-        acc[column.impactKey] = fvRows.reduce(
-          (sum, row) => sum + parseFxValue(row[column.impactKey]),
-          0
-        );
+        acc[column.impactKey] = parseFxValue(latestFvRow?.[column.impactKey]);
         return acc;
       }, {});
-
-      const hasDataInSelectedTimeframes = hasSelectedTimeframes
-        ? fvRows.some((row) =>
-            timeframeColumns.some((column) => {
-              const rowDate = new Date(row.rawDate || row.date);
-              const tfDate = new Date(column.rawDate);
-              if (Number.isNaN(rowDate.getTime()) || Number.isNaN(tfDate.getTime())) {
-                return false;
-              }
-              return rowDate <= tfDate;
-            })
-          )
-        : fvRows.length > 0;
 
       return {
         name: inv.title,
@@ -75,14 +61,9 @@ const FxPortfolioView = ({ fundId, shared }) => {
         currency: fvRows[0]?.currency || costRows[0]?.currency || "-",
         fxEntry,
         impacts: rowImpacts,
-        impactInception: fvRows.reduce(
-          (sum, row) => sum + parseFxValue(row.impactInception),
-          0
-        ),
-        include: hasDataInSelectedTimeframes,
+        impactInception: parseFxValue(latestFvRow?.impactInception),
       };
-    })
-    .filter((row) => row.include);
+    });
 
   const grandTotalCost = aggregateRows.reduce((acc, row) => acc + row.costLc, 0);
   const grandTotalInception = aggregateRows.reduce(
