@@ -1,36 +1,21 @@
 import React from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
 import { ChevronDownIcon } from "../../Icons";
-import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import "./FxChartsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
 
 const FxChartsView = ({ shared }) => {
   const {
-    quarters,
     dealsInvestments,
     isDealsLoading,
-    isTimeframesLoading,
     isFundsLoading,
-    selectedTimeframeIds,
     debouncedSelectedTimeframes,
-    handleToggleTimeframe,
-    handleSaveTimeframe,
     symbol = "EUR",
   } = shared;
 
-  if (isFundsLoading || isTimeframesLoading || isDealsLoading) return null;
+  if (isFundsLoading || isDealsLoading) return null;
 
   const [selectedInvestmentKey, setSelectedInvestmentKey] = React.useState("all");
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -72,13 +57,9 @@ const FxChartsView = ({ shared }) => {
   }, [dealsInvestments, selectedInvestmentKey]);
 
   const selectedLabel =
-    investmentOptions.find((opt) => opt.key === selectedInvestmentKey)?.label ||
-    "All Investments";
+    investmentOptions.find((opt) => opt.key === selectedInvestmentKey)?.label || "All Investments";
 
-  const activeTimeframes =
-    debouncedSelectedTimeframes && debouncedSelectedTimeframes.length
-      ? debouncedSelectedTimeframes
-      : quarters;
+  const activeTimeframes = debouncedSelectedTimeframes?.length ? debouncedSelectedTimeframes : [];
 
   const chartData = activeTimeframes.map((timeframe) => {
     const impactKey = `impact${normalizeLabel(timeframe.display_label)}`;
@@ -87,11 +68,7 @@ const FxChartsView = ({ shared }) => {
       const latestFvRow = getLatestFxRowByCutoff(fvRows, [timeframe]);
       return sum + parseFxValue(latestFvRow?.[impactKey]);
     }, 0);
-
-    return {
-      name: timeframe.display_label,
-      value: Number((totalImpact / 1000000).toFixed(2)),
-    };
+    return { name: timeframe.display_label, value: Number((totalImpact / 1000000).toFixed(2)) };
   });
 
   const totalInception = filteredInvestments.reduce((sum, investment) => {
@@ -102,10 +79,7 @@ const FxChartsView = ({ shared }) => {
 
   const finalChartData = [
     ...chartData,
-    {
-      name: "Inception",
-      value: Number((totalInception / 1000000).toFixed(2)),
-    },
+    { name: "Inception", value: Number((totalInception / 1000000).toFixed(2)) },
   ];
 
   return (
@@ -114,17 +88,6 @@ const FxChartsView = ({ shared }) => {
         <div className="fx-charts-header">
           <div className="fx-charts-title">FX Gains / Losses (m{symbol})</div>
           <div className="fx-charts-controls">
-            <div className="limits-period-wrapper fx-charts-timeframes">
-              <QuarterSelector
-                options={quarters}
-                selected={selectedTimeframeIds}
-                onChange={handleToggleTimeframe}
-                onSaveNew={handleSaveTimeframe}
-                isLoading={isTimeframesLoading}
-                isSingle={false}
-              />
-            </div>
-
             <div className="dropdown-container">
               <div
                 className={`dropdown-btn ${isDropdownOpen ? "active" : ""}`}
@@ -133,7 +96,6 @@ const FxChartsView = ({ shared }) => {
                 <span>{selectedLabel}</span>
                 <ChevronDownIcon />
               </div>
-
               {isDropdownOpen && (
                 <div className="custom-dropdown-menu">
                   <div className="quarter-search-wrapper">
@@ -149,10 +111,7 @@ const FxChartsView = ({ shared }) => {
                     <div
                       key={option.key}
                       className={`dropdown-item ${selectedInvestmentKey === option.key ? "active" : ""}`}
-                      onClick={() => {
-                        setSelectedInvestmentKey(option.key);
-                        setIsDropdownOpen(false);
-                      }}
+                      onClick={() => { setSelectedInvestmentKey(option.key); setIsDropdownOpen(false); }}
                     >
                       {option.label}
                     </div>
@@ -168,37 +127,13 @@ const FxChartsView = ({ shared }) => {
         <div className="fx-charts-container">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={finalChartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#F3F4F6"
-              />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                dy={10}
-                tick={{ fill: "#6B7280", fontSize: 12 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#6B7280", fontSize: 12 }}
-              />
-              <Tooltip
-                cursor={{ fill: "#F9FAFB" }}
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} tick={{ fill: "#6B7280", fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} />
+              <Tooltip cursor={{ fill: "#F9FAFB" }} contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
               <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
                 {finalChartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.value >= 0 ? "#818CF8" : "#EF4444"}
-                  />
+                  <Cell key={`cell-${index}`} fill={entry.value >= 0 ? "#818CF8" : "#EF4444"} />
                 ))}
               </Bar>
             </BarChart>

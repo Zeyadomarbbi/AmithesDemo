@@ -23,9 +23,13 @@ const PortfolioPage = () => {
 
   // Bridge the data shape so the downstream tabs don't need any changes
   const portfolioDataset = {
-    investments: investments,
+    investments: investments.map((inv) => ({
+      ...inv,
+      transaction_flows: (inv.transaction_flows ?? []).filter((f) => f.scenario_id === null),
+      fair_value_flows: inv.fair_value_flows ?? [],
+    })),
     isLoading: loading,
-    refresh: fetchInvestments 
+    refresh: fetchInvestments,
   };
 
   return (

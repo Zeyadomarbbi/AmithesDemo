@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
-import { API_BASE_URL } from "../../../../../../hooks/api/apiConfig";
 
 export const parseFxValue = (value) => {
   if (!value || value === "-") return 0;
@@ -357,164 +356,54 @@ export const useFxDealsRows = (
   const [investments, setInvestments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const preloadedInvestments = preloadedDataset?.investments;
-  const preloadedFlows = preloadedDataset?.flowsByInvestment;
-  const preloadedFairValues = preloadedDataset?.fairValuesByInvestment;
-  const preloadedLoadedAt = preloadedDataset?.loadedAt;
   const preloadedIsLoading = preloadedDataset?.isLoading;
+
+  const selectedTimeframesKey = useMemo(
+    () => selectedTimeframes.map((tf) => `${tf.id}:${tf.rawDate || tf.date}`).join("|"),
+    [selectedTimeframes]
+  );
 
   useEffect(() => {
     let isCancelled = false;
 
-    const load = async () => {
-      if (!fundId) {
-        setInvestments([]);
-        return;
-      }
+    if (preloadedIsLoading) {
+      setIsLoading(true);
+      return;
+    }
 
-      const preloadedRows = toSafeArray(preloadedInvestments);
-      if (preloadedIsLoading) {
-        setIsLoading(true);
-        return;
-      }
-      if (preloadedRows.length) {
-        const byInvestment = preloadedRows.map((investment) => {
-          const investmentId = Number(investment.investment_id ?? investment.id);
-          const flows = toSafeArray(preloadedFlows?.[investmentId]);
-          const costFlows = flows.filter(isInvestmentCostFlow);
-          const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
+    const preloadedRows = toSafeArray(preloadedInvestments);
+    const byInvestment = preloadedRows.map((investment) => {
+      const investmentId = Number(investment.investment_id ?? investment.id);
+      const flows = toSafeArray(investment.transaction_flows);
+      const costFlows = flows.filter(isInvestmentCostFlow);
+      const fairValues = toSafeArray(investment.fair_value_flows);
 
-          const flowRows = costFlows.map((flow) =>
-            buildFxRowFromFlow({
-              flow,
-              investment,
-              allFairValues: fairValues,
-              selectedTimeframes,
-            })
-          );
-          const fairValueRows = fairValues.map((fairValue) =>
-            buildFxRowFromFairValue({
-              fairValue,
-              investment,
-              allFairValues: fairValues,
-              selectedTimeframes,
-            })
-          );
+      return {
+        title: investment.name || `Investment #${investmentId}`,
+        costRows: costFlows.map((flow) =>
+          buildFxRowFromFlow({ flow, investment, allFairValues: fairValues, selectedTimeframes })
+        ),
+        fvRows: fairValues.map((fairValue) =>
+          buildFxRowFromFairValue({ fairValue, investment, allFairValues: fairValues, selectedTimeframes })
+        ),
+      };
+    });
 
-          return {
-            title: investment.name || `Investment #${investmentId}`,
-            costRows: flowRows,
-            fvRows: fairValueRows,
-          };
-        });
+    if (!isCancelled) {
+      setInvestments(byInvestment);
+      setIsLoading(false);
+    }
 
-        if (!isCancelled) {
-          setInvestments(byInvestment);
-          setIsLoading(false);
-        }
-        return;
-      }
-      if (preloadedLoadedAt) {
-        if (!isCancelled) {
-          setInvestments([]);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const res = await fetch(
-          `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`
-        );
-        if (!res.ok) throw new Error("Failed to fetch portfolio investments");
-
-        const payload = await res.json();
-        const portfolioRows = toSafeArray(payload?.rows || payload);
-        const mappedInvestments = portfolioRows.filter(
-          (row) => Number.isFinite(Number(row.investment_id ?? row.id))
-        );
-
-        const byInvestment = await Promise.all(
-          mappedInvestments.map(async (investment) => {
-            const investmentId = Number(investment.investment_id ?? investment.id);
-            const [flowsRes, fairValuesRes] = await Promise.all([
-              fetch(
-                `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`
-              ),
-              fetch(
-                `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`
-              ),
-            ]);
-
-            const flows = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
-            const costFlows = flows.filter(isInvestmentCostFlow);
-            const fairValues = fairValuesRes.ok
-              ? toSafeArray(await fairValuesRes.json())
-              : [];
-
-            const flowRows = costFlows.map((flow) =>
-              buildFxRowFromFlow({
-                flow,
-                investment,
-                allFairValues: fairValues,
-                selectedTimeframes,
-              })
-            );
-            const fairValueRows = fairValues.map((fairValue) =>
-              buildFxRowFromFairValue({
-                fairValue,
-                investment,
-                allFairValues: fairValues,
-                selectedTimeframes,
-              })
-            );
-
-            return {
-              title: investment.name || `Investment #${investmentId}`,
-              costRows: flowRows,
-              fvRows: fairValueRows,
-            };
-          })
-        );
-
-        if (!isCancelled) {
-          setInvestments(byInvestment);
-        }
-      } catch (error) {
-        console.error("Failed to load FX deals rows:", error);
-        if (!isCancelled) {
-          const mappedFallback = fallbackData.map((item) => ({
-            title: item.title,
-            costRows: item.rows || [],
-            fvRows: item.rows || [],
-          }));
-          setInvestments(mappedFallback);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [
-    fundId,
-    fallbackData,
-    selectedTimeframes,
+    selectedTimeframesKey,
     preloadedInvestments,
-    preloadedFlows,
-    preloadedFairValues,
-    preloadedLoadedAt,
     preloadedIsLoading,
   ]);
 
   return { investments, isLoading };
 };
+
 
 export const useFxDealsTimeframes = (maxSelections = null) => {
   const { quarters, isLoading, saveTimeframe } = useTimeframeContext();

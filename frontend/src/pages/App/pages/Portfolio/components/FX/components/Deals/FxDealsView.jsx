@@ -1,4 +1,3 @@
-import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import {
   calculateDealTableTotals,
   formatFxValue,
@@ -17,35 +16,20 @@ const buildTimeframeColumns = (selectedTimeframes, impactKeys) => {
       const fallbackImpactKey = `impact${normalizeLabel(timeframe.display_label)}`;
       const expected = fallbackImpactKey.toLowerCase();
       const impactKey = impactMap.get(expected) || fallbackImpactKey;
-      return {
-        id: timeframe.id,
-        label: timeframe.display_label,
-        impactKey,
-      };
+      return { id: timeframe.id, label: timeframe.display_label, impactKey };
     });
   }
-
-  if (!impactKeys.length) {
-    return [];
-  }
-
-  if (!selectedTimeframes.length) {
-    return impactKeys.map((key) => ({
-      id: key,
-      label: key.replace("impact", "Impact ").replace(/(\d{4})$/, " $1"),
-      impactKey: key,
-    }));
-  }
-  return [];
+  if (!impactKeys.length) return [];
+  return impactKeys.map((key) => ({
+    id: key,
+    label: key.replace("impact", "Impact ").replace(/(\d{4})$/, " $1"),
+    impactKey: key,
+  }));
 };
 
 const resolveFxAsOfValue = (row, timeframeLabel) => {
   const token = normalizeLabel(timeframeLabel);
-  const candidates = [
-    `fxAsOf${token}`,
-    `fx_as_of_${token}`,
-    `fx${token}`,
-  ];
+  const candidates = [`fxAsOf${token}`, `fx_as_of_${token}`, `fx${token}`];
   const matchedKey = candidates.find((key) => row?.[key] !== undefined && row?.[key] !== null);
   return matchedKey ? row[matchedKey] : row.fxRate;
 };
@@ -60,36 +44,22 @@ const getLatestRowByCutoff = (rows = [], selectedTimeframes = []) => {
     .filter((row) => row?.rawDate || row?.date)
     .map((row) => ({ row, date: toDateValue(row.rawDate || row.date) }))
     .filter((item) => item.date);
-
   if (!validRows.length) return [];
-
   const cutoffCandidates = selectedTimeframes
     .map((tf) => toDateValue(tf.rawDate || tf.date))
     .filter(Boolean)
     .sort((a, b) => a - b);
-  const cutoff = cutoffCandidates.length
-    ? cutoffCandidates[cutoffCandidates.length - 1]
-    : null;
-
-  const eligible = cutoff
-    ? validRows.filter((item) => item.date <= cutoff)
-    : validRows;
-
+  const cutoff = cutoffCandidates.length ? cutoffCandidates[cutoffCandidates.length - 1] : null;
+  const eligible = cutoff ? validRows.filter((item) => item.date <= cutoff) : validRows;
   const targetPool = eligible.length ? eligible : validRows;
   const latest = targetPool.sort((a, b) => a.date - b.date)[targetPool.length - 1];
   return latest ? [latest.row] : [];
 };
 
 const FxDealsSubTable = ({
-  rows,
-  timeframeColumns,
-  symbol,
-  primaryValueLabel,
-  primaryValueCellResolver,
-  totalPrimaryValue = 0,
-  showTotal = false,
-  totals = null,
-  tablePart = "top",
+  rows, timeframeColumns, symbol, primaryValueLabel,
+  primaryValueCellResolver, totalPrimaryValue = 0,
+  showTotal = false, totals = null, tablePart = "top",
 }) => (
   <div className={`fx-deals-table-card fx-deals-table-card-${tablePart}`}>
     <table className="fx-deals-table">
@@ -99,9 +69,7 @@ const FxDealsSubTable = ({
           <th className="col-number">{primaryValueLabel} <SortIcon /></th>
           <th>Currency <SortIcon /></th>
           {timeframeColumns.map((column) => (
-            <th key={`fx-${column.id}`} className="col-number">
-              FX as of {column.label}
-            </th>
+            <th key={`fx-${column.id}`} className="col-number">FX as of {column.label}</th>
           ))}
           {timeframeColumns.map((column) => (
             <th key={`impact-${column.id}`} className="col-number">
@@ -134,7 +102,6 @@ const FxDealsSubTable = ({
             <td className="col-number">{row.impactInception}</td>
           </tr>
         ))}
-
         {showTotal && totals && (
           <tr className="fx-total-row">
             <td className="fx-total-label">Total</td>
@@ -160,16 +127,9 @@ const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
   const costRows = rows?.costRows || [];
   const fvRows = rows?.fvRows || [];
   const latestFvRows = getLatestRowByCutoff(fvRows, selectedTimeframes);
-  const impactKeys = resolveImpactKeys(
-    latestFvRows.length ? latestFvRows : costRows,
-    selectedTimeframes
-  );
+  const impactKeys = resolveImpactKeys(latestFvRows.length ? latestFvRows : costRows, selectedTimeframes);
   const timeframeColumns = buildTimeframeColumns(selectedTimeframes, impactKeys);
-  const fvTotals = calculateDealTableTotals(
-    latestFvRows,
-    timeframeColumns.map((col) => col.impactKey)
-  );
-  const totalFairValue = fvTotals.totalFlow;
+  const fvTotals = calculateDealTableTotals(latestFvRows, timeframeColumns.map((col) => col.impactKey));
 
   return (
     <section className="fx-deals-section">
@@ -182,13 +142,10 @@ const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
             timeframeColumns={timeframeColumns}
             symbol={symbol}
             primaryValueLabel="Cost LC"
-            primaryValueCellResolver={(row) =>
-              formatFxValue(Math.abs(parseFxValue(row.flow)))
-            }
+            primaryValueCellResolver={(row) => formatFxValue(Math.abs(parseFxValue(row.flow)))}
             tablePart="top"
           />
         </div>
-
         <div>
           <h3 className="fx-deals-subtitle">FX on FV</h3>
           <FxDealsSubTable
@@ -197,7 +154,7 @@ const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
             symbol={symbol}
             primaryValueLabel="Fair Value on date (e)"
             primaryValueCellResolver={(row) => row.fairValueOnDate}
-            totalPrimaryValue={totalFairValue}
+            totalPrimaryValue={fvTotals.totalFlow}
             showTotal
             totals={fvTotals}
             tablePart="bottom"
@@ -209,37 +166,13 @@ const InvestmentTable = ({ title, rows, symbol, selectedTimeframes }) => {
 };
 
 const FxDealsView = ({ fundId, shared }) => {
-  const {
-    quarters,
-    isLoading: isTimeframesLoading,
-    selectedTimeframeIds,
-    debouncedSelectedTimeframes,
-    handleToggleTimeframe,
-    handleSaveTimeframe,
-    dealsInvestments,
-    isDealsLoading,
-    symbol = "EUR",
-    isFundsLoading,
-  } = shared;
+  const { dealsInvestments, isDealsLoading, debouncedSelectedTimeframes, symbol = "EUR", isFundsLoading } = shared;
 
   if (isFundsLoading || isDealsLoading) return null;
-  const investments = dealsInvestments;
 
   return (
     <div className="fx-deals-container">
-      <div className="fx-deals-filters-row">
-        <QuarterSelector
-          options={quarters}
-          selected={selectedTimeframeIds}
-          onChange={handleToggleTimeframe}
-          onSaveNew={handleSaveTimeframe}
-          isLoading={isTimeframesLoading}
-          isSingle={false}
-          
-        />
-      </div>
-
-      {investments.map((inv, index) => (
+      {dealsInvestments.map((inv, index) => (
         <InvestmentTable
           key={`${fundId}-inv-${index}`}
           title={inv.title}

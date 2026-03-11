@@ -1,22 +1,11 @@
 import React from "react";
+import SearchBar from "../../../../../../../components/SearchBar/SearchBar.jsx";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ReferenceLine,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
 import { ChevronDownIcon } from "../../../icons.jsx";
 
-const PortfolioCompareChart = ({
-  chartData,
-  options = [],
-  selectedKey,
-  setSelectedKey,
-}) => {
+const PortfolioCompareChart = ({ chartData, options = [], selectedKey, setSelectedKey }) => {
   const selectedOption = options.find((opt) => opt.key === selectedKey) || null;
   const selectedLabel = selectedOption?.label || "Select Column";
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -26,12 +15,10 @@ const PortfolioCompareChart = ({
 
   React.useEffect(() => {
     if (!containerRef.current || typeof ResizeObserver === "undefined") return undefined;
-
     const observer = new ResizeObserver((entries) => {
       const nextWidth = Math.max(320, Math.floor(entries[0]?.contentRect?.width || 0));
       setChartWidth((prev) => (Math.abs(prev - nextWidth) > 1 ? nextWidth : prev));
     });
-
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
@@ -43,16 +30,14 @@ const PortfolioCompareChart = ({
   const filteredOptions = React.useMemo(() => {
     const q = String(searchTerm || "").trim().toLowerCase();
     if (!q) return options;
-    return options.filter((option) =>
-      String(option?.label || "").toLowerCase().includes(q)
-    );
+    return options.filter((option) => String(option?.label || "").toLowerCase().includes(q));
   }, [options, searchTerm]);
 
   return (
     <section className="compare-chart-section">
       <div className="compare-chart-card">
         <div className="compare-chart-header">
-          <span className="compare-chart-title">Compare Investments (mEUR)</span>
+          <span className="compare-chart-title">Compare Investments (m€)</span>
 
           <div className="quarter-selector-container" style={{ minWidth: 220 }}>
             <div
@@ -71,12 +56,12 @@ const PortfolioCompareChart = ({
             {isDropdownOpen && (
               <div className="quarter-dropdown" style={{ minWidth: "100%" }}>
                 <div className="quarter-search-wrapper">
-                  <input
-                    type="text"
-                    className="quarter-search-input"
+                  <SearchBar
+                    key={isDropdownOpen ? "open" : "closed"}
                     placeholder="Search column..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onSearch={setSearchTerm}
+                    containerClassName="search-bar compare-dropdown-search"
+                    className="compare-dropdown-search-input"
                   />
                 </div>
                 <div className="quarter-list">
@@ -84,10 +69,7 @@ const PortfolioCompareChart = ({
                     <div
                       key={option.key}
                       className={`quarter-item ${selectedKey === option.key ? "selected" : ""}`}
-                      onClick={() => {
-                        setSelectedKey(option.key);
-                        setIsDropdownOpen(false);
-                      }}
+                      onClick={() => { setSelectedKey(option.key); setIsDropdownOpen(false); }}
                     >
                       <span className="item-label-bold">{option.label}</span>
                     </div>
@@ -102,38 +84,19 @@ const PortfolioCompareChart = ({
         </div>
 
         <div className="compare-chart-container" ref={containerRef}>
-          <BarChart
-            width={chartWidth}
-            height={300}
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-          >
+          <BarChart width={chartWidth} height={300} data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#9CA3AF", fontSize: 12 }}
-              dy={10}
-              interval={0}
-            />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} dy={10} interval={0} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} />
             <Tooltip
               cursor={{ fill: "#F9FAFB" }}
-              contentStyle={{
-                borderRadius: "8px",
-                border: "none",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              }}
-              formatter={(value) => [`${value} mEUR`, selectedLabel]}
+              contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+              formatter={(value) => [`${value} m€`, selectedLabel]}
             />
             <ReferenceLine y={0} stroke="#E5E7EB" />
             <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={40}>
               {chartData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.value >= 0 ? "#818CF8" : "#EF4444"}
-                />
+                <Cell key={`cell-${index}`} fill={entry.value >= 0 ? "#818CF8" : "#EF4444"} />
               ))}
             </Bar>
           </BarChart>

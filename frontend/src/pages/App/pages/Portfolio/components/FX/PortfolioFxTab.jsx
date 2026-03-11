@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useOutletContext } from 'react-router-dom';
 import { useFundData } from "../../../../hooks/Core/FundContext";
-import { FX_DEALS_DATA } from "../../portfolioData";
 import { useFxDealsRows, useFxDealsTimeframes } from "./FXbackwork";
+import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
 import FxDealsView from "./components/Deals/FxDealsView";
 import FxPortfolioView from "./components/Portfolio/FxPortfolioView";
 import FxChartsView from "./components/Charts/FxChartsView";
@@ -13,15 +13,12 @@ const PortfolioFxTab = () => {
   const { funds, isLoading: isFundsLoading } = useFundData();
   const [fxBreakdown, setFxBreakdown] = useState("deals");
   const timeframesState = useFxDealsTimeframes(fundId);
-  const fallbackInvestments = useMemo(
-    () => FX_DEALS_DATA[fundId] || FX_DEALS_DATA[Number(fundId)] || [],
-    [fundId]
-  );
+
   const { investments: dealsInvestments, isLoading: isDealsLoading } =
     useFxDealsRows(
       fundId,
       timeframesState.debouncedSelectedTimeframes,
-      fallbackInvestments,
+      [],
       portfolioDataset
     );
 
@@ -36,30 +33,36 @@ const PortfolioFxTab = () => {
     isFundsLoading,
   };
 
-  const views = {
-    deals: <FxDealsView fundId={fundId} shared={shared} />,
-    portfolio: <FxPortfolioView fundId={fundId} shared={shared} />,
-    charts: <FxChartsView fundId={fundId} shared={shared} />
-  };
-
   return (
     <div className="fx-tab-container">
       <div className="fx-breakdown-row">
-        <span className="fx-breakdown-label">Breakdown :</span>
-        <div className="fx-breakdown-controls">
-          {["deals", "portfolio", "charts"].map((type) => (
-            <button
-              key={type}
-              className={`fx-breakdown-pill ${fxBreakdown === type ? "active" : ""}`}
-              onClick={() => setFxBreakdown(type)}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
+        <TimeframeSelector
+          selected={timeframesState.selectedTimeframeIds}
+          onChange={timeframesState.handleToggleTimeframe}
+          isSingle={false}
+          maxSelections={null}
+        />
+        <div className="fx-breakdown-right">
+          <span className="fx-breakdown-label">Breakdown :</span>
+          <div className="fx-breakdown-controls">
+            {["deals", "portfolio", "charts"].map((type) => (
+              <button
+                key={type}
+                className={`fx-breakdown-pill ${fxBreakdown === type ? "active" : ""}`}
+                onClick={() => setFxBreakdown(type)}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="fx-view-content">
-        {views[fxBreakdown]}
+        {{
+          deals: <FxDealsView fundId={fundId} shared={shared} />,
+          portfolio: <FxPortfolioView fundId={fundId} shared={shared} />,
+          charts: <FxChartsView fundId={fundId} shared={shared} />,
+        }[fxBreakdown]}
       </div>
     </div>
   );
