@@ -16,7 +16,7 @@ function SearchBar({ placeholder, onSearch, className, containerClassName }) {
   };
 
   return (
-    <div className={containerClassName ?? 'search-bar'}>
+    <div className={`search-bar ${containerClassName || ''}`.trim()}>
       <div className="search-bar__icon-wrapper">
         <SearchIcon />
       </div>

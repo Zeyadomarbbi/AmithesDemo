@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import AdminsHeader from './AdminsHeader/AdminsHeader';
 import AdminsTable from './AdminsTable/AdminsTable';
+import { PageSpinner, PageError, PageNoData } from '../../../../components/LoadingScreens/LoadingScreens';
 import { useUsers } from '../../hooks/Core/useUsers';
 import './AdminsPage.css';
 
 function AdminsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { users, isLoading, fetchUsers } = useUsers();
+  
+  // Added 'error' extraction assuming useUsers provides it
+  const { users = [], isLoading, error, fetchUsers } = useUsers();
   
   useEffect(() => {
     fetchUsers();
@@ -39,13 +42,20 @@ function AdminsPage() {
 
   return (
     <div className="admins-container">
-      {/* Pass fetchUsers as refreshData */}
       <AdminsHeader onSearch={setSearchQuery} refreshData={fetchUsers} />
 
       {isLoading ? (
-        <div className="loading-overlay">
-          <span>Loading authenticated users...</span>
-        </div>
+        <PageSpinner label="Loading authenticated users..." />
+      ) : error ? (
+        <PageError message={error.message || error || "Failed to load users."} />
+      ) : filteredAdmins.length === 0 ? (
+        <PageNoData 
+          message={
+            searchQuery 
+              ? `No users matching "${searchQuery}"` 
+              : "No users found."
+          } 
+        />
       ) : (
         <AdminsTable data={filteredAdmins} refreshData={fetchUsers} />
       )}

@@ -1,6 +1,6 @@
 import React from "react";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort.jsx";
-import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from "../../../../../../../../components/useFormatter.js";
 import "./LPsDashboard.css";
 
 const LPsDashboard = ({
@@ -12,7 +12,7 @@ const LPsDashboard = ({
   // 1. Initialize Formatters from Hooks
   const formatNumber = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
-
+  const formatDate = useDateFormatter();
   // 2. Initialize Sorting Logic
   // Using 'lp.name' as initial key (ensure useTableSort handles nested keys or use row.lp?.name)
   const { sorted, sortKey, toggleSort } = useTableSort(displayRows, "lp.name");
@@ -73,6 +73,9 @@ const LPsDashboard = ({
                     center={true}
                     showCurrency={true}
                   />
+                  {col.date && (
+                    <div className="lp-col-date-hint">{formatDate(col.date)}</div>
+                  )}
                 </th>
               ))}
             </tr>

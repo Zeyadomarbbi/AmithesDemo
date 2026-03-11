@@ -25,6 +25,7 @@ function SetFinancials({ fundId, scenarioId }) {
   const [isSaving, setIsSaving] = useState(false);
   const [localChanges, setLocalChanges] = useState({}); // Track unsaved edits
   const [toast, setToast] = useState(null);
+  const [downloadTrigger, setDownloadTrigger] = useState(0);
 
   // 2. Automatic Timeline Calculation
   useEffect(() => {
@@ -159,7 +160,10 @@ function SetFinancials({ fundId, scenarioId }) {
             </button>
           </div>
           <div className="sf-fin-actions">
-            <button className="sf-action-btn sf-btn-download">
+            <button
+              className="sf-action-btn sf-btn-download"
+              onClick={() => setDownloadTrigger((n) => n + 1)}
+            >
               <DownloadIcon />
               <span>Download</span>
             </button>
@@ -192,6 +196,7 @@ function SetFinancials({ fundId, scenarioId }) {
               rows={gridData}
               localChanges={localChanges}
               onCellChange={handleCellChange}
+              triggerDownload={downloadTrigger}
             />
            )}
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import SearchBar from "./SearchBar"; 
+import { ChevronDownIcon } from "../Icons/DirectionIcons";
 import "./SearchableSelect.css";
 
 /**
@@ -74,7 +75,9 @@ const SearchableSelect = ({
         <span className="custom-select-value">
           {selectedOption ? renderLabel(selectedOption) : placeholder}
         </span>
-        <span className={`custom-select-arrow ${isOpen ? "up" : "down"}`} />
+        <span className={`custom-select-chevron ${isOpen ? "up" : ""}`}>
+          <ChevronDownIcon />
+        </span>
       </div>
 
       {isOpen && (

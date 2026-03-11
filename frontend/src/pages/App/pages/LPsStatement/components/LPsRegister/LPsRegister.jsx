@@ -199,8 +199,9 @@ export default function LPsRegister() {
 
   const tableColumns = useMemo(() => {
     return (fundClosings || []).map((fc) => ({
-      id: fc.lps_fund_closing_period_id,
+      id:   fc.lps_fund_closing_period_id,
       name: fc.closing_name || `Closing ${fc.date}`,
+      date: fc.date,
     }));
   }, [fundClosings]);
 

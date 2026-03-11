@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useApi from "../../../../hooks/api/useApi"; 
 
-/**
- * Maps the Backend Timeframe model to the Frontend display format
- */
 export function apiRowToQuarter(row) {
     return {
         id: row.timeframe_id,
@@ -13,22 +10,6 @@ export function apiRowToQuarter(row) {
         display_label: row.name,    
         rawDate: row.date
     };
-}
-
-/**
- * RESTORED: Standalone persistence helper
- * Now requires the 'api' instance to be passed in.
- */
-export async function saveNewTimeframe(api, fundId, timeframe) {
-    const payload = {
-        name: timeframe.name, 
-        date: timeframe.endDate instanceof Date 
-            ? timeframe.endDate.toISOString().split('T')[0] 
-            : timeframe.endDate
-    };
-    
-    const savedRow = await api.post(`/api/funds/${fundId}/timeframes/`, payload);
-    return apiRowToQuarter(savedRow);
 }
 
 export function useTimeframes(fundId) {
@@ -41,11 +22,9 @@ export function useTimeframes(fundId) {
         try {
             setIsLoading(true);
             const rows = await api.get(`/api/funds/${fundId}/timeframes/`);
-            
             const sortedQuarters = rows
                 .map(apiRowToQuarter)
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-
+                .sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
             setQuarters(sortedQuarters);
         } catch (error) {
             console.error("Fetch error:", error);
@@ -54,13 +33,33 @@ export function useTimeframes(fundId) {
         }
     }, [fundId, api]);
 
-    /**
-     * Helper to add a timeframe and update local state immediately
-     */
-    const addTimeframe = async (timeframe) => {
-        const formatted = await saveNewTimeframe(api, fundId, timeframe);
-        setQuarters(prev => [...prev, formatted].sort((a, b) => new Date(a.date) - new Date(b.date)));
+    const saveTimeframe = async (timeframe) => {
+        console.log("saveTimeframe payload:", timeframe);
+        const isEdit = !!timeframe.id;
+        const payload = {
+            name: timeframe.name,
+            date: timeframe.endDate 
+        };
+
+        const url = isEdit 
+            ? `/api/funds/${fundId}/timeframes/${timeframe.id}/` 
+            : `/api/funds/${fundId}/timeframes/`;
+        
+        const method = isEdit ? 'put' : 'post';
+        const savedRow = await api[method](url, payload);
+        const formatted = apiRowToQuarter(savedRow);
+
+        setQuarters(prev => {
+            const filtered = isEdit ? prev.filter(q => q.id !== timeframe.id) : prev;
+            return [...filtered, formatted].sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
+        });
+
         return formatted;
+    };
+
+    const deleteTimeframe = async (timeframeId) => {
+        await api.delete(`/api/funds/${fundId}/timeframes/${timeframeId}/`);
+        setQuarters(prev => prev.filter(q => q.id !== timeframeId));
     };
 
     useEffect(() => {
@@ -71,25 +70,8 @@ export function useTimeframes(fundId) {
         quarters, 
         isLoading, 
         refresh: fetchQuarters, 
-        addTimeframe, 
+        saveTimeframe, // Unified Create/Update
+        deleteTimeframe,
         setQuarters 
     };
-}
-
-export function useTimeframeNavigation(location, navigate) {
-    const toggleTimeframe = useCallback((selectedIds, timeframeId) => {
-        const newIds = selectedIds.includes(timeframeId)
-            ? selectedIds.filter(id => id !== timeframeId)
-            : [...selectedIds, timeframeId];
-        
-        const validIds = newIds.filter(id => id > 0); 
-        
-        if (validIds.length > 0) {
-            navigate(`${location.pathname}?timeframes=${validIds.join(",")}`);
-        } else {
-            navigate(location.pathname); 
-        }
-    }, [location.pathname, navigate]);
-
-    return { toggleTimeframe };
 }

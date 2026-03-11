@@ -8,7 +8,7 @@ import { useActiveFund } from '../../hooks/useActiveFund';
 import Toast from '../Toast/Toast';
 import SearchBar from '../../../../components/SearchBar/SearchBar';
 import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon } from '/src/components/Icons/MiscIcons';
-import { ChevronDownIcon, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
+import { ChevronDownIconWhite, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
 
 import './SidePanel.css';
 
@@ -123,19 +123,19 @@ function SidePanel() {
                   setIsFundSelectorOpen(!isFundSelectorOpen);
                 }}
               >
-                <ChevronDownIcon />
+                <ChevronDownIconWhite />
               </div>
             </div>
             
             {isFundSelectorOpen && (
               <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
                 
-                <SearchBar 
-                  placeholder="Search by name or code"
-                  onSearch={(value) => setSearchQuery(value)}
-                  containerClassName="dropdown-search-container"
-                  className="dropdown-search-input"
-                />
+                <div className="side-panel-search-wrapper">
+                  <SearchBar 
+                    placeholder="Search by name or code"
+                    onSearch={(value) => setSearchQuery(value)}
+                  />
+                </div>
 
                 <div className="dropdown-scroll">
                   {filteredFunds.length > 0 ? (

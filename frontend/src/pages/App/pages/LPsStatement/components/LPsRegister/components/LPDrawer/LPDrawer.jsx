@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { 
   CloseIcon, 
   ChevronDoubleLeftIcon, 
@@ -260,18 +261,16 @@ export default function LPDrawer({
               </div>
               <div className="lp-drawer-field">
                 <label className="lp-drawer-field-label">Country<span className="lp-drawer-required">*</span></label>
-                <div className="lp-drawer-field-input-with-icon">
-                  <select 
-                    className="lp-drawer-field-input lp-drawer-select-input" 
-                    value={form.countryId} 
-                    onChange={updateField("countryId")}
-                    disabled={isSubmitting || countriesLoading}
-                  >
-                    <option value="" disabled hidden>Select Country</option>
-                    {countries?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <span className="lp-drawer-field-icon lp-drawer-field-icon-chevron"><ChevronDownIcon /></span>
-                </div>
+                <SearchableSelect
+                  options={countries ?? []}
+                  value={form.countryId}
+                  onChange={(val) => setForm(prev => ({ ...prev, countryId: val }))}
+                  placeholder="Select Country"
+                  labelKey="name"
+                  valueKey="id"
+                  disabled={isSubmitting || countriesLoading}
+                  triggerClassName="lp-drawer-field-input"
+                />
               </div>
             </div>
           </section>

@@ -3,8 +3,8 @@ import { useCountries } from "../../../../../../../../../hooks/Reference/useCoun
 import { useCurrencies } from "../../../../../../../../../hooks/Reference/useCurrencies";
 import { usePortfolio } from "../../../../../../../../../hooks/Portfolio/usePortfolio.js";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
-import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import SearchableSelect from "../../../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import "./NewInvestmentModal.css";
 
 const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
@@ -18,11 +18,17 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
   const { createInvestment } = usePortfolio(fundId);
   const { countries = [] } = useCountries();
   const { currencies = [] } = useCurrencies();
-
   const ownershipNumber = Number(String(ownership).replace(/,/g, "").trim());
   const isOwnershipValid = Number.isFinite(ownershipNumber) && ownershipNumber >= 1 && ownershipNumber <= 100;
 
   const isValid = name && sector && countryId && currencyId && isOwnershipValid;
+
+  // Format currencies to align with SearchableSelect rendering logic
+  const formattedCurrencies = currencies.map(c => ({
+    ...c,
+    customLabel: `${c.name} - ${c.code}`,
+    customSecondary: c.symbol
+  }));
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -93,24 +99,16 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Geography*</label>
-              <div className="portfolio-new-investment-select-wrapper">
-                <select 
-                  className="portfolio-new-investment-select" 
-                  value={countryId} 
-                  onChange={(e) => setCountryId(e.target.value)}
-                  required
-                >
-                  <option value="" disabled hidden>Select a country</option>
-                  {countries.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="portfolio-new-investment-select-icon">
-                  <ChevronDownIcon />
-                </div>
-              </div>
+              <SearchableSelect
+                options={countries}
+                value={countryId}
+                onChange={setCountryId}
+                placeholder="Select a country"
+                labelKey="name"
+                secondaryLabelKey="iso2"
+                valueKey="id"
+                triggerClassName="portfolio-new-investment-input"
+              />
             </div>
 
             <div className="portfolio-new-investment-form-group">
@@ -132,24 +130,16 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Local Currency*</label>
-              <div className="portfolio-new-investment-select-wrapper">
-                <select 
-                  className="portfolio-new-investment-select" 
-                  value={currencyId} 
-                  onChange={(e) => setCurrencyId(e.target.value)}
-                  required
-                >
-                  <option value="" disabled hidden>Select a currency</option>
-                  {currencies.map((curr) => (
-                    <option key={curr.id} value={curr.id}>
-                      {curr.name} - {curr.code} ({curr.symbol})
-                    </option>
-                  ))}
-                </select>
-                <div className="portfolio-new-investment-select-icon">
-                  <ChevronDownIcon />
-                </div>
-              </div>
+              <SearchableSelect
+                options={formattedCurrencies}
+                value={currencyId}
+                onChange={setCurrencyId}
+                placeholder="Select a currency"
+                labelKey="customLabel"
+                secondaryLabelKey="customSecondary"
+                valueKey="id"
+                triggerClassName="portfolio-new-investment-input"
+              />
             </div>
           </div>
         </div>

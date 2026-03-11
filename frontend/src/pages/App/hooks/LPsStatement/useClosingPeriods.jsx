@@ -3,27 +3,12 @@ import useApi from "../../../../hooks/api/useApi";
 
 export const useFundClosings = (fundId = null) => {
   const api = useApi();
-  const [closingPeriods, setClosingPeriods] = useState([]);
   const [fundClosings, setFundClosings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Generic Fetch (No fundId needed)
-  const fetchClosingPeriods = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.get('/api/closing-periods/');
-      setClosingPeriods(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  // 2. Fund Specific: Fetch List
   const fetchFundClosings = useCallback(async () => {
-    if (!fundId) return; 
+    if (!fundId) return;
     setLoading(true);
     try {
       const data = await api.get(`/api/funds/${fundId}/fund-closings/`);
@@ -35,10 +20,8 @@ export const useFundClosings = (fundId = null) => {
     }
   }, [fundId, api]);
 
-  // 3. Fund Specific: Create
   const createFundClosing = async (closingData) => {
     if (!fundId) throw new Error("Missing Fund ID for creation");
-    console.log("Creating fund closing with data:", closingData);
     setLoading(true);
     setError(null);
     try {
@@ -53,7 +36,6 @@ export const useFundClosings = (fundId = null) => {
     }
   };
 
-  // 4. Fund Specific: Detail
   const fetchFundClosingDetail = async (recordId) => {
     if (!fundId) return;
     setLoading(true);
@@ -67,13 +49,11 @@ export const useFundClosings = (fundId = null) => {
   };
 
   return {
-    closingPeriods,
     fundClosings,
     loading,
     error,
-    fetchClosingPeriods,
     fetchFundClosings,
     createFundClosing,
-    fetchFundClosingDetail
+    fetchFundClosingDetail,
   };
 };

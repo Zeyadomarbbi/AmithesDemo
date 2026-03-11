@@ -15,7 +15,6 @@ from rest_framework.viewsets import ModelViewSet
 from ..models import (
     LimitedPartner, 
     Timeframe,
-    ClosingPeriod,
     LPsOperationType,
     LPsOperationDetails,
     LPsOperationFlowType,
@@ -35,8 +34,6 @@ from ..serializers import (
     LPsOperationFlowSerializer,
     LPsFlowLPAllocationSerializer,
     LPsOperationLPAllocationSerializer,
-    OperationFullCreateSerializer,
-    ClosingPeriodSerializer,
     FundClosingSerializer,
     LimitedPartnerSerializer,
     LPsFundCommitmentSerializer,
@@ -276,16 +273,6 @@ def _insert_operation_details(*, fund_id: int, payload: dict, request) -> int:
         row = cursor.fetchone()
 
     return int(row[0])
-
-
-class ClosingPeriodList(generics.ListAPIView):
-    queryset = ClosingPeriod.objects.all()
-    serializer_class = ClosingPeriodSerializer
-
-class ClosingPeriodDetail(generics.RetrieveAPIView):
-    queryset = ClosingPeriod.objects.all()
-    serializer_class = ClosingPeriodSerializer
-    lookup_field = 'closing_id'
 
 class FundClosingDetail(generics.RetrieveUpdateDestroyAPIView):
     # Changed to RetrieveUpdateDestroyAPIView in case you want to edit 

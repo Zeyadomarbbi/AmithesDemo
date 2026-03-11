@@ -208,3 +208,25 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+.antfm-modal-footer {
+    display: flex;
+    justify-content: space-between; /* Pushes delete to left, others to right */
+    align-items: center;
+    gap: 12px;
+}
+
+.antfm-footer-right {
+    display: flex;
+    gap: 12px;
+}
+
+.antfm-btn-delete {
+    background-color: transparent;
+    color: #dc2626; /* Red */
+    border: 1px solid #dc2626;
+}
+
+.antfm-btn-delete:hover {
+    background-color: #fef2f2;
+}

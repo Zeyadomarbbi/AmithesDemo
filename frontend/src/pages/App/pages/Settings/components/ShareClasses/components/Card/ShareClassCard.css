@@ -115,3 +115,58 @@
   color: #375A89;
   cursor: pointer;
 }
+
+.share-card-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.share-card-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  min-width: 140px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.share-card-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #374151;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.share-card-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.share-card-dropdown-delete {
+  color: #dc2626;
+}
+
+.share-card-dropdown-delete svg {
+  color: #dc2626;
+}
+
+.share-card-dropdown-delete:hover {
+  background: #fef2f2;
+}

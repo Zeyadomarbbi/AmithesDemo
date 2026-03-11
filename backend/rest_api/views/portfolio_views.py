@@ -93,7 +93,7 @@ class PortfolioTransactionFlowView(APIView):
         created_by = None
         user = getattr(request, "user", None)
         if user is not None and getattr(user, "is_authenticated", False):
-            created_by = getattr(user, "username", None)
+            created_by = user if (user and user.is_authenticated) else None
 
         # Fetch scenario_id from request body if it exists
         scenario_id = request.data.get("scenario_id")

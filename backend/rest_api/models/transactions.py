@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q, F
@@ -309,15 +310,11 @@ class FinancialEntry(models.Model):
 class FundClosing(models.Model):
     lps_fund_closing_period_id = models.AutoField(primary_key=True)
     fund = models.ForeignKey(
-        "Fund", 
-        on_delete=models.CASCADE, 
+        "Fund",
+        on_delete=models.CASCADE,
         db_column="fund_id",
     )
-    closing_period = models.ForeignKey(
-        'ClosingPeriod', 
-        on_delete=models.CASCADE,
-        db_column="closing_id"  # Explicitly map to the DB column name
-    )
+    closing_name = models.CharField(max_length=50)
     date = models.DateField()
     description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -326,7 +323,7 @@ class FundClosing(models.Model):
     class Meta:
         managed = False
         db_table = 'lps_fund_closings'
-        unique_together = ('fund', 'closing_period')
+        unique_together = ('fund', 'closing_name')
 
 class LPsFundCommitment(models.Model):
     commitment_id = models.AutoField(primary_key=True)
@@ -637,7 +634,12 @@ class PortfolioTransactionFlow(models.Model):
     divestment_percentage = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.CharField(max_length=150, null=True, blank=True)
+    created_by = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        db_column="created_by"
+    )
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
 

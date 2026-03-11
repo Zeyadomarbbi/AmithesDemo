@@ -16,7 +16,7 @@ import { useShareClasses } from "../../hooks/useShareClass.js";
 
 const TABS = [
   { label: "LPs Register", path: "lps-register" },
-  { label: "Capital flows", path: "capital-flows" },
+  { label: "Capital Flows", path: "capital-flows" },
   { label: "Capital Account Statement", path: "capital-account-statement" },
   { label: "Limits", path: "lps-limits" },
 ];
