@@ -40,8 +40,8 @@ const PortfolioPage = () => {
           <div className="portfolio-tabs">
             <NavLink to="summary" className="portfolio-tabs-tab">Portfolio Summary</NavLink>
             <NavLink to="fx" className="portfolio-tabs-tab">Portfolio FX</NavLink>
-            <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
             <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
+            <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
           </div>
           <Outlet context={{ fundId, portfolioDataset }} />
         </main>
