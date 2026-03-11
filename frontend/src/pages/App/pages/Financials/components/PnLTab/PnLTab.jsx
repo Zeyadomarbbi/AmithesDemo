@@ -1,16 +1,17 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
-
-import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 import { RefreshUpIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { usePnLApi } from "../../../../hooks/Financials/usePnLApi";
+import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
+import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
+
+import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
 import Toast from "../../../../components/Toast/Toast.jsx";
 import PnLIncome from "./PnLTables/PnLIncome.jsx";
 import PnLExpenses from "./PnLTables/PnLExpenses.jsx";
 import PnLTax from "./PnLTables/PnLTax.jsx";
-import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
-import { usePnLApi } from "../../../../hooks/Financials/usePnLApi"; 
-import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload"; 
 import "./PnL.css";
 
 const makeId = (prefix) =>
@@ -61,7 +62,7 @@ function PnLTabContent() {
 
   const { quarters, isLoading } = useTimeframeContext();
   const [toast, setToast] = useState(null);
-  
+
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
     return qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || [];
@@ -111,7 +112,6 @@ function PnLTabContent() {
     if (!sortedQuarters?.length || selectedTimeframeIds.length === 0) return [];
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
     const filtered = sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
-    // Sort by the order they were selected (selectedTimeframeIds order)
     return filtered.sort((a, b) =>
       selectedTimeframeIds.indexOf(Number(a.id)) - selectedTimeframeIds.indexOf(Number(b.id))
     );
@@ -345,6 +345,14 @@ function PnLTabContent() {
     "--pnl-actions-col": "110px",
   }), [headerPeriods.length]);
 
+  const hasNoData =
+    !pnlLoading &&
+    !pnlError &&
+    incomeLines.length === 0 &&
+    expenseLines.length === 0 &&
+    taxLines.length === 0 &&
+    headerPeriods.length > 0;
+
   return (
     <>
       <div className="toolbar-row">
@@ -372,86 +380,93 @@ function PnLTabContent() {
         />
       </div>
 
-      {pnlLoading ? <div style={{ padding: 12 }}>Loading PnL…</div> : null}
-      {pnlError   ? <div style={{ padding: 12, color: "crimson" }}>{pnlError}</div> : null}
+      {pnlLoading ? (
+        <PageSpinner label="Loading PnL..." />
+      ) : pnlError ? (
+        <PageError message={pnlError} />
+      ) : hasNoData ? (
+        <PageNoData message="No PnL data found for the selected timeframes." />
+      ) : (
+        <>
+          <section className="financials-card">
+            <div className="pnl-card-scroll" style={scopeVars}>
+              <div className="pnl-grid-scope">
+                <div className="financials-section-title">Income</div>
+                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addIncomeRow}><PlusIcon /> Add income</button>} />
+                <PnLIncome
+                  fundId={effectiveFundId} headerPeriods={headerPeriods}
+                  showIncome={showIncome} setShowIncome={setShowIncome}
+                  incomeLines={incomeLines} setIncomeLines={setIncomeLines}
+                  incomeValues={incomeValues} setIncomeValues={setIncomeValues}
+                  totalIncomeByPeriod={totalIncomeByPeriod}
+                  onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow}
+                />
+              </div>
+            </div>
+          </section>
 
-      <section className="financials-card">
-        <div className="pnl-card-scroll" style={scopeVars}>
-          <div className="pnl-grid-scope">
-            <div className="financials-section-title">Income</div>
-            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addIncomeRow}><PlusIcon /> Add income</button>} />
-            <PnLIncome
-              fundId={effectiveFundId} headerPeriods={headerPeriods}
-              showIncome={showIncome} setShowIncome={setShowIncome}
-              incomeLines={incomeLines} setIncomeLines={setIncomeLines}
-              incomeValues={incomeValues} setIncomeValues={setIncomeValues}
-              totalIncomeByPeriod={totalIncomeByPeriod}
-              onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow}
-            />
-          </div>
-        </div>
-      </section>
+          <section className="financials-card">
+            <div className="pnl-card-scroll" style={scopeVars}>
+              <div className="pnl-grid-scope">
+                <div className="financials-section-title">Expense</div>
+                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addExpenseRow}><PlusIcon /> Add expense</button>} />
+                <PnLExpenses
+                  fundId={effectiveFundId} headerPeriods={headerPeriods}
+                  showExpenses={showExpenses} setShowExpenses={setShowExpenses}
+                  expenseLines={expenseLines} setExpenseLines={setExpenseLines}
+                  expenseValues={expenseValues} setExpenseValues={setExpenseValues}
+                  totalExpensesByPeriod={totalExpensesByPeriod}
+                  onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow}
+                />
+              </div>
+            </div>
+          </section>
 
-      <section className="financials-card">
-        <div className="pnl-card-scroll" style={scopeVars}>
-          <div className="pnl-grid-scope">
-            <div className="financials-section-title">Expense</div>
-            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addExpenseRow}><PlusIcon /> Add expense</button>} />
-            <PnLExpenses
-              fundId={effectiveFundId} headerPeriods={headerPeriods}
-              showExpenses={showExpenses} setShowExpenses={setShowExpenses}
-              expenseLines={expenseLines} setExpenseLines={setExpenseLines}
-              expenseValues={expenseValues} setExpenseValues={setExpenseValues}
-              totalExpensesByPeriod={totalExpensesByPeriod}
-              onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow}
-            />
-          </div>
-        </div>
-      </section>
+          <section className="financials-card">
+            <div className="pnl-card-scroll" style={scopeVars}>
+              <div className="pnl-grid-scope">
+                <div className="financials-section-title">Tax</div>
+                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addTaxRow}><PlusIcon /> Add tax</button>} />
+                <PnLTax
+                  fundId={effectiveFundId} headerPeriods={headerPeriods}
+                  showTax={showTax} setShowTax={setShowTax}
+                  taxLines={taxLines} setTaxLines={setTaxLines}
+                  taxValues={taxValues} setTaxValues={setTaxValues}
+                  totalTaxByPeriod={totalTaxByPeriod}
+                  onAddRow={addTaxRow} onRemoveRow={removeTaxRow}
+                />
+              </div>
+            </div>
+          </section>
 
-      <section className="financials-card">
-        <div className="pnl-card-scroll" style={scopeVars}>
-          <div className="pnl-grid-scope">
-            <div className="financials-section-title">Tax</div>
-            <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addTaxRow}><PlusIcon /> Add tax</button>} />
-            <PnLTax
-              fundId={effectiveFundId} headerPeriods={headerPeriods}
-              showTax={showTax} setShowTax={setShowTax}
-              taxLines={taxLines} setTaxLines={setTaxLines}
-              taxValues={taxValues} setTaxValues={setTaxValues}
-              totalTaxByPeriod={totalTaxByPeriod}
-              onAddRow={addTaxRow} onRemoveRow={removeTaxRow}
-            />
-          </div>
-        </div>
-      </section>
+          <section className="financials-card financials-card--net">
+            <div className="pnl-card-scroll" style={scopeVars}>
+              <div className="pnl-grid-scope">
+                <div className="net-row net-row--standalone">
+                  <div>Net Profit / Net loss</div>
+                  {headerPeriods.map((p) => {
+                    const v = Number(netByPeriod[p.id] || 0);
+                    return (
+                      <div key={p.id} className={`net-value ${v >= 0 ? "positive" : "negative"}`}>
+                        {v.toLocaleString()}
+                      </div>
+                    );
+                  })}
+                  <div />
+                </div>
+              </div>
+            </div>
+          </section>
 
-      <section className="financials-card financials-card--net">
-        <div className="pnl-card-scroll" style={scopeVars}>
-          <div className="pnl-grid-scope">
-            <div className="net-row net-row--standalone">
-              <div>Net Profit / Net loss</div>
-              {headerPeriods.map((p) => {
-                const v = Number(netByPeriod[p.id] || 0);
-                return (
-                  <div key={p.id} className={`net-value ${v >= 0 ? "positive" : "negative"}`}>
-                    {v.toLocaleString()}
-                  </div>
-                );
-              })}
-              <div />
+          <div className="pnl-footer">
+            <div className="pnl-actions">
+              <button className="pnl-btn-save" onClick={handleSave} disabled={savingAll}>
+                {savingAll ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      <div className="pnl-footer">
-        <div className="pnl-actions">
-          <button className="pnl-btn-save" onClick={handleSave} disabled={savingAll}>
-            {savingAll ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </div>
+        </>
+      )}
 
       {toast && (
         <Toast type={toast.type} title={toast.title} message={toast.message} onClose={() => setToast(null)} />
