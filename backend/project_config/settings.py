@@ -80,7 +80,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://amethis-webpage.netlify.app",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
@@ -88,16 +88,16 @@ CSRF_TRUSTED_ORIGINS = [
     "https://amethis-webpage.netlify.app",
 ]
 
-SESSION_COOKIE_SAMESITE = None  # Allow cross-port session sharing
-CSRF_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
 
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # 4. Critical for useApi.js 'X-CSRFToken' header
 # Allows JavaScript to read the CSRF cookie to put it in the header
 CSRF_COOKIE_HTTPONLY = False
-
+CORS_ALLOW_CREDENTIALS = True
 
 TEMPLATES = [
     {
