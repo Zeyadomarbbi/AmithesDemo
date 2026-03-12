@@ -1,10 +1,10 @@
-from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db.models import Q # Add this import
+from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from rest_api.serializers.core import UserSerializer
 
@@ -13,7 +13,6 @@ User = get_user_model()
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
-    # 'email' now acts as a general 'identity' identifier
     identity = request.data.get("email") 
     password = request.data.get("password")
 
@@ -23,7 +22,6 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Filter by either username OR email, case-insensitively
     user_query = User.objects.filter(
         Q(email__iexact=identity) | Q(username__iexact=identity)
     )
@@ -35,19 +33,20 @@ def login_view(request):
         )
 
     user_obj = user_query.first()
-
-    # Pass the exact username found in the DB to the authenticate function
     user = authenticate(request, username=user_obj.username, password=password)
 
     if user is not None:
-        login(request, user)
+    # Delete legacy session initialization: login(request, user)
+        refresh = RefreshToken.for_user(user)
         return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
             "user": {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "is_staff": user.is_staff,       # Add this
-                "is_superuser": user.is_superuser # Add this
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser
             }
         })
 
@@ -55,17 +54,6 @@ def login_view(request):
         {"error": "Invalid credentials"},
         status=status.HTTP_400_BAD_REQUEST
     )
-
-@api_view(["POST"])
-def logout_view(request):
-    logout(request)
-    return Response({"message": "Logged out"})
-
-@ensure_csrf_cookie
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def csrf_view(request):
-    return Response({"message": "CSRF cookie set"})
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -80,7 +68,7 @@ def me_view(request):
         }
     })
 
-@api_view(['GET', 'POST']) # <--- Add 'POST' here
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def users_list_view(request):
     if request.method == 'GET':

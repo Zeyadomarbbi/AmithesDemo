@@ -1,6 +1,7 @@
 from django.urls import path, include
-from ..views_auth import login_view, logout_view, csrf_view, me_view, users_list_view, user_detail_view
+from rest_framework_simplejwt.views import TokenRefreshView
 
+from ..views_auth import login_view, me_view, users_list_view, user_detail_view
 from .core import urlpatterns as core_urlpatterns
 from .fund_urls import urlpatterns as fund_urlpatterns
 from .reference import urlpatterns as reference_urlpatterns
@@ -12,12 +13,12 @@ from .kpis_urls import urlpatterns as kpis_urlpatterns
 
 urlpatterns = [
     path("login/", login_view),
-    path("logout/", logout_view),
-    path("csrf/", csrf_view),
+    path("token/refresh/", TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', me_view, name='me'),
     path('users/', users_list_view),
-    path('users/<int:pk>/', user_detail_view), # GET (retrieve), PATCH (update), DELETE
+    path('users/<int:pk>/', user_detail_view),
 ]
+
 urlpatterns += core_urlpatterns
 urlpatterns += fund_urlpatterns
 urlpatterns += reference_urlpatterns

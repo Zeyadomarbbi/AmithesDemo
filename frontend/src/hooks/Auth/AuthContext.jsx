@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import useApi from '../api/useApi'; // Adjust path
+import useApi from '../api/useApi'; 
 
 const AuthContext = createContext(null);
 
@@ -8,17 +8,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Session check on mount
   useEffect(() => {
     const checkSession = async () => {
+      const token = localStorage.getItem('access');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        await api.get('/api/csrf/');
         const data = await api.get('/api/me/');
         setUser(data.user);
         localStorage.setItem('amethis_user', JSON.stringify(data.user));
       } catch {
         setUser(null);
         localStorage.removeItem('amethis_user');
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
       } finally {
         setLoading(false);
       }
@@ -26,32 +32,28 @@ export const AuthProvider = ({ children }) => {
     checkSession();
   }, [api]);
 
-  // 2. Login Action (Updates global state)
   const loginAction = async (email, password) => {
-    await api.get('/api/csrf/');  // force CSRF cookie before login POST
     const data = await api.post('/api/login/', { email, password });
+    
+    // Critical: Persist JWT tokens
+    localStorage.setItem('access', data.access);
+    localStorage.setItem('refresh', data.refresh);
     localStorage.setItem('amethis_user', JSON.stringify(data.user));
+    
     setUser(data.user);
     return data;
   };
 
-  // 3. Logout Action (Clears global state)
-  const logoutAction = async () => {
-    try {
-      // Don't let a failed network call stop the local logout
-      await api.post('/api/logout/');
-    } catch (err) {
-      console.warn("Server-side logout failed or session already expired", err);
-    } finally {
-      setUser(null);
-      localStorage.removeItem('amethis_user');
-      // Optional: Force redirect to login to ensure clean state
-      window.location.href = "/login";
-    }
+  const logoutAction = () => {
+    // API call is obsolete for stateless JWT. Clear local storage.
+    setUser(null);
+    localStorage.removeItem('amethis_user');
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
+    window.location.href = "/login";
   };
 
-  console.log("AuthContext State:", { user, loading });
-  const canEdit = user?.is_staff || user?.is_superuser; // Standard Django flags
+  const canEdit = user?.is_staff || user?.is_superuser;
   const isViewer = user && !canEdit;
 
   return (
