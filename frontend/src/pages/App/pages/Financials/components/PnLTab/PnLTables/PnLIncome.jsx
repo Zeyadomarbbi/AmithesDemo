@@ -1,6 +1,8 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLIncome/PnLIncome.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { MinusIcon, EditLineIcon, TrashBinIcon, KebabIcon, PlusIconWhite } from '/src/components/Icons/InteractiveIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
+
 import "./FinancialTables.css";
 
 const PnLIncome = ({
@@ -150,6 +152,7 @@ const PnLIncome = ({
                     <input
                       className="amount-input"
                       type="number"
+                      onWheel={noScroll}
                       inputMode="numeric"
                       pattern="[0-9]*"
                       value={value}

@@ -1,6 +1,7 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, KebabIcon } from '/src/components/Icons/InteractiveIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./FinancialTables.css";
 
 const PnLTax = ({
@@ -159,6 +160,7 @@ const PnLTax = ({
                       type="number"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      onWheel={noScroll}
                       value={value}
                       onChange={(e) => {
                         const copy = [...taxValues];
