@@ -370,7 +370,7 @@ function PnLTabContent() {
     "--pnl-cols": String(headerPeriods.length),
     "--pnl-label-col": "260px",
     "--pnl-period-col": "160px",
-    "--pnl-actions-col": "110px",
+    "--pnl-actions-col": "minmax(110px, 1fr)",
   }), [headerPeriods.length]);
 
   const hasNoData =
