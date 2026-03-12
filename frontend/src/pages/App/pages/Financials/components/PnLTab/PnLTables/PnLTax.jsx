@@ -1,16 +1,10 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
 import React, { useEffect, useRef, useState } from "react";
-import {
-  EditLineIcon,
-  MinusIcon,
-  PlusIconWhite,
-  TrashBinIcon,
-  KebabIcon,
-} from "../../../../../components/Icons.jsx";
+import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, KebabIcon } from '/src/components/Icons/InteractiveIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./FinancialTables.css";
 
 const PnLTax = ({
-  fundId,
   headerPeriods = [],
 
   showTax,
@@ -26,29 +20,23 @@ const PnLTax = ({
 
   onAddRow,
   onRemoveRow,
+
+  // Passed from PnLTab
+  onUpdateLineItem,
+  onDeleteLineItem,
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
-
-  // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
-
-  // IMPORTANT: single ref, but we bind it to the currently-open row only
   const menuWrapRef = useRef(null);
 
-  // close menu on outside click / Esc
   useEffect(() => {
     if (!openMenuId) return;
-
     const onDocMouseDown = (e) => {
       if (!menuWrapRef.current) return;
       if (!menuWrapRef.current.contains(e.target)) setOpenMenuId(null);
     };
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setOpenMenuId(null);
-    };
-
+    const onKeyDown = (e) => { if (e.key === "Escape") setOpenMenuId(null); };
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
@@ -57,7 +45,6 @@ const PnLTax = ({
     };
   }, [openMenuId]);
 
-  // keep draft synced when you switch rows
   useEffect(() => {
     if (!editingId) return;
     const line = taxLines.find((l) => l.id === editingId);
@@ -69,15 +56,29 @@ const PnLTax = ({
     setDraftLabel(line.label ?? "");
   };
 
-  const commitLabel = () => {
+  const commitLabel = async () => {
     if (!editingId) return;
+    const line = taxLines.find((l) => l.id === editingId);
+    const newLabel = draftLabel;
 
+    // Optimistic update
     setTaxLines((prev) =>
-      prev.map((l) => (l.id === editingId ? { ...l, label: draftLabel } : l))
+      prev.map((l) => (l.id === editingId ? { ...l, label: newLabel } : l))
     );
-
     setEditingId(null);
     setDraftLabel("");
+
+    // Persist for saved rows
+    if (line && !line.isCustom && Number.isFinite(Number(line.id))) {
+      try {
+        await onUpdateLineItem({ lineItemId: Number(line.id), name: newLabel });
+      } catch {
+        // Rollback on failure
+        setTaxLines((prev) =>
+          prev.map((l) => (l.id === line.id ? { ...l, label: line.label } : l))
+        );
+      }
+    }
   };
 
   const cancelEdit = () => {
@@ -85,27 +86,28 @@ const PnLTax = ({
     setDraftLabel("");
   };
 
+  const handleDeleteRow = (line, index) => {
+    setOpenMenuId(null);
+    onDeleteLineItem({
+      lineItemId: line.id,
+      isCustom: line.isCustom,
+      index,
+    });
+  };
+
   const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
 
   return (
     <div className="pnl-tax">
-      {/* ===== TAX ROWS ===== */}
       {showTax &&
         taxLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
-
-          // ✅ zebra striping (match Income/Expenses)
-          const rowClass =
-            index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
-
-          // ✅ ONLY the custom "Type here" row gets this marker class
+          const rowClass    = index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
           const typeHereClass = line.isCustom ? "detail-row--typehere" : "";
 
           return (
-            <div
-              className={`detail-row ${rowClass} ${typeHereClass}`}
-              key={line.id}
-            >
+            <div className={`detail-row ${rowClass} ${typeHereClass}`} key={line.id}>
+
               {/* LABEL */}
               <div className="detail-label">
                 {line.isCustom ? (
@@ -149,9 +151,8 @@ const PnLTax = ({
 
               {/* PERIOD INPUTS */}
               {periods.map((p) => {
-                const pid = String(p.id);
+                const pid   = String(p.id);
                 const value = taxValues[index]?.byPeriod?.[pid] ?? "";
-
                 return (
                   <div key={pid} className="detail-input-wrapper">
                     <input
@@ -159,19 +160,15 @@ const PnLTax = ({
                       type="number"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      onWheel={noScroll}
                       value={value}
                       onChange={(e) => {
                         const copy = [...taxValues];
-                        const row = copy[index] || { byPeriod: {} };
-
+                        const row  = copy[index] || { byPeriod: {} };
                         copy[index] = {
                           ...row,
-                          byPeriod: {
-                            ...(row.byPeriod || {}),
-                            [pid]: e.target.value,
-                          },
+                          byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
                         };
-
                         setTaxValues(copy);
                       }}
                     />
@@ -181,59 +178,43 @@ const PnLTax = ({
 
               {/* ACTIONS */}
               <div className="pnl-row-actions">
-                {line.isCustom ? (
-                  <div
-                    className="pnl-kebab-wrap"
-                    ref={(el) => {
-                      // ✅ bind ref ONLY to the currently-open row
-                      if (openMenuId === line.id) menuWrapRef.current = el;
-                    }}
+                <div
+                  className="pnl-kebab-wrap"
+                  ref={(el) => { if (openMenuId === line.id) menuWrapRef.current = el; }}
+                >
+                  <button
+                    className="pnl-kebab"
+                    type="button"
+                    aria-label="Row actions"
+                    onClick={() => setOpenMenuId((prev) => prev === line.id ? null : line.id)}
                   >
-                    <button
-                      className="pnl-kebab"
-                      type="button"
-                      aria-label="Row actions"
-                      title="Actions"
-                      onClick={() =>
-                        setOpenMenuId((prev) =>
-                          prev === line.id ? null : line.id
-                        )
-                      }
-                    >
-                      <KebabIcon />
-                    </button>
+                    <KebabIcon />
+                  </button>
 
-                    {openMenuId === line.id && (
-                      <div
-                        className={`pnl-kebab-menu ${
-                          periods.length === 0 ? "pnl-kebab-menu--below" : ""
-                        }`}
-                        role="menu"
+                  {openMenuId === line.id && (
+                    <div
+                      className={`pnl-kebab-menu ${periods.length === 0 ? "pnl-kebab-menu--below" : ""}`}
+                      role="menu"
+                    >
+                      <button
+                        type="button"
+                        className="pnl-kebab-item pnl-kebab-delete"
+                        role="menuitem"
+                        onClick={() => handleDeleteRow(line, index)}
                       >
-                        <button
-                          type="button"
-                          className="pnl-kebab-item pnl-kebab-delete"
-                          role="menuitem"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            onRemoveRow(index);
-                          }}
-                        >
-                          <TrashBinIcon />
-                          Delete row
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span />
-                )}
+                        <TrashBinIcon />
+                        Delete row
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+
             </div>
           );
         })}
 
-      {/* ===== TAX HEADER (BLUE BAND) (MOVED TO BOTTOM) ===== */}
+      {/* BLUE BAND */}
       <div className="group-row group-row--band">
         <div className="group-left">
           <button
@@ -241,13 +222,7 @@ const PnLTax = ({
             type="button"
             onClick={() => setShowTax((v) => !v)}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
               {showTax ? <MinusIcon /> : <PlusIconWhite />}
             </span>
             Tax
@@ -260,7 +235,6 @@ const PnLTax = ({
           </div>
         ))}
 
-        {/* keep last column empty */}
         <div className="group-action-cell" />
       </div>
     </div>

@@ -1,38 +1,9 @@
 // src/pages/App/pages/LPsStatement/components/CapitalFlows/NewOperation/OperationStep1.jsx
 import React, { useMemo } from "react";
+import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
+import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx"
 import "./OperationStep1.css";
 
-import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
-import { ChevronDownIcon } from "../../../../Icons.jsx";
-
-/**
- * ✅ BASE URL FIX (LOCAL-FRIENDLY)
- * This component doesn't call the API, but it was failing indirectly when
- * DateInput/other shared components rely on API_BASE.
- *
- * So we ensure a safe default for runtime config in local dev:
- * - If window.__RUNTIME_CONFIG__ exists, keep it
- * - Otherwise create it with API_BASE_URL="" so the rest of the app can use relative "/api/..."
- */
-if (typeof window !== "undefined") {
-  window.__RUNTIME_CONFIG__ = window.__RUNTIME_CONFIG__ || {};
-  // Only set if missing (don't override customer/deploy config)
-  if (window.__RUNTIME_CONFIG__.API_BASE_URL === undefined) {
-    window.__RUNTIME_CONFIG__.API_BASE_URL = "";
-  }
-  if (window.__RUNTIME_CONFIG__.API_PREFIX === undefined) {
-    window.__RUNTIME_CONFIG__.API_PREFIX = "";
-  }
-}
-
-/**
- * ✅ Remove "Equalization" ALONE as an option
- * but keep "Equalization/Capital Call".
- *
- * Rule:
- * - remove if name includes "equalization"
- * - AND does NOT include "capital"
- */
 function shouldHideOperationType(name = "") {
   const n = String(name || "").toLowerCase();
   const hasEq = n.includes("equalization");
@@ -43,21 +14,19 @@ function shouldHideOperationType(name = "") {
 export default function OperationStep1({
   operationName = "",
   setOperationName = () => {},
-
   operationType = "",
   setOperationType = () => {},
-
   noticeDate = null,
   setNoticeDate = () => {},
-
   dueDate = null,
   setDueDate = () => {},
-
   operationTypes = [],
 }) {
   const filteredOperationTypes = useMemo(() => {
     const arr = Array.isArray(operationTypes) ? operationTypes : [];
-    return arr.filter((t) => !shouldHideOperationType(t?.name));
+    return arr
+      .filter((t) => !shouldHideOperationType(t?.name))
+      .map((t) => ({ ...t, operation_type_id: String(t.operation_type_id) }));
   }, [operationTypes]);
 
   return (
@@ -74,43 +43,19 @@ export default function OperationStep1({
 
       <div className="op1-field">
         <label className="op1-label">Operation type*</label>
-
-        <div className="op1-select-wrap">
-          <select
-            className="op1-select"
-            required
-            value={operationType}
-            onChange={(e) => setOperationType(e.target.value)}
-          >
-            <option value="" disabled hidden>
-              Choose the operation type
-            </option>
-
-            {/* ✅ from backend: [{operation_type_id, name, ...}] */}
-            {Array.isArray(filteredOperationTypes) &&
-            filteredOperationTypes.length > 0 ? (
-              filteredOperationTypes.map((t) => (
-                <option
-                  key={String(t.operation_type_id)}
-                  value={String(t.operation_type_id)}
-                >
-                  {t.name}
-                </option>
-              ))
-            ) : (
-              // fallback (UI won't break if backend not loaded)
-              <>
-                <option value="1">Capital Call</option>
-                <option value="2">Distribution</option>
-                <option value="3">Equalization/Capital Call</option>
-              </>
-            )}
-          </select>
-
-          <span className="op1-select-icon" aria-hidden="true">
-            <ChevronDownIcon />
-          </span>
-        </div>
+          <SearchableSelect
+            options={filteredOperationTypes.length > 0 ? filteredOperationTypes : [
+              { operation_type_id: "1", name: "Capital Call" },
+              { operation_type_id: "2", name: "Distribution" },
+              { operation_type_id: "3", name: "Equalization/Capital Call" },
+            ]}
+            value={String(operationType)}
+            onChange={(val) => setOperationType(String(val))}
+            placeholder="Choose the operation type"
+            labelKey="name"
+            valueKey="operation_type_id"
+            triggerClassName="op1-input"
+          />
       </div>
 
       <div className="op1-row">

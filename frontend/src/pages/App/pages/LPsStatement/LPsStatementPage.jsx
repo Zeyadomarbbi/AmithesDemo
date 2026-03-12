@@ -10,12 +10,13 @@ import {
 import "./LPsStatementPage.css";
 
 /* Hooks (DO NOT CHANGE THEIR FILES) */
-import { useLimitedPartners } from "/src/pages/App/hooks/LPsStatement/useLimitedPartners.jsx";
-import { useLimitedPartnerFundCommitment } from "/src/pages/App/hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import { useLimitedPartners } from "../../hooks/LPsStatement/useLimitedPartners.jsx";
+import { useLimitedPartnerFundCommitment } from "../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import { useShareClasses } from "../../hooks/useShareClass.js";
 
 const TABS = [
   { label: "LPs Register", path: "lps-register" },
-  { label: "Capital flows", path: "capital-flows" },
+  { label: "Capital Flows", path: "capital-flows" },
   { label: "Capital Account Statement", path: "capital-account-statement" },
   { label: "Limits", path: "lps-limits" },
 ];
@@ -56,7 +57,7 @@ export default function LPsStatementPage() {
 
   // ✅ LP identity list
   const { limitedPartners, fetchLimitedPartners } = useLimitedPartners();
-
+  const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
   // ✅ Commitments list (fund-scoped)
   const {
     commitments,
@@ -82,15 +83,6 @@ export default function LPsStatementPage() {
     reloadAll();
   }, [reloadAll]);
 
-  /**
-   * ✅ NORMALIZED LPs for Step2/Step3 calculations
-   * Shape:
-   *  {
-   *    id, lp_id, name,
-   *    commitment, ownershipPercent,
-   *    sharesRows: [{ type, commitment }]
-   *  }
-   */
   const lps = useMemo(() => {
     const lpList = Array.isArray(limitedPartners) ? limitedPartners : [];
     const commList = Array.isArray(commitments) ? commitments : [];
@@ -103,7 +95,7 @@ export default function LPsStatementPage() {
 
     for (const c of commList) {
       const lpKey = String(c?.lp_id);
-      const scKey = String(c?.share_class ?? "-");
+      const scKey = String(c?.share_class_id ?? c?.share_class ?? "-");
       const amt = toNum(c?.commitment_amount);
 
       sumByLp.set(lpKey, (sumByLp.get(lpKey) || 0) + amt);
@@ -126,7 +118,7 @@ export default function LPsStatementPage() {
         const classIds = new Set();
         for (const c of commList) {
           if (String(c?.lp_id) !== id) continue;
-          classIds.add(String(c?.share_class ?? "-"));
+          classIds.add(String(c?.share_class_id ?? c?.share_class ?? "-"));  // ← was c?.share_class
         }
 
         const sharesRows = Array.from(classIds).map(scId => {
@@ -147,7 +139,6 @@ export default function LPsStatementPage() {
         };
       });
   }, [limitedPartners, commitments]);
-
   // redirect base tab
   if (
     location.pathname.endsWith("/lps-statement") ||
@@ -184,6 +175,7 @@ export default function LPsStatementPage() {
               fundId,
               lps, // ✅ normalized for Operation Step2/3 + can be used by LPsRegister if you want
               limitedPartnersRaw: limitedPartners, // ✅ raw hook output (in case other pages rely on original fields)
+              shareClasses,
               commitments, // ✅ fund commitments list
               reloadAll, // ✅ refresh LPs + commitments
               isLoadingLps: isLoadingLps || isLoadingCommitments,

@@ -23,6 +23,12 @@
   overflow: visible;
 }
 
+.scenario-pf-section-header {
+    padding: 24px 0 8px 0;
+    background: #fff;
+    border-bottom: none;
+}
+
 .portfolio-content-inner {
   padding: 20px;
   display: flex;

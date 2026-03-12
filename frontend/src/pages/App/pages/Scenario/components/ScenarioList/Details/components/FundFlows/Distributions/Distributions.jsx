@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
-import { useScenarioFFDistribution } from './useScenarioFFDistribution'; // Ensure path is correct
+import { useScenarioFFDistribution } from '../../../../../../../../hooks/Scenarios/useScenarioFFDistribution'; // Ensure path is correct
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
-import { SortIcon } from '../Icons'; 
+import { SortIcon } from '/src/components/Icons/InteractiveIcons'; 
 import './Distributions.css';
 
 const Distributions = ({ fundId, scenarioId, refreshTrigger }) => {

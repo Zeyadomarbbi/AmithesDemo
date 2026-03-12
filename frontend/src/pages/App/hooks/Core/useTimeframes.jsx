@@ -1,21 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { API_BASE_URL } from "../useApi";
+import useApi from "../../../../hooks/api/useApi"; 
 
-/**
- * Maps the Backend Timeframe model to the Frontend display format
- */
 export function apiRowToQuarter(row) {
     return {
         id: row.timeframe_id,
-        quarter: `Q${row.quarter}`, // Backend returns integer, we add 'Q'
-        year: String(row.year),     // Backend returns integer
-        date: new Date(row.date).toLocaleDateString(), // row.date matches backend
-        display_label: row.name,    // row.name matches backend
+        quarter: `Q${row.quarter}`, 
+        year: String(row.year),     
+        date: new Date(row.date).toLocaleDateString(), 
+        display_label: row.name,    
         rawDate: row.date
     };
 }
 
 export function useTimeframes(fundId) {
+    const api = useApi();
     const [quarters, setQuarters] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -23,73 +21,57 @@ export function useTimeframes(fundId) {
         if (!fundId) return;
         try {
             setIsLoading(true);
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/timeframes/`);
-            if (!response.ok) throw new Error("Failed to fetch");
-            
-            const rows = await response.json();
-            
-            // Sort Ascending: Oldest (Top) -> Newest (Bottom)
+            const rows = await api.get(`/api/funds/${fundId}/timeframes/`);
             const sortedQuarters = rows
                 .map(apiRowToQuarter)
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-
+                .sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
             setQuarters(sortedQuarters);
         } catch (error) {
             console.error("Fetch error:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [fundId]);
+    }, [fundId, api]);
+
+    const saveTimeframe = async (timeframe) => {
+        console.log("saveTimeframe payload:", timeframe);
+        const isEdit = !!timeframe.id;
+        const payload = {
+            name: timeframe.name,
+            date: timeframe.endDate 
+        };
+
+        const url = isEdit 
+            ? `/api/funds/${fundId}/timeframes/${timeframe.id}/` 
+            : `/api/funds/${fundId}/timeframes/`;
+        
+        const method = isEdit ? 'put' : 'post';
+        const savedRow = await api[method](url, payload);
+        const formatted = apiRowToQuarter(savedRow);
+
+        setQuarters(prev => {
+            const filtered = isEdit ? prev.filter(q => q.id !== timeframe.id) : prev;
+            return [...filtered, formatted].sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
+        });
+
+        return formatted;
+    };
+
+    const deleteTimeframe = async (timeframeId) => {
+        await api.delete(`/api/funds/${fundId}/timeframes/${timeframeId}/`);
+        setQuarters(prev => prev.filter(q => q.id !== timeframeId));
+    };
 
     useEffect(() => {
         fetchQuarters();
     }, [fetchQuarters]);
 
-    return { quarters, isLoading, refresh: fetchQuarters, setQuarters };
-}
-
-/**
- * Persistence helper for creating new Timeframes
- */
-export async function saveNewTimeframe(fundId, timeframe) {
-    const payload = {
-        // 'fund' is read_only in serializer but handled by fund_id in view.post
-        // We send name and date to match Serializer.fields
-        name: timeframe.name, 
-        date: timeframe.endDate instanceof Date 
-            ? timeframe.endDate.toISOString().split('T')[0] 
-            : timeframe.endDate
+    return { 
+        quarters, 
+        isLoading, 
+        refresh: fetchQuarters, 
+        saveTimeframe, // Unified Create/Update
+        deleteTimeframe,
+        setQuarters 
     };
-    
-    const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/timeframes/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw errorData; 
-    }
-    
-    const savedRow = await response.json();
-    return apiRowToQuarter(savedRow);
-}
-
-export function useTimeframeNavigation(location, navigate) {
-    const toggleTimeframe = useCallback((selectedIds, timeframeId) => {
-        const newIds = selectedIds.includes(timeframeId)
-            ? selectedIds.filter(id => id !== timeframeId)
-            : [...selectedIds, timeframeId];
-        
-        const validIds = newIds.filter(id => id > 0); // Clean before writing
-        
-        if (validIds.length > 0) {
-            navigate(`${location.pathname}?timeframes=${validIds.join(",")}`);
-        } else {
-            navigate(location.pathname); // Remove param if empty
-        }
-    }, [location.pathname, navigate]);
-
-    return { toggleTimeframe };
 }

@@ -7,8 +7,7 @@ import React, {
   useEffect
 } from "react";
 import { useOutletContext } from "react-router-dom";
-import AddFlowModal from "./components/AddFlowModal.jsx";
-import { useShareClasses } from "../../../../../../hooks/useShareClass.js"
+import AddFlowModal from "./components/AddFlowModal/AddFlowModal.jsx";
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
 import "./OperationStep2.css";
@@ -102,10 +101,10 @@ const EQ_FLOW_SYNTHETIC_ID = "__eq_flow__";
 const OperationStep2 = forwardRef(function OperationStep2(
   {
     lps,
-    operationType = "Distribution",
+    operationType,
     existingAllocations = [],
     fetchAllAllocations = null,
-    operationTypeId,
+    shareClasses = [], 
     operationTypeName,
     operationNumber,
     onNext,
@@ -124,17 +123,48 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const fundId = fundIdProp ?? outlet.fundId;
   const opKind = useMemo(() => {
     const t = String(operationType || "").toLowerCase();
+    if (t.includes("equalization") && t.includes("capital")) return "equalization";
     if (t.includes("equalization")) return "equalization";
     if (t.includes("distribution")) return "distribution";
     return "capital_call";
   }, [operationType]);
 
-  const isEqualization = opKind === "equalization";
+
   const isDistribution = opKind === "distribution";
   const totalsLabel = isDistribution ? "Distributed Amount (€)" : "Call Amount (€)";
-  const { data: shareClasses = [], isLoading: isLoadingShareClass } = useShareClasses(fundId);
   const { flowTypes, fetchFlowTypes, isLoading: isLoadingTypes } = useFlowTypes();
   const { flows: fetchedFlows, fetchFlows, isLoading: isLoadingCFFlowDetails } = useCapitalFlowFlowDetails(fundId, operationId);
+  const CAPITAL_CALL_NAMES = new Set([
+    "investment",
+    "due diligence fees",
+    "management fees",
+    "opex",
+    "other (capital call)",
+    "structuring fees",
+    "rounding",
+  ]);
+
+  const DISTRIBUTION_NAMES = new Set([
+    "divestment",
+    "dividends",
+    "interests",
+    "other (distribution)",
+    "other expenses",
+  ]);
+
+  const filteredFlowTypes = useMemo(() => {
+    const arr = Array.isArray(flowTypes) ? flowTypes : [];
+
+    if (opKind === "capital_call" || opKind === "equalization") {
+      return arr.filter(t => CAPITAL_CALL_NAMES.has(String(t?.name || "").toLowerCase().trim()));
+    }
+
+    if (opKind === "distribution") {
+      return arr.filter(t => DISTRIBUTION_NAMES.has(String(t?.name || "").toLowerCase().trim()));
+    }
+
+    return arr;
+  }, [flowTypes, opKind]);
 
   useEffect(() => {
     fetchAllAllocations?.().catch(() => {});
@@ -159,26 +189,32 @@ const OperationStep2 = forwardRef(function OperationStep2(
     let loadedEqTargetInput = null;
 
     fetchedFlows.forEach((f) => {
-      const isEq = eqTypeId !== null && Number(f.flow_type_id) === Number(eqTypeId);
+      const isEq = (eqTypeId !== null && Number(f.flow_type_id) === Number(eqTypeId)) ||
+             String(f.flow_name ?? "").toLowerCase() === "equalization";
       
       if (isEq) {
         if (f.input_percentage !== null && f.input_percentage !== undefined) {
-          loadedEqTargetInput = String(f.input_percentage);
+          const pctValue = parseFloat(f.input_percentage);
+          loadedEqTargetInput = String(
+            Math.abs(pctValue) <= 1 ? pctValue * 100 : pctValue
+          );
         }
       }
 
       const fid = String(f.operation_flow_id);
-      const amount = Number(f.computed_total_amount || f.input_amount || 0);
+      const amount = isEq ? 0 : Number(f.computed_total_amount || f.input_amount || 0);
       loadedFlows.push({
         id: fid,
         label: f.flow_name,
         flowType: f.flow_name,
-        data: { flowTypeId: f.flow_type_id, ...f },
+        data: { flowTypeId: f.flow_type_id, flow_type_id: f.flow_type_id, ...f },
         operation_flow_id: f.operation_flow_id,
         isSyntheticEqualization: isEq,
       });
-      loadedTotals[fid] = amount;
-      loadedInputs[fid] = amount.toString();
+      loadedTotals[fid] = isEq ? null : amount;
+      loadedInputs[fid] = isEq ? "" : amount.toString();
+      console.log("[load flow]", f.flow_name, "flow_type_id:", f.flow_type_id);
+
     });
 
     if (typeof setDraft === "function") {
@@ -192,17 +228,52 @@ const OperationStep2 = forwardRef(function OperationStep2(
     }
   }, [fetchedFlows, flowTypes, setDraft]);
 
+  useEffect(() => {
+    if (opKind !== "equalization") return;
+    if (isLoadingTypes || !flowTypes?.length) return;
+
+    const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
+      (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
+    )?.flow_type_id ?? null;
+
+    const alreadyHasEq = (draft?.flows ?? []).some(f => f.isSyntheticEqualization);
+    
+    console.log("EQ inject check:", { eqFlowTypeId, alreadyHasEq, draftFlows: draft?.flows });
+
+    if (alreadyHasEq || !eqFlowTypeId) return;
+
+    setDraft(prev => ({
+      ...(prev || EMPTY_DRAFT),
+      flows: [
+        ...(prev?.flows ?? []),
+        {
+          id: EQ_FLOW_SYNTHETIC_ID,
+          label: "Equalization",
+          flowType: "Equalization",
+          data: { flowTypeId: eqFlowTypeId, flow_type_id: eqFlowTypeId },
+          operation_flow_id: null,
+          isSyntheticEqualization: true,
+        }
+      ]
+    }));
+  }, [opKind, flowTypes, isLoadingTypes, draft?.flows, setDraft]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
   const safeDraft = draft || EMPTY_DRAFT;
   const breakdown = safeDraft.breakdown ?? "lps";
-  
+  console.log("OperationStep2 render", { safeDraft, flows: safeDraft.flows, flowTotalInputs: safeDraft.flowTotalInputs, flowTotals: safeDraft.flowTotals });
   const flows = (safeDraft.flows ?? []).filter(f => !f.isSyntheticEqualization);
   const flowTotalInputs = safeDraft.flowTotalInputs ?? {};
   const flowTotals = safeDraft.flowTotals ?? {};
   const eqTargetInput = safeDraft.eqTargetInput ?? "";
-  
+  const isEqualization = useMemo(() => {
+    return (safeDraft.flows ?? []).some(f => f.isSyntheticEqualization);
+  }, [safeDraft.flows]);
+    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
+  console.log("flowTypes at inject time:", flowTypes, "opKind:", opKind);
+
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
     let dueDateObj = dueDate;
@@ -211,6 +282,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       else if (dueDateObj.$d) dueDateObj = dueDateObj.$d;
     }
     const due = dueDateObj instanceof Date ? dueDateObj : new Date(dueDateObj);
+    due.setHours(23, 59, 59, 999);
     if (Number.isNaN(due.getTime())) return Array.isArray(commitments) ? commitments : [];
     return (Array.isArray(commitments) ? commitments : []).filter((c) => {
       const closing = c?.closing_period_date ? new Date(c.closing_period_date) : null;
@@ -274,7 +346,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
     return { byLp, byClass };
   }, [existingAllocations, operationNumber]);
-  
+  console.log("historicalData", historicalData);
   const lpRows = useMemo(() => {
     const nameById = new Map();
     (Array.isArray(lps) ? lps : []).forEach((lp) => {
@@ -339,7 +411,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       if (id) scLookup.set(id, sc?.share_class_name ?? sc?.name ?? `Class ${id}`);
     });
 
-  return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
+    return Array.from(byClass.entries()).map(([scId, { commitmentAmount }]) => {
       const name = scLookup.get(scId) ?? `Class ${scId}`;
       const initials = name.replace(/class\s*/i, "").trim().slice(0, 2).toUpperCase() || "SC";
       const ownershipPct = total > 0 ? commitmentAmount / total : null;
@@ -407,6 +479,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
       (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
     )?.flow_type_id ?? null;
+    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
 
     const newFlow = {
       id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -440,6 +513,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
     setFlowTotals((prev) => ({ ...prev, [flowId]: parseMoney(raw) }));
   };
+
   const eqTargetPct = useMemo(() => {
     const f = parsePercent(eqTargetInput);
     return f !== null && Number.isFinite(f) ? f : null;
@@ -490,7 +564,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return map;
   }, [rows, flows, flowTotals, isEqualization, eqByRowId]);
 
-    const eqGrandTotal = useMemo(() => {
+  const eqGrandTotal = useMemo(() => {
     if (!isEqualization) return null;
     let sum = 0;
     let any = false;
@@ -601,6 +675,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       const nomNum = parseFloat(nominalVal);
       const issuanceMethod = scObj?.issuance_method;
+      
       let computedShares = null;
 
       if (!Number.isFinite(nomNum) || nomNum <= 0) {
@@ -614,6 +689,13 @@ const OperationStep2 = forwardRef(function OperationStep2(
           : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
         const delta = currentCommitment - prevCommitment;
         computedShares = delta > 0 ? delta / nomNum : 0;
+          console.log("[shares debug]", r.id, {
+            currentCommitment,
+            prevCommitment,
+            delta: currentCommitment - prevCommitment,
+            nomNum,
+            issuanceMethod,
+          });
       }
 
       perLpOut[r.id] = {
@@ -636,20 +718,21 @@ const OperationStep2 = forwardRef(function OperationStep2(
         .filter((v) => v !== null && Number.isFinite(v));
 
       const computedTotalAmount = flowTotal;
+      console.log("[submitToNext] flow raw:", f.id, f.data);
 
       return {
         id: f.id,
         operation_flow_id: f.operation_flow_id ?? null,
-        flow_type_id: f?.data?.flowTypeId ?? null,
+        flow_type_id: f?.data?.flowTypeId ?? f?.data?.flow_type_id ?? null,
         flow_name: f.label,
         input_type: "amount",
         input_amount: flowTotal,
         input_percentage: null,
-        computed_total_amount: computedTotalAmount,
+        computed_total_amount: eqGrandTotal,
         allocation_percentage_of_commitment:
           totalCommitment > 0 && computedTotalAmount !== null && Number.isFinite(computedTotalAmount)
-            ? (computedTotalAmount / totalCommitment) * 100
-            : null,
+            ? Math.max(0, computedTotalAmount / totalCommitment) * 100
+            : 0,
       };
     });
 
@@ -671,17 +754,21 @@ const OperationStep2 = forwardRef(function OperationStep2(
         computed_total_amount: eqGrandTotal,
         allocation_percentage_of_commitment:
           totalCommitment > 0 && eqGrandTotal !== null && Number.isFinite(eqGrandTotal)
-            ? (eqGrandTotal / totalCommitment) * 100
-            : null,
+            ? Math.max(0, eqGrandTotal / totalCommitment) * 100
+            : 0,
       });
     }
+    console.log("[Step 2 → Next] flows:", mappedFlows);
+    console.log("[Step 2 → Next] perLp:", perLpOut);
+    console.log("[Step 2 → Next] grandTotal:", grandTotal);
+    console.log("[Step 2 → Next] grandPercent:", grandPercent);
 
     onNext({
       operationType: operationType || "Distribution",
       flows: mappedFlows,
       perLp: perLpOut,
       grandTotal,
-      grandPercent,
+      grandPercent: calledPctDecimal,
     });
   }, [
     onNext, operationType, flows, flowTotals, rows, totalsByRowId,
@@ -694,18 +781,18 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const saveErrorMsg = saveError?.message ? String(saveError.message) : null;
   const eqGrandTotalPct = useMemo(() => {
-      if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
-      return (eqGrandTotal / totalCommitment) * 100;
-    }, [isEqualization, eqGrandTotal, totalCommitment]);
+    if (!isEqualization || totalCommitment <= 0 || eqGrandTotal === null || !Number.isFinite(eqGrandTotal)) return null;
+    return (eqGrandTotal / totalCommitment) * 100;
+  }, [isEqualization, eqGrandTotal, totalCommitment]);
 
   const isLoadingData =
-  isLoadingTypes ||
-  isLoadingShareClass ||
-  (operationId && isLoadingCFFlowDetails);
+    isLoadingTypes ||
+    (operationId && isLoadingCFFlowDetails);
 
   if (isLoadingData) {
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
+
   return (
     <>
       {saveErrorMsg && (
@@ -752,7 +839,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   <div className="op2-cap-strip-type">CAPITAL CALL</div>
                   <button type="button" className="op2-head-plus" onClick={openFlow} aria-label="Add flow" disabled={isSaving}>+</button>
                 </div>
-                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAUX</div>
+                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAL</div>
               </>
             ) : (
               <>
@@ -760,7 +847,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   <div className="op2-cap-strip-type">{(operationType || "Distribution").toUpperCase()}</div>
                   <button type="button" className="op2-head-plus" onClick={openFlow} aria-label="Add flow" disabled={isSaving}>+</button>
                 </div>
-                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAUX</div>
+                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAL</div>
               </>
             )}
           </div>
@@ -788,14 +875,11 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {/* Equalization column */}
             {isEqualization && (
               <div className="op2-col op2-col--eq">
-                <div className="op2-col-header">
+                <div className="op2-col-header op2-col-header--eq">
                   <span>Equalization</span>
-                  <span className="op2-sort">⇅</span>
-                </div>
-                <div className="op2-eq-target-wrap">
                   <input
                     className="op2-eq-target-input"
-                    placeholder="Target..."
+                    placeholder="Target %"
                     value={eqTargetInput}
                     onChange={(e) => setEqTargetInput(e.target.value)}
                     disabled={isSaving}
@@ -816,7 +900,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
             )}
 
             {/* Flows column */}
-            <div className="op2-col op2-col--cap">
+            <div className="op2-col">
               <div className="op2-bluebox">
                 {flows.length === 0 ? (
                   <div className="op2-cap-empty">
@@ -948,7 +1032,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
           onClose={closeFlow} 
           onSave={handleSaveFlow} 
           isSaving={isSaving} 
-          flowTypes={flowTypes}      
+          flowTypes={filteredFlowTypes}      
           isLoading={isLoadingTypes}
         />
       )}

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useMasterManFees } from './utils/useScenarioMasterManFee.js'; // Adjust path
-import { PlusIcon, CloseIcon } from '../Icons'; 
+import { useMasterManFees } from '../../../../../../../../hooks/Scenarios/useScenarioMasterManFee';
+import { PlusIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
-
+import { PermissionGate } from '../../../../../../../../../../hooks/Auth/PermissionGate.jsx';
 import './ManagementFees.css';
 
 const ManagementFees = ({ fundId, scenarioId, onClose }) => {
@@ -64,10 +64,12 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                 <button className="mf-btn-base mf-btn-view" onClick={() => setIsViewModalOpen(true)}>
                     View tranches
                 </button>
+                <PermissionGate>
                 <button className="mf-btn-base mf-btn-add" onClick={() => setIsAddModalOpen(true)}>
                     <PlusIcon />
                     Add tranche
                 </button>
+                </PermissionGate>
             </div>
 
             <table className="mf-table">

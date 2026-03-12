@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
-import "./LPsRegister.css";
 
 /* Components & Icons */
 import { PlusIcon, TransferIcon } from "../../Icons.jsx";
@@ -9,16 +8,16 @@ import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
 import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
 import LPDrawer from "./components/LPDrawer/LPDrawer.jsx"
-
+import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate.jsx";
+import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 /* Hooks */
 import { useCountries } from "../../../../hooks/Reference/useCountries.js";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods.jsx";
-import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import { useLimitedPartners } from "../../../../hooks/LPsStatement/useLimitedPartners.jsx";
 import { useLimitedPartnerFundCommitment } from "../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
+import "./LPsRegister.css";
 
-/* --- HELPERS --- */
 
 function formatAmount(num) {
   return (Number(num) || 0).toLocaleString("fr-FR");
@@ -86,42 +85,56 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
   });
 
   const summaryRows = Object.values(lpMap).map(item => {
-    const row = {
-      lp: item.lp,
-      displayClass: item.share_class,
-      displayClassColor: getClassColor(item.share_class),
-      commitmentCell: formatAmount(item.total_commitment),
-      totalNumeric: item.total_commitment,
-      ownership: grandTotal > 0 ? (item.total_commitment / grandTotal) * 100 : 0,
-      closingValues: {}
-    };
+      const row = {
+        lp: item.lp,
+        displayClass: item.share_class,
+        totalNumeric: item.total_commitment,
+        ownership: grandTotal > 0 ? (item.total_commitment / grandTotal) * 100 : 0,
+        closingValues: {}
+      };
 
-    closings.forEach(closing => {
-      const val = item.closings[closing.lps_fund_closing_period_id] || 0;
-      row.closingValues[closing.lps_fund_closing_period_id] = val > 0 ? formatAmount(val) : "—";
+      // --- CUMULATIVE LOGIC ---
+      let runningTotal = 0;
+      
+      // closings must be sorted by date/sequence for this to work
+      closings.forEach(closing => {
+        const closingId = closing.lps_fund_closing_period_id;
+        const trancheAmount = item.closings[closingId] || 0;
+        
+        runningTotal += trancheAmount;
+        
+        // Store the accumulation for this specific period
+        row.closingValues[closingId] = runningTotal;
+      });
+
+      return row;
     });
 
-    return row;
-  });
+    // --- CUMULATIVE FOOTER TOTALS ---
+    const closingTotals = {};
+    let totalRunningBalance = 0;
 
-  const closingTotals = {};
-  closings.forEach(closing => {
-    const sum = activeCommitments
-      .filter(c => String(c.lps_fund_closing_period_id || c.closing_period) === String(closing.lps_fund_closing_period_id))
-      .reduce((acc, curr) => acc + parseFloat(curr.commitment_amount || 0), 0);
-    closingTotals[closing.lps_fund_closing_period_id] = formatAmount(sum);
-  });
+    closings.forEach(closing => {
+      const closingId = closing.lps_fund_closing_period_id;
+      const trancheSum = activeCommitments
+        .filter(c => String(c.lps_fund_closing_period_id) === String(closingId))
+        .reduce((acc, curr) => acc + parseFloat(curr.commitment_amount || 0), 0);
+      
+      totalRunningBalance += trancheSum;
+      closingTotals[closingId] = totalRunningBalance;
+    });
 
-  return {
-    summaryRows,
-    grandTotal: formatAmount(grandTotal),
-    grandTotalNumeric: grandTotal,
-    closingTotals
-  };
-}
+    return {
+      summaryRows,
+      grandTotal: formatAmount(grandTotal),
+      grandTotalNumeric: grandTotal,
+      closingTotals
+    };
+  }
 
 export default function LPsRegister() {
-  const { fundId } = useOutletContext();
+  const outlet = useOutletContext() || {};
+  const fundId = outlet.fundId;
 
   /* --- State --- */
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,7 +149,7 @@ export default function LPsRegister() {
 
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
-  const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
+  const shareClasses = outlet.shareClasses || [];
   const { limitedPartners, fetchLimitedPartners, updateLimitedPartner } = useLimitedPartners();
   const { commitments, fetchCommitments, updateCommitment, createCommitment } = useLimitedPartnerFundCommitment(fundId);
   const { countries, isLoading: countriesLoading } = useCountries();
@@ -185,46 +198,11 @@ export default function LPsRegister() {
 
   const tableColumns = useMemo(() => {
     return (fundClosings || []).map((fc) => ({
-      id: fc.lps_fund_closing_period_id,
+      id:   fc.lps_fund_closing_period_id,
       name: fc.closing_name || `Closing ${fc.date}`,
+      date: fc.date,
     }));
   }, [fundClosings]);
-
-  /* --- Handlers --- */
-  const handleAddNewLpSuccess = useCallback(async () => {
-    // Directly refresh the lists to ensure the Memoized summaryData re-calculates
-    await Promise.all([
-      fetchLimitedPartners(),
-      fetchCommitments()
-    ]);
-    setIsNewLpOpen(false);
-  }, [fetchLimitedPartners, fetchCommitments]);
-
-const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
-    setIsLoadingData(true);
-    try {
-        await updateLimitedPartner(lpId, lpFields);
-        
-        const tranchePromises = trancheFields.map(t => {
-            const payload = { /* ... payload ... */ };
-            return t.commitment_id 
-                ? updateCommitment(t.commitment_id, payload) 
-                : createCommitment(payload);
-        });
-
-        await Promise.all(tranchePromises);
-        
-        // Use 'await' to ensure the state update from the hook completes
-        await fetchLimitedPartners();
-        await fetchCommitments();
-        
-        setSelectedLP(null);
-    } catch (err) {
-        console.error("Update failed:", err);
-    } finally {
-        setIsLoadingData(false);
-    }
-};
 
   const selectedLPCommitments = useMemo(() => {
     if (!selectedLP || !commitments) return [];
@@ -235,35 +213,34 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
     await fetchCommitments();
     setSelectedLP(lp);
   }, [fetchCommitments]);
+  
+  const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading;
+return (
+  <div className="lp-register-container">
 
-  return (
-    <div className="lp-register-container">
-      {closingsError && <div className="db-error-msg">{closingsError}</div>}
-
-      <div className="lp-toolbar">
-        <div className="lp-toolbar-left">
-          <SearchBox 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            placeholder="Search by LP..." 
-          />
-          <div className="lp-class-filter">
-            {shareClasses.map((sc) => (
-              <button
-                key={sc.share_class_id}
-                className={`lp-chip ${activeClass === sc.share_class_name ? "lp-chip-active" : ""}`}
-                onClick={() => setActiveClass(sc.share_class_name)}
-              >
-                {sc.share_class_name}
-                {activeClass === sc.share_class_name && (
-                  <span className="lp-chip-clear" onClick={(e) => { e.stopPropagation(); setActiveClass(null); }}>✕</span>
-                )}
-              </button>
-            ))}
-            {classesLoading && <span className="loading-text">Loading classes...</span>}
-          </div>
+    <div className="lp-toolbar">
+      <div className="lp-toolbar-left">
+        <SearchBox 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          placeholder="Search by LP..." 
+        />
+        <div className="lp-class-filter">
+          {shareClasses.map((sc) => (
+            <button
+              key={sc.share_class_id}
+              className={`lp-chip ${activeClass === sc.share_class_name ? "lp-chip-active" : ""}`}
+              onClick={() => setActiveClass(sc.share_class_name)}
+            >
+              {sc.share_class_name}
+              {activeClass === sc.share_class_name && (
+                <span className="lp-chip-clear" onClick={(e) => { e.stopPropagation(); setActiveClass(null); }}>✕</span>
+              )}
+            </button>
+          ))}
         </div>
-
+      </div>
+      <PermissionGate>
         <div className="lp-toolbar-right">
           <button className="btn-transfer" onClick={() => setIsTransferOpen(true)}>
             <TransferIcon />
@@ -272,58 +249,61 @@ const handleUpdateLP = async (lpId, lpFields, trancheFields) => {
           <button className="btn-newlp" onClick={() => setIsNewLpOpen(true)}>
             <PlusIcon /> <span>New LP</span>
           </button>
+          <button className="btn-newlp" onClick={() => setPeriodModalOpen(true)}>
+            <PlusIcon />
+            <span>Add closing period</span>
+          </button>
         </div>
-      </div>
-
-      {isLoadingData ? (
-        <div style={{ padding: "3rem", textAlign: "center", color: "#6b7280" }}>Loading Register...</div>
-      ) : (
-        <LPsDashboard 
-          displayRows={filteredRows}
-          tableColumns={tableColumns}
-          totals={{
-            commitment: summaryData.grandTotal,
-            commitmentNumber: summaryData.grandTotalNumeric,
-            ownership: "100.00%",
-            closingTotals: summaryData.closingTotals
-          }}
-          onSelectLP={handleSelectLP}
-          onOpenAddPeriod={() => setPeriodModalOpen(true)}
-        />
-      )}
-      
-      {/* --- OVERLAYS --- */}
-
-      <LPDrawer 
-          lp={selectedLP} 
-          existingCommitments={selectedLPCommitments}
-          open={isNewLpOpen || !!selectedLP} 
-          onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
-          onSave={async () => {
-              await Promise.all([fetchLimitedPartners(), fetchCommitments()]);
-              setSelectedLP(null);
-              setIsNewLpOpen(false);
-          }}
-          periods={tableColumns}
-          countries={countries}
-          countriesLoading={countriesLoading}
-          shareClasses={shareClasses}
-          classesLoading={classesLoading}
-          currencies={currencies}
-          currenciesLoading={currenciesLoading}
-      />
-      <AddPeriodModal 
-        open={periodModalOpen} 
-        onClose={() => setPeriodModalOpen(false)} 
-        onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); }} 
-      />
-
-      <AddTransferModal 
-        open={isTransferOpen} 
-        onClose={() => setIsTransferOpen(false)} 
-        onSave={() => { loadAllData(); setIsTransferOpen(false); }}
-        lps={summaryData.summaryRows.map(r => r.lp)}
-      />
+      </PermissionGate>
     </div>
-  );
+
+    {isFullyLoading ? (
+      <PageSpinner label="Loading Register..." />
+    ) : closingsError ? (
+      <PageError message={closingsError} />
+    ) : (
+      <LPsDashboard 
+        displayRows={filteredRows}
+        tableColumns={tableColumns}
+        totals={{
+          commitment: summaryData.grandTotal,
+          commitmentNumber: summaryData.grandTotalNumeric,
+          ownership: "100.00%",
+          closingTotals: summaryData.closingTotals
+        }}
+        onSelectLP={handleSelectLP}
+      />
+    )}
+
+    <LPDrawer 
+      lp={selectedLP} 
+      existingCommitments={selectedLPCommitments}
+      open={isNewLpOpen || !!selectedLP} 
+      onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
+      onSave={async () => {
+        await Promise.all([fetchLimitedPartners(), fetchCommitments()]);
+        setSelectedLP(null);
+        setIsNewLpOpen(false);
+      }}
+      periods={tableColumns}
+      countries={countries}
+      countriesLoading={countriesLoading}
+      shareClasses={shareClasses}
+      currencies={currencies}
+      currenciesLoading={currenciesLoading}
+    />
+    <AddPeriodModal 
+      open={periodModalOpen} 
+      onClose={() => setPeriodModalOpen(false)} 
+      onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); }} 
+    />
+    <AddTransferModal 
+      open={isTransferOpen} 
+      onClose={() => setIsTransferOpen(false)} 
+      onSave={() => { loadAllData(); setIsTransferOpen(false); }}
+      lps={summaryData.summaryRows.map(r => r.lp)}
+    />
+
+  </div>
+);
 }

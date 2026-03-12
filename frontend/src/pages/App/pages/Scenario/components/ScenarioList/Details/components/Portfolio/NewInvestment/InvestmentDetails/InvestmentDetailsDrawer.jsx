@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { xirr as xirrLib } from "@webcarrot/xirr";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
-import { BackIcon, EditIcon, TrashIcon } from "../../Icons";
+import { BackIcon } from '/src/components/Icons/DirectionIcons';
+import { EditIcon } from '/src/components/Icons/InteractiveIcons';
+import { TrashIcon } from '/src/components/Icons/InteractiveIcons';
 import { usePortfolioFlows } from "../../../../../../../../../hooks/Portfolio/usePortfolioFlows";
 import Toast from '../../../../../../../../../components/Toast/Toast.jsx';
 

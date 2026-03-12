@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CloseIcon } from '../Icons'; 
-import { useTargetMode } from './useTargetMode';
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons'; 
+import { useTargetMode } from '../../../../../../../../hooks/Scenarios/useTargetMode';
 import './TargetSelectionModal.css';
 
 const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fundId, scenarioId, unlockedPortfolios = [] }) => {

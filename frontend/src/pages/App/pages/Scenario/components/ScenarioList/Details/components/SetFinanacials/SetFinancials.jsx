@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import FinancialTable from './FinancialTable/FinancialTable';
 import ManagementFees from './ManagementFees/ManagementFees';
-import { useScenarioFinancialsProjections } from './utils/useScenarioFinancialsProjections.js';
+import { useScenarioFinancialsProjections } from '../../../../../../../hooks/Scenarios/useScenarioFinancialsProjections';
 import Toast from '../../../../../../../components/Toast/Toast'; 
 import DDFees from './DDFees/DDFees';
-import { DownloadIcon, PlusIcon, MinusIcon } from './Icons';
+import { DownloadIcon, PlusIcon, MinusIcon } from '/src/components/Icons/InteractiveIcons';
 import './SetFinancials.css';
 
 function SetFinancials({ fundId, scenarioId }) {
@@ -25,6 +25,7 @@ function SetFinancials({ fundId, scenarioId }) {
   const [isSaving, setIsSaving] = useState(false);
   const [localChanges, setLocalChanges] = useState({}); // Track unsaved edits
   const [toast, setToast] = useState(null);
+  const [downloadTrigger, setDownloadTrigger] = useState(0);
 
   // 2. Automatic Timeline Calculation
   useEffect(() => {
@@ -159,7 +160,10 @@ function SetFinancials({ fundId, scenarioId }) {
             </button>
           </div>
           <div className="sf-fin-actions">
-            <button className="sf-action-btn sf-btn-download">
+            <button
+              className="sf-action-btn sf-btn-download"
+              onClick={() => setDownloadTrigger((n) => n + 1)}
+            >
               <DownloadIcon />
               <span>Download</span>
             </button>
@@ -192,6 +196,7 @@ function SetFinancials({ fundId, scenarioId }) {
               rows={gridData}
               localChanges={localChanges}
               onCellChange={handleCellChange}
+              triggerDownload={downloadTrigger}
             />
            )}
         </div>

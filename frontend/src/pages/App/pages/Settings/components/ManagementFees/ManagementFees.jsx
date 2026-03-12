@@ -5,14 +5,18 @@ import { useFundManagementFeeRules, useManagementFeePhases } from "../../../../h
 import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import Phase1 from "./components/Phase1";
 import Phase2 from "./components/Phase2";
-import Toast from "../../../../components/Toast/Toast.jsx"; // Import Toast
+import Toast from "../../../../components/Toast/Toast.jsx";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import "./ManagementFees.css";
 
 const ManagementFees = () => {
   const { fundId } = useOutletContext();
-  const [toast, setToast] = useState(null); // Toast state
+  const [toast, setToast] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
+
   const { phases } = useManagementFeePhases();
-  const { data: shareClasses, isLoading: shareClassesLoading } = useShareClasses(fundId);
+  const { data: shareClasses, isLoading: shareClassesLoading, error: shareClassesError } = useShareClasses(fundId);
   const { fetchRules, createRule, updateRule, isLoading: isSaving } = useFundManagementFeeRules();
 
   const today = new Date();
@@ -33,42 +37,48 @@ const ManagementFees = () => {
   const [phase1Ids, setPhase1Ids] = useState({}); 
   const [phase2Id, setPhase2Id] = useState(null); 
 
-  // Abstracted load logic so we can call it after saving
   const loadData = useCallback(async () => {
     if (!fundId) return;
-    const rules = await fetchRules(fundId);
     
-    if (rules && rules.length > 0) {
-      const p1Rules = rules.filter(r => r.phase === 1);
+    try {
+      const rules = await fetchRules(fundId);
       
-      if (p1Rules.length > 0) {
-        const firstRule = p1Rules[0];
-        const loadedRates = {};
-        const loadedIds = {};
+      if (rules && rules.length > 0) {
+        const p1Rules = rules.filter(r => r.phase === 1);
+        
+        if (p1Rules.length > 0) {
+          const firstRule = p1Rules[0];
+          const loadedRates = {};
+          const loadedIds = {};
 
-        p1Rules.forEach(r => {
-          if(r.share_class) {
-            loadedRates[r.share_class] = r.rate; 
-            loadedIds[r.share_class] = r.fee_rule_id;       
-          }
-        });
+          p1Rules.forEach(r => {
+            if(r.share_class) {
+              loadedRates[r.share_class] = r.rate; 
+              loadedIds[r.share_class] = r.fee_rule_id;       
+            }
+          });
 
-        setPhase1Data({
-          dateFrom: new Date(firstRule.date_from),
-          dateUntil: new Date(firstRule.date_until),
-          rates: loadedRates
-        });
-        setPhase1Ids(loadedIds);
+          setPhase1Data({
+            dateFrom: new Date(firstRule.date_from),
+            dateUntil: new Date(firstRule.date_until),
+            rates: loadedRates
+          });
+          setPhase1Ids(loadedIds);
+        }
+
+        const p2Rule = rules.find(r => r.phase === 2);
+        if (p2Rule) {
+          setPhase2Data({
+            dateFrom: new Date(p2Rule.date_from),
+            rate: p2Rule.rate
+          });
+          setPhase2Id(p2Rule.fee_rule_id); 
+        }
       }
-
-      const p2Rule = rules.find(r => r.phase === 2);
-      if (p2Rule) {
-        setPhase2Data({
-          dateFrom: new Date(p2Rule.date_from),
-          rate: p2Rule.rate
-        });
-        setPhase2Id(p2Rule.fee_rule_id); 
-      }
+    } catch (err) {
+      setInitError(err.message || "Failed to load management fee rules");
+    } finally {
+      setIsInitialLoading(false);
     }
   }, [fundId, fetchRules]);
 
@@ -129,7 +139,6 @@ const ManagementFees = () => {
 
       await Promise.all(saveRequests);
       
-      // Sync fresh IDs and data without page reload
       await loadData();
       
       setToast({
@@ -147,6 +156,12 @@ const ManagementFees = () => {
       });
     }
   };
+
+  if (shareClassesLoading || isInitialLoading) return <PageSpinner label="Loading management fees..." />;
+  if (shareClassesError || initError) return <PageError message={shareClassesError || initError} />;
+  if (!shareClasses || shareClasses.length === 0) {
+    return <PageNoData message="In order to set Management Fees, Share Classes must be initiated." />;
+  }
 
   return (
     <div className="mgmt-wrapper">

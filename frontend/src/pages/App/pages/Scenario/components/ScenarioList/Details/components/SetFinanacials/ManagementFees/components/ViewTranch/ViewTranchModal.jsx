@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useManFeeTranches } from '../../utils/useScenarioManFeeTranches';
-import { CloseIcon } from '../../../Icons'; 
+import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../../../components/Sort/TableSort';
 import Prompt from '../../../../../../../../../../components/Toast/Prompt';
 
 import './ViewTranchModal.css';
+import { PermissionGate } from '../../../../../../../../../../../../hooks/Auth/PermissionGate';
 
 const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
     const { tranches: rawData, loading, deleteTranche, refresh } = useManFeeTranches(fundId, scenarioId);
@@ -61,28 +62,33 @@ const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
                                             <SortableHeaderRenderer 
                                                 label="Name" columnKey="tranche_name"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                                center={false}
                                             />
                                         </th>
                                         <th>
                                             <SortableHeaderRenderer 
                                                 label="Amount" columnKey="amount"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                                showCurrency={true}
+                                                center={true} showCurrency={true}
                                             />
                                         </th>
                                         <th>
                                             <SortableHeaderRenderer 
                                                 label="Class" columnKey="share_class_name"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                                center={true} showCurrency={false}
                                             />
                                         </th>
                                         <th style={{ width: '140px' }}>
                                             <SortableHeaderRenderer 
                                                 label="Date" columnKey="start_date"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
+                                                center={true} showCurrency={false}
                                             />
                                         </th>
+                                        <PermissionGate>
                                         <th style={{ width: '80px' }}>Actions</th>
+                                        </PermissionGate>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -112,6 +118,7 @@ const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
                                                         dateFormat="DD/MM/YYYY"
                                                     />
                                                 </td>
+                                                <PermissionGate>
                                                 <td className="scenario-pf-center">
                                                     <button 
                                                         className="man-fee-tranches-text-btn-red" 
@@ -120,6 +127,7 @@ const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
                                                         Delete
                                                     </button>
                                                 </td>
+                                                </PermissionGate>
                                             </tr>
                                         ))
                                     ) : (

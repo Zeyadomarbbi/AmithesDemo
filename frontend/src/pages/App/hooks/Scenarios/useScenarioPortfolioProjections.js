@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../../../../hooks/api/useApi"; // Adjust relative path as needed
 
 export const useScenarioPortfolioProjections = (fundId, scenarioId) => {
+  const api = useApi();
   const [loading, setLoading] = useState(false);
   const [projections, setProjections] = useState([]);
 
@@ -14,34 +14,37 @@ export const useScenarioPortfolioProjections = (fundId, scenarioId) => {
     if (!fundId || !scenarioId) return;
     setLoading(true);
     try {
-      const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/`;
-      const response = await axios.get(url);
-      setProjections(response.data);
+      // api.get handles the API_BASE_URL and credentials internally
+      const data = await api.get(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/`
+      );
+      setProjections(data);
     } catch (err) {
-      console.error("Failed to fetch scenario projections:", err);
+      console.error("Failed to fetch scenario projections:", err.message);
     } finally {
       setLoading(false);
     }
-  }, [fundId, scenarioId]);
+  }, [fundId, scenarioId, api]);
 
   /**
    * UPDATE PROJECTION INPUTS
    * Sends new input_duration or input_moic to the server.
-   * The Django serializer handles the call to fn_rebuild_scenario_projection.
    */
-  const updateProjection = async (projectionId, data) => {
-    const url = `${API_BASE_URL}/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/${projectionId}/`;
+  const updateProjection = async (projectionId, payload) => {
     try {
-      const response = await axios.patch(url, data);
+      const data = await api.patch(
+        `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-projections/${projectionId}/`,
+        payload
+      );
       
       // Update local state with the newly calculated values from the DB
       setProjections((prev) =>
-        prev.map((p) => (p.projection_id === projectionId ? response.data : p))
+        prev.map((p) => (p.projection_id === projectionId ? data : p))
       );
       
-      return response.data;
+      return data;
     } catch (err) {
-      console.error("Failed to update projection inputs:", err);
+      console.error("Failed to update projection inputs:", err.message);
       throw err;
     }
   };

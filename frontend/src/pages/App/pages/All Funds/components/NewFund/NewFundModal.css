@@ -10,6 +10,7 @@
   justify-content: center;
   z-index: 60;
   padding: 20px; /* Prevents touching screen edges */
+  overflow-y: auto;
 }
 
 /* =========================
@@ -17,14 +18,15 @@
    ========================= */
 .nf-modal {
   width: 100%;
-  max-width: 450px; /* Logical cap for desktop */
-  max-height: 90vh; /* Responsive height limit */
+  max-width: 450px;
+  max-height: 90vh;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.26);
   padding: 24px;
   display: flex;
   flex-direction: column;
+  overflow: visible; /* Moved here to allow the entire modal to scroll if needed */
 }
 
 /* =========================
@@ -32,14 +34,16 @@
    ========================= */
 .nf-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-end;
   margin-bottom: 24px;
   flex-shrink: 0;
 }
 
+
 .nf-title {
   margin: 0;
+  align-self: flex-start;
   font-size: 18px;
   font-weight: 600;
   color: #111827;
@@ -62,7 +66,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
+  overflow: visible; /* Changed from overflow-y: auto */
   padding-right: 4px;
 }
 
@@ -111,19 +115,6 @@
   width: 100%;
 }
 
-/* Position the icon at the end */
-.nf-select-wrapper svg {
-  position: absolute;
-  right: 12px; /* Standard internal padding */
-  pointer-events: none; /* Allows clicks to pass through to the select element */
-  transition: transform 0.2s ease;
-  color: #375A89;
-}
-
-/* Rotate icon when select is open */
-.nf-select-wrapper.is-open svg {
-  transform: rotate(180deg);
-}
 
 /* Ensure select text doesn't overlap the icon */
 .nf-select {

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum
 
-from ..models.reference import ClosingPeriod, LPsOperationFlowType, LPsOperationType
+from ..models.reference import LPsOperationFlowType, LPsOperationType
 from ..models.transactions import FundClosing, LPsFundCommitment, LPsOperationDetails, LPsOperationFlow, LPsOperationFlowLPAllocation, LPsOperationLPAllocation
 from ..models.core import LimitedPartner
 
@@ -42,26 +42,20 @@ def _normalize_fraction(v: Decimal | None, field_name: str) -> Decimal | None:
     raise serializers.ValidationError(
         {field_name: "Must be between 0..1 (or 0..100 as percent)."}
     )
-    
-class ClosingPeriodSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClosingPeriod
-        fields = '__all__'
+
 
 class FundClosingSerializer(serializers.ModelSerializer):
-    # This grabs the closing_name from the related ClosingPeriod model
-    closing_name = serializers.CharField(source='closing_period.closing_name', read_only=True)
 
     class Meta:
         model = FundClosing
         fields = [
-            'lps_fund_closing_period_id', 
-            'date', 
-            'created_at', 
-            'created_by', 
-            'fund', 
-            'closing_period', 
-            'closing_name' # Add this
+            'lps_fund_closing_period_id',
+            'date',
+            'created_at',
+            'created_by',
+            'description',
+            'fund',
+            'closing_name',
         ]
 
 class LimitedPartnerSerializer(serializers.ModelSerializer):
@@ -150,7 +144,7 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
     lps_operation_details_id = serializers.IntegerField(write_only=True, required=False)
     lp_allocations = LPsFlowLPAllocationSerializer(many=True, read_only=True)
     share_class_allocations = serializers.SerializerMethodField()
-    flow_type_id = serializers.IntegerField(write_only=True)
+    flow_type_id = serializers.IntegerField(write_only=False)
     class Meta:
         model = LPsOperationFlow
         fields = [
@@ -203,9 +197,23 @@ class LPsOperationFlowSerializer(serializers.ModelSerializer):
         if value not in ["amount", "percentage"]:
             raise serializers.ValidationError("input_type must be either 'amount' or 'percentage'.")
         return value
-    
+
+class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
+    operation_number = serializers.IntegerField(
+        source="lps_operation_details.operation_number",
+        read_only=True
+    )
+
+    class Meta:
+        model = LPsOperationLPAllocation
+        fields = "__all__"
+        extra_kwargs = {
+            "lps_operation_details": {"read_only": True}
+        }
+
 class LPsOperationDetailsSerializer(serializers.ModelSerializer):
     flows = LPsOperationFlowSerializer(many=True, read_only=True)
+    lp_allocations = LPsOperationLPAllocationSerializer(many=True, read_only=True)
     operation_type_id = serializers.IntegerField()
     operation_type_name = serializers.ReadOnlyField(source='operation_type.name')
     class Meta:
@@ -223,6 +231,7 @@ class LPsOperationDetailsSerializer(serializers.ModelSerializer):
             "total_operation_amount",
             "overall_percentage_of_commitment",
             "flows",
+            "lp_allocations",
             "created_at",
         ]
         read_only_fields = ["lps_operation_details_id", "fund_id", "created_at"]
@@ -317,15 +326,3 @@ class OperationFullCreateSerializer(serializers.Serializer):
     flows = FlowCreateItemSerializer(many=True, required=True)
 
 
-class LPsOperationLPAllocationSerializer(serializers.ModelSerializer):
-    operation_number = serializers.IntegerField(
-        source="lps_operation_details.operation_number",
-        read_only=True
-    )
-
-    class Meta:
-        model = LPsOperationLPAllocation
-        fields = "__all__"
-        extra_kwargs = {
-            "lps_operation_details": {"read_only": True}
-        }

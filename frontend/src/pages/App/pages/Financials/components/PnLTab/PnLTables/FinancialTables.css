@@ -80,7 +80,6 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  
 
   padding: 8px 16px;
 
@@ -98,7 +97,6 @@
   cursor: pointer;
   white-space: nowrap;
 }
-
 
 .pnl-income .pill-btn:focus,
 .pnl-income .pill-btn:focus-visible,
@@ -124,9 +122,7 @@
   box-sizing: border-box;
   border-bottom: 1px solid var(--border-soft);
   font-size: 14px;
-  
-  /* Add this */
-  background-color: #ffffff; 
+  background-color: #ffffff;
 }
 
 .pnl-income .detail-row:nth-of-type(odd),
@@ -141,14 +137,14 @@
 .pnl-tax .detail-label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .pnl-income .detail-label-text,
 .pnl-expenses .detail-label-text,
 .pnl-tax .detail-label-text {
-  flex: 1;
+  flex: none;
   min-width: 0;
   white-space: nowrap;
   font-family: var(--font-body);
@@ -204,6 +200,9 @@
   justify-content: center;
   padding: 0 12px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  justify-self: center;
 }
 
 .pnl-income .amount-input,
@@ -212,7 +211,7 @@
 .pnl-expenses .pnl-label-input,
 .pnl-tax .amount-input,
 .pnl-tax .pnl-label-input {
-  width: 129px;
+  width: 100%;
   height: 40px;
   padding: 8px 12px;
 
@@ -323,19 +322,26 @@
   color: #dc2626;
 }
 
-/* ✅ lock to last grid column so it never "disappears" */
-.pnl-income .pnl-row-actions {
+/* lock to last grid column */
+/* lock to last grid column */
+.pnl-income .pnl-row-actions,
+.pnl-expenses .pnl-row-actions,
+.pnl-tax .pnl-row-actions {
   justify-self: end;
   min-width: var(--pnl-actions-col);
 }
 
-/* ✅ menu/dots never clipped */
-.pnl-income .pnl-kebab-wrap {
+/* menu/dots never clipped */
+.pnl-income .pnl-kebab-wrap,
+.pnl-expenses .pnl-kebab-wrap,
+.pnl-tax .pnl-kebab-wrap {
   overflow: visible;
 }
 
 /* last column */
-.pnl-income .group-action-cell {
+.pnl-income .group-action-cell,
+.pnl-expenses .group-action-cell,
+.pnl-tax .group-action-cell {
   min-width: var(--pnl-actions-col);
 }
 
@@ -343,13 +349,13 @@
 .pnl-expenses .detail-row.detail-row--typehere .pnl-row-actions,
 .pnl-tax .detail-row.detail-row--typehere .pnl-row-actions {
   align-self: start !important;
-  margin-top: 6px !important; 
+  margin-top: 6px !important;
 }
+
 /* table wrappers */
 .pnl-income,
 .pnl-expenses,
 .pnl-tax {
   background: #ffffff;
-  overflow: hidden; /* keep edges clean */
-  
+  overflow: hidden;
 }

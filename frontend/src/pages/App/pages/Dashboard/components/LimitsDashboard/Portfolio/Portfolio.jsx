@@ -1,6 +1,6 @@
 import React from 'react';
 import './Portfolio.css';
-import { SortIcon } from '.././Icons';
+import { SortIcon } from '/src/components/Icons/InteractiveIcons';
 
 function Portfolio({ data }) { // Accept data as prop
   // data is now received from LimitsDashboard

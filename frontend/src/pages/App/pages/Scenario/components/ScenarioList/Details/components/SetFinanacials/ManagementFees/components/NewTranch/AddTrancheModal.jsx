@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useManFeeTranches } from '../../utils/useScenarioManFeeTranches';
+import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
 import { useShareClasses } from '../../../../../../../../../../hooks/useShareClass';
-import { CloseIcon, ChevronDownIcon } from '../../../Icons';
+import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
 import Toast from '../../../../../../../../../../components/Toast/Toast';
 import './AddTrancheModal.css';

@@ -1,59 +1,38 @@
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from '../../../../hooks/api/useApi';
 
 export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
   const [allocations, setAllocations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const api = useApi();
 
-  // URL matches your Django nested path
-  const baseUrl = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
-
-  // Internal helper for native fetch logic
-  const handleRequest = async (url, options = {}) => {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error: ${response.status}`);
-    }
-
-    if (response.status === 204) return null; // Standard for DELETE
-    return response.json();
-  };
+  // Clean relative path for the API instance
+  const baseEndpoint = `/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
 
   // GET: Fetch all LP allocations for this specific flow
   const fetchAllocations = useCallback(async () => {
-    if (!flowId) return; // Prevent call if flowId isn't ready
+    if (!flowId) return; 
     setIsLoading(true);
     setError(null);
     try {
-      const data = await handleRequest(baseUrl);
+      const data = await api.get(baseEndpoint);
       setAllocations(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [baseUrl, flowId]);
+  }, [api, baseEndpoint, flowId]);
 
   // POST: Create a single LP allocation
-  const createAllocation = async (operationId, flowId, payload) => {
-    const url = `${API_BASE_URL}/api/funds/${fundId}/operations/${operationId}/flows/${flowId}/lp_allocations/`;
-    console.log("[createFlowLPAllocation] payload:", payload);
+  const createAllocation = async (targetOpId, targetFlowId, payload) => {
+    const endpoint = `/api/funds/${fundId}/operations/${targetOpId}/flows/${targetFlowId}/lp_allocations/`;
     setIsLoading(true);
     setError(null);
     try {
-      const response = await handleRequest(url, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      const response = await api.post(endpoint, payload);
       setAllocations((prev) => [...prev, response]);
       return response;
     } catch (err) {
@@ -69,10 +48,7 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await handleRequest(`${baseUrl}${allocationId}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
+      const response = await api.patch(`${baseEndpoint}${allocationId}/`, payload);
       setAllocations((prev) =>
         prev.map((a) => (a.lp_flow_allocation_id === allocationId ? response : a))
       );
@@ -90,7 +66,7 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
     setIsLoading(true);
     setError(null);
     try {
-      await handleRequest(`${baseUrl}${allocationId}/`, { method: 'DELETE' });
+      await api.delete(`${baseEndpoint}${allocationId}/`);
       setAllocations((prev) => 
         prev.filter((a) => a.lp_flow_allocation_id !== allocationId)
       );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { saveNewTimeframe, useTimeframes } from "../../../../hooks/Core/useTimeframes";
-import { API_BASE_URL } from "../../../../hooks/useApi";
+import { useTimeframeContext  } from "../../../../hooks/Core/TimeframeContext";
+import { API_BASE_URL } from "../../../../../../hooks/api/apiConfig";
 
 const toNumber = (value) => {
   const n = Number(value);
@@ -32,6 +32,19 @@ const canonicalType = (value) => {
   if (t.includes("interest")) return "interest";
   if (t.includes("divest")) return "divestment";
   return "other";
+};
+
+const sumFlowsByTypeAsOfDate = (flows = [], cutoffDate, acceptedTypes = []) => {
+  const cutoff = new Date(cutoffDate);
+  const accepted = new Set(acceptedTypes);
+  return flows
+    .filter((flow) => flow?.date)
+    .filter((flow) => {
+      const d = new Date(flow.date);
+      return !Number.isNaN(d.getTime()) && d <= cutoff;
+    })
+    .filter((flow) => accepted.has(canonicalType(flow.transaction_name)))
+    .reduce((sum, flow) => sum + Math.abs(getAmountEur(flow)), 0);
 };
 
 const getAmountEur = (row) => {
@@ -71,7 +84,7 @@ const fvAsOfDate = (fairValues = [], cutoffDate) => {
 };
 
 export const useCompareTimeframes = (fundId, maxSelections = 2) => {
-  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
+  const { quarters, isLoading, saveTimeframe } = useTimeframeContext();
   const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
 
   useEffect(() => {
@@ -95,13 +108,9 @@ export const useCompareTimeframes = (fundId, maxSelections = 2) => {
     (timeframeId) => {
       const id = Number(timeframeId);
       if (!Number.isFinite(id)) return;
-
       setSelectedTimeframeIds((prev) => {
-        if (prev.includes(id)) {
-          return prev.filter((item) => item !== id);
-        }
-        const next = [...prev, id];
-        return next.slice(-maxSelections);
+        if (prev.includes(id)) return prev.filter((item) => item !== id);
+        return [...prev, id].slice(-maxSelections);
       });
     },
     [maxSelections]
@@ -109,15 +118,11 @@ export const useCompareTimeframes = (fundId, maxSelections = 2) => {
 
   const handleSaveTimeframe = useCallback(
     async (newTimeframe) => {
-      const saved = await saveNewTimeframe(fundId, newTimeframe);
-      setQuarters((prev) => [...prev, saved]);
-      setSelectedTimeframeIds((prev) => {
-        const next = [...prev, Number(saved.id)];
-        return next.slice(-maxSelections);
-      });
+      const saved = await saveTimeframe(newTimeframe);
+      setSelectedTimeframeIds((prev) => [...prev, Number(saved.id)].slice(-maxSelections));
       return saved;
     },
-    [fundId, maxSelections, setQuarters]
+    [maxSelections, saveTimeframe]
   );
 
   const activeQuarters = useMemo(
@@ -128,14 +133,7 @@ export const useCompareTimeframes = (fundId, maxSelections = 2) => {
     [quarters, selectedTimeframeIds]
   );
 
-  return {
-    quarters,
-    isLoading,
-    selectedTimeframeIds,
-    activeQuarters,
-    handleToggleTimeframe,
-    handleSaveTimeframe,
-  };
+  return { quarters, isLoading, selectedTimeframeIds, activeQuarters, handleToggleTimeframe, handleSaveTimeframe };
 };
 
 export const useCompareRows = (
@@ -147,152 +145,55 @@ export const useCompareRows = (
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const preloadedInvestments = preloadedDataset?.investments;
-  const preloadedFlows = preloadedDataset?.flowsByInvestment;
-  const preloadedFairValues = preloadedDataset?.fairValuesByInvestment;
-  const preloadedLoadedAt = preloadedDataset?.loadedAt;
   const preloadedIsLoading = preloadedDataset?.isLoading;
   const activeQuartersKey = useMemo(() => buildQuartersKey(activeQuarters), [activeQuarters]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    const load = async () => {
-      if (!fundId) {
-        setRows([]);
-        return;
-      }
+    if (preloadedIsLoading) {
+      setIsLoading(true);
+      return;
+    }
 
-      if (preloadedIsLoading) {
-        setIsLoading(true);
-        return;
-      }
+    const preloadedRows = toSafeArray(preloadedInvestments);
+    const mapped = preloadedRows.map((inv) => {
+      const investmentId = Number(inv.investment_id ?? inv.id);
+      const flows = toSafeArray(inv.transaction_flows);
+      const fairValues = toSafeArray(inv.fair_value_flows);
 
-      const preloadedRows = toSafeArray(preloadedInvestments);
-      if (preloadedRows.length || preloadedLoadedAt) {
-        const mapped = preloadedRows.map((inv) => {
-          const investmentId = Number(inv.investment_id ?? inv.id);
-          const flows = toSafeArray(preloadedFlows?.[investmentId]);
-          const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
+      const timeframes = activeQuarters.reduce((acc, q) => {
+        const cutoff = q.rawDate || q.date;
+        acc[q.id] = {
+          cost: costAsOfDate(flows, cutoff),
+          fv: fvAsOfDate(fairValues, cutoff),
+          dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+          divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
+        };
+        return acc;
+      }, {});
 
-          const timeframes = activeQuarters.reduce((acc, q) => {
-            const cutoff = q.rawDate || q.date;
-            acc[q.id] = {
-              cost: costAsOfDate(flows, cutoff),
-              fv: fvAsOfDate(fairValues, cutoff),
-            };
-            return acc;
-          }, {});
+      return {
+        id: investmentId,
+        name: inv.name || `Investment #${investmentId}`,
+        sector: inv.sector || "",
+        timeframes,
+      };
+    });
 
-          return {
-            id: investmentId,
-            name: inv.name || `Investment #${investmentId}`,
-            sector: inv.sector || "",
-            timeframes,
-          };
-        });
+    if (!isCancelled) {
+      setRows((prev) => {
+        const prevSig = buildRowsSignature(prev, activeQuarters);
+        const nextSig = buildRowsSignature(mapped, activeQuarters);
+        return prevSig === nextSig ? prev : mapped;
+      });
+      setIsLoading(false);
+    }
 
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0
-            ? true
-            : activeQuarters.some((q) => {
-                const tf = row.timeframes[q.id] || {};
-                return toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0;
-              })
-        );
-
-        if (!isCancelled) {
-          setRows((prev) => {
-            const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
-          });
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const investmentsRes = await fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`);
-        if (!investmentsRes.ok) throw new Error("Failed to fetch investments");
-
-        const investmentsPayload = await investmentsRes.json();
-        const investments = toSafeArray(investmentsPayload?.rows || investmentsPayload).filter((row) =>
-          Number.isFinite(Number(row.investment_id ?? row.id))
-        );
-
-        const mapped = await Promise.all(
-          investments.map(async (inv) => {
-            const investmentId = Number(inv.investment_id ?? inv.id);
-            const [flowsRes, fvRes] = await Promise.all([
-              fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`),
-              fetch(`${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`),
-            ]);
-
-            const flows = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
-            const fairValues = fvRes.ok ? toSafeArray(await fvRes.json()) : [];
-
-            const timeframes = activeQuarters.reduce((acc, q) => {
-              const cutoff = q.rawDate || q.date;
-              acc[q.id] = {
-                cost: costAsOfDate(flows, cutoff),
-                fv: fvAsOfDate(fairValues, cutoff),
-              };
-              return acc;
-            }, {});
-
-            return {
-              id: investmentId,
-              name: inv.name || `Investment #${investmentId}`,
-              sector: inv.sector || "",
-              timeframes,
-            };
-          })
-        );
-
-        const filtered = mapped.filter((row) =>
-          activeQuarters.length === 0
-            ? true
-            : activeQuarters.some((q) => {
-                const tf = row.timeframes[q.id] || {};
-                return (toNumber(tf.cost) > 0 || toNumber(tf.fv) > 0);
-              })
-        );
-
-        if (!isCancelled) {
-          setRows((prev) => {
-            const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(filtered, activeQuarters);
-            return prevSig === nextSig ? prev : filtered;
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load compare rows:", error);
-        if (!isCancelled) {
-          setRows((prev) => {
-            const prevSig = buildRowsSignature(prev, activeQuarters);
-            const nextSig = buildRowsSignature(fallbackRows, activeQuarters);
-            return prevSig === nextSig ? prev : fallbackRows;
-          });
-        }
-      } finally {
-        if (!isCancelled) setIsLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [
-    fundId,
     activeQuartersKey,
-    fallbackRows,
     preloadedInvestments,
-    preloadedFlows,
-    preloadedFairValues,
-    preloadedLoadedAt,
     preloadedIsLoading,
   ]);
 
@@ -305,7 +206,9 @@ export const buildTotalRow = (rows = [], activeQuarters = []) => {
   activeQuarters.forEach((q) => {
     const cost = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.cost), 0);
     const fv = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.fv), 0);
-    total.timeframes[q.id] = { cost, fv };
+    const dividends = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.dividends), 0);
+    const divestment = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.divestment), 0);
+    total.timeframes[q.id] = { cost, fv, dividends, divestment };
   });
 
   return total;
@@ -330,7 +233,7 @@ export const diffBetweenNewestAndOldest = (row, key, activeQuarters = []) => {
   return formatCompareMoney(newestVal - oldestVal);
 };
 
-export const getCompareColumnOptions = (activeQuarters = []) => {
+export const getCompareTableColumnOptions = (activeQuarters = []) => {
   const options = [];
 
   activeQuarters.forEach((q) => {
@@ -361,8 +264,30 @@ export const getCompareColumnOptions = (activeQuarters = []) => {
     });
   }
 
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `divestment:${q.id}`,
+      label: `Divestment ${q.display_label}`,
+    });
+  });
+
+  activeQuarters.forEach((q) => {
+    options.push({
+      key: `dividends:${q.id}`,
+      label: `Dividends ${q.display_label}`,
+    });
+  });
+
   return options;
 };
+
+export const getCompareChartMetricOptions = () => [
+  { key: "cost", label: "Cost" },
+  { key: "fair_value", label: "Fair Value" },
+  { key: "change_fv", label: "Change in Fair Value" },
+  { key: "divestment", label: "Divestment" },
+  { key: "dividends", label: "Dividends" },
+];
 
 export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => {
   if (!row || !columnKey) return 0;
@@ -377,10 +302,37 @@ export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => 
     return toNumber(row?.timeframes?.[id]?.fv);
   }
 
+  if (columnKey.startsWith("divestment:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.divestment);
+  }
+
+  if (columnKey.startsWith("dividends:")) {
+    const id = Number(columnKey.split(":")[1]);
+    return toNumber(row?.timeframes?.[id]?.dividends);
+  }
+
+  const newestId = activeQuarters[0]?.id;
+  const oldestId = activeQuarters[activeQuarters.length - 1]?.id;
+
+  if (columnKey === "cost") {
+    return toNumber(row?.timeframes?.[newestId]?.cost);
+  }
+
+  if (columnKey === "fair_value") {
+    return toNumber(row?.timeframes?.[newestId]?.fv);
+  }
+
+  if (columnKey === "divestment") {
+    return toNumber(row?.timeframes?.[newestId]?.divestment);
+  }
+
+  if (columnKey === "dividends") {
+    return toNumber(row?.timeframes?.[newestId]?.dividends);
+  }
+
   if (columnKey === "change_cost") {
     if (activeQuarters.length < 2) return 0;
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
     const newestVal = toNumber(row?.timeframes?.[newestId]?.cost);
     const oldestVal = toNumber(row?.timeframes?.[oldestId]?.cost);
     return newestVal - oldestVal;
@@ -388,8 +340,6 @@ export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => 
 
   if (columnKey === "change_fv") {
     if (activeQuarters.length < 2) return 0;
-    const newestId = activeQuarters[0].id;
-    const oldestId = activeQuarters[activeQuarters.length - 1].id;
     const newestVal = toNumber(row?.timeframes?.[newestId]?.fv);
     const oldestVal = toNumber(row?.timeframes?.[oldestId]?.fv);
     return newestVal - oldestVal;

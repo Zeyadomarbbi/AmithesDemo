@@ -1,9 +1,56 @@
 from rest_framework import serializers
-
+from django.contrib.auth.models import User
 
 from ..models.core import *
 from ..models.core import Timeframe
 from ..models.reference import Currency
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 
+            'email', 'password', 'is_active', 'is_staff', 
+            'is_superuser', 'date_joined'
+        ]
+        extra_kwargs = {
+            # required=False allows us to skip password on PATCH
+            'password': {'write_only': True, 'required': False},
+            'username': {'required': True},
+            'email': {'required': True},
+            'date_joined': {'read_only': True}
+        }
+
+    def validate_username(self, value):
+        # Allow the current user to keep their own username
+        user_id = self.instance.id if self.instance else None
+        if User.objects.filter(username__iexact=value).exclude(id=user_id).exists():
+            raise serializers.ValidationError("Username already exists.")
+        return value
+
+    def validate_email(self, value):
+        # Allow the current user to keep their own email
+        user_id = self.instance.id if self.instance else None
+        if User.objects.filter(email__iexact=value).exclude(id=user_id).exists():
+            raise serializers.ValidationError("Email already exists.")
+        return value
+
+    def update(self, instance, validated_data):
+        # Pop password so it isn't handled by standard setattr
+        password = validated_data.pop('password', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Only set password if one was actually sent
+        if password:
+            instance.set_password(password)
+            
+        instance.save()
+        return instance
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
 
 class FundSerializer(serializers.ModelSerializer):
     # Explicitly map currency_id for the incoming payload

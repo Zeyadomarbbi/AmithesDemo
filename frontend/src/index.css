@@ -39,3 +39,9 @@ input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+.mode-viewer .btn-action,
+.mode-viewer .admin-only,
+.mode-viewer button[type="submit"] {
+  display: none !important;
+}

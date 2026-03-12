@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { useFundDetails } from "../../../../hooks/useFundDetails.js"; 
-import { useFundData } from "../../../../hooks/Core/FundContext";        
+import { useFundData, useFundDetails } from "../../../../hooks/Core/FundContext";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 import Toast from '../../../../components/Toast/Toast.jsx';
-
+import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
 import "./FundIdentity.css";
 
 const FundIdentity = () => {
@@ -19,10 +18,19 @@ const FundIdentity = () => {
 
   const [formData, setFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-
+  console.log("FundIdentity Rendered with serverData:", serverData);
   useEffect(() => {
     if (serverData) {
-      setFormData(serverData);
+      setFormData({
+        legal_name: serverData.name || "",
+        short_name: serverData.shortName || "",
+        formation_date: serverData.formationDate || "",
+        currency_id: serverData.currencyId || "",
+        fund_strategy: serverData.strategy || "",
+        legal_form: serverData.legalForm || "",
+        management_company: serverData.manCo || "",
+        phase_name: serverData.phaseName || "",
+      });
     }
   }, [serverData]);
 
@@ -159,21 +167,24 @@ const FundIdentity = () => {
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund currency<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
-            <select
-              className="fund-identity-input-inner fund-identity-select"
-              value={formData.currency_id || ""}
-              onChange={handleChange("currency_id")}
+            <SearchableSelect
+              options={currencies.map((c) => ({
+                ...c,
+                name: c.currency_name || c.name || c.currency_code || c.code || "",
+                code: c.currency_code || c.code || "",
+                symbol: c.currency_symbol || c.symbol || "",
+              }))}
+              value={formData.currency_id}
+              onChange={(val) => handleChange("currency_id")({ target: { value: val } })}
+              placeholder={currenciesLoading ? "Loading..." : "Please select"}
               disabled={currenciesLoading}
-            >
-              <option value="" disabled>{currenciesLoading ? "Loading..." : "Please select"}</option>
-              {currencies?.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>
-              ))}
-            </select>
-            <span className="fund-identity-select-chevron" />
+              labelKey="name"
+              valueKey="id"
+              secondaryLabelKey="code"
+              triggerClassName="fund-identity-input-inner"
+            />
           </div>
         </div>
-
         {/* OPTIONAL */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Legal form</label>
@@ -220,21 +231,17 @@ const FundIdentity = () => {
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund's phase<span className="fund-identity-required">*</span></label>
           <div className="fund-identity-input">
-            <select
-              className="fund-identity-input-inner fund-identity-select"
-              value={formData.phase_name || ""} 
-              onChange={handleChange("phase_name")} 
-              disabled={phasesLoading}
-            >
-              <option value="" disabled>Please select a phase</option>
-              {phases?.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <span className="fund-identity-select-chevron" />
-          </div>
+              <SearchableSelect
+                options={phases}
+                value={formData.phase_name}
+                onChange={(val) => handleChange("phase_name")({ target: { value: val } })}
+                placeholder={phasesLoading ? "Loading..." : "Please select a phase"}
+                disabled={phasesLoading}
+                labelKey="name"
+                valueKey="name"
+                triggerClassName="fund-identity-input-inner"
+              />
+            </div>
         </div>
       </form>
 

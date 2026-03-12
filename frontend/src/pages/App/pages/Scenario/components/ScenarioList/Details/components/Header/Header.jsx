@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BackIcon } from '../../../Icons'; 
+import { BackIcon } from '/src/components/Icons/DirectionIcons';
 
 // Sub-components
 import Tabs from './Tabs/Tabs';

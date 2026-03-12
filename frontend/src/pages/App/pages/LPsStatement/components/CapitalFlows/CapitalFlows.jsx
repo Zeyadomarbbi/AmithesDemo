@@ -1,13 +1,14 @@
-// frontend/src/pages/App/pages/LPsStatement/components/CapitalFlows.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 
 import FlowHeader from "./FlowHeader.jsx";
 import FlowFilters from "./FlowFilters.jsx";
 import FlowTable from "./FlowTable.jsx";
-import OperationPanel from "./NewOperation/OperationPanel/OperationPanel.jsx";
-import { useOperationDetails } from "/src/pages/App/hooks/LPsStatement/useCapitalFlowOperationDetails.js";
-import { useCapitalFlowLPOperationAllocation } from "/src/pages/App/hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
+import OperationPanel from "./NewOperation/OperationPanel.jsx";
+import { useFlowTypes } from "../../../../hooks/LPsStatement/useFlowTypes.js";
+import { useOperationDetails } from "../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
+import { useCapitalFlowLPOperationAllocation } from "../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import "./CapitalFlows.css";
 
 export default function CapitalFlows() {
@@ -16,31 +17,43 @@ export default function CapitalFlows() {
   const shareClasses = outlet.shareClasses || [];
   const fundId = outlet.fundId;
   const commitments = outlet.commitments;
-
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
   const [breakdown, setBreakdown] = useState("operations");
-
-  // ── OperationPanel state ───────────────────────────────────────────────────
+  const { flowTypes, fetchFlowTypes } = useFlowTypes()
   const [opOpen, setOpOpen] = useState(false);
   const [opMode, setOpMode] = useState("new");
   const [selectedOp, setSelectedOp] = useState(null);
+  const { 
+    operations, 
+    loading: opsLoading, 
+    error: opsError, 
+    fetchOperations 
+  } = useOperationDetails(fundId);
 
-  // ── Real data ──────────────────────────────────────────────────────────────
-  const { operations, fetchOperations } = useOperationDetails(fundId);
   const {
     allocations: lpAllocations,
+    isLoading: allocLoading,
+    error: allocError,
     fetchAllAllocations,
+    createAllocation,
   } = useCapitalFlowLPOperationAllocation(fundId, null);
-  const loadData = useCallback(() => {
+
+  const loadData = useCallback(async () => {
     if (!fundId) return;
-    fetchOperations().catch(() => {});
-    fetchAllAllocations().catch(() => {});
-  }, [fundId, fetchOperations, fetchAllAllocations]);
+    await Promise.all([
+      fetchOperations().catch(() => {}),
+      fetchAllAllocations().catch(() => {}),
+    ]);
+  }, [fundId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    fetchFlowTypes?.().catch(() => {});
+  }, [fetchFlowTypes]);
 
   const handleNewOperation = () => {
     setSelectedOp(null);
@@ -54,15 +67,16 @@ export default function CapitalFlows() {
     setOpOpen(true);
   };
 
-  const handleClosePanel = () => {
+  const handleClosePanel = (didSave = false) => {
     setOpOpen(false);
-    // Refresh table after closing panel (new operation may have been saved)
-    loadData();
+    if (didSave) loadData();
   };
+
+  const isFullyLoading = opsLoading || allocLoading;
+  const pageError = opsError || allocError;
 
   return (
     <div className="cf-page">
-      {/* Row 1: Search + Breakdown */}
       <div className="cf-row cf-row--search-breakdown">
         <FlowFilters
           variant="searchOnly"
@@ -80,35 +94,61 @@ export default function CapitalFlows() {
         />
       </div>
 
-      {/* Row 2: Chips + New operation */}
-      <div className="cf-row cf-row--filters-newop">
-        <FlowFilters
-          variant="chipsOnly"
-          operationFilter={operationFilter}
-          setOperationFilter={setOperationFilter}
-          search={search}
-          setSearch={setSearch}
-        />
-        <FlowHeader
-          variant="buttonOnly"
-          onNewOperation={handleNewOperation}
-          operationFilter={operationFilter}
-          breakdown={breakdown}
-          setBreakdown={setBreakdown}
-        />
-      </div>
-
-      {/* Table — receives real data */}
-      <FlowTable
-        operationFilter={operationFilter}
-        search={search}
-        breakdown={breakdown}
-        onSelectOperation={handleSelectOperation}
-        operations={operations}
-        lpAllocations={lpAllocations}
-        lps={lps}
-
-      />
+      {isFullyLoading ? (
+        <PageSpinner label="Loading capital flows..." />
+      ) : pageError ? (
+        <PageError message={pageError} />
+      ) : operations.length === 0 ? (
+        <>
+          <div className="cf-row cf-row--filters-newop">
+            <FlowFilters
+              variant="chipsOnly"
+              operationFilter={operationFilter}
+              setOperationFilter={setOperationFilter}
+              search={search}
+              setSearch={setSearch}
+            />
+            <FlowHeader
+              variant="buttonOnly"
+              onNewOperation={handleNewOperation}
+              operationFilter={operationFilter}
+              breakdown={breakdown}
+              setBreakdown={setBreakdown}
+            />
+          </div>
+          <PageNoData message="No capital flow operations found for this fund." />
+        </>
+      ) : (
+        <>
+          <div className="cf-row cf-row--filters-newop">
+            <FlowFilters
+              variant="chipsOnly"
+              operationFilter={operationFilter}
+              setOperationFilter={setOperationFilter}
+              search={search}
+              setSearch={setSearch}
+            />
+            <FlowHeader
+              variant="buttonOnly"
+              onNewOperation={handleNewOperation}
+              operationFilter={operationFilter}
+              breakdown={breakdown}
+              setBreakdown={setBreakdown}
+            />
+          </div>
+          <FlowTable
+            operationFilter={operationFilter}
+            search={search}
+            breakdown={breakdown}
+            shareClasses={shareClasses}
+            flowTypes={flowTypes}
+            onSelectOperation={handleSelectOperation}
+            operations={operations}
+            lpAllocations={lpAllocations}
+            lps={lps}
+          />
+        </>
+      )}
 
       {opOpen && (
         <OperationPanel
@@ -120,6 +160,9 @@ export default function CapitalFlows() {
           fundId={fundId}
           onClose={handleClosePanel}
           commitments={commitments}
+          createOperationLPAllocation={createAllocation}
+          existingAllocations={lpAllocations}
+          fetchAllAllocations={fetchAllAllocations}
         />
       )}
     </div>

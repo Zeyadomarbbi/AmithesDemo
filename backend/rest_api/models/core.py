@@ -94,15 +94,10 @@ class Timeframe(models.Model):
     year = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=100, null=True, blank=True)
-
     class Meta:
         managed = False
         db_table = "timeframe"
         ordering = ['date', 'name']
-        constraints = [
-            models.UniqueConstraint(fields=['fund', 'date'], name='uq_fund_date_timeframe')
-        ]
-        
 
     def save(self, *args, **kwargs):
         if self.date:

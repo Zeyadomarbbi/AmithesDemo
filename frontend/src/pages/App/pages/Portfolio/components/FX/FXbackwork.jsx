@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { saveNewTimeframe, useTimeframes } from "../../../../hooks/Core/useTimeframes";
-import { API_BASE_URL } from "../../../../hooks/useApi";
+import { useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 
 export const parseFxValue = (value) => {
   if (!value || value === "-") return 0;
@@ -47,6 +46,30 @@ const formatFxRate = (rate) => {
 
 const toSafeArray = (value) => (Array.isArray(value) ? value : []);
 
+const canonicalFlowType = (value) => {
+  const type = String(value || "").trim().toLowerCase();
+  if (!type) return "";
+  if (type.includes("partial") && type.includes("divest")) return "Partial divestment";
+  if (type.includes("divest")) return "Divestment";
+  if (type.includes("dividend")) return "Dividend";
+  if (type.includes("interest")) return "Interest";
+  if (type.includes("investment")) return "Investment";
+  if (type.includes("invest")) return "Investment";
+  if (type.includes("other")) return "Other";
+  return type;
+};
+
+const getFlowTypeName = (flow) =>
+  flow?.transaction_name ??
+  flow?.transaction_type_name ??
+  flow?.transaction_type?.name ??
+  flow?.transaction_type ??
+  flow?.type ??
+  "";
+
+const isInvestmentCostFlow = (flow) =>
+  canonicalFlowType(getFlowTypeName(flow)) === "Investment";
+
 const pickLatestByDate = (rows, cutoffDate) => {
   const cutoff = cutoffDate ? new Date(cutoffDate) : null;
   const filtered = rows
@@ -66,7 +89,7 @@ const getSortedFlowsWithFx = (flows = []) =>
     .map((flow) => ({
       ...flow,
       __date: new Date(flow.date),
-      __fx: Number(flow.fx_rate),
+      __fx: Number(flow.fx_rate ?? flow.fxRate),
     }))
     .filter((flow) => !Number.isNaN(flow.__date.getTime()) && Number.isFinite(flow.__fx) && flow.__fx > 0)
     .sort((a, b) => a.__date - b.__date);
@@ -129,6 +152,32 @@ const getFxForExactQuarter = (rowsWithFx, referenceDate) => {
   return matched[matched.length - 1].__fx;
 };
 
+export const getLatestFxRowByCutoff = (rows = [], selectedTimeframes = []) => {
+  const validRows = rows
+    .filter((row) => row?.rawDate || row?.date)
+    .map((row) => ({
+      row,
+      date: new Date(row.rawDate || row.date),
+    }))
+    .filter((item) => !Number.isNaN(item.date.getTime()));
+
+  if (!validRows.length) return null;
+
+  const cutoffCandidates = selectedTimeframes
+    .map((tf) => new Date(tf?.rawDate || tf?.date))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a - b);
+
+  const cutoff = cutoffCandidates.length ? cutoffCandidates[cutoffCandidates.length - 1] : null;
+  const eligible = cutoff
+    ? validRows.filter((item) => item.date <= cutoff)
+    : validRows;
+  const targetPool = eligible.length ? eligible : validRows;
+  const latest = targetPool.sort((a, b) => a.date - b.date)[targetPool.length - 1];
+
+  return latest?.row || null;
+};
+
 export const resolveImpactKeys = (rows = [], selectedTimeframes = []) => {
   const dataRows = rows.filter((row) => row.type !== "total");
   const availableKeys = Object.keys(dataRows[0] || {}).filter(
@@ -181,7 +230,6 @@ export const splitDealRowsIntoTwoTables = (rows = []) => {
 const buildFxRowFromFlow = ({
   flow,
   investment,
-  allFlows,
   allFairValues = [],
   selectedTimeframes,
 }) => {
@@ -237,7 +285,6 @@ const buildFxRowFromFairValue = ({
   fairValue,
   investment,
   allFairValues,
-  fallbackFlows,
   selectedTimeframes,
 }) => {
   const fairValueLc = parseFxValue(fairValue.amount_lc);
@@ -261,7 +308,7 @@ const buildFxRowFromFairValue = ({
     date: formatDateDisplay(fairValue.date),
     fairValueOnDate: formatFxValue(fairValueDisplay),
     currency: investment.currency_code || "-",
-    fxRate: formatFxRate(fairValue.fx_rate),
+    fxRate: formatFxRate(fairValue.fx_rate ?? fairValue.fxRate),
     impactInception:
       oldestFx && latestFx
         ? formatFxValue(fairValueLc / latestFx - fairValueLc / oldestFx)
@@ -288,7 +335,12 @@ const buildFxRowFromFairValue = ({
         : "-";
     row[fxAsOfKey] = fxAtDate ? formatFxRate(fxAtDate) : "-";
     row[fairValueKey] = latestFairValue
-      ? formatFxValue(parseFxValue(latestFairValue.amount_lc))
+      ? formatFxValue(
+          Number.isFinite(Number(latestFairValue.amount)) &&
+            Number(latestFairValue.amount) !== 0
+            ? Number(latestFairValue.amount)
+            : parseFxValue(latestFairValue.amount_lc)
+        )
       : "-";
   });
 
@@ -304,169 +356,57 @@ export const useFxDealsRows = (
   const [investments, setInvestments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const preloadedInvestments = preloadedDataset?.investments;
-  const preloadedFlows = preloadedDataset?.flowsByInvestment;
-  const preloadedFairValues = preloadedDataset?.fairValuesByInvestment;
-  const preloadedLoadedAt = preloadedDataset?.loadedAt;
   const preloadedIsLoading = preloadedDataset?.isLoading;
+
+  const selectedTimeframesKey = useMemo(
+    () => selectedTimeframes.map((tf) => `${tf.id}:${tf.rawDate || tf.date}`).join("|"),
+    [selectedTimeframes]
+  );
 
   useEffect(() => {
     let isCancelled = false;
 
-    const load = async () => {
-      if (!fundId) {
-        setInvestments([]);
-        return;
-      }
+    if (preloadedIsLoading) {
+      setIsLoading(true);
+      return;
+    }
 
-      const preloadedRows = toSafeArray(preloadedInvestments);
-      if (preloadedIsLoading) {
-        setIsLoading(true);
-        return;
-      }
-      if (preloadedRows.length) {
-        const byInvestment = preloadedRows.map((investment) => {
-          const investmentId = Number(investment.investment_id ?? investment.id);
-          const flows = toSafeArray(preloadedFlows?.[investmentId]);
-          const fairValues = toSafeArray(preloadedFairValues?.[investmentId]);
+    const preloadedRows = toSafeArray(preloadedInvestments);
+    const byInvestment = preloadedRows.map((investment) => {
+      const investmentId = Number(investment.investment_id ?? investment.id);
+      const flows = toSafeArray(investment.transaction_flows);
+      const costFlows = flows.filter(isInvestmentCostFlow);
+      const fairValues = toSafeArray(investment.fair_value_flows);
 
-          const flowRows = flows.map((flow) =>
-            buildFxRowFromFlow({
-              flow,
-              investment,
-              allFlows: flows,
-              allFairValues: fairValues,
-              selectedTimeframes,
-            })
-          );
-          const fairValueRows = fairValues.map((fairValue) =>
-            buildFxRowFromFairValue({
-              fairValue,
-              investment,
-              allFairValues: fairValues,
-              fallbackFlows: flows,
-              selectedTimeframes,
-            })
-          );
+      return {
+        title: investment.name || `Investment #${investmentId}`,
+        costRows: costFlows.map((flow) =>
+          buildFxRowFromFlow({ flow, investment, allFairValues: fairValues, selectedTimeframes })
+        ),
+        fvRows: fairValues.map((fairValue) =>
+          buildFxRowFromFairValue({ fairValue, investment, allFairValues: fairValues, selectedTimeframes })
+        ),
+      };
+    });
 
-          return {
-            title: investment.name || `Investment #${investmentId}`,
-            costRows: flowRows,
-            fvRows: fairValueRows,
-          };
-        });
+    if (!isCancelled) {
+      setInvestments(byInvestment);
+      setIsLoading(false);
+    }
 
-        if (!isCancelled) {
-          setInvestments(byInvestment);
-          setIsLoading(false);
-        }
-        return;
-      }
-      if (preloadedLoadedAt) {
-        if (!isCancelled) {
-          setInvestments([]);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const res = await fetch(
-          `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/`
-        );
-        if (!res.ok) throw new Error("Failed to fetch portfolio investments");
-
-        const payload = await res.json();
-        const portfolioRows = toSafeArray(payload?.rows || payload);
-        const mappedInvestments = portfolioRows.filter(
-          (row) => Number.isFinite(Number(row.investment_id ?? row.id))
-        );
-
-        const byInvestment = await Promise.all(
-          mappedInvestments.map(async (investment) => {
-            const investmentId = Number(investment.investment_id ?? investment.id);
-            const [flowsRes, fairValuesRes] = await Promise.all([
-              fetch(
-                `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`
-              ),
-              fetch(
-                `${API_BASE_URL}/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`
-              ),
-            ]);
-
-            const flows = flowsRes.ok ? toSafeArray(await flowsRes.json()) : [];
-            const fairValues = fairValuesRes.ok
-              ? toSafeArray(await fairValuesRes.json())
-              : [];
-
-            const flowRows = flows.map((flow) =>
-              buildFxRowFromFlow({
-                flow,
-                investment,
-                allFlows: flows,
-                allFairValues: fairValues,
-                selectedTimeframes,
-              })
-            );
-            const fairValueRows = fairValues.map((fairValue) =>
-              buildFxRowFromFairValue({
-                fairValue,
-                investment,
-                allFairValues: fairValues,
-                fallbackFlows: flows,
-                selectedTimeframes,
-              })
-            );
-
-            return {
-              title: investment.name || `Investment #${investmentId}`,
-              costRows: flowRows,
-              fvRows: fairValueRows,
-            };
-          })
-        );
-
-        if (!isCancelled) {
-          setInvestments(byInvestment);
-        }
-      } catch (error) {
-        console.error("Failed to load FX deals rows:", error);
-        if (!isCancelled) {
-          const mappedFallback = fallbackData.map((item) => ({
-            title: item.title,
-            costRows: item.rows || [],
-            fvRows: item.rows || [],
-          }));
-          setInvestments(mappedFallback);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [
-    fundId,
-    fallbackData,
-    selectedTimeframes,
+    selectedTimeframesKey,
     preloadedInvestments,
-    preloadedFlows,
-    preloadedFairValues,
-    preloadedLoadedAt,
     preloadedIsLoading,
   ]);
 
   return { investments, isLoading };
 };
 
-export const useFxDealsTimeframes = (fundId, maxSelections = null) => {
-  const { quarters, isLoading, setQuarters } = useTimeframes(fundId);
+
+export const useFxDealsTimeframes = (maxSelections = null) => {
+  const { quarters, isLoading, saveTimeframe } = useTimeframeContext();
   const [selectedTimeframeIds, setSelectedTimeframeIds] = useState([]);
   const [debouncedSelectedTimeframeIds, setDebouncedSelectedTimeframeIds] = useState([]);
 
@@ -485,58 +425,37 @@ export const useFxDealsTimeframes = (fundId, maxSelections = null) => {
     const timeoutId = setTimeout(() => {
       setDebouncedSelectedTimeframeIds(selectedTimeframeIds);
     }, 1000);
-
     return () => clearTimeout(timeoutId);
   }, [selectedTimeframeIds]);
 
-  const handleToggleTimeframe = useCallback(
-    (timeframeId) => {
-      const id = Number(timeframeId);
-      if (!Number.isFinite(id)) return;
+  const handleToggleTimeframe = useCallback((timeframeId) => {
+    const id = Number(timeframeId);
+    if (!Number.isFinite(id)) return;
+    setSelectedTimeframeIds((prev) => {
+      if (prev.includes(id)) return prev.filter((item) => item !== id);
+      const next = [...prev, id];
+      if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) return next.slice(-Number(maxSelections));
+      return next;
+    });
+  }, [maxSelections]);
 
-      setSelectedTimeframeIds((prev) => {
-        if (prev.includes(id)) {
-          return prev.filter((item) => item !== id);
-        }
-        const next = [...prev, id];
-        if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) {
-          return next.slice(-Number(maxSelections));
-        }
-        return next;
-      });
-    },
-    [maxSelections]
-  );
+  const handleSaveTimeframe = useCallback(async (newTimeframe) => {
+    const saved = await saveTimeframe(newTimeframe);
+    setSelectedTimeframeIds((prev) => {
+      const next = [...prev, Number(saved.id)];
+      if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) return next.slice(-Number(maxSelections));
+      return next;
+    });
+    return saved;
+  }, [maxSelections, saveTimeframe]);
 
-  const handleSaveTimeframe = useCallback(
-    async (newTimeframe) => {
-      const saved = await saveNewTimeframe(fundId, newTimeframe);
-      setQuarters((prev) => [...prev, saved]);
-      setSelectedTimeframeIds((prev) => {
-        const next = [...prev, Number(saved.id)];
-        if (Number.isFinite(Number(maxSelections)) && Number(maxSelections) > 0) {
-          return next.slice(-Number(maxSelections));
-        }
-        return next;
-      });
-      return saved;
-    },
-    [fundId, maxSelections, setQuarters]
-  );
-
-  const selectedTimeframes = useMemo(
-    () =>
-      quarters.filter((quarter) =>
-        selectedTimeframeIds.includes(Number(quarter.id))
-      ),
+  const selectedTimeframes = useMemo(() =>
+    quarters.filter((quarter) => selectedTimeframeIds.includes(Number(quarter.id))),
     [quarters, selectedTimeframeIds]
   );
 
-  const debouncedSelectedTimeframes = useMemo(
-    () =>
-      quarters.filter((quarter) =>
-        debouncedSelectedTimeframeIds.includes(Number(quarter.id))
-      ),
+  const debouncedSelectedTimeframes = useMemo(() =>
+    quarters.filter((quarter) => debouncedSelectedTimeframeIds.includes(Number(quarter.id))),
     [quarters, debouncedSelectedTimeframeIds]
   );
 

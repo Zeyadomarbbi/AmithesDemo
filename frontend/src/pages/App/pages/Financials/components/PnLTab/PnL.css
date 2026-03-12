@@ -1,7 +1,7 @@
 /* frontend/src/pages/App/pages/Financials/styles/PnL.css */
 
 /* =========================
-   ✅ STOP PAGE HORIZONTAL SCROLL (GLOBAL)
+   STOP PAGE HORIZONTAL SCROLL (GLOBAL)
    ========================= */
 html,
 body,
@@ -25,16 +25,13 @@ body,
 }
 .right-tools {
   gap: 8px;
-  
 }
 
-/* ===== FORCE REMOVE BUTTON BOX (override anything else) ===== */
 .right-tools .ghost-btn {
   background: #fafaf9 !important;
   border: #cccdce80 !important;
   box-shadow: none !important;
   outline: none !important;
-
   -webkit-appearance: none;
   appearance: none;
 }
@@ -56,21 +53,13 @@ body,
   width: 100%;
   background: var(--card-bg);
   border-radius: 12px;
-
-  /* ✅ allow dropdowns */
   overflow: visible;
-
-  /* ✅ but NEVER allow horizontal overflow to create page scroll */
   overflow-x: hidden;
-
-  /* ✅ critical in flex/grid parents */
   min-width: 0;
-
-  /* spacing between cards */
   margin-bottom: 16px;
 }
 
-/* ✅ Per-table horizontal scroll container */
+/* Per-table horizontal scroll container */
 .pnl-card-scroll {
   width: 100%;
   overflow-x: auto;
@@ -78,6 +67,7 @@ body,
   min-width: 0;
 }
 
+/* Grid scope — sizes itself to content, scrolls if needed */
 .pnl-grid-scope {
   min-width: 100%;
   width: max-content;
@@ -87,11 +77,9 @@ body,
 .table-header-row {
   align-items: center;
   box-sizing: border-box;
-
-  height: 55px;        /* match band height */
-  padding: 0 16px;     /* ✅ match rows + band (fix alignment) */
+  height: 55px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-soft);
-
   font-size: 13px;
   color: var(--text-muted);
   background: #FFFFFF;
@@ -101,39 +89,30 @@ body,
 .col-period {
   display: flex;
   align-items: center;
-  justify-content: center; 
+  justify-content: center;
   gap: 6px;
 }
 
 .period-label {
-  /* Text-SM/Medium */
   font-family: 'Inter';
   font-style: normal;
   font-weight: 700;
   font-size: 14px;
   line-height: 20px;
-  /* identical to box height, or 143% */
   letter-spacing: 0.01em;
-
   color: #1C1917;
-
-
-  /* Inside auto layout */
   flex: none;
   order: 2;
   flex-grow: 0;
-
 }
 
 .period-label span {
   opacity: 0.4;
   font-size: 0.9em;
   font-weight: 400;
-  /* Optional: prevents the hint from being selected when copying text */
   user-select: none;
 }
 
-/* Header icons color */
 .col-period .icon-svg-muted svg {
   fill: #375a89;
   stroke: #375a89;
@@ -142,7 +121,6 @@ body,
   color: #375a89;
 }
 
-/* ✅ Header-left slot alignment */
 .header-left-slot {
   display: flex;
   align-items: center;
@@ -150,26 +128,21 @@ body,
   min-width: 0;
 }
 
-/* ✅ Add button in header slot (same style you already had) */
 .header-left-slot .pill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-
   padding: 8px 16px;
-
   background: rgba(55, 90, 137, 0.2);
   border: none;
   border-radius: 4px;
-
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #375a89;
-
   cursor: pointer;
   white-space: nowrap;
 }
@@ -180,7 +153,8 @@ body,
 }
 
 /* =========================================================
-   ✅ PNL DYNAMIC GRID SHARED
+   PNL DYNAMIC GRID SHARED
+   — all rows use the same column definition via CSS vars
    ========================================================= */
 .pnl-grid-scope .table-header-row,
 .pnl-grid-scope .group-row,
@@ -194,7 +168,7 @@ body,
   align-items: center;
 }
 
-/* keep last column aligned + always present */
+/* keep last column aligned */
 .pnl-grid-scope .group-action-cell,
 .pnl-grid-scope .pnl-row-actions {
   justify-self: end;
@@ -209,7 +183,7 @@ body,
   min-width: 0;
 }
 
-/* ===== Net Row (bottom) ===== */
+/* ===== Net Row ===== */
 .net-row {
   background: #375A89;
   color: #ffffff;
@@ -218,32 +192,26 @@ body,
   padding: 14px 16px;
 }
 
-
 .net-value {
-text-align: center !important;
-justify-self: center; /* grid cell */
+  text-align: center !important;
+  justify-self: center;
 }
-.net-value.positive {
-  color: #FFFFFF;
-}
-.net-value.negative {
-  color: #FFFFFF;
-}
+.net-value.positive { color: #FFFFFF; }
+.net-value.negative { color: #FFFFFF; }
 
-/* container to place Save under the card, right aligned */
 .pnl-save-row {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
 }
-/* ✅ space between Tax table and Net Profit row */
+
 .pnl-grid-scope .net-row {
   border-radius: 0 0 12px 12px;
   overflow: hidden;
 }
 
 .pnl-footer {
-  margin-top: auto;     /* This will now push successfully to the bottom */
+  margin-top: auto;
   background: #fff;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
   padding: 24px 0;
@@ -254,52 +222,43 @@ justify-self: center; /* grid cell */
 .pnl-actions {
   display: flex;
   gap: 12px;
-  width: 200px; 
+  width: 200px;
 }
 
 .pnl-btn-save {
   flex: 1;
   height: 40px;
-  border-radius: 4px; 
-  border: none; 
+  border-radius: 4px;
+  border: none;
   cursor: pointer;
-  font-family: 'Inter', sans-serif; 
-  font-weight: 500; 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   font-size: 14px;
-  display: flex; 
-  justify-content: center; 
+  display: flex;
+  justify-content: center;
   align-items: center;
   background-color: #F7A93B;
   color: #FFFFFF;
   transition: background 0.2s ease;
 }
 
-.pnl-btn-save:hover {
-  background-color: #e2962d;
-}
-
+.pnl-btn-save:hover { background-color: #e2962d; }
 .pnl-btn-save:disabled {
   background-color: #D0D5DD;
   cursor: not-allowed;
 }
 
 .financials-section-title {
-  /* Unrealized portfolio style */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 16px;
   line-height: 24px;
-  
   display: flex;
   align-items: center;
   color: #1C1917;
-
-  /* Layout */
   flex: none;
   order: 0;
   flex-grow: 0;
-
-  /* Optional: Spacing to separate from the table above */
-  padding: 24px 0 16px 0; 
+  padding: 24px 0 16px 0;
 }

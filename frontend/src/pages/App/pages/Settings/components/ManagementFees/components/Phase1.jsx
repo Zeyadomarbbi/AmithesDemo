@@ -1,6 +1,9 @@
 // frontend/src/pages/App/pages/Settings/components/ManagementFees/components/Phase1.jsx
 import React from "react";
 import DateInputWithPicker from "../../../../../../../components/DateComponents/DateInput.jsx"; 
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
+
 import "./Phase.css";
 
 const Phase1 = ({ phaseName, shareClasses = [], isLoading, values, onChange }) => {
@@ -62,12 +65,14 @@ const Phase1 = ({ phaseName, shareClasses = [], isLoading, values, onChange }) =
                   <div className="mgmt-meta-label">{sc.share_class_name}</div>
                   <div className="mgmt-date-input">
                     <input
-                      type="text"
+                      type="number"
+                      onWheel={noScroll}
                       className="mgmt-date-input-inner"
                       value={values.rates[sc.share_class_id] || ""}
                       onChange={(e) => handleRateChange(sc.share_class_id, e.target.value)}
-                      placeholder="0.00%"
+                      placeholder="Ex: 8"
                     />
+                    <PercentageIcon />
                   </div>
                 </div>
               ))}

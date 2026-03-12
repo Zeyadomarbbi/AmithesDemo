@@ -1,32 +1,23 @@
 import React, { useState } from 'react';
 import SearchBar from '../../../../../components/SearchBar/SearchBar'
-import { SearchIcon, PlusIcon } from '../Icons'; 
-import AddAdminPanel from './AddAdminPanel/AddAdminPanel'; // Import Panel here
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import AdminPanel from '../AdminPanel/AdminPanel'; 
 import './AdminsHeader.css';
 
-function AdminsHeader() {
+function AdminsHeader({ onSearch, refreshData }) {
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
 
   return (
     <div className="admins-header-wrapper">
-      {/* Title */}
       <h1 className="admins-page-title">Admins</h1>
 
-      {/* Toolbar */}
       <div className="admins-toolbar">
-        {/* Search Bar */}
-        <div className="search-bar-wrapper">
-          <div className="search-icon-box">
-            <SearchIcon width={16} />
-          </div>
-          <SearchBar
-            placeholder="Search"
-            className="search-input"
-            onSearch={(value) => console.log(value)}
-          />
-        </div>
+        <SearchBar
+          placeholder="Search users..."
+          className="search-input"
+          onSearch={onSearch}
+        />
 
-        {/* Add Button */}
         <button 
           className="btn-add-admin" 
           onClick={() => setIsAddPanelOpen(true)}
@@ -36,9 +27,11 @@ function AdminsHeader() {
         </button>
       </div>
 
-      <AddAdminPanel 
+      <AdminPanel 
         isOpen={isAddPanelOpen} 
         onClose={() => setIsAddPanelOpen(false)} 
+        userData={null} 
+        onSuccess={refreshData} /* Execute parent fetch on success */
       />
     </div>
   );

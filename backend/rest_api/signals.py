@@ -6,7 +6,8 @@ from .models import (
     PortfolioInvestment, PortfolioTransactionFlow, PortfolioFairValueFlow,
     PortfolioKpiCache, CapitalAccountKpiCache,
     FundWaterfallSteps, FundWaterfallStepRules, FundWaterfallEnvelopes, FundWaterfallEnvelopeRules,
-    ShareClass, FinancialEntry,LPsFundCommitment, FundClosing, LPsOperationDetails, LPsOperationLPAllocation
+    ShareClass, FinancialEntry, LPsFundCommitment, FundClosing, 
+    LPsOperationDetails, LPsOperationLPAllocation, LimitedPartner
 )
 
 def _invalidate_capital_account_cache(fund_id):
@@ -43,6 +44,18 @@ def invalidate_on_financial_entries(sender, instance, **kwargs):
     fund_id = instance.line_item.fund_id
     _invalidate_capital_account_cache(fund_id)
 
+@receiver([post_save, post_delete], sender=LimitedPartner)
+def invalidate_on_limited_partner(sender, instance, **kwargs):
+    # LP belongs to multiple funds via commitments — invalidate all affected funds
+    fund_ids = (
+        LPsFundCommitment.objects
+        .filter(lp_id=instance.lp_id, is_deleted=False)
+        .values_list('fund_id', flat=True)
+        .distinct()
+    )
+    for fund_id in fund_ids:
+        _invalidate_capital_account_cache(fund_id)
+
 @receiver([post_save, post_delete], sender=LPsFundCommitment)
 def invalidate_on_commitments(sender, instance, **kwargs):
     _invalidate_capital_account_cache(instance.fund_id)
@@ -63,6 +76,7 @@ def invalidate_on_operation_allocations(sender, instance, **kwargs):
     except LPsOperationDetails.DoesNotExist:
         pass
 
+# -- Portfolio changes
 def _invalidate_cache_for_investments(investment_ids):
     fund_ids = (
         PortfolioInvestment.objects
@@ -75,7 +89,7 @@ def _invalidate_cache_for_investments(investment_ids):
 @receiver([post_save, post_delete], sender=PortfolioTransactionFlow)
 def invalidate_on_transaction_flow(sender, instance, **kwargs):
     PortfolioKpiCache.objects.filter(
-        fund_id=instance.fund_id
+        fund_id=instance.portfolio_investment.fund_id
     ).delete()
 
 @receiver([post_save, post_delete], sender=PortfolioFairValueFlow)

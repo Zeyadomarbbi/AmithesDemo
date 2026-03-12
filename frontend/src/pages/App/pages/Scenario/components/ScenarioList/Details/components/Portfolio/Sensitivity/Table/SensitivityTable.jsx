@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDownIcon } from '../../Icons';
+import SearchableSelect from '../../../../../../../../../../../components/SearchBar/SearchableSelect.jsx';
 import './SensitivityTable.css';
 
 const StyledInput = ({ value, onChange, className, type = "text" }) => (
@@ -36,32 +36,26 @@ const SensitivityTable = ({
         return new Array(5).fill(0).map(() => new Array(5).fill("0.00%"));
     }, [data, selectedKpi]);
 
+    const kpiOptionsMapped = useMemo(() => 
+        kpiOptions.map(opt => ({ id: opt.value, name: opt.label })),
+    [kpiOptions]);
+
     return (
         <div className="sensitivity-wrapper">
             <div className="sensitivity-header-wrapper">
                 <span className="sensitivity-title-text">Sensitivity table</span>
                 <div className="sensitivity-controls-group">
                     <div className="sensitivity-header-dropdown-container">
-                        <select 
-                            className="sensitivity-header-control-dropdown" 
+                        <SearchableSelect
+                            options={kpiOptionsMapped}
                             value={selectedKpi}
-                            onChange={(e) => {
-                                setIsDropdownOpen(false);
-                                setSelectedKpi(e.target.value);
-                            }}
-                            onClick={() => setIsDropdownOpen(prev => !prev)}
-                            onBlur={() => setIsDropdownOpen(false)}
+                            onChange={(val) => setSelectedKpi(val)}
+                            placeholder="Select KPI..."
                             disabled={kpiOptions.length === 0}
-                        >
-                            {kpiOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <span className={`sensitivity-dropdown-icon ${isDropdownOpen ? 'sensitivity-dropdown-icon--open' : ''}`}>
-                            <ChevronDownIcon />
-                        </span>
+                            labelKey="name"
+                            valueKey="id"
+                            triggerClassName="sensitivity-header-control-dropdown"
+                        />
                     </div>
                 </div>
             </div>

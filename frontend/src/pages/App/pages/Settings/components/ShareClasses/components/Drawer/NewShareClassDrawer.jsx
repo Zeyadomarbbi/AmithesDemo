@@ -1,10 +1,10 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Drawer/NewShareClassDrawer.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useFileUpload } from "../../../../../../../../hooks/Upload"; 
-import { 
-  ChevronLeftIcon, CloseIcon, CurrencyIcon, PoundIcon, 
-  PieChartIcon, CreditCardIcon, CreditCardXIcon, UploadIcon 
-} from "../../icons";
+import { ChevronLeftIcon } from '/src/components/Icons/DirectionIcons';
+import { CloseIcon, UploadIcon } from '/src/components/Icons/InteractiveIcons';
+import { CurrencyIcon, PoundIcon, CreditCardIcon, CreditCardXIcon } from '/src/components/Icons/FinancialIcons';
+import { PieChartIcon } from '/src/components/Icons/AnalysisIcons';
 
 import "./NewShareClassDrawer.css";
 
@@ -160,7 +160,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               <input
                 type="number"
                 className="field-input-inner"
-                placeholder="0,000.00"
+                placeholder="ex: 1000"
                 value={shareValue}
                 onChange={(e) => setShareValue(e.target.value)}
               />

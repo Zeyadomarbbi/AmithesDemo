@@ -1,0 +1,1 @@
+export const noScroll = (e) => e.target.blur();

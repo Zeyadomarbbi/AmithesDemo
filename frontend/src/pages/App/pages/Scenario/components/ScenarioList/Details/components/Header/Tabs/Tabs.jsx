@@ -1,8 +1,6 @@
 import React from 'react';
-import { 
-  PlayIcon, 
-  GearIcon, 
-} from '../../../../Icons'; 
+import { PlayIcon } from '/src/components/Icons/InteractiveIcons';
+import { GearIcon } from '/src/components/Icons/MiscIcons'; 
 import './Tabs.css';
 
 function Tabs({ activeTab, onTabChange }) {

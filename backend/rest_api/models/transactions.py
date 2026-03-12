@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q, F
@@ -309,29 +310,27 @@ class FinancialEntry(models.Model):
 class FundClosing(models.Model):
     lps_fund_closing_period_id = models.AutoField(primary_key=True)
     fund = models.ForeignKey(
-        "Fund", 
-        on_delete=models.CASCADE, 
+        "Fund",
+        on_delete=models.CASCADE,
         db_column="fund_id",
     )
-    closing_period = models.ForeignKey(
-        'ClosingPeriod', 
-        on_delete=models.CASCADE,
-        db_column="closing_id"  # Explicitly map to the DB column name
-    )
+    closing_name = models.CharField(max_length=50)
     date = models.DateField()
+    description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = 'lps_fund_closings'
-        unique_together = ('fund', 'closing_period')
+        unique_together = ('fund', 'closing_name')
 
 class LPsFundCommitment(models.Model):
     commitment_id = models.AutoField(primary_key=True)
 
     lp_id = models.ForeignKey(
         'LimitedPartner',
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         db_column='lp_id',
         related_name='fund_commitments'
     )
@@ -379,9 +378,7 @@ class LPsFundCommitment(models.Model):
 
 
 class LPsOperationDetails(models.Model):
-    """
-    ✅ This MUST exist because your DB FK on lps_operation_flows points to lps_operation_details.
-    """
+
     lps_operation_details_id = models.BigAutoField(primary_key=True)
 
     fund = models.ForeignKey(
@@ -405,7 +402,7 @@ class LPsOperationDetails(models.Model):
     total_fund_commitment = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     total_operation_amount = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     overall_percentage_of_commitment = models.DecimalField(max_digits=20, decimal_places=20, default=0)
-    created_at = models.DateTimeField(db_column="created_at", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.BigIntegerField(db_column="created_by", null=True, blank=True)
     
     class Meta:
@@ -637,7 +634,12 @@ class PortfolioTransactionFlow(models.Model):
     divestment_percentage = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.CharField(max_length=150, null=True, blank=True)
+    created_by = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        db_column="created_by"
+    )
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
 
@@ -694,7 +696,7 @@ class ScenarioPortfolioProjection(models.Model):
 
     class Meta:
         db_table = 'scenario_portfolio_projections'
-        managed = True 
+        managed = False 
         unique_together = (('investment', 'scenario'),)
 
     def __str__(self):
@@ -714,7 +716,7 @@ class ManFeeTranche(models.Model):
 
     class Meta:
         db_table = 'man_fee_tranches'
-        managed = True
+        managed = False
     
 class ScenarioDueDiligenceFee(models.Model):
     dd_fee_id = models.BigAutoField(primary_key=True)
@@ -773,3 +775,14 @@ class ScenarioFinancialsProjection(models.Model):
     def category_name(self):
         # Assumes FinancialLineItem has a 'category' FK
         return self.line_item.category.name
+
+class CapitalAccountAdjustedNav(models.Model):
+    fund_id = models.ForeignKey('Fund', on_delete=models.DO_NOTHING, db_column='fund_id')
+    timeframe_id = models.ForeignKey('Timeframe', on_delete=models.CASCADE, db_column="timeframe_id")
+    adjusted_nav = models.JSONField(default=dict)  # { "total": 123, "Class A": 456 }
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False  # Set to True if you want Django to manage this table
+        db_table = 'capital_account_adjusted_nav'
+        unique_together = ("fund_id", "timeframe_id")

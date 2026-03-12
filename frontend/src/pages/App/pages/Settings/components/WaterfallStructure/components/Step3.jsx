@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { PercentageIcon } from "../Icons";
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./Steps.css";
 
 const Step3 = ({ values, onChange, shareClasses = [] }) => {
@@ -158,6 +159,7 @@ const Step3 = ({ values, onChange, shareClasses = [] }) => {
           <div className="wf-field-input wf-input-with-unit">
             <input
               type="number"
+              onWheel={noScroll}
               className="wf-text-input-inner"
               value={values.step_rate || ""}
               onChange={(e) =>
@@ -207,6 +209,7 @@ const Step3 = ({ values, onChange, shareClasses = [] }) => {
               <div className="wf-field-input wf-input-with-unit">
                 <input
                   type="number"
+                  onWheel={noScroll}
                   className="wf-text-input-inner"
                   value={env.allocation || ""}
                   onChange={(e) =>

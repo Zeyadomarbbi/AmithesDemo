@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SearchIcon } from '../Icons';
+import { SearchIcon } from '/src/components/Icons/InteractiveIcons';
 import './SearchBar.css';
 
 function SearchBar({ placeholder, onSearch, className, containerClassName }) {
@@ -16,7 +16,7 @@ function SearchBar({ placeholder, onSearch, className, containerClassName }) {
   };
 
   return (
-    <div className={containerClassName ?? 'search-bar'}>
+    <div className={`search-bar ${containerClassName || ''}`.trim()}>
       <div className="search-bar__icon-wrapper">
         <SearchIcon />
       </div>

@@ -1,0 +1,292 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ========= ANIMATION (match LPDrawer) ========= */
+@keyframes opwSlideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   BACKDROP (match LPDrawer structure)
+   ========================================================= */
+.opw-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.1);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 9999;
+}
+
+/* =========================================================
+   DRAWER CONTAINER
+   ========================================================= */
+.opw-drawer {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+
+  height: 100%;
+  width: 60vw;         
+  min-width: 400px;
+  max-width: 100%;
+
+  background: #ffffff;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.12);
+
+  animation: opwSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  overflow: hidden;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  z-index: 50;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+.opw-header {
+  flex-shrink: 0;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.opw-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.opw-close-btn {
+  border: none;
+  background: #f9fafb;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+
+.opw-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+}
+
+
+
+/* =========================================================
+   ✅ TOP STEP TABS (like your screenshot)
+   ========================================================= */
+.opw-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding-top: 6px;
+  border-bottom: 1px solid #e5e7eb; /* light divider line */
+}
+
+.opw-tab {
+  position: relative;
+  padding: 10px 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #375a89; /* same blue you use */
+  white-space: nowrap;
+}
+
+.opw-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 100%;
+  background: #f7a93b; /* orange underline */
+  border-radius: 2px;
+}
+
+/* =========================================================
+   BODY
+   ========================================================= */
+.opw-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1rem;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+.opw-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #e5e7eb;
+  padding: 0.9rem 1.5rem 1.1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  background: #ffffff;
+}
+
+.opw-nav-btn {
+  min-width: 120px;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.opw-nav-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.opw-btn-ghost {
+  background: #fafaf9;
+  color: #7b7d7e;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+}
+
+.opw-btn-ghost:hover:not(:disabled) {
+  background: #efefee;
+}
+
+.opw-btn-primary {
+  background: #f7a93b;
+  color: #ffffff;
+}
+
+.opw-btn-primary:hover:not(:disabled) {
+  background: #f59a1a;
+}
+
+/* ========= RESPONSIVE ========= */
+@media (max-width: 768px) {
+  .opw-drawer {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .opw-header,
+  .opw-body,
+  .opw-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .opw-tabs {
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .opw-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .opw-nav-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   SUCCESS TOAST (unchanged)
+   ========================================================= */
+.opw-success-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.opw-success-toast {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  min-width: 420px;
+  max-width: 520px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.35);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.opw-success-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.opw-success-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid #16a34a;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.opw-success-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.opw-success-message {
+  margin-top: 2px;
+  font-size: 14px;
+  color: #375a89;
+}
+
+.opw-success-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #4b5563;
+  padding: 0;
+}

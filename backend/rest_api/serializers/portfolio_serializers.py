@@ -131,13 +131,13 @@ class PortfolioInvestmentSerializer(serializers.ModelSerializer):
             "transaction_flows",
             "fair_value_flows",
             "created_at",
-            "created_by",
             "updated_at",
             "is_deleted",
         ]
         read_only_fields = [
             "investment_id",
             "fund_id",
+            "created_by",
             "created_at",
             "updated_at",
             "is_deleted",

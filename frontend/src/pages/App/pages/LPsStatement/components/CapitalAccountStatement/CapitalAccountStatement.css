@@ -23,6 +23,97 @@
   gap: 10px;
 }
 
+.lp-cas-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-cas-btn-download {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  height: 40px;
+  background: #fff;
+  color: #375A89;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.lp-cas-breakdown-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-cas-breakdown-label {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  white-space: nowrap;
+}
+
+.lp-cas-mode-switch {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px;
+  background: #FAFAF9;
+  border-radius: 9px;
+  gap: 0;
+}
+
+.lp-cas-mode-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 10px;
+  gap: 4px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: stretch;
+  transition: all 0.15s;
+}
+
+.lp-cas-mode-btn.active {
+  background: #FFFFFF;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  border-radius: 6px;
+  color: #1C1917;
+}
+
+.lp-cas-mode-btn:hover:not(.active) {
+  background: #F0F0EE;
+}
+
+.lp-cas-btn-download:hover {
+  background: #F8FAFC;
+}
+
 .lp-cas-filter-btn {
   box-sizing: border-box;
   display: flex;

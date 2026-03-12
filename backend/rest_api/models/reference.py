@@ -137,18 +137,6 @@ class FinancialLineItem(models.Model):
     def __str__(self):
         return f"{self.fund_id} | {self.category_id} | {self.name}"
     
-class ClosingPeriod(models.Model):
-    closing_id = models.AutoField(primary_key=True)
-    closing_name = models.CharField(max_length=255)
-    closing_code = models.CharField(max_length=10)
-    closing_sequence = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'closing_period'
-        ordering = ["closing_name"]
-        managed = False
-
 class PortfolioTransactionType(models.Model):
     transaction_id = models.AutoField(primary_key=True)
     transaction_name = models.CharField(max_length=100)

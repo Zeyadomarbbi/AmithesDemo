@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronDownIcon, CloseIcon } from "../../../../Icons.jsx";
+import { CloseIcon } from "../../../../Icons.jsx";
 import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput";
 import { useFundClosings } from "../../../../../../hooks/LPsStatement/useClosingPeriods"; 
 import "./AddPeriodModal.css";
@@ -24,41 +24,37 @@ function formatDDMMYYYY(date) {
 
 const AddPeriodModal = ({ open, onClose, onSave }) => {
   const { fundId } = useParams();
-  const [selectedClosingId, setSelectedClosingId] = useState("");
+  const [closingName, setClosingName] = useState("");
   const [endDate, setEndDate] = useState("");
-  
-  const { 
-    closingPeriods, 
-    fetchClosingPeriods, 
-    createFundClosing, 
-    loading,
-    error 
-  } = useFundClosings(fundId);
+  const [description, setDescription] = useState("");
+
+  const { createFundClosing, loading, error } = useFundClosings(fundId);
 
   useEffect(() => {
     if (open) {
-      fetchClosingPeriods();
-      setSelectedClosingId("");
+      setClosingName("");
+      setDescription("");
       setEndDate(formatDDMMYYYY(new Date()));
     }
-  }, [open, fetchClosingPeriods]);
+  }, [open]);
 
   if (!open) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedClosingId || !endDate.trim()) return;
+    if (!closingName.trim() || !endDate.trim()) return;
 
     const parsedDate = parseDateString(endDate);
     if (!parsedDate) return;
 
-    const isoDate = parsedDate.toISOString().split('T')[0];
+    const isoDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
 
     try {
       const payload = {
-        closing_period: parseInt(selectedClosingId, 10),
+        closing_name: closingName.trim(),
         date: isoDate,
-        fund: parseInt(fundId, 10)
+        description: description.trim(),
+        fund: parseInt(fundId, 10),
       };
       const newRecord = await createFundClosing(payload);
       if (onSave) onSave(newRecord);
@@ -72,44 +68,47 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
     <div className="lp-add-closing-period-modal-backdrop" onClick={onClose}>
       <div className="lp-add-closing-period-modal" onClick={(e) => e.stopPropagation()}>
         <div className="lp-add-closing-period-modal-header">
-          <button type="button" 
-            className="lp-add-closing-period-modal-close-btn" 
-            onClick={onClose}> 
+          <button type="button"
+            className="lp-add-closing-period-modal-close-btn"
+            onClick={onClose}>
             <CloseIcon />
           </button>
           <h2 className="lp-add-closing-period-modal-title">Add new period</h2>
         </div>
 
         <form className="lp-add-closing-period-modal-body" onSubmit={handleSubmit}>
-          {error && <div className="lp-add-closing-period-modal-error" style={{color: 'red', marginBottom: '10px'}}>{error}</div>}
-          
+          {error && <div className="lp-add-closing-period-modal-error" style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+
           <div className="lp-add-closing-period-modal-field">
-            <label className="lp-add-closing-period-modal-label">Closing Period *</label>
-              <div className="lp-add-closing-period-modal-input-wrapper">
-                <select
-                  className="lp-add-closing-period-modal-input lp-add-closing-period-modal-select"
-                  value={selectedClosingId}
-                  onChange={(e) => setSelectedClosingId(e.target.value)}
-                  required
-                  disabled={loading}
-                >
-                  {/* By setting value to "", HTML validation triggers if this remains selected */}
-                  <option value="" hidden>Select a closing period...</option>
-                  
-                  {closingPeriods.map((period) => (
-                    <option key={period.closing_id} value={period.closing_id}>
-                      {period.closing_name} ({period.closing_code})
-                    </option>
-                  ))}
-                </select>
-                <div className="lp-add-closing-period-modal-chevron">
-                  <ChevronDownIcon />
-                </div>
-              </div>
+            <label className="lp-add-closing-period-modal-label">Closing Name *</label>
+            <div className="lp-add-closing-period-modal-input-wrapper">
+              <input
+                type="text"
+                className="lp-add-closing-period-modal-input"
+                placeholder="Enter closing name..."
+                value={closingName}
+                onChange={(e) => setClosingName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="lp-add-closing-period-modal-field">
+            <label className="lp-add-closing-period-modal-label">Description</label>
+            <div className="lp-add-closing-period-modal-input-wrapper">
+              <input
+                type="text"
+                className="lp-add-closing-period-modal-input"
+                placeholder="Enter period description..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div className="lp-add-closing-period-modal-field lp-add-closing-period-modal-field-end">
-            <label className="lp-add-closing-period-modal-label">End Date*</label>
+            <label className="lp-add-closing-period-modal-label">End Date *</label>
             <div className="lp-add-closing-period-modal-input-wrapper">
               <DateInputWithPicker
                 initialDate={parseDateString(endDate) || new Date()}
@@ -129,10 +128,10 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="lp-add-closing-period-modal-btn-primary" 
-              disabled={loading || !selectedClosingId}
+            <button
+              type="submit"
+              className="lp-add-closing-period-modal-btn-primary"
+              disabled={loading || !closingName.trim()}
             >
               {loading ? "Saving..." : "Save"}
             </button>

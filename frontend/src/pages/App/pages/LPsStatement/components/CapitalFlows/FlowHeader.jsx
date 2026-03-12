@@ -1,5 +1,7 @@
 // frontend/src/pages/App/pages/LPsStatement/components/FlowHeader.jsx
 import React from "react";
+import { PlusIcon } from "../../Icons.jsx";
+import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate.jsx";
 import "./FlowHeader.css";
 
 export default function FlowHeader({
@@ -72,12 +74,13 @@ export default function FlowHeader({
           </div>
         </div>
       )}
-
-      {renderButton && (
-        <button type="button" className="cf-new-op-btn" onClick={onNewOperation}>
-          + {buttonLabel}
-        </button>
-      )}
+      <PermissionGate>
+        {renderButton && (
+          <button type="button" className="cf-new-op-btn" onClick={onNewOperation}>
+            <PlusIcon /> {buttonLabel}
+          </button>
+        )}
+      </PermissionGate>
     </div>
   );
 }

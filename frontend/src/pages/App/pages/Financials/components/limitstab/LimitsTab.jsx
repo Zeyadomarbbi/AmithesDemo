@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import "./Limits.css";
 
-import NewLimitDrawer from "./NewLimitDrawer.jsx";
-import { SortIcon, PlusIcon } from "../../../../components/Icons.jsx";
+import NewLimitDrawer from "./LimitsDrawer/NewLimitDrawer.jsx";
+import { SortIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import QuarterSelector from "/src/components/QuarterSelection/QuarterSelector.jsx";
 import { useTimeframes, apiRowToQuarter } from "../../../../hooks/Core/useTimeframes.jsx"
 const INITIAL_LIMITS = {

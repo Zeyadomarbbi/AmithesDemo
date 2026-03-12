@@ -4,18 +4,20 @@ import { usePortfolio } from "../../../../../../../hooks/Portfolio/usePortfolio.
 import { usePortfolioTransactionTypes } from "../../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
 import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scenarios/useScenarioPortfolioProjections.js";
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
-import { executeDeferredUpdates } from "./ScenarioPortfolioHelpers.js";
-import { useTargetMode } from "./TargetSelectionModal/useTargetMode.js";
+import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
+import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
+import { PageSpinner, PageError } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
 // Components
-import { PlusIcon, ChevronDoubleLeftIcon } from "./Icons"; // Ensure ChevronDoubleLeftIcon is imported
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons';
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../components/useFormatter';
 
 // Portfolio Tables
-import RealizedPortfolio from "./PortfolioTables/RealizedPortfolio.jsx";
-import InvestedPortfolio from "./PortfolioTables/InvestedPortfolio.jsx";
-import ProjectedPortfolio from "./PortfolioTables/ProjectedPortfolio.jsx";
+import PortfolioSection from "./PortfolioTables/PortfolioSection";
+
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import TargetFinalizationModal from "./TargetSelectionModal/TargetFinalizationModal.jsx";
 // Simulation Results
@@ -151,7 +153,6 @@ export const processPortfolioData = (investments, projections, targetDate, activ
   return results;
 };
 
-
 function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [activeMode, setActiveMode] = useState(null);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
@@ -161,6 +162,9 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
   const [simRefreshTrigger, setSimRefreshTrigger] = useState(0);
   const [lockedRows, setLockedRows] = useState([]);
+  const formatNumber  = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+  const formatDate    = useDateFormatter();
   const { data: shareClassesData } = useShareClasses(fundId);
 
     // 2. Extract just the names for the modal columns
@@ -212,15 +216,67 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
     if (!selectedInvestmentId) return null;
     return [...investedData, ...projectedData].find(inv => inv.id === selectedInvestmentId);
   }, [selectedInvestmentId, investedData, projectedData]);
-  console.log("realizedData", realizedData)
-  console.log("investedData", investedData)
-  console.log("projectedData", projectedData)
+
+  const overallSummary = useMemo(() => {
+    let sum = { cost: 0, exit: 0, dividends: 0 };
+    let aggregateCashflows = [];
+    const allData = [...realizedData, ...investedData, ...projectedData];
+
+    allData.forEach(r => {
+        const cost = cleanNumber(r.display_cost || r.cost);
+        const exitValue = cleanNumber(r.exit_value);
+        const exitDate = r.exit_date;
+        const dividends = cleanNumber(r.dividends_interests);
+
+        sum.cost += cost;
+        sum.exit += exitValue;
+        sum.dividends += dividends;
+
+        const flows = r.transaction_flows || [];
+        flows.forEach(f => {
+            if (f.is_deleted) return;
+            const type = (f.transaction_name || f.transaction_type_name || f.type || "").toLowerCase();
+            const amt = cleanNumber(f.amount); 
+            
+            let signedAmount = 0;
+            if (type.includes("invest") && !type.includes("divest")) {
+                signedAmount = -Math.abs(amt);
+            } else {
+                signedAmount = Math.abs(amt);
+            }
+            
+            aggregateCashflows.push({ date: new Date(f.date), amount: signedAmount });
+        });
+
+        if (exitDate && exitValue !== 0) {
+            aggregateCashflows.push({
+                date: new Date(exitDate),
+                amount: Math.abs(exitValue)
+            });
+        }
+    });
+
+    const totalMoic = sum.cost > 0 ? (sum.exit + sum.dividends) / sum.cost : 0;
+    
+    aggregateCashflows.sort((a, b) => a.date - b.date);
+    const validCashflows = aggregateCashflows.filter(cf => cf.date instanceof Date && !isNaN(cf.date));
+    const totalIrr = safeXirr(validCashflows) || 0;
+
+    return {
+        totalCost: sum.cost,
+        totalExitVal: sum.exit,
+        totalDividends: sum.dividends,
+        totalIrr: totalIrr,
+        totalMoic: totalMoic,
+    };
+  }, [realizedData, investedData, projectedData]);
   /* ===== HANDLERS ===== */
 
   const handleCreationSuccess = async () => {
-    await Promise.all([fetchInvestments(scenarioId), fetchProjections()]);
-    setToast({ type: "success", title: "Created", message: "New investment added successfully." });
-};
+      await fetchInvestments(scenarioId);
+      await fetchProjections();
+      setToast({ type: "success", title: "Created", message: "New investment added successfully." });
+  };
 
   const handleUpdateInput = (investmentId, field, value) => {
     const proj = projections.find(p => p.investment == investmentId);
@@ -289,7 +345,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
       }
   };
 
-  if ((loadInv || loadProj) && investments.length === 0) return <div>Loading...</div>;
+  if (loadInv || loadProj) return <PageSpinner label="Loading portfolio..." />;
+  const hasActions = activeMode === 'target' || activeMode === 'sensitivity';
 
   return (
     <div className="portfolio-tab-container" style={{ padding: 0 }}>
@@ -317,38 +374,78 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                     )}
                 </div>
 
-                <RealizedPortfolio 
-                  fundId={fundId}
-                  scenarioId={scenarioId}
-                  realizedData={realizedData} 
-                />
-                
-                <InvestedPortfolio 
-                    fundId={fundId}
-                    scenarioId={scenarioId}
-                    activeMode={activeMode} 
-                    investedData={investedData} 
-                    onChangeRow={handleUpdateInput}
-                    onRowClick={(row) => setSelectedInvestmentId(row.id)}
-                    lockedRows={lockedRows}
-                    onToggleLock={handleToggleLock}
-                />
-                
-                <ProjectedPortfolio 
-                    fundId={fundId}
-                    scenarioId={scenarioId}
-                    activeMode={activeMode} 
-                    rows={projectedData} 
-                    onChangeRow={handleUpdateInput}
-                    onRowClick={(row) => setSelectedInvestmentId(row.id)} 
-                    lockedRows={lockedRows}
-                    onToggleLock={handleToggleLock}
-                />
+                <div className="scenario-pf-table-container no-borders">
+                    <table className="scenario-pf-main-table">
+                      <PortfolioSection
+                          title="Realized portfolio"
+                          rows={realizedData}
+                          readOnly
+                          hasActions={hasActions}
+                      />
+                      <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+                      <PortfolioSection
+                          title="Invested portfolio"
+                          fundId={fundId}
+                          scenarioId={scenarioId}
+                          rows={investedData}
+                          activeMode={activeMode}
+                          hasActions={hasActions}
+                          onChangeRow={handleUpdateInput}
+                          onRowClick={(row) => setSelectedInvestmentId(row.id)}
+                          lockedRows={lockedRows}
+                          onToggleLock={handleToggleLock}
+                      />
+                      <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+                      <PortfolioSection
+                          title="Projected portfolio"
+                          fundId={fundId}
+                          scenarioId={scenarioId}
+                          rows={projectedData}
+                          activeMode={activeMode}
+                          hasActions={hasActions}
+                          onChangeRow={handleUpdateInput}
+                          onRowClick={(row) => setSelectedInvestmentId(row.id)}
+                          lockedRows={lockedRows}
+                          onToggleLock={handleToggleLock}
+                      />
+                      <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+                      <tfoot className="overall-total-footer">
+                          <tr className="scenario-pf-summary-row">
+                              <td className="scenario-pf-left" >Overall Total</td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value="-" readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value={formatNumber(overallSummary.totalCost)} readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value={formatNumber(overallSummary.totalExitVal)} readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value={formatNumber(overallSummary.totalDividends)} readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value={formatPercent(overallSummary.totalIrr*100)} readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value={`${overallSummary.totalMoic.toFixed(2)}x`} readOnly />
+                              </td>
+                              <td className="scenario-pf-center">
+                                  <input className="scenario-pf-input" value="-" readOnly />
+                              </td>
+                              {hasActions && <td className="scenario-pf-center" />}
+                          </tr>
+                      </tfoot>
+                  </table>
 
-                <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
-                    <PlusIcon /> <span>New deal</span>
-                </button>
-                
+
+                </div>
+                <PermissionGate>
+                  <button className="proj-add-btn" onClick={() => setShowNewInvestmentModal(true)}>
+                      <PlusIcon /> <span>New deal</span>
+                  </button>
+                </PermissionGate>
+                <PermissionGate>
                 <div className="scenario-portfolio-footer">
                   <div className="scenario-portfolio-actions">
                   <button 
@@ -361,6 +458,7 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
                   {toast && <Toast {...toast} onClose={() => setToast(null)} />}
                   </div>
               </div>
+              </PermissionGate>
             </div>
 
             {/* Footer Actions */}
@@ -402,8 +500,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
           exitValue={drawerData.exit_value} 
           onClose={() => setSelectedInvestmentId(null)}
           onSaved={() => {
-            fetchInvestments();
-            fetchProjections();
+              fetchInvestments(scenarioId); // pass scenarioId
+              fetchProjections();
           }}
         />
       )}

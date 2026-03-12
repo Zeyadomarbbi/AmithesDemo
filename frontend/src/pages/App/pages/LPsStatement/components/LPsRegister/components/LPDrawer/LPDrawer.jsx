@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { 
   CloseIcon, 
   ChevronDoubleLeftIcon, 
   ChevronDownIcon,
-  LocationIcon 
+  LocationIcon, 
+  PlusIcon
 } from "../../../../Icons.jsx";
 
 /* Hooks */
@@ -54,7 +56,7 @@ export default function LPDrawer({
   /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);
-
+  const [isExpanded, setIsExpanded] = useState(false);
   /* --- Reset Form on Open --- */
   useEffect(() => {
       if (!isEdit) return;
@@ -74,7 +76,7 @@ export default function LPDrawer({
   useEffect(() => {
       if (open && !isEdit) {
           setForm(EMPTY_FORM);
-          setTranches([]);
+          setTranches([{ ...EMPTY_TRANCHE, originalIndex: 0 }]);
           setIsSubmitting(false);
       }
       if (open && isEdit) {
@@ -89,6 +91,7 @@ export default function LPDrawer({
               swift: lp.swift || "",
           });
       }
+      if (!open) setIsExpanded(false);
   }, [open, lp, isEdit]);
 
   /* --- Handlers --- */
@@ -185,7 +188,10 @@ export default function LPDrawer({
 
   return (
     <div className="lp-drawer-backdrop" onClick={onClose}>
-      <aside className="lp-drawer" onClick={(e) => e.stopPropagation()}>
+      <aside 
+        className={`lp-drawer ${isExpanded ? "lp-drawer--expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* HEADER */}
         <header className="lp-drawer-header">
@@ -193,7 +199,8 @@ export default function LPDrawer({
             <button 
               type="button" 
               className="lp-drawer-back-btn" 
-              onClick={onClose}
+              onClick={() => setIsExpanded(prev => !prev)}
+              style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
             >
               <ChevronDoubleLeftIcon />
             </button>
@@ -216,7 +223,7 @@ export default function LPDrawer({
         {/* BODY */}
         <div className="lp-drawer-content">
           <section className="lp-drawer-section">
-            <h3 className="lp-drawer-section-title">LP informations</h3>
+            <h3 className="lp-drawer-section-title">LP information</h3>
             <div className="lp-drawer-field">
               <label className="lp-drawer-field-label">LP name<span className="lp-drawer-required">*</span></label>
               <input 
@@ -259,18 +266,16 @@ export default function LPDrawer({
               </div>
               <div className="lp-drawer-field">
                 <label className="lp-drawer-field-label">Country<span className="lp-drawer-required">*</span></label>
-                <div className="lp-drawer-field-input-with-icon">
-                  <select 
-                    className="lp-drawer-field-input lp-drawer-select-input" 
-                    value={form.countryId} 
-                    onChange={updateField("countryId")}
-                    disabled={isSubmitting || countriesLoading}
-                  >
-                    <option value="" disabled hidden>Select Country</option>
-                    {countries?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <span className="lp-drawer-field-icon lp-drawer-field-icon-chevron"><ChevronDownIcon /></span>
-                </div>
+                <SearchableSelect
+                  options={countries ?? []}
+                  value={form.countryId}
+                  onChange={(val) => setForm(prev => ({ ...prev, countryId: val }))}
+                  placeholder="Select Country"
+                  labelKey="name"
+                  valueKey="id"
+                  disabled={isSubmitting || countriesLoading}
+                  triggerClassName="lp-drawer-field-input"
+                />
               </div>
             </div>
           </section>
@@ -309,7 +314,7 @@ export default function LPDrawer({
           </section>
             
           <section className="lp-drawer-tranches-section">
-            <h3 className="lp-drawer-section-title">Shares & Tranches</h3>
+            <h3 className="lp-drawer-section-title">Shares & Commitments</h3>
             {tranches.length > 0 && (
               <div className="lp-drawer-tranches-list">
                 {tranches.map((t, idx) => (
@@ -339,8 +344,8 @@ export default function LPDrawer({
               onClick={addNewTranche} 
               disabled={isSubmitting}
             >
-              <span className="lp-drawer-new-tranch-plus">+</span>
-              <span className="lp-drawer-new-tranch-text">New Tranche</span>
+              <span className="lp-drawer-new-tranch-plus"><PlusIcon /></span>
+              <span className="lp-drawer-new-tranch-text">Commitment</span>
             </button>
           </section>
         </div>

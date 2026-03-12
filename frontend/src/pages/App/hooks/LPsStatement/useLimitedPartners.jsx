@@ -1,8 +1,8 @@
-// useLimitedPartners.jsx
 import { useState, useCallback } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../../../../hooks/api/useApi";
 
 export function useLimitedPartners() {
+    const api = useApi();
     const [limitedPartners, setLimitedPartners] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -11,64 +11,55 @@ export function useLimitedPartners() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/limited-partners/`, {
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                console.error(err);
-                throw new Error('Fetch failed');
-            }
-            const data = await res.json();
+            // api.get handles the API_BASE_URL and credentials internally
+            const data = await api.get('/api/limited-partners/');
             setLimitedPartners([...data]);
         } catch (err) {
-            setError(err);
+            setError(err.message || err);
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [api]);
 
     const createLimitedPartner = useCallback(async (payload) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/api/limited-partners/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-            const err = await res.json();
+        try {
+            const data = await api.post('/api/limited-partners/', payload);
+            setLimitedPartners(prev => [...prev, data]);
+            return data;
+        } catch (err) {
             console.error(err);
-            throw new Error('Create failed');
+            throw new Error(err.message || 'Create failed');
         }
-        const data = await res.json();
-        setLimitedPartners(prev => [...prev, data]);
-        return data;
-    }, []);
+    }, [api]);
 
     const updateLimitedPartner = useCallback(async (id, payload) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/api/limited-partners/${id}/`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error('Update failed');
-        const data = await res.json();
-        setLimitedPartners(prev =>
-            prev.map(lp => (lp.lp_id === id ? { ...data } : lp)) // Spread to create new object
-        );
-        return data;
-    }, []);
+        try {
+            // api.put handles JSON stringification and headers
+            const data = await api.put(`/api/limited-partners/${id}/`, payload);
+            setLimitedPartners(prev =>
+                prev.map(lp => (lp.lp_id === id ? data : lp))
+            );
+            return data;
+        } catch (err) {
+            console.error(err);
+            throw new Error(err.message || 'Update failed');
+        }
+    }, [api]);
 
     const deleteLimitedPartner = useCallback(async (id) => {
         setError(null);
-        const res = await fetch(`${API_BASE_URL}/api/limited-partners/${id}/`, {
-            method: 'DELETE',
-        });
-        if (!res.ok) throw new Error('Delete failed');
-        setLimitedPartners(prev =>
-            prev.filter(lp => lp.lp_id !== id)
-        );
-    }, []);
+        try {
+            await api.delete(`/api/limited-partners/${id}/`);
+            setLimitedPartners(prev =>
+                prev.filter(lp => lp.lp_id !== id)
+            );
+        } catch (err) {
+            console.error(err);
+            throw new Error(err.message || 'Delete failed');
+        }
+    }, [api]);
 
     return {
         limitedPartners,

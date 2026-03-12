@@ -241,7 +241,26 @@ class FundTimeframeListView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def put(self, request, fund_id, pk):
+        timeframe = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
+        serializer = TimeframeSerializer(timeframe, data=request.data)
+        if serializer.is_valid():
+            serializer.save(updated_at=timezone.now())
+            return Response(serializer.data)
+        print("VALIDATION ERRORS:", serializer.errors)  # add this
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, fund_id, pk):
+        """Handle Partial Updates (e.g., just name)"""
+        timeframe = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
+        serializer = TimeframeSerializer(timeframe, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(updated_at=timezone.now())
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def delete(self, request, fund_id, pk):
+        """Handle Deletion"""
         timeframe = get_object_or_404(Timeframe, pk=pk, fund_id=fund_id)
         timeframe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -289,11 +308,9 @@ class ShareClassView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def destroy(self, request, fund_id, share_class_id):
+    def delete(self, request, fund_id, share_class_id):
         obj = get_object_or_404(self.get_queryset(fund_id, share_class_id))
-        obj.is_deleted = True
-        obj.updated_at = timezone.now()
-        obj.save(update_fields=['is_deleted', 'updated_at'])
+        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class FundManFeeCommitmentYearRetrieveView(generics.RetrieveAPIView):

@@ -1,6 +1,8 @@
 import React from "react";
-import { ErrorIcon, InfoIcon, CloseToastIcon } from "./Icons";
-import "./Toast.css"; // Reuse existing styles
+import { createPortal } from "react-dom"; // Essential for layering
+import { InfoIcon, ErrorIcon } from '/src/components/Icons/MiscIcons';
+import { CloseToastIcon } from '/src/components/Icons/InteractiveIcons';
+import "./Toast.css";
 
 export default function Prompt({ 
     title, 
@@ -19,7 +21,8 @@ export default function Prompt({
         }
     };
 
-    return (
+    const promptJSX = (
+        /* Uses .pop-up-toast-backdrop for full-screen dimming and centering */
         <div className="pop-up-toast-backdrop">
             <div className="pop-up-toast prompt-variant">
                 <div className="pop-up-toast-content">
@@ -50,10 +53,13 @@ export default function Prompt({
                     </div>
                 </div>
 
-                <button className="pop-up-toast-close" onClick={onCancel}>
+                <button className="pop-up-toast-close" onClick={onCancel} aria-label="Close">
                     <CloseToastIcon />
                 </button>
             </div>
         </div>
     );
+
+    // Teleport to the end of <body> to bypass SidePanel/Dashboard stacking contexts
+    return createPortal(promptJSX, document.body);
 }

@@ -1,41 +1,62 @@
 import React, { useState } from 'react';
-import { SortIcon, MoreHorizontalIcon } from '../Icons'; 
-import EditAdminPanel from './EditAdminPanel/EditAdminPanel'; 
+import { MoreHorizontalIcon } from '/src/components/Icons/MiscIcons';
+import AdminPanel from '../AdminPanel/AdminPanel'; 
+import { useTableSort, SortableHeaderRenderer } from '../../../../../components/Sort/TableSort'; // Adjust path
 import './AdminsTable.css';
 
-function AdminsTable({ data }) {
+function AdminsTable({ data, refreshData }) {
   const [selectedAdmin, setSelectedAdmin] = useState(null);
+
+  // Define columns configuration
+  const COLS = [
+    { key: "firstName", label: "Name", center: false },
+    { key: "role", label: "Role", center: true },
+    { key: "email", label: "Email", center: true },
+    { key: "status", label: "Status", center: true },
+    { key: "dateJoined", label: "Date Added", center: true }, // New Column
+  ];
+
+  // Integrate Sorting Hook
+  const { sorted, sortKey, toggleSort } = useTableSort(data, "firstName");
+
+  // Helper for Date Formatting: DD Month YYYY
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === '-') return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
 
   return (
     <>
       <div className="admins-table-container">
-        {/* Table Header */}
         <div className="admins-table-header">
           <div className="cell col-checkbox"><input type="checkbox" /></div>
-          <div className="cell col-name header-cell"><span>Name</span><SortIcon width={16} /></div>
-          <div className="cell col-role header-cell"><span>Role</span><SortIcon width={16} /></div>
-          <div className="cell col-email header-cell"><span>Email</span><SortIcon width={16} /></div>
-          <div className="cell col-status header-cell"><span>Status</span><SortIcon width={16} /></div>
+          {COLS.map((c) => (
+            <div key={c.key} className={`cell col-${c.key.toLowerCase()} header-cell`}>
+              <SortableHeaderRenderer
+                label={c.label}
+                columnKey={c.key}
+                currentSortKey={sortKey}
+                toggleSort={toggleSort}
+                center={c.center}
+                showCurrency={false}
+              />
+            </div>
+          ))}
           <div className="cell col-actions"></div>
         </div>
 
-        {/* Table Body */}
         <div className="admins-table-body">
-          {data.map((admin) => (
-            <div 
-              key={admin.id} 
-              className="admins-table-row"
-              // Removed onClick from the whole row
-            >
-              <div className="cell col-checkbox">
-                <input type="checkbox" />
-              </div>
+          {sorted.map((admin) => (
+            <div key={admin.id} className="admins-table-row">
+              <div className="cell col-checkbox"><input type="checkbox" /></div>
               
               <div className="cell col-name">
-                <div className="name-group">
-                  <span className="row-text-primary">{admin.firstName} {admin.lastName}</span>
-                  <span className="row-text-secondary">{admin.handle}</span>
-                </div>
+                <span className="row-text-primary">{admin.firstName} {admin.lastName}</span>
               </div>
 
               <div className="cell col-role">
@@ -50,12 +71,12 @@ function AdminsTable({ data }) {
                 <div className={`badge badge-${admin.statusType}`}>{admin.status}</div>
               </div>
 
+              <div className="cell col-datejoined">
+                <span className="row-text-primary">{formatDate(admin.dateJoined)}</span>
+              </div>
+
               <div className="cell col-actions">
-                {/* onClick moved here specifically */}
-                <div 
-                  className="action-dots" 
-                  onClick={() => setSelectedAdmin(admin)}
-                >
+                <div className="action-dots" onClick={() => setSelectedAdmin(admin)}>
                    <MoreHorizontalIcon width={20} color="#375A89" />
                 </div>
               </div>
@@ -64,11 +85,11 @@ function AdminsTable({ data }) {
         </div>
       </div>
 
-      {/* === EDIT PANEL === */}
-      <EditAdminPanel 
+      <AdminPanel 
         isOpen={!!selectedAdmin} 
         userData={selectedAdmin}
         onClose={() => setSelectedAdmin(null)}
+        onSuccess={refreshData} /* Execute parent fetch on success */
       />
     </>
   );

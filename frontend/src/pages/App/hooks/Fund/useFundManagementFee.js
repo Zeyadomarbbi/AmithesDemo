@@ -1,38 +1,32 @@
-// frontend/src/hooks/useFundManagementFee.js
 import { useState, useCallback, useEffect } from "react";
-import { API_BASE_URL } from '../useApi';
+import useApi from "../../../../hooks/api/useApi";
 
 export function useFundManagementFeeRules() {
+    const api = useApi();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const fetchRules = useCallback(async (fundId) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/man-fees-rules/`);
-            if (!response.ok) throw new Error("Failed to fetch fee rules");
-            return await response.json();
+            const data = await api.get(`/api/funds/${fundId}/man-fees-rules/`);
+            return data;
         } catch (err) {
             setError(err.message);
             return [];
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [api]);
 
     const createRule = async (fundId, payload) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/man-fees-rules/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) {
-                const errData = await response.json();
-                throw errData; // Throw the actual error object for the component to handle
-            }
-            return await response.json();
+            const data = await api.post(`/api/funds/${fundId}/man-fees-rules/`, payload);
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
@@ -41,16 +35,11 @@ export function useFundManagementFeeRules() {
     const updateRule = async (fundId, ruleId, payload) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/man-fees-rules/${ruleId}/`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) {
-                const errData = await response.json();
-                throw errData;
-            }
-            return await response.json();
+            const data = await api.put(`/api/funds/${fundId}/man-fees-rules/${ruleId}/`, payload);
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
@@ -59,11 +48,11 @@ export function useFundManagementFeeRules() {
     const deleteRule = async (fundId, ruleId) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/funds/${fundId}/man-fees-rules/${ruleId}/`, {
-                method: "DELETE",
-            });
-            if (!response.ok) throw new Error("Failed to delete rule");
+            await api.delete(`/api/funds/${fundId}/man-fees-rules/${ruleId}/`);
             return true;
+        } catch (err) {
+            setError(err.message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
@@ -72,8 +61,8 @@ export function useFundManagementFeeRules() {
     return { fetchRules, createRule, updateRule, deleteRule, isLoading, error };
 }
 
-
 export function useManagementFeePhases() {
+    const api = useApi();
     const [phases, setPhases] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -82,14 +71,8 @@ export function useManagementFeePhases() {
         const fetchPhases = async () => {
             setIsLoading(true);
             setError(null);
-
             try {
-                const response = await fetch(`${API_BASE_URL}/api/man-fee-phases/`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch management fee phases");
-                }
-
-                const data = await response.json();
+                const data = await api.get("/api/man-fee-phases/");
                 setPhases(data);
             } catch (err) {
                 setError(err.message);
@@ -99,7 +82,7 @@ export function useManagementFeePhases() {
         };
 
         fetchPhases();
-    }, []);
+    }, [api]);
 
     return {
         phases,

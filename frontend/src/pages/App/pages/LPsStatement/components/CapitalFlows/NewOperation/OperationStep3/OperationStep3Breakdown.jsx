@@ -367,9 +367,6 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                   </th>
                   <th className="op3-top op3-top-breakdown" colSpan={3}>
                     BREAKDOWN BEFORE OPERATION
-                    <button type="button" className="op3-top-plus" disabled={isSaving}>
-                      +
-                    </button>
                   </th>
                   <th className="op3-top op3-top-op" colSpan={3}>
                     OPERATION
@@ -474,9 +471,6 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
                 </th>
                 <th className="op3-top op3-top-breakdown" colSpan={3}>
                   BREAKDOWN BEFORE OPERATION
-                  <button type="button" className="op3-top-plus" disabled={isSaving}>
-                    +
-                  </button>
                 </th>
                 <th className="op3-top op3-top-op" colSpan={opCols.length}>
                   OPERATION

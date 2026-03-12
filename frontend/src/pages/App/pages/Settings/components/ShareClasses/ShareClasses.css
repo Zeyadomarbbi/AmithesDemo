@@ -5,44 +5,6 @@
   gap: 1.5rem;
 }
 
-.share-search {
-  position: relative;
-  max-width: 360px;
-  width: 100%;
-}
-
-.share-search-input {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid var(--fs-border-soft, #e5e7eb); /* Fallback added */
-  background-color: #ffffff;
-  padding: 0.55rem 0.75rem 0.55rem 2.2rem; /* Increased left padding for icon */
-  outline: none;
-  
-  /* Text Styles */
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-
-  /* FIXED: Make typed text dark (almost black) */
-  color: #111827; 
-}
-
-.share-search-input::placeholder {
-  color: #9CA3AF; /* Standard gray placeholder */
-  font-weight: 400; /* Optional: make placeholder slightly lighter weight */
-}
-
-.share-search-icon {
-  position: absolute;
-  left: 0.6rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.9rem;
-  color: var(--fs-placeholder);
-}
 
 .share-list {
   display: flex;

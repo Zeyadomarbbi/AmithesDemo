@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../useApi';
+import useApi from "../../../../hooks/api/useApi";
 
 export function useCountries() {
+    const api = useApi();
     const [countries, setCountries] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -10,10 +11,8 @@ export function useCountries() {
         const fetchCountries = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/countries/`);
-                if (!response.ok) throw new Error('Failed to fetch countries');
-
-                const data = await response.json();
+                // api.get handles API_BASE_URL and credentials internally
+                const data = await api.get("/api/countries/");
                 setCountries(data);
             } catch (err) {
                 setError(err.message);
@@ -23,7 +22,7 @@ export function useCountries() {
         };
 
         fetchCountries();
-    }, []);
+    }, [api]);
 
     return { countries, isLoading, error };
 }

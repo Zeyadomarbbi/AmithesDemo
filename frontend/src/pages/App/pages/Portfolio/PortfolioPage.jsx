@@ -1,39 +1,52 @@
 // PortfolioPage.jsx
+import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
-import { usePortfolioDataset } from "./usePortfolioDataset";
+import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
+import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
+
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
 import "./styles/portfolio.tables.css";
 
 const PortfolioPage = () => {
   const { fundId } = useParams();
-  const portfolioDataset = usePortfolioDataset(fundId);
+  
+  // Use the clean, standardized API hook
+  const { investments, loading, fetchInvestments } = usePortfolio(fundId);
+
+  // Auto-fetch when the portfolio layout mounts
+  useEffect(() => {
+    if (fundId) {
+      fetchInvestments();
+    }
+  }, [fundId, fetchInvestments]);
+
+  // Bridge the data shape so the downstream tabs don't need any changes
+  const portfolioDataset = {
+    investments: investments.map((inv) => ({
+      ...inv,
+      transaction_flows: (inv.transaction_flows ?? []).filter((f) => f.scenario_id === null),
+      fair_value_flows: inv.fair_value_flows ?? [],
+    })),
+    isLoading: loading,
+    refresh: fetchInvestments,
+  };
 
   return (
-    <div className="portfolio-page">
-      <main className="portfolio-content">
-        <h1 className="portfolio-title">Portfolio</h1>
-
-        {/* Tabs */}
-        <div className="portfolio-tabs">
-          <NavLink to="summary" className="portfolio-tabs-tab">
-            Portfolio summary
-          </NavLink>
-          <NavLink to="fx" className="portfolio-tabs-tab">
-            Portfolio FX
-          </NavLink>
-          <NavLink to="limits" className="portfolio-tabs-tab">
-            Limits
-          </NavLink>
-          <NavLink to="compare" className="portfolio-tabs-tab">
-            Compare
-          </NavLink>
-        </div>
-
-        {/* Routed content */}
-        <Outlet context={{ fundId, portfolioDataset }} />
-      </main>
-    </div>
+    <TimeframeProvider fundId={fundId}>
+      <div className="portfolio-page">
+        <main className="portfolio-content">
+          <h1 className="portfolio-title">Portfolio</h1>
+          <div className="portfolio-tabs">
+            <NavLink to="summary" className="portfolio-tabs-tab">Portfolio Summary</NavLink>
+            <NavLink to="fx" className="portfolio-tabs-tab">Portfolio FX</NavLink>
+            <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
+            <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
+          </div>
+          <Outlet context={{ fundId, portfolioDataset }} />
+        </main>
+      </div>
+    </TimeframeProvider>
   );
 };
 

@@ -1,10 +1,6 @@
 import React from "react";
-import QuarterSelector from "../../../../../../../../components/QuarterSelection/QuarterSelector";
 import { SortIcon } from "../../Icons";
-import {
-  formatFxValue,
-  parseFxValue,
-} from "../../FXbackwork";
+import { formatFxValue, getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
 import "../Deals/FxDealsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
@@ -12,12 +8,7 @@ const impactKeyForTimeframe = (timeframeLabel) => `impact${normalizeLabel(timefr
 
 const FxPortfolioView = ({ fundId, shared }) => {
   const {
-    quarters,
-    isLoading: isTimeframesLoading,
-    selectedTimeframeIds,
     debouncedSelectedTimeframes,
-    handleToggleTimeframe,
-    handleSaveTimeframe,
     dealsInvestments,
     isDealsLoading,
     symbol = "EUR",
@@ -33,83 +24,36 @@ const FxPortfolioView = ({ fundId, shared }) => {
     rawDate: timeframe.rawDate || timeframe.date,
   }));
 
-  const hasSelectedTimeframes = timeframeColumns.length > 0;
-
-  const aggregateRows = dealsInvestments
-    .map((inv) => {
-      const costRows = Array.isArray(inv.costRows) ? inv.costRows : [];
-      const fvRows = Array.isArray(inv.fvRows) ? inv.fvRows : [];
-
-      const fxEntry = fvRows.length
-        ? fvRows
-            .slice()
-            .sort((a, b) => new Date(a.rawDate || a.date) - new Date(b.rawDate || b.date))[0]?.fxRate || "-"
-        : "-";
-
-      const rowImpacts = timeframeColumns.reduce((acc, column) => {
-        acc[column.impactKey] = fvRows.reduce(
-          (sum, row) => sum + parseFxValue(row[column.impactKey]),
-          0
-        );
-        return acc;
-      }, {});
-
-      const hasDataInSelectedTimeframes = hasSelectedTimeframes
-        ? fvRows.some((row) =>
-            timeframeColumns.some((column) => {
-              const rowDate = new Date(row.rawDate || row.date);
-              const tfDate = new Date(column.rawDate);
-              if (Number.isNaN(rowDate.getTime()) || Number.isNaN(tfDate.getTime())) {
-                return false;
-              }
-              return rowDate <= tfDate;
-            })
-          )
-        : fvRows.length > 0;
-
-      return {
-        name: inv.title,
-        costLc: Math.abs(
-          costRows.reduce((sum, row) => sum + parseFxValue(row.flow), 0)
-        ),
-        currency: fvRows[0]?.currency || costRows[0]?.currency || "-",
-        fxEntry,
-        impacts: rowImpacts,
-        impactInception: fvRows.reduce(
-          (sum, row) => sum + parseFxValue(row.impactInception),
-          0
-        ),
-        include: hasDataInSelectedTimeframes,
-      };
-    })
-    .filter((row) => row.include);
+  const aggregateRows = dealsInvestments.map((inv) => {
+    const costRows = Array.isArray(inv.costRows) ? inv.costRows : [];
+    const fvRows = Array.isArray(inv.fvRows) ? inv.fvRows : [];
+    const latestFvRow = getLatestFxRowByCutoff(fvRows, debouncedSelectedTimeframes);
+    const fxEntry = fvRows.length
+      ? fvRows.slice().sort((a, b) => new Date(a.rawDate || a.date) - new Date(b.rawDate || b.date))[0]?.fxRate || "-"
+      : "-";
+    const rowImpacts = timeframeColumns.reduce((acc, column) => {
+      acc[column.impactKey] = parseFxValue(latestFvRow?.[column.impactKey]);
+      return acc;
+    }, {});
+    return {
+      name: inv.title,
+      costLc: Math.abs(costRows.reduce((sum, row) => sum + parseFxValue(row.flow), 0)),
+      currency: fvRows[0]?.currency || costRows[0]?.currency || "-",
+      fxEntry,
+      impacts: rowImpacts,
+      impactInception: parseFxValue(latestFvRow?.impactInception),
+    };
+  });
 
   const grandTotalCost = aggregateRows.reduce((acc, row) => acc + row.costLc, 0);
-  const grandTotalInception = aggregateRows.reduce(
-    (acc, row) => acc + row.impactInception,
-    0
-  );
+  const grandTotalInception = aggregateRows.reduce((acc, row) => acc + row.impactInception, 0);
   const grandImpactTotals = timeframeColumns.reduce((acc, column) => {
-    acc[column.impactKey] = aggregateRows.reduce(
-      (sum, row) => sum + (row.impacts[column.impactKey] || 0),
-      0
-    );
+    acc[column.impactKey] = aggregateRows.reduce((sum, row) => sum + (row.impacts[column.impactKey] || 0), 0);
     return acc;
   }, {});
 
   return (
     <section className="fx-deals-section">
-      <div className="fx-deals-filters-row">
-        <QuarterSelector
-          options={quarters}
-          selected={selectedTimeframeIds}
-          onChange={handleToggleTimeframe}
-          onSaveNew={handleSaveTimeframe}
-          isLoading={isTimeframesLoading}
-          isSingle={false}
-        />
-      </div>
-
       <div className="fx-deals-table-card">
         <table className="fx-deals-table">
           <thead>
@@ -145,12 +89,10 @@ const FxPortfolioView = ({ fundId, shared }) => {
                 <td className="col-number">{formatFxValue(row.impactInception)}</td>
               </tr>
             ))}
-
             <tr className="fx-total-row">
               <td className="fx-total-label">Total</td>
               <td className="col-number">{formatFxValue(grandTotalCost)}</td>
-              <td />
-              <td />
+              <td /><td />
               {timeframeColumns.map((column) => (
                 <td key={`total-${column.id}`} className="col-number">
                   {formatFxValue(grandImpactTotals[column.impactKey] || 0)}

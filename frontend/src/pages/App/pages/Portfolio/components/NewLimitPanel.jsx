@@ -19,7 +19,7 @@ const NewLimitPanel = ({ onClose }) => {
 
       <form className="limit-form">
         <div>
-          <p className="limit-form-section-title">General informations</p>
+          <p className="limit-form-section-title">General information</p>
         </div>
 
         <div>

@@ -1,66 +1,98 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewOperation/OperationPanel.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./OperationPanel.css";
+
 import OperationStep1 from "../OperationStep1/OperationStep1.jsx";
 import OperationStep2 from "../OperationStep2/OperationStep2.jsx";
 import OperationStep3Breakdown from "../OperationStep3/OperationStep3Breakdown.jsx";
 import OperationStep4 from "../OperationStep4/OperationStep4.jsx";
+
 import { CloseIcon } from "../../../../Icons.jsx";
 import { useOperationTypes } from "/src/pages/App/hooks/LPsStatement/useOperationTypes.js";
-import { useOperationDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
-import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
-import { useCapitalFlowLPFlowAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPFlowAllocation.js";
-import { useCapitalFlowLPOperationAllocation } from "../../../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
-import "./OperationPanel.css";
 
-/** Date -> YYYYMMDD integer */
+/** -------------------------
+ * LOCAL-FIRST API
+ * Always call relative "/api/..." so it works locally.
+ * ------------------------- */
+function apiUrl(path) {
+  const p = String(path || "");
+  const pp = p.startsWith("/") ? p : `/${p}`;
+  return `/api${pp}`;
+}
+
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    credentials: "include",
+  });
+
+  const text = await res.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text || null;
+  }
+
+  if (!res.ok) {
+    // show DRF validation errors nicely
+    let msg = `Request failed (${res.status})`;
+    if (data && typeof data === "object") {
+      msg = JSON.stringify(data);
+    } else if (typeof data === "string" && data.trim()) {
+      msg = data;
+    }
+
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    err.url = url;
+    throw err;
+  }
+
+  return data;
+}
+
+/** ✅ Date -> YYYYMMDD integer (matches your DRF "notice_date_id" fields) */
 function toDateId(d) {
   if (!d) return null;
+
+  // dayjs-like objects
   if (typeof d === "object") {
     if (typeof d.toDate === "function") d = d.toDate();
     else if (d.$d) d = d.$d;
   }
+
   const dt = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(dt.getTime())) return null;
+
   const y = dt.getFullYear();
   const m = dt.getMonth() + 1;
   const day = dt.getDate();
-  return y * 10000 + m * 100 + day;
+  return y * 10000 + m * 100 + day; // YYYYMMDD
 }
 
+/** optional extra compatibility: also provide YYYY-MM-DD (won’t hurt) */
 function toIsoDate(d) {
   if (!d) return null;
+
   if (typeof d === "object") {
     if (typeof d.toDate === "function") d = d.toDate();
     else if (d.$d) d = d.$d;
   }
+
   const dt = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(dt.getTime())) return null;
+
   const y = dt.getFullYear();
   const m = String(dt.getMonth() + 1).padStart(2, "0");
   const day = String(dt.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function toPlainDate(d) {
-  if (!d) return null;
-  if (typeof d === "object") {
-    if (typeof d.toDate === "function") return d.toDate();
-    if (d.$d) return d.$d;
-  }
-  const dt = d instanceof Date ? d : new Date(d);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
-
-function computeTotalFundCommitment(commitments, dueDate) {
-  const dueDateObj = toPlainDate(dueDate);
-  if (!dueDateObj) return 0;
-  const safe = Array.isArray(commitments) ? commitments : [];
-  return safe.reduce((sum, c) => {
-    const closing = c?.closing_period_date ? new Date(c.closing_period_date) : null;
-    if (!closing || Number.isNaN(closing.getTime())) return sum;
-    if (dueDateObj >= closing) return sum + parseFloat(c?.commitment_amount || 0);
-    return sum;
-  }, 0);
 }
 
 const EMPTY_STEP2_DRAFT = {
@@ -72,13 +104,12 @@ const EMPTY_STEP2_DRAFT = {
 
 export default function OperationPanel({
   open,
-  mode = "new",
+  mode = "new", // "new" | "detail"
   operation = null,
   lps = [],
   shareClasses = [],
   fundId,
   onClose,
-  commitments,
 }) {
   if (!open) return null;
 
@@ -86,52 +117,34 @@ export default function OperationPanel({
 
   const [step, setStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
 
-  // ── Step 1 fields ──────────────────────────────────────────────────────────
+  // Step 1 fields
   const [operationName, setOperationName] = useState("");
-  const [operationType, setOperationType] = useState("");
+  const [operationType, setOperationType] = useState(""); // operation_type_id (string)
   const [noticeDate, setNoticeDate] = useState(null);
   const [dueDate, setDueDate] = useState(null);
-  const [totalFundCommitment, setTotalFundCommitment] = useState(0);
-  const [operationNumber, setOperationNumber] = useState(null);
-  // DB id — set after final save
+
+  // DB ids
   const [operationId, setOperationId] = useState(null);
-  
-  // ── Step 2 draft + result ──────────────────────────────────────────────────
+
+  // Step 2 draft + result
   const [step2Draft, setStep2Draft] = useState({ ...EMPTY_STEP2_DRAFT });
   const [step2Result, setStep2Result] = useState({
     operationTypeId: "",
     operationTypeName: "",
     flows: [],
     perLp: {},
-    total_operation_amount: 0,
-    overall_percentage_of_commitment: 0,
   });
 
   const step2Ref = useRef(null);
   const step3Ref = useRef(null);
 
   const TOTAL_STEPS = 4;
+
   const [savingStep1, setSavingStep1] = useState(false);
   const [step1Error, setStep1Error] = useState(null);
 
   const { operationTypes, fetchOperationTypes } = useOperationTypes();
-  // ── Hooks — all scoped to fundId only ─────────────────────────────────────
-  const { createOperation, fetchOperation, loading: opLoading } = useOperationDetails(fundId);
-  const { createFlow } = useCapitalFlowFlowDetails(fundId, null);
-  const { createAllocation: createFlowLPAllocation } = useCapitalFlowLPFlowAllocation(fundId, null, null);
-  const {
-    createAllocation: createOperationLPAllocation,
-    fetchAllAllocations,
-    allocations: existingAllocations,
-  } = useCapitalFlowLPOperationAllocation(fundId, null);
-  
-  // Fetch all past allocations for this fund on mount (used for "before" in Step 3)
-  useEffect(() => {
-    if (fundId) fetchAllAllocations();
-  }, [fundId]);
 
   useEffect(() => {
     if (open) fetchOperationTypes?.().catch(() => {});
@@ -141,60 +154,102 @@ export default function OperationPanel({
     setShowSuccess(false);
     setStep(1);
     setStep1Error(null);
-    setSaveError(null);
-    setTotalFundCommitment(0);
 
-    if (isDetail && operation) {
-      const opId = operation?.lps_operation_details_id ?? operation?.operation_id ?? operation?.id ?? null;
-      setOperationId(opId);
+    if (isDetail) {
+      setOperationId(operation?.operation_id ?? operation?.id ?? null);
+      setOperationName(operation?.operation_name ?? operation?.label ?? "");
+      setOperationType(String(operation?.operation_type ?? ""));
+      setNoticeDate(null);
+      setDueDate(null);
 
-      fetchOperation(opId)
-        .then((fullOp) => {
-          setOperationName(fullOp?.name ?? fullOp?.operation_name ?? "");
-          setOperationType(String(fullOp?.operation_type_id ?? ""));
-          setNoticeDate(fullOp?.notice_date ? new Date(fullOp.notice_date) : null);
-          setDueDate(fullOp?.due_date ? new Date(fullOp.due_date) : null);
-          setTotalFundCommitment(Number(fullOp?.total_fund_commitment ?? 0));
-          setOperationNumber(fullOp?.operation_number ?? null);
-          setStep2Draft({ ...EMPTY_STEP2_DRAFT });
-          setStep2Result({ 
-            operationTypeId: String(fullOp?.operation_type_id ?? ""), 
-            operationTypeName: operationTypeName, 
-            flows: [], 
-            perLp: {}, 
-            total_operation_amount: Number(fullOp?.total_operation_amount ?? 0), 
-            overall_percentage_of_commitment: Number(fullOp?.overall_percentage_of_commitment ?? 0) 
-          });
-        })
-        .catch((err) => setStep1Error(err));
+      setStep2Draft({ ...EMPTY_STEP2_DRAFT });
+      setStep2Result({
+        operationTypeId: "",
+        operationTypeName: "",
+        flows: [],
+        perLp: {},
+      });
     } else {
       setOperationId(null);
       setOperationName("");
       setOperationType("");
       setNoticeDate(null);
       setDueDate(null);
+
       setStep2Draft({ ...EMPTY_STEP2_DRAFT });
-      setStep2Result({ operationTypeId: "", operationTypeName: "", flows: [], perLp: {}, total_operation_amount: 0, overall_percentage_of_commitment: 0 });
+      setStep2Result({
+        operationTypeId: "",
+        operationTypeName: "",
+        flows: [],
+        perLp: {},
+      });
     }
-  }, [open, isDetail, operation, fetchOperation]);
+  }, [open, isDetail, operation]);
+
   const operationTypeName = useMemo(() => {
     const arr = Array.isArray(operationTypes) ? operationTypes : [];
-    const found = arr.find((t) => String(t?.operation_type_id) === String(operationType));
+    const found = arr.find(
+      (t) => String(t?.operation_type_id) === String(operationType)
+    );
     return found?.name || "";
   }, [operationTypes, operationType]);
 
-  const isEqualization = useMemo(() => {
-    return String(operationTypeName || "").toLowerCase().includes("equalization");
-  }, [operationTypeName]);
+  /**
+   * ✅ Create operation in DB (Step1 -> Step2)
+   * FIX:
+   * - correct URL: /api/funds/<fund_id>/operations/
+   * - send "fund" + "notice_date_id" + "due_date_id"
+   */
+  const createOperationIfNeeded = async () => {
+    if (operationId) return operationId;
 
-  const validateStep1 = () => {
     if (!fundId) throw new Error("fundId is missing.");
-    if (!String(operationName || "").trim()) throw new Error("Operation name is required.");
+    if (!String(operationName || "").trim())
+      throw new Error("Operation name is required.");
     if (!operationType) throw new Error("Operation type is required.");
     if (!noticeDate) throw new Error("Notice date is required.");
     if (!dueDate) throw new Error("Due date is required.");
-    if (!toDateId(noticeDate)) throw new Error("Notice date is invalid.");
-    if (!toDateId(dueDate)) throw new Error("Due date is invalid.");
+
+    const notice_date_id = toDateId(noticeDate);
+    const due_date_id = toDateId(dueDate);
+
+    if (!notice_date_id) throw new Error("Notice date is invalid.");
+    if (!due_date_id) throw new Error("Due date is invalid.");
+
+    const url = apiUrl(`/funds/${fundId}/operations/`);
+
+    const payload = {
+      // ✅ DRF form shows Fund field -> include it
+      fund: Number(fundId),
+
+      // ✅ operation fields
+      operation_name: String(operationName).trim(),
+
+      // ✅ usually serializer field name is "operation_type"
+      operation_type: Number(operationType),
+
+      // ✅ matches DRF form: "Notice date id" / "Due date id"
+      notice_date_id,
+      due_date_id,
+
+      // ✅ harmless compatibility aliases (DRF ignores unknown keys)
+      fund_id: Number(fundId),
+      operation_type_id: Number(operationType),
+      notice_date: toIsoDate(noticeDate),
+      due_date: toIsoDate(dueDate),
+    };
+
+    const data = await fetchJson(url, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    const newId = data?.operation_id ?? data?.id ?? null;
+    if (!newId)
+      throw new Error("Operation created but response missing operation_id.");
+
+    setOperationId(newId);
+    return newId;
   };
 
   const handleStep2Next = (payload = {}) => {
@@ -203,126 +258,8 @@ export default function OperationPanel({
       operationTypeName: operationTypeName || payload.operationTypeName || "",
       flows: payload.flows || [],
       perLp: payload.perLp || {},
-      total_operation_amount: payload.grandTotal ?? 0,
-      overall_percentage_of_commitment: payload.grandPercent ?? 0,
     });
-
-    console.log("[Step 2 → Step 3]", {
-      total_operation_amount: payload.grandTotal ?? 0,
-      overall_percentage_of_commitment: payload.grandPercent ?? 0,
-      flows: payload.flows,
-      perLp: payload.perLp,
-    });
-
     setStep(3);
-  };
-
-  
-  
-  const handleFinalSave = async () => {
-    const { flows, perLp, total_operation_amount, overall_percentage_of_commitment } = step2Result;
-
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      // ── 1. Create operation ──────────────────────────────────────────────
-      const newOperationId = await createOperation({
-        operation_name: String(operationName).trim(),
-        operation_type_id: Number(operationType),
-        notice_date: toIsoDate(noticeDate),
-        due_date: toIsoDate(dueDate),
-        total_fund_commitment: totalFundCommitment,
-        total_operation_amount: Number(total_operation_amount.toFixed(2)),
-        // Ensure decimal (0..1) — grandPercent from Step2 is a percentage number
-        overall_percentage_of_commitment:
-        (
-          (overall_percentage_of_commitment ?? 0) > 1
-            ? overall_percentage_of_commitment / 100
-            : (overall_percentage_of_commitment ?? 0)
-        ).toFixed(4),
-      });
-
-      setOperationId(newOperationId);
-      console.log("[Save 1/4] Operation created:", newOperationId);
-
-      // ── 2. Create flows ──────────────────────────────────────────────────
-      // Derive flow totals from perLp (submitted values, not draft)
-      const flowIdMap = {};
-
-      for (const flow of flows) {
-        const createdFlow = await createFlow(newOperationId, {
-          operation: newOperationId,
-          flow_type_id: Number(flow.flow_type_id),
-          flow_name: flow.flow_name,
-          input_type: flow.input_type,
-          input_amount: flow.input_amount !== null ? Number(Number(flow.input_amount).toFixed(2)) : null,
-          input_percentage: flow.input_percentage !== null 
-            ? Number((flow.input_percentage > 1 ? flow.input_percentage / 100 : flow.input_percentage).toFixed(4)) 
-            : null,
-          computed_total_amount: flow.computed_total_amount !== null ? Number(Number(flow.computed_total_amount).toFixed(2)) : null,
-          allocation_percentage_of_commitment: flow.allocation_percentage_of_commitment !== null
-            ? Number(Number(flow.allocation_percentage_of_commitment).toFixed(4))
-            : null,
-        });
-
-        const opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
-        if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
-
-        flowIdMap[flow.id] = opFlowId;
-        console.log(`[Save 2/4] Flow created: ${flow.flow_name} →`, opFlowId);
-
-        // ── 3. Flow LP allocations ───────────────────────────────────────────────
-        for (const [lpId, lpData] of Object.entries(perLp)) {
-          const allocatedAmount = lpData.flows?.[flow.id] ?? null;
-          if (allocatedAmount === null || !Number.isFinite(Number(allocatedAmount))) continue;
-
-          await createFlowLPAllocation(newOperationId, opFlowId, {
-            operation_flow_id: opFlowId,
-            lp_id: Number(lpId),
-            allocated_amount: Number(Number(allocatedAmount).toFixed(4)),
-          });
-        }
-
-        console.log(`[Save 3/4] Flow LP allocations created for flow:`, opFlowId);
-      }
-
-      // ── 4. Operation LP allocations ──────────────────────────────────────
-      // called_percentage must be a decimal (0..1), grandPercent from Step2 is already /100
-      const overallPctDecimal = (overall_percentage_of_commitment ?? 0) > 1
-        ? (overall_percentage_of_commitment / 100)
-        : (overall_percentage_of_commitment ?? 0);
-
-      for (const [lpId, lpData] of Object.entries(perLp)) {
-        const mainAmount = lpData.mainAmount ?? 0;
-        const commitmentNum = lpData.commitmentNumber ?? 0;
-        // per-LP called_percentage = their amount / their commitment (decimal)
-        const lpCalledPct = commitmentNum > 0 ? mainAmount / commitmentNum : 0;
-
-        await createOperationLPAllocation(newOperationId, {
-          lps_operation_details_id: newOperationId,
-          lp_id: Number(lpId),
-          share_class_id: lpData.shareClassId ? Number(lpData.shareClassId) : null,
-          commitment_amount: Number(commitmentNum.toFixed(2)),
-          capital_call: Number(mainAmount.toFixed(2)),
-          called_percentage: (
-            lpCalledPct > 1 ? lpCalledPct / 100 : (lpCalledPct ?? 0)
-          ).toFixed(4),
-          shares_issued: (lpData.sharesIssued ?? 0).toFixed(6),
-        });
-      }
-
-      console.log("[Save 4/4] Operation LP allocations created.");
-      console.log("[Save complete] operationId:", newOperationId);
-
-      return newOperationId;
-
-    } catch (e) {
-      setSaveError(e);
-      throw e;
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleNext = async () => {
@@ -330,17 +267,7 @@ export default function OperationPanel({
       setSavingStep1(true);
       setStep1Error(null);
       try {
-        validateStep1();
-        const computed = computeTotalFundCommitment(commitments, dueDate);
-        setTotalFundCommitment(computed);
-        console.log("[Step 1 → Step 2]", {
-          operation_name: String(operationName).trim(),
-          operation_type_id: operationType,
-          operation_type_name: operationTypeName,
-          notice_date: toIsoDate(noticeDate),
-          due_date: toIsoDate(dueDate),
-          total_fund_commitment: computed,
-        });
+        await createOperationIfNeeded();
         setStep(2);
       } catch (e) {
         setStep1Error(e);
@@ -358,19 +285,19 @@ export default function OperationPanel({
     }
 
     if (step === 3) {
-      // Just navigate to step 4 — save happens on step 4
-      setStep(4);
-      return;
-    }
-
-    if (step === 4) {
-      // Final save
       try {
-        await handleFinalSave();
-        setShowSuccess(true);
+        await step3Ref.current?.submitToNext?.();
+        setStep(4);
       } catch {}
       return;
     }
+
+    if (step < TOTAL_STEPS) {
+      setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+      return;
+    }
+
+    setShowSuccess(true);
   };
 
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 1));
@@ -382,18 +309,20 @@ export default function OperationPanel({
 
   const stepTabs = useMemo(
     () => [
-      { step: 1, label: "Informations" },
+      { step: 1, label: "Information" },
       { step: 2, label: "Flows" },
       { step: 3, label: "Breakdown" },
       { step: 4, label: "Notice" },
     ],
     []
   );
+
   const safeLps = Array.isArray(lps) ? lps : [];
+  const safeShareClasses = Array.isArray(shareClasses) ? shareClasses : [];
+
   const renderStep = () => {
     switch (step) {
       case 1:
-        if (opLoading) return <div style={{ padding: 20 }}>Loading operation details...</div>;
         return (
           <div>
             <OperationStep1
@@ -407,6 +336,7 @@ export default function OperationPanel({
               setDueDate={setDueDate}
               operationTypes={operationTypes || []}
             />
+
             {step1Error && (
               <div style={{ marginTop: 10, color: "#b42318", fontSize: 12, whiteSpace: "pre-wrap" }}>
                 {step1Error.message}
@@ -420,20 +350,15 @@ export default function OperationPanel({
           <OperationStep2
             ref={step2Ref}
             lps={safeLps}
+            shareClasses={safeShareClasses}
             fundId={fundId}
-            existingAllocations={existingAllocations}
-            fetchAllAllocations={fetchAllAllocations}
             operationId={operationId}
             operationType={operationTypeName}
             operationTypeId={operationType}
             operationTypeName={operationTypeName}
-            operationNumber={operationNumber}
             onNext={handleStep2Next}
             draft={step2Draft}
             setDraft={setStep2Draft}
-            commitments={commitments}
-            totalFundCommitment={totalFundCommitment}
-            dueDate={dueDate}
           />
         );
 
@@ -445,29 +370,11 @@ export default function OperationPanel({
             operationId={operationId}
             step2Result={step2Result}
             operationType={operationTypeName}
-            operationNumber={operationNumber}
-            totalFundCommitment={totalFundCommitment}
-            onFinalSave={handleFinalSave}
-            commitments={commitments}
-            existingAllocations={existingAllocations}
-            dueDate={dueDate}
           />
         );
 
       case 4:
-        return (
-          <OperationStep4
-            operationName={operationName}
-            operationTypeName={operationTypeName}
-            noticeDate={toIsoDate(noticeDate)}
-            dueDate={toIsoDate(dueDate)}
-            totalFundCommitment={totalFundCommitment}
-            step2Result={step2Result}
-            lps={safeLps}
-            isSaving={isSaving}
-            saveError={saveError}
-          />
-        );
+        return <OperationStep4 />;
 
       default:
         return null;
@@ -483,6 +390,7 @@ export default function OperationPanel({
               <h2 className="opw-title">
                 {isDetail ? "Operation details" : "Create a new operation"}
               </h2>
+
               <div className="opw-tabs" role="tablist" aria-label="Operation steps">
                 {stepTabs.map((t) => (
                   <div
@@ -496,12 +404,13 @@ export default function OperationPanel({
                 ))}
               </div>
             </div>
+
             <button
               className="opw-close-btn"
               type="button"
               onClick={() => onClose?.()}
               aria-label="Close"
-              disabled={savingStep1 || isSaving}
+              disabled={savingStep1}
             >
               <CloseIcon />
             </button>
@@ -509,28 +418,23 @@ export default function OperationPanel({
 
           <div className="opw-body">{renderStep()}</div>
 
-          {saveError && (
-            <div style={{ padding: "8px 16px", color: "#b42318", fontSize: 12, whiteSpace: "pre-wrap" }}>
-              {saveError.message}
-            </div>
-          )}
-
           <div className="opw-footer">
             <button
               type="button"
               className="opw-nav-btn opw-btn-ghost"
               onClick={handlePrev}
-              disabled={step === 1 || savingStep1 || isSaving}
+              disabled={step === 1 || savingStep1}
             >
               Previous
             </button>
+
             <button
               type="button"
               className="opw-nav-btn opw-btn-primary"
               onClick={handleNext}
-              disabled={savingStep1 || isSaving}
+              disabled={savingStep1}
             >
-              {isSaving ? "Saving..." : savingStep1 ? "Saving..." : step === 4 ? "Save" : "Next"}
+              {step === 1 && savingStep1 ? "Saving..." : "Next"}
             </button>
           </div>
         </aside>
@@ -550,6 +454,7 @@ export default function OperationPanel({
                 </div>
               </div>
             </div>
+
             <button
               type="button"
               className="opw-success-close"

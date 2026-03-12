@@ -1,35 +1,34 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/ShareClasses.jsx
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { SearchIcon, PlusIcon } from "./icons"; 
+import { PlusIcon } from '/src/components/Icons/InteractiveIcons'; 
+import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import ShareClassCard from "./components/Card/ShareClassCard";
 import NewShareClassDrawer from "./components/Drawer/NewShareClassDrawer";
-import Toast from "../../../../components/Toast/Toast.jsx"; // Import Toast
+import Toast from "../../../../components/Toast/Toast.jsx"; 
 import { useShareClasses } from "../../../../hooks/useShareClass"; 
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 
 import "./ShareClasses.css";
 
 const ShareClasses = () => {
   const { fundId } = useOutletContext();
-  const [toast, setToast] = useState(null); // Added Toast state
+  const [toast, setToast] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isNewShareOpen, setIsNewShareOpen] = useState(false);
 
   const { 
     data: savedShareClasses, 
     isLoading, 
     error, 
     create,
+    remove,
     fetchAll 
   } = useShareClasses(fundId);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isNewShareOpen, setIsNewShareOpen] = useState(false);
-
-  // Updated handler with Toast feedback
   const handleCreate = async (payload) => {
     try {
       await create(payload);
-      await fetchAll();
-      
       setToast({
         type: "success",
         title: "Share Class Created",
@@ -41,8 +40,23 @@ const ShareClasses = () => {
         title: "Creation Failed",
         message: err.message || "An error occurred while creating the share class."
       });
-      // We throw the error so the Drawer knows NOT to close
-      throw err;
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await remove(id);
+      setToast({
+        type: "success",
+        title: "Share Class Deleted",
+        message: "The share class has been successfully removed."
+      });
+    } catch (err) {
+      setToast({
+        type: "error",
+        title: "Deletion Failed",
+        message: err.message || "An error occurred while deleting the share class."
+      });
     }
   };
 
@@ -53,28 +67,28 @@ const ShareClasses = () => {
     return nameMatch || isinMatch;
   });
 
-  if (isLoading) return <div className="p-4 text-gray-500">Loading share classes...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
+  if (isLoading) return <PageSpinner label="Loading share classes..." />;
+  if (error) return <PageError message={error} />;
 
   return (
     <div className="share-classes-wrap">
-      <div className="share-search">
-        <span className="share-search-icon"><SearchIcon /></span>
-        <input
-          type="text"
-          className="share-search-input"
-          placeholder="Search by share class or ISIN..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      <SearchBar 
+        placeholder="Search by share class or ISIN..."
+        onSearch={(value) => setSearchTerm(value)}
+        containerClassName="share-search"
+        className="share-search-input"
+      />
 
       <div className="share-list">
         {filteredShareClasses.length === 0 ? (
-           <p className="no-shares-msg">No share classes found.</p>
+           <PageNoData message={searchTerm ? "No share classes found matching your search." : "No share classes found."} />
         ) : (
           filteredShareClasses.map((cls) => (
-            <ShareClassCard key={cls.share_class_id} shareClass={cls} />
+            <ShareClassCard 
+              key={cls.share_class_id} 
+              shareClass={cls} 
+              onDelete={() => handleDelete(cls.share_class_id)}
+            />
           ))
         )}
       </div>
@@ -90,7 +104,6 @@ const ShareClasses = () => {
         onCreate={handleCreate} 
       />
 
-      {/* Global Toast for ShareClasses Page */}
       {toast && (
         <Toast
           type={toast.type}

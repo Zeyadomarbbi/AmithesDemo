@@ -1,27 +1,31 @@
-import React, { useState, useMemo } from 'react';
+// SidePanel.jsx
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import AmethisLogo from '../../../../assets/amethis-logo.svg';
+import { useAuth } from '../../../../hooks/Auth/AuthContext';
 import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
-import { 
-  DashboardIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon,
-  LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon,
-  SettingsIcon, ChevronDownIcon, ProfileExpandIcon,
-  SearchIcon
-} from '../Icons';
+import Toast from '../Toast/Toast';
+import SearchBar from '../../../../components/SearchBar/SearchBar';
+import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon } from '/src/components/Icons/MiscIcons';
+import { ChevronDownIconWhite, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
 
 import './SidePanel.css';
 
 function SidePanel() {
+  const { user, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showLogoutToast, setShowLogoutToast] = useState(false);
+  const profileRef = useRef(null);
   const [isFundSelectorOpen, setIsFundSelectorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
   const { funds } = useFundData();
-  // useActiveFund now pulls from Context (Sticky State)
   const activeFundId = useActiveFund();
   
   const location = useLocation();
   const navigate = useNavigate();
+  const fundSelectorRef = useRef(null);
 
   const pathSegments = location.pathname.split('/');
   const currentSection = pathSegments[1] === 'funds' && pathSegments[3] 
@@ -35,7 +39,6 @@ function SidePanel() {
     );
   }, [funds, searchQuery]);
 
-  // Find fund based on the sticky activeFundId from context
   const currentFund = useMemo(() => 
     (funds && activeFundId) 
       ? funds.find(f => f.id.toString() === activeFundId.toString()) 
@@ -50,23 +53,64 @@ function SidePanel() {
     setSearchQuery("");
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+      if (fundSelectorRef.current && !fundSelectorRef.current.contains(event.target)) {
+        setIsFundSelectorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name[0].toUpperCase();
+  };
+
+  const handleLogoutClick = async () => {
+    try {
+      setShowLogoutToast(true);
+      setIsProfileOpen(false);
+      setTimeout(async () => {
+        await logout();
+      }, 800); 
+    } catch (err) {
+      console.error("Logout failed:", err);
+      setShowLogoutToast(false);
+    }
+  };
+
   return (
     <div className="side-panel">
-      
+      {showLogoutToast && (
+        <Toast 
+          title="Logged Out" 
+          message="See you soon!" 
+          type="success" 
+          onClose={() => setShowLogoutToast(false)} 
+        />
+      )}   
       <div className="frame-1">
         <div className="logo-container">
           <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
         </div>
 
         <div className="frame-1-2">
-          <div className="fund-selector-container">
+          <div className="fund-selector-container" ref={fundSelectorRef}>
+
             <div className="fund-selector-button">
               <div className="fund-info-section">
                 <span className="side-panel-fund-name">
                   {currentFund ? currentFund.name : 'Select a fund'}
                 </span>
                 
-                {hasActiveFund && (
+                {hasActiveFund && (user?.is_staff || user?.is_superuser) && (
                   <Link 
                     to={`/funds/${currentFund.id}/settings`} 
                     className="fund-setup-row"
@@ -79,26 +123,19 @@ function SidePanel() {
 
               <div 
                 className={`dropdown-arrow-icon ${isFundSelectorOpen ? 'open' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation(); 
-                  setIsFundSelectorOpen(!isFundSelectorOpen);
-                }}
+                onClick={() => setIsFundSelectorOpen(!isFundSelectorOpen)}
               >
-                <ChevronDownIcon />
+                <ChevronDownIconWhite />
               </div>
             </div>
             
             {isFundSelectorOpen && (
-              <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
+              <div className="fund-selector-dropdown">
                 
-                <div className="dropdown-search-container">
-                  <SearchIcon />
-                  <input 
-                    type="text" 
-                    placeholder="Search by name or code" 
-                    className="dropdown-search-input" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                <div className="side-panel-search-wrapper">
+                  <SearchBar 
+                    placeholder="Search by name or code"
+                    onSearch={(value) => setSearchQuery(value)}
                   />
                 </div>
 
@@ -126,11 +163,10 @@ function SidePanel() {
             )}
           </div>
 
-          {/* This section remains visible even on All Funds page if a fund was previously selected */}
           {hasActiveFund && (
             <nav className="side-panel-nav">
               <NavLink to={`/funds/${activeFundId}/dashboard`} className="nav-item">
-                <DashboardIcon /> <span>Dashboard</span>
+                <DashboardTabIcon /> <span>Dashboard</span>
               </NavLink>
               <NavLink to={`/funds/${activeFundId}/lps-statement`} className="nav-item">
                 <LPsIcon /> <span>LPs Statement</span>
@@ -157,23 +193,44 @@ function SidePanel() {
       <div className="frame-3">
         <div className="footer-links">
           <NavLink to="/all-funds" className="footer-item">
-              <AllFundsIcons /> <span>All funds</span>
+            <AllFundsIcons /> <span>All funds</span>
           </NavLink>
-          <NavLink to="/admins" className="footer-item">
+          
+          {(user?.is_staff || user?.is_superuser) && (
+            <NavLink to="/admins" className="footer-item">
               <AdminsIcon /> <span>Admins</span>
-          </NavLink>
+            </NavLink>
+          )}
+          
           <NavLink to="/help" className="footer-item">
-              <HelpIcon /> <span>Help</span>
+            <HelpIcon /> <span>Help</span>
           </NavLink>
         </div>
 
-        <div className="user-profile">
-          <div className="user-avatar">MR</div>
-          <div className="user-details">
-            <span className="user-name">Mathieu Rigot</span>
-            <span className="user-email">mathieu.rigot@likifunds.com</span>
+        <div className="user-profile-wrapper" ref={profileRef}>
+          {isProfileOpen && (
+            <div className="profile-dropdown-menu">
+              <button onClick={handleLogoutClick} className="logout-button">
+                Logout
+              </button>
+            </div>
+          )}
+          
+          <div 
+            className={`user-profile ${isProfileOpen ? 'active' : ''}`} 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+          >
+            <div className="user-avatar">
+              {getInitials(user?.username || user?.email)}
+            </div>
+            <div className="user-details">
+              <span className="user-name">{user?.username || 'User'}</span>
+              <span className="user-email">{user?.email}</span>
+            </div>
+            <div className={`profile-arrow ${isProfileOpen ? 'rotate' : ''}`}>
+              <ProfileExpandIcon />
+            </div>
           </div>
-          <ProfileExpandIcon />
         </div>
       </div>
     </div>
