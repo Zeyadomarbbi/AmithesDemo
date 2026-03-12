@@ -12,14 +12,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // 1. First get the CSRF cookie
-        await api.get('/api/csrf/'); 
-        
-        // 2. Then verify if the session is still active
+        await api.get('/api/csrf/');
         const data = await api.get('/api/me/');
         setUser(data.user);
         localStorage.setItem('amethis_user', JSON.stringify(data.user));
-      } catch (err) {
+      } catch {
         setUser(null);
         localStorage.removeItem('amethis_user');
       } finally {
@@ -50,10 +47,15 @@ export const AuthProvider = ({ children }) => {
   // 3. Logout Action (Clears global state)
   const logoutAction = async () => {
     try {
+      // Don't let a failed network call stop the local logout
       await api.post('/api/logout/');
+    } catch (err) {
+      console.warn("Server-side logout failed or session already expired", err);
     } finally {
       setUser(null);
       localStorage.removeItem('amethis_user');
+      // Optional: Force redirect to login to ensure clean state
+      window.location.href = "/login";
     }
   };
 

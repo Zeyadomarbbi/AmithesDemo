@@ -24,7 +24,7 @@ MEDIA_URL = '/media/'
 SECRET_KEY = 'django-insecure-3qrl7p8cdyb_t1k254#bd9frwxpncj&q91icvd=6=kta)19#ha'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -80,23 +80,22 @@ CORS_ALLOWED_ORIGINS = [
     "https://amethis-webpage.netlify.app",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
-
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://amethis-webpage.netlify.app",
 ]
 
-SESSION_COOKIE_SAMESITE = None  # Allow cross-port session sharing
-CSRF_COOKIE_SAMESITE = None
+IS_PRODUCTION = not DEBUG
 
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-
+SESSION_COOKIE_SECURE = IS_PRODUCTION
+CSRF_COOKIE_SECURE = IS_PRODUCTION
+SESSION_COOKIE_SAMESITE = 'None' if IS_PRODUCTION else 'Lax'
+CSRF_COOKIE_SAMESITE = 'None' if IS_PRODUCTION else 'Lax'
+CSRF_COOKIE_HTTPONLY = False
+CORS_ALLOW_CREDENTIALS = True
 # 4. Critical for useApi.js 'X-CSRFToken' header
 # Allows JavaScript to read the CSRF cookie to put it in the header
-CSRF_COOKIE_HTTPONLY = False
 
 
 TEMPLATES = [
