@@ -839,7 +839,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   <div className="op2-cap-strip-type">CAPITAL CALL</div>
                   <button type="button" className="op2-head-plus" onClick={openFlow} aria-label="Add flow" disabled={isSaving}>+</button>
                 </div>
-                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAUX</div>
+                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAL</div>
               </>
             ) : (
               <>
@@ -847,7 +847,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   <div className="op2-cap-strip-type">{(operationType || "Distribution").toUpperCase()}</div>
                   <button type="button" className="op2-head-plus" onClick={openFlow} aria-label="Add flow" disabled={isSaving}>+</button>
                 </div>
-                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAUX</div>
+                <div className="op2-head-block op2-head-block--dark op2-head-block--tot">TOTAL</div>
               </>
             )}
           </div>

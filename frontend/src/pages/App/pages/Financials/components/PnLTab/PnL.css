@@ -154,6 +154,7 @@ body,
 
 /* =========================================================
    PNL DYNAMIC GRID SHARED
+   — all rows use the same column definition via CSS vars
    ========================================================= */
 .pnl-grid-scope .table-header-row,
 .pnl-grid-scope .group-row,
@@ -162,7 +163,7 @@ body,
   display: grid;
   grid-template-columns:
     var(--pnl-label-col)
-    repeat(var(--pnl-cols), minmax(160px, 1fr))
+    repeat(var(--pnl-cols), var(--pnl-period-col))
     var(--pnl-actions-col);
   align-items: center;
 }

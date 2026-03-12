@@ -223,7 +223,7 @@ export default function LPDrawer({
         {/* BODY */}
         <div className="lp-drawer-content">
           <section className="lp-drawer-section">
-            <h3 className="lp-drawer-section-title">LP informations</h3>
+            <h3 className="lp-drawer-section-title">LP information</h3>
             <div className="lp-drawer-field">
               <label className="lp-drawer-field-label">LP name<span className="lp-drawer-required">*</span></label>
               <input 

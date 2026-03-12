@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import useApi from "../../../../hooks/api/useApi"; // Adjust relative path as needed
+import useApi from "../../../../hooks/api/useApi";
 
 export function usePnLApi(fundId) {
   const api = useApi();
@@ -24,5 +24,15 @@ export function usePnLApi(fundId) {
     });
   };
 
-  return { fetchPnL, upsertValue, createLineItem };
+  const updateLineItem = async ({ lineItemId, name }) => {
+    return await api.patch(`/api/pnl/${fundId}/line-item/${lineItemId}/`, {
+      name: String(name || "").trim(),
+    });
+  };
+
+  const deleteLineItem = async ({ lineItemId }) => {
+    return await api.delete(`/api/pnl/${fundId}/line-item/${lineItemId}/`);
+  };
+
+  return { fetchPnL, upsertValue, createLineItem, updateLineItem, deleteLineItem };
 }

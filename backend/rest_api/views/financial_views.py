@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from ..models.reference import FinancialCategory, FinancialLineItem
 from ..models.core import Timeframe
@@ -207,31 +208,27 @@ class PnLValueUpsertView(APIView):
 
 class PnLLineItemCreateView(APIView):
     """
-    POST /api/pnl/<fund_id>/line-item/
-    body: { "category": "income" | "expense" | "tax", "name": "My new row" }
-
-    UPDATED: Now uses FinancialLineItemSerializer to enable Fuzzy Matching 
-    for 'special_field' auto-detection.
+    POST   /api/pnl/<fund_id>/line-item/               — create
+    PATCH  /api/pnl/<fund_id>/line-item/<line_item_id>/ — update name
+    DELETE /api/pnl/<fund_id>/line-item/<line_item_id>/ — soft delete
     """
-
+ 
     def post(self, request, fund_id):
         category = (request.data.get("category") or "").strip().lower()
         name = (request.data.get("name") or "").strip()
-
-        # 1. Basic Validation (Keep existing logic)
+ 
         if category not in ("income", "expense", "tax"):
             return Response(
                 {"detail": "category must be one of: income, expense, tax"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+ 
         if not name:
             return Response(
                 {"detail": "name is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # 2. Map String Category -> ID (Keep existing logic)
+ 
         cats = {(c.name or "").strip().lower(): c.category_id for c in FinancialCategory.objects.all()}
         if category == "income":
             category_id = cats.get("income")
@@ -239,21 +236,20 @@ class PnLLineItemCreateView(APIView):
             category_id = cats.get("expense") or cats.get("expenses")
         else:
             category_id = cats.get("tax") or cats.get("taxes")
-
+ 
         if not category_id:
             return Response(
                 {"detail": f"Category '{category}' not found in FinancialCategory table"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # 3. Check Duplicates (Keep existing logic to maintain frontend behavior)
+ 
         existing = FinancialLineItem.objects.filter(
             fund_id=int(fund_id),
             category_id=int(category_id),
             name=name,
             is_deleted=False
         ).first()
-
+ 
         if existing:
             return Response({
                 "ok": True,
@@ -262,38 +258,28 @@ class PnLLineItemCreateView(APIView):
                 "fund_id": int(fund_id),
                 "category_id": int(category_id),
                 "name": existing.name,
-                "special_field": existing.special_field  # Return this if helpful
+                "special_field": existing.special_field,
             })
-
-        # =========================================================
-        # 4. MERGE START: Use Serializer for Creation
-        # =========================================================
-        
-        # Prepare the data dictionary for the serializer.
-        # Note: We pass IDs because the Model expects Foreign Keys.
+ 
         serializer_data = {
-            "fund_id": int(fund_id),   # Serializer field name is 'fund_id' in Model
-            "category": int(category_id), # Serializer field name is 'category'
+            "fund_id": int(fund_id),
+            "category": int(category_id),
             "name": name,
-            "is_deleted": False
+            "is_deleted": False,
         }
-
+ 
         serializer = FinancialLineItemSerializer(data=serializer_data)
-
+ 
         if serializer.is_valid():
-            # save() triggers the 'create()' method. 
-            # We pass 'created_at' here because your model definition 
-            # might not have 'auto_now_add=True' set on the field itself.
             obj = serializer.save(
                 created_at=timezone.now(),
-                created_by=request.user.id if request.user.is_authenticated else None
+                created_by=request.user.id if request.user.is_authenticated else None,
             )
             if obj.special_field:
                 print(f"✅ FUZZY MATCH SUCCESS: '{obj.name}' -> [{obj.special_field}]")
             else:
                 print(f"ℹ️ No Special Field match for: '{obj.name}'")
-
-            # Return exact same response structure as before
+ 
             return Response({
                 "ok": True,
                 "created": True,
@@ -301,10 +287,53 @@ class PnLLineItemCreateView(APIView):
                 "fund_id": int(fund_id),
                 "category_id": int(category_id),
                 "name": obj.name,
-                # Bonus: We can now return the detected special field
-                "special_field": obj.special_field 
+                "special_field": obj.special_field,
             }, status=status.HTTP_201_CREATED)
-        
-        else:
-            # Fallback for validation errors
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+    def patch(self, request, fund_id, line_item_id):
+        name = (request.data.get("name") or "").strip()
+ 
+        if not name:
+            return Response(
+                {"detail": "name is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+ 
+        obj = get_object_or_404(
+            FinancialLineItem,
+            line_item_id=line_item_id,
+            fund_id=int(fund_id),
+            is_deleted=False,
+        )
+ 
+        serializer = FinancialLineItemSerializer(obj, data={"name": name}, partial=True)
+ 
+        if serializer.is_valid():
+            updated = serializer.save(
+                updated_at=timezone.now(),
+            )
+            return Response({
+                "ok": True,
+                "line_item_id": updated.line_item_id,
+                "fund_id": int(fund_id),
+                "name": updated.name,
+                "special_field": updated.special_field,
+            })
+ 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+    def delete(self, request, fund_id, line_item_id):
+        obj = get_object_or_404(
+            FinancialLineItem,
+            line_item_id=line_item_id,
+            fund_id=int(fund_id),
+            is_deleted=False,
+        )
+
+        FinancialEntry.objects.filter(line_item=obj).delete()
+        obj.delete()
+
+        return Response({"ok": True, "deleted": True, "line_item_id": line_item_id},
+                        status=status.HTTP_200_OK)

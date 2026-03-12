@@ -147,12 +147,14 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* ===== Toolbar ===== */
 .portfolio-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
 }
+
 .toolbar-left {
   display: flex;
   align-items: center;
@@ -215,20 +217,26 @@
   white-space: nowrap;
 }
 
-.portfolio-section-header h2 {
-  font-size: 14px;
-  font-weight: 500;
-  color: #0f172a;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* =====================================================
+   SHARED SCROLL CONTAINER
+   All four tables live inside this single wrapper.
+   One scrollbar governs all of them → columns align.
+   ===================================================== */
+.portfolio-tables-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  padding-bottom: 4px;
 }
 
-.portfolio-count {
-  font-size: 12px;
-  font-weight: 400;
-  color: #64748b;
+.portfolio-tables-scroll-container::-webkit-scrollbar { height: 8px; }
+.portfolio-tables-scroll-container::-webkit-scrollbar-track { background: #e5e7eb; }
+.portfolio-tables-scroll-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+.portfolio-tables-scroll-container { scrollbar-width: auto; }
+
+/* ===== Sections — no independent scrolling ===== */
+.portfolio-section {
 }
 
 .portfolio-section .portfolio-table-card {
@@ -237,37 +245,21 @@
   background: transparent !important;
 }
 
+/* Remove the old per-section scroll wrapper behaviour */
 .portfolio-section .portfolio-table-scroll {
+  width: auto;
+  overflow: visible;
+}
+
+/* ===== All tables share the same fixed layout & min-width ===== */
+.portfolio-table {
   width: 100%;
-  overflow-x: auto !important;
-  overflow-y: visible;
-  scrollbar-gutter: stable;
-  padding-bottom: 4px;
+  min-width: 1570px;   /* sum of all col widths: 220+140+130+190+220+200+150+160+160 */
+  table-layout: fixed;
+  border-collapse: collapse;
 }
 
-.portfolio-section .portfolio-table {
-  width: max-content;
-  min-width: 1400px;
-}
-
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb !important; }
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8 !important; border-radius: 8px !important; }
-.portfolio-section .portfolio-table-scroll { scrollbar-width: auto !important; }
-
-.filter-btn { padding: 0; background: transparent; }
-
-/* ===== Remove circle background from table icons ===== */
-.icon-circle-btn {
-  width: auto; height: auto; border-radius: 0;
-  background: transparent; border: none; padding: 0;
-  box-shadow: none; display: flex; align-items: center; justify-content: center;
-}
-.icon-circle-btn:hover { background: transparent; }
-
-/* =====================================
-   FORCE REMOVE ANY LINE ABOVE HEADERS
-   ===================================== */
+/* ===== Table headers ===== */
 .portfolio-table,
 .portfolio-table thead,
 .portfolio-table thead tr,
@@ -301,8 +293,11 @@
   text-align: left;
   vertical-align: middle;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* ===== Section header ===== */
 .portfolio-section-header {
   border-bottom: 0px solid #e5e7eb;
   padding-bottom: 12px;
@@ -318,6 +313,8 @@
   display: flex;
   align-items: center;
   color: #1c1917;
+  margin: 0;
+  gap: 8px;
 }
 
 .portfolio-count {
@@ -364,6 +361,9 @@
   line-height: 20px;
   letter-spacing: 0.01em;
   color: #1c1917;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .portfolio-subtotal-row,
@@ -386,23 +386,7 @@
   color: #ffffff !important;
 }
 
-/* ===== TOTAL SECTION — matches the three tables above ===== */
-.portfolio-total-section .portfolio-table-scroll {
-  width: 100%;
-  overflow-x: auto !important;
-  overflow-y: visible;
-  scrollbar-gutter: stable;
-  padding-bottom: 4px;
-}
-
-/* Same fixed width as the section tables so columns align */
-.portfolio-total-section .portfolio-table {
-  width: max-content;
-  min-width: 1400px;
-  table-layout: fixed;
-}
-
-/* Hide the label header row — values are self-explanatory in the blue row */
+/* ===== Total section — same table, no extra wrapper needed ===== */
 .portfolio-total-section thead tr th {
   font-family: "Inter";
   font-weight: 500;
@@ -414,9 +398,10 @@
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* First two th (empty name + geography placeholders) */
 .portfolio-total-section thead tr th:first-child,
 .portfolio-total-section thead tr th:nth-child(2) {
   border-bottom: none;
@@ -435,12 +420,17 @@
   padding-left: 16px;
 }
 
-/* scrollbar same style as other tables */
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb !important; }
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8 !important; border-radius: 8px !important; }
-.portfolio-total-section .portfolio-table-scroll { scrollbar-width: auto !important; }
+/* ===== Misc ===== */
+.filter-btn { padding: 0; background: transparent; }
 
+.icon-circle-btn {
+  width: auto; height: auto; border-radius: 0;
+  background: transparent; border: none; padding: 0;
+  box-shadow: none; display: flex; align-items: center; justify-content: center;
+}
+.icon-circle-btn:hover { background: transparent; }
+
+/* ===== Toast ===== */
 .toast {
   position: fixed;
   right: 24px;

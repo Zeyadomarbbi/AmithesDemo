@@ -47,4 +47,5 @@ urlpatterns = router.urls + [
     path("pnl/<int:fund_id>/", PnLView.as_view(), name="pnl-get"),
     path("pnl/<int:fund_id>/value/", PnLValueUpsertView.as_view(), name="pnl-upsert-value"),
     path("pnl/<int:fund_id>/line-item/", PnLLineItemCreateView.as_view(), name="pnl-create-line-item"),
+    path("pnl/<int:fund_id>/line-item/<int:line_item_id>/", PnLLineItemCreateView.as_view(), name="pnl-line-item-detail"),
 ]

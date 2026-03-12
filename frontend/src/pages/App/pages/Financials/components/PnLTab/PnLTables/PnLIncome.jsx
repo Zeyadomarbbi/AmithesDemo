@@ -1,10 +1,9 @@
 // frontend/src/pages/App/pages/Financials/components/PnLTables/PnLIncome/PnLIncome.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { MinusIcon, PlusIcon, EditLineIcon, TrashBinIcon, KebabIcon, PlusIconWhite } from '/src/components/Icons/InteractiveIcons';
+import { MinusIcon, EditLineIcon, TrashBinIcon, KebabIcon, PlusIconWhite } from '/src/components/Icons/InteractiveIcons';
 import "./FinancialTables.css";
 
 const PnLIncome = ({
-  fundId,
   headerPeriods = [],
 
   showIncome,
@@ -20,29 +19,23 @@ const PnLIncome = ({
 
   onAddRow,
   onRemoveRow,
+
+  // Passed from PnLTab
+  onUpdateLineItem,
+  onDeleteLineItem,
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
-
-  // kebab dropdown open row id
   const [openMenuId, setOpenMenuId] = useState(null);
-
-  // IMPORTANT: single ref, but we bind it to the currently-open row only (fixes map/ref bug)
   const menuWrapRef = useRef(null);
 
-  // close menu on outside click / Esc
   useEffect(() => {
     if (!openMenuId) return;
-
     const onDocMouseDown = (e) => {
       if (!menuWrapRef.current) return;
       if (!menuWrapRef.current.contains(e.target)) setOpenMenuId(null);
     };
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setOpenMenuId(null);
-    };
-
+    const onKeyDown = (e) => { if (e.key === "Escape") setOpenMenuId(null); };
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
@@ -51,7 +44,6 @@ const PnLIncome = ({
     };
   }, [openMenuId]);
 
-  // keep draft synced when you switch rows
   useEffect(() => {
     if (!editingId) return;
     const line = incomeLines.find((l) => l.id === editingId);
@@ -63,15 +55,26 @@ const PnLIncome = ({
     setDraftLabel(line.label ?? "");
   };
 
-  const commitLabel = () => {
+  const commitLabel = async () => {
     if (!editingId) return;
+    const line = incomeLines.find((l) => l.id === editingId);
+    const newLabel = draftLabel;
 
     setIncomeLines((prev) =>
-      prev.map((l) => (l.id === editingId ? { ...l, label: draftLabel } : l))
+      prev.map((l) => (l.id === editingId ? { ...l, label: newLabel } : l))
     );
-
     setEditingId(null);
     setDraftLabel("");
+
+    if (line && !line.isCustom && Number.isFinite(Number(line.id))) {
+      try {
+        await onUpdateLineItem({ lineItemId: Number(line.id), name: newLabel });
+      } catch {
+        setIncomeLines((prev) =>
+          prev.map((l) => (l.id === line.id ? { ...l, label: line.label } : l))
+        );
+      }
+    }
   };
 
   const cancelEdit = () => {
@@ -79,25 +82,24 @@ const PnLIncome = ({
     setDraftLabel("");
   };
 
+  const handleDeleteRow = (line, index) => {
+    setOpenMenuId(null);
+    onDeleteLineItem({ lineItemId: line.id, isCustom: line.isCustom, index });
+  };
+
   const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
 
   return (
     <div className="pnl-income">
-      {/* ===== INCOME ROWS ===== */}
       {showIncome &&
         incomeLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
-          const rowClass =
-            index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
-
-          // ✅ ONLY the custom "Type here" row gets this marker class
+          const rowClass      = index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
           const typeHereClass = line.isCustom ? "detail-row--typehere" : "";
 
           return (
-            <div
-              className={`detail-row ${rowClass} ${typeHereClass}`}
-              key={line.id}
-            >
+            <div className={`detail-row ${rowClass} ${typeHereClass}`} key={line.id}>
+
               {/* LABEL */}
               <div className="detail-label">
                 {line.isCustom ? (
@@ -139,11 +141,10 @@ const PnLIncome = ({
                 )}
               </div>
 
-              {/* PERIOD INPUTS (DYNAMIC) */}
+              {/* PERIOD INPUTS */}
               {periods.map((p) => {
-                const pid = String(p.id);
+                const pid   = String(p.id);
                 const value = incomeValues[index]?.byPeriod?.[pid] ?? "";
-
                 return (
                   <div key={pid} className="detail-input-wrapper">
                     <input
@@ -154,16 +155,11 @@ const PnLIncome = ({
                       value={value}
                       onChange={(e) => {
                         const copy = [...incomeValues];
-                        const row = copy[index] || { byPeriod: {} };
-
+                        const row  = copy[index] || { byPeriod: {} };
                         copy[index] = {
                           ...row,
-                          byPeriod: {
-                            ...(row.byPeriod || {}),
-                            [pid]: e.target.value,
-                          },
+                          byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
                         };
-
                         setIncomeValues(copy);
                       }}
                     />
@@ -171,61 +167,45 @@ const PnLIncome = ({
                 );
               })}
 
-              {/* ACTIONS (ALWAYS LAST COLUMN) */}
+              {/* ACTIONS — kebab always far right */}
               <div className="pnl-row-actions">
-                {line.isCustom ? (
-                  <div
-                    className="pnl-kebab-wrap"
-                    ref={(el) => {
-                      // ✅ bind ref ONLY to the currently-open row
-                      if (openMenuId === line.id) menuWrapRef.current = el;
-                    }}
+                <div
+                  className="pnl-kebab-wrap"
+                  ref={(el) => { if (openMenuId === line.id) menuWrapRef.current = el; }}
+                >
+                  <button
+                    className="pnl-kebab"
+                    type="button"
+                    aria-label="Row actions"
+                    onClick={() => setOpenMenuId((prev) => prev === line.id ? null : line.id)}
                   >
-                    <button
-                      className="pnl-kebab"
-                      type="button"
-                      aria-label="Row actions"
-                      title="Actions"
-                      onClick={() =>
-                        setOpenMenuId((prev) =>
-                          prev === line.id ? null : line.id
-                        )
-                      }
-                    >
-                      <KebabIcon />
-                    </button>
+                    <KebabIcon />
+                  </button>
 
-                    {openMenuId === line.id && (
-                      <div
-                        className={`pnl-kebab-menu ${
-                          periods.length === 0 ? "pnl-kebab-menu--below" : ""
-                        }`}
-                        role="menu"
+                  {openMenuId === line.id && (
+                    <div
+                      className={`pnl-kebab-menu ${periods.length === 0 ? "pnl-kebab-menu--below" : ""}`}
+                      role="menu"
+                    >
+                      <button
+                        type="button"
+                        className="pnl-kebab-item pnl-kebab-delete"
+                        role="menuitem"
+                        onClick={() => handleDeleteRow(line, index)}
                       >
-                        <button
-                          type="button"
-                          className="pnl-kebab-item pnl-kebab-delete"
-                          role="menuitem"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            onRemoveRow(index);
-                          }}
-                        >
-                          <TrashBinIcon />
-                          Delete row
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span />
-                )}
+                        <TrashBinIcon />
+                        Delete row
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+
             </div>
           );
         })}
 
-      {/* ===== INCOME HEADER BAND (MOVED TO BOTTOM) ===== */}
+      {/* BLUE BAND */}
       <div className="group-row group-row--band">
         <div className="group-left">
           <button
@@ -233,13 +213,7 @@ const PnLIncome = ({
             type="button"
             onClick={() => setShowIncome((v) => !v)}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
               {showIncome ? <MinusIcon /> : <PlusIconWhite />}
             </span>
             Income
@@ -252,7 +226,6 @@ const PnLIncome = ({
           </div>
         ))}
 
-        {/* IMPORTANT: keep last column always there */}
         <div className="group-action-cell" />
       </div>
     </div>

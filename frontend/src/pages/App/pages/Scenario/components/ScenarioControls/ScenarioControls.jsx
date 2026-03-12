@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusIconWhite } from '/src/components/Icons/InteractiveIcons'; 
+import { PlusIconWhite, PlusIcon } from '/src/components/Icons/InteractiveIcons'; 
 import { PermissionGate } from '../../../../../../hooks/Auth/PermissionGate'; // Import PermissionGate
 import SearchBar from '../../../../../../components/SearchBar/SearchBar'
 import './ScenarioControls.css';

@@ -5,7 +5,7 @@ import useApi from "../../../../../../hooks/api/useApi";
 
 import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
-import NewInvestmentModal from "./components/NewInvestmentModal";
+import NewInvestmentModal from "./components/NewInvestmentModal/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
 import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
 import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
@@ -70,6 +70,21 @@ const safeXirr = (cashflows) => {
     return null;
   }
 };
+
+// Shared colgroup — must match tableHeaders column order exactly
+const SharedColGroup = () => (
+  <colgroup>
+    <col style={{ width: "220px" }} /> {/* Name */}
+    <col style={{ width: "140px" }} /> {/* Geography */}
+    <col style={{ width: "130px" }} /> {/* Cost */}
+    <col style={{ width: "190px" }} /> {/* Dividends / Interests */}
+    <col style={{ width: "220px" }} /> {/* MOIC LC */}
+    <col style={{ width: "200px" }} /> {/* MOIC EUR */}
+    <col style={{ width: "150px" }} /> {/* Gross IRR */}
+    <col style={{ width: "160px" }} /> {/* Fair Value */}
+    <col style={{ width: "160px" }} /> {/* Gain */}
+  </colgroup>
+);
 
 function PortfolioSummaryTabContent() {
   const api = useApi();
@@ -317,7 +332,7 @@ function PortfolioSummaryTabContent() {
     ]);
   };
 
-  const renderTableBody = (rows, calcGainLabel) => (
+  const renderTableBody = (rows) => (
     <>
       {rows.map((r) => (
         <tr key={r.id}>
@@ -391,51 +406,51 @@ function PortfolioSummaryTabContent() {
         </div>
       </div>
 
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Unrealized portfolio<span className="portfolio-count">{unrealizedRows.length}</span></h2>
-          </div>
-          <div className="portfolio-table-scroll">
+      {/* ── Single shared horizontal scroll container for all 4 tables ── */}
+      <div className="portfolio-tables-scroll-container">
+
+        <section className="portfolio-section">
+          <div className="portfolio-table-card">
+            <div className="portfolio-section-header">
+              <h2>Unrealized portfolio<span className="portfolio-count">{unrealizedRows.length}</span></h2>
+            </div>
             <table className="portfolio-table">
+              <SharedColGroup />
               <thead>{tableHeaders("Unrealized Gain")}</thead>
               <tbody>{renderTableBody(unrealizedRows)}{renderSubtotalRow(unrealizedSubtotal)}</tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Realized portfolio<span className="portfolio-count">{realizedRows.length}</span></h2>
-          </div>
-          <div className="portfolio-table-scroll">
+        </section>
+        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+        <section className="portfolio-section">
+          <div className="portfolio-table-card">
+            <div className="portfolio-section-header">
+              <h2>Realized portfolio<span className="portfolio-count">{realizedRows.length}</span></h2>
+            </div>
             <table className="portfolio-table">
+              <SharedColGroup />
               <thead>{tableHeaders("Realized Gain")}</thead>
               <tbody>{renderTableBody(realizedRows)}{renderSubtotalRow(realizedSubtotal)}</tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Unallocated portfolio<span className="portfolio-count">{unallocatedRows.length}</span></h2>
-          </div>
-          <div className="portfolio-table-scroll">
+        </section>
+        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+        <section className="portfolio-section">
+          <div className="portfolio-table-card">
+            <div className="portfolio-section-header">
+              <h2>Unallocated portfolio<span className="portfolio-count">{unallocatedRows.length}</span></h2>
+            </div>
             <table className="portfolio-table">
+              <SharedColGroup />
               <thead>{tableHeaders("Unallocated Gain")}</thead>
               <tbody>{renderTableBody(unallocatedRows)}{renderSubtotalRow(unallocatedSubtotal)}</tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      <section className="portfolio-total-section">
-        <div className="portfolio-table-scroll">
+        </section>
+        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+        <section className="portfolio-total-section">
           <table className="portfolio-table total-table">
+            <SharedColGroup />
             <thead>
               <tr>
                 <th></th>
@@ -462,8 +477,9 @@ function PortfolioSummaryTabContent() {
               </tr>
             </tbody>
           </table>
-        </div>
-      </section>
+        </section>
+
+      </div>{/* end .portfolio-tables-scroll-container */}
 
       {isNewInvestmentOpen && (
         <NewInvestmentModal onClose={() => setIsNewInvestmentOpen(false)} onSave={handleAddInvestment} />

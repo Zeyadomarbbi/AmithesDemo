@@ -309,7 +309,7 @@ export default function OperationPanel({
 
   const stepTabs = useMemo(
     () => [
-      { step: 1, label: "Informations" },
+      { step: 1, label: "Information" },
       { step: 2, label: "Flows" },
       { step: 3, label: "Breakdown" },
       { step: 4, label: "Notice" },

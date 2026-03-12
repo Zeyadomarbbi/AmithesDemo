@@ -23,7 +23,7 @@
   display: grid;
   grid-template-columns:
     var(--pnl-label-col)
-    repeat(var(--pnl-cols), minmax(160px, 1fr))
+    repeat(var(--pnl-cols), var(--pnl-period-col))
     var(--pnl-actions-col);
   align-items: center;
   box-sizing: border-box;
@@ -114,7 +114,7 @@
   display: grid;
   grid-template-columns:
     var(--pnl-label-col)
-    repeat(var(--pnl-cols), minmax(160px, 1fr))
+    repeat(var(--pnl-cols), var(--pnl-period-col))
     var(--pnl-actions-col);
   align-items: center;
 
@@ -202,6 +202,7 @@
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  justify-self: center;
 }
 
 .pnl-income .amount-input,
@@ -322,18 +323,25 @@
 }
 
 /* lock to last grid column */
-.pnl-income .pnl-row-actions {
+/* lock to last grid column */
+.pnl-income .pnl-row-actions,
+.pnl-expenses .pnl-row-actions,
+.pnl-tax .pnl-row-actions {
   justify-self: end;
   min-width: var(--pnl-actions-col);
 }
 
 /* menu/dots never clipped */
-.pnl-income .pnl-kebab-wrap {
+.pnl-income .pnl-kebab-wrap,
+.pnl-expenses .pnl-kebab-wrap,
+.pnl-tax .pnl-kebab-wrap {
   overflow: visible;
 }
 
 /* last column */
-.pnl-income .group-action-cell {
+.pnl-income .group-action-cell,
+.pnl-expenses .group-action-cell,
+.pnl-tax .group-action-cell {
   min-width: var(--pnl-actions-col);
 }
 

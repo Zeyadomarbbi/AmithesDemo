@@ -62,13 +62,31 @@ function PnLTabContent() {
 
   const { quarters, isLoading } = useTimeframeContext();
   const [toast, setToast] = useState(null);
+  const [defaultApplied, setDefaultApplied] = useState(false);
 
   const selectedTimeframeIds = useMemo(() => {
     const qp = new URLSearchParams(location.search);
     return qp.get("timeframes")?.split(",").map(Number).filter((id) => !isNaN(id)) || [];
   }, [location.search]);
 
-  const { fetchPnL, upsertValue, createLineItem } = usePnLApi(effectiveFundId);
+  useEffect(() => {
+    if (defaultApplied) return;
+    if (isLoading || !quarters?.length) return;
+    if (selectedTimeframeIds.length > 0) { setDefaultApplied(true); return; }
+
+    const sorted = [...quarters].sort(
+      (a, b) => new Date(a.full_date || a.date) - new Date(b.full_date || b.date)
+    );
+    const latest = sorted[sorted.length - 1];
+    if (!latest?.id) return;
+
+    const qp = new URLSearchParams(location.search);
+    qp.set("timeframes", String(latest.id));
+    navigate({ search: qp.toString() }, { replace: true });
+    setDefaultApplied(true);
+  }, [quarters, isLoading, selectedTimeframeIds, defaultApplied, location.search, navigate]);
+
+  const { fetchPnL, upsertValue, createLineItem, updateLineItem, deleteLineItem } = usePnLApi(effectiveFundId);
   const { fileInputRef, uploading, handleUploadClick, handleFileSelected } = usePnLUpload(effectiveFundId, selectedTimeframeIds);
 
   const setTimeframesInUrl = (ids) => {
@@ -89,19 +107,19 @@ function PnLTabContent() {
     }
   };
 
-  const [showIncome, setShowIncome] = useState(true);
+  const [showIncome, setShowIncome]   = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
-  const [showTax, setShowTax] = useState(true);
+  const [showTax, setShowTax]         = useState(true);
 
-  const [incomeLines, setIncomeLines] = useState([]);
-  const [expenseLines, setExpenseLines] = useState([]);
-  const [taxLines, setTaxLines] = useState([]);
-  const [incomeValues, setIncomeValues] = useState([]);
+  const [incomeLines,   setIncomeLines]   = useState([]);
+  const [expenseLines,  setExpenseLines]  = useState([]);
+  const [taxLines,      setTaxLines]      = useState([]);
+  const [incomeValues,  setIncomeValues]  = useState([]);
   const [expenseValues, setExpenseValues] = useState([]);
-  const [taxValues, setTaxValues] = useState([]);
+  const [taxValues,     setTaxValues]     = useState([]);
 
   const [pnlLoading, setPnlLoading] = useState(false);
-  const [pnlError, setPnlError] = useState("");
+  const [pnlError,   setPnlError]   = useState("");
 
   const sortedQuarters = useMemo(() => {
     const list = Array.isArray(quarters) ? quarters : [];
@@ -118,40 +136,40 @@ function PnLTabContent() {
   }, [sortedQuarters, selectedTimeframeIds]);
 
   const loadPnL = useCallback(async () => {
-    if (!effectiveFundId) return;
-    setPnlLoading(true);
-    setPnlError("");
-    try {
-      const data = await fetchPnL(selectedTimeframeIds);
-      const normalizeLines = (arr) =>
-        (arr || []).map((x) => ({
-          ...x,
-          id: x.line_item_id,
-          label: x.name ?? x.label ?? "",
-          isCustom: false,
-        }));
-      const incLines = normalizeLines(data.incomeLines);
-      const expLines = normalizeLines(data.expenseLines);
-      const taxLs    = normalizeLines(data.taxLines);
-      setIncomeLines(incLines);
-      setExpenseLines(expLines);
-      setTaxLines(taxLs);
-      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
-      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
-      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
-    } catch (e) {
-      setPnlError(e?.message || "Failed to load PnL");
-    } finally {
-      setPnlLoading(false);
-    }
-  }, [effectiveFundId, selectedTimeframeIds, fetchPnL]);
+    if (!effectiveFundId) return;
+    setPnlLoading(true);
+    setPnlError("");
+    try {
+      const data = await fetchPnL(); // Fetch all data; remove selectedTimeframeIds
+      const normalizeLines = (arr) =>
+        (arr || []).map((x) => ({
+          ...x,
+          id: x.line_item_id,
+          label: x.name ?? x.label ?? "",
+          isCustom: false,
+        }));
+      const incLines = normalizeLines(data.incomeLines);
+      const expLines = normalizeLines(data.expenseLines);
+      const taxLs    = normalizeLines(data.taxLines);
+      setIncomeLines(incLines);
+      setExpenseLines(expLines);
+      setTaxLines(taxLs);
+      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
+      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
+      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
+    } catch (e) {
+      setPnlError(e?.message || "Failed to load PnL");
+    } finally {
+      setPnlLoading(false);
+    }
+  }, [effectiveFundId, fetchPnL]);
 
   useEffect(() => { loadPnL(); }, [loadPnL]);
 
   useEffect(() => {
-    setIncomeValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
+    setIncomeValues((prev)  => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
     setExpenseValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
-    setTaxValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
+    setTaxValues((prev)     => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
   }, [headerPeriods]);
 
   const totalIncomeByPeriod = useMemo(() => {
@@ -176,39 +194,49 @@ function PnLTabContent() {
     const out = {};
     headerPeriods.forEach((p) => {
       out[p.id] =
-        Number(totalIncomeByPeriod[p.id] || 0) -
+        Number(totalIncomeByPeriod[p.id]   || 0) -
         Number(totalExpensesByPeriod[p.id] || 0) -
-        Number(totalTaxByPeriod[p.id] || 0);
+        Number(totalTaxByPeriod[p.id]      || 0);
     });
     return out;
   }, [headerPeriods, totalIncomeByPeriod, totalExpensesByPeriod, totalTaxByPeriod]);
 
-  const addIncomeRow = () => {
-    setIncomeLines((prev) => [...prev, { id: makeId("inc"), label: "", isCustom: true }]);
-    setIncomeValues((prev) => [...(Array.isArray(prev) ? prev : []), { byPeriod: {} }]);
-  };
-  const removeIncomeRow = (index) => {
-    setIncomeLines((prev) => prev.filter((_, i) => i !== index));
-    setIncomeValues((prev) => prev.filter((_, i) => i !== index));
-  };
+  const addIncomeRow  = () => { setIncomeLines((p)  => [...p,  { id: makeId("inc"), label: "", isCustom: true }]); setIncomeValues((p)  => [...(Array.isArray(p) ? p : []), { byPeriod: {} }]); };
+  const addExpenseRow = () => { setExpenseLines((p) => [...p,  { id: makeId("exp"), label: "", isCustom: true }]); setExpenseValues((p) => [...(Array.isArray(p) ? p : []), { byPeriod: {} }]); };
+  const addTaxRow     = () => { setTaxLines((p)     => [...p,  { id: makeId("tax"), label: "", isCustom: true }]); setTaxValues((p)     => [...(Array.isArray(p) ? p : []), { byPeriod: {} }]); };
 
-  const addExpenseRow = () => {
-    setExpenseLines((prev) => [...prev, { id: makeId("exp"), label: "", isCustom: true }]);
-    setExpenseValues((prev) => [...(Array.isArray(prev) ? prev : []), { byPeriod: {} }]);
-  };
-  const removeExpenseRow = (index) => {
-    setExpenseLines((prev) => prev.filter((_, i) => i !== index));
-    setExpenseValues((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeIncomeRow  = (i) => { setIncomeLines((p)  => p.filter((_, j) => j !== i)); setIncomeValues((p)  => p.filter((_, j) => j !== i)); };
+  const removeExpenseRow = (i) => { setExpenseLines((p) => p.filter((_, j) => j !== i)); setExpenseValues((p) => p.filter((_, j) => j !== i)); };
+  const removeTaxRow     = (i) => { setTaxLines((p)     => p.filter((_, j) => j !== i)); setTaxValues((p)     => p.filter((_, j) => j !== i)); };
 
-  const addTaxRow = () => {
-    setTaxLines((prev) => [...prev, { id: makeId("tax"), label: "", isCustom: true }]);
-    setTaxValues((prev) => [...(Array.isArray(prev) ? prev : []), { byPeriod: {} }]);
-  };
-  const removeTaxRow = (index) => {
-    setTaxLines((prev) => prev.filter((_, i) => i !== index));
-    setTaxValues((prev) => prev.filter((_, i) => i !== index));
-  };
+  // ── Shared line item actions — defined once, passed down as props ──────────
+
+  const handleUpdateLineItem = useCallback(async ({ lineItemId, name }) => {
+    if (!Number.isFinite(Number(lineItemId))) return;
+    try {
+      await updateLineItem({ lineItemId: Number(lineItemId), name });
+    } catch (err) {
+      console.error("Failed to update line item:", err);
+      setToast({ type: "error", title: "Update Failed", message: err?.message || "Could not update line item." });
+      throw err; // re-throw so the child can rollback
+    }
+  }, [updateLineItem]);
+
+  const handleDeleteLineItem = useCallback(async ({ lineItemId, isCustom, index, setLines, setValues }) => {
+    if (!isCustom && Number.isFinite(Number(lineItemId))) {
+      try {
+        await deleteLineItem({ lineItemId: Number(lineItemId) });
+      } catch (err) {
+        console.error("Failed to delete line item:", err);
+        setToast({ type: "error", title: "Delete Failed", message: err?.message || "Could not delete line item." });
+        return; // abort — don't remove from UI
+      }
+    }
+    setLines((prev)  => prev.filter((_, i) => i !== index));
+    setValues((prev) => prev.filter((_, i) => i !== index));
+  }, [deleteLineItem]);
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleDownload = () => {
     const periodHeaders = headerPeriods.map((p) => getPeriodLabel(p));
@@ -400,6 +428,8 @@ function PnLTabContent() {
                   incomeValues={incomeValues} setIncomeValues={setIncomeValues}
                   totalIncomeByPeriod={totalIncomeByPeriod}
                   onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow}
+                  onUpdateLineItem={handleUpdateLineItem}
+                  onDeleteLineItem={(args) => handleDeleteLineItem({ ...args, setLines: setIncomeLines, setValues: setIncomeValues })}
                 />
               </div>
             </div>
@@ -417,6 +447,8 @@ function PnLTabContent() {
                   expenseValues={expenseValues} setExpenseValues={setExpenseValues}
                   totalExpensesByPeriod={totalExpensesByPeriod}
                   onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow}
+                  onUpdateLineItem={handleUpdateLineItem}
+                  onDeleteLineItem={(args) => handleDeleteLineItem({ ...args, setLines: setExpenseLines, setValues: setExpenseValues })}
                 />
               </div>
             </div>
@@ -434,6 +466,8 @@ function PnLTabContent() {
                   taxValues={taxValues} setTaxValues={setTaxValues}
                   totalTaxByPeriod={totalTaxByPeriod}
                   onAddRow={addTaxRow} onRemoveRow={removeTaxRow}
+                  onUpdateLineItem={handleUpdateLineItem}
+                  onDeleteLineItem={(args) => handleDeleteLineItem({ ...args, setLines: setTaxLines, setValues: setTaxValues })}
                 />
               </div>
             </div>

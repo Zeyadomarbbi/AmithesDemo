@@ -49,9 +49,9 @@ export default function NewLimitDrawer({ open, onClose, onSave }) {
         {/* BODY */}
         <div className="new-limit-body">
 
-          {/* General informations */}
+          {/* General information */}
           <section className="new-limit-section">
-            <div className="new-limit-section-label">General informations</div>
+            <div className="new-limit-section-label">General information</div>
 
             <div className="new-limit-field">
               <label className="new-limit-label">Name*</label>
