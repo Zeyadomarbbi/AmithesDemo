@@ -28,20 +28,11 @@ export const AuthProvider = ({ children }) => {
 
   // 2. Login Action (Updates global state)
   const loginAction = async (email, password) => {
-    try {
-      const data = await api.post('/api/login/', { email, password });
-      
-      // 1. Save to storage first
-      localStorage.setItem('amethis_user', JSON.stringify(data.user));
-      
-      // 2. Set the user state
-      setUser(data.user);
-      
-      // 3. Return the data so the LoginPage can navigate
-      return data;
-    } catch (err) {
-      throw err;
-    }
+    await api.get('/api/csrf/');  // force CSRF cookie before login POST
+    const data = await api.post('/api/login/', { email, password });
+    localStorage.setItem('amethis_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
   };
 
   // 3. Logout Action (Clears global state)
