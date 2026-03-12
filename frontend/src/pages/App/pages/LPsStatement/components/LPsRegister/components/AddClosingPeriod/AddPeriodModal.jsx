@@ -47,7 +47,7 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
     const parsedDate = parseDateString(endDate);
     if (!parsedDate) return;
 
-    const isoDate = parsedDate.toISOString().split('T')[0];
+    const isoDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
 
     try {
       const payload = {

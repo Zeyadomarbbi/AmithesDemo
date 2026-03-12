@@ -39,7 +39,7 @@ const LPsDashboard = ({
                   columnKey="displayClass"
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
-                  center={true}
+                  center={false}
                   showCurrency={false}
                 />
               </th>

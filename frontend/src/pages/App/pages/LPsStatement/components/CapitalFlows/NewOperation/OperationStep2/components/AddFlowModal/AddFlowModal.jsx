@@ -1,5 +1,7 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewOperation/AddFlowModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { CloseIcon } from "../../../../../../Icons";
+import SearchableSelect from "../../../../../../../../../../components/SearchBar/SearchableSelect";
 import "./AddFlowModal.css";
 
 export default function AddFlowModal({ 
@@ -12,9 +14,7 @@ export default function AddFlowModal({
   const [flowName, setFlowName] = useState("");
   const [flowTypeId, setFlowTypeId] = useState("");
   const [flowTypeName, setFlowTypeName] = useState("");
-  const [alignAll, setAlignAll] = useState(false);
-  const [typeOpen, setTypeOpen] = useState(false);
-
+  const [alignAll, setAlignAll] = useState(true);
   // Normalize data from props
   const options = useMemo(() => {
     const arr = Array.isArray(flowTypes) ? flowTypes : [];
@@ -56,15 +56,15 @@ export default function AddFlowModal({
     <div className="af-backdrop">
       <div className="af-modal">
         <div className="af-header">
-          <h3 className="af-title">Add new flow</h3>
           <button
             className="af-close"
             onClick={onClose}
             type="button"
             disabled={isSaving}
           >
-            ×
+            <CloseIcon />
           </button>
+          <h3 className="af-title">Add new flow</h3>
         </div>
 
         <div className="af-body">
@@ -82,48 +82,20 @@ export default function AddFlowModal({
 
           <div className="af-field">
             <label className="af-label">Type of flow*</label>
-            <div className="af-select-wrap">
-              <button
-                type="button"
-                className={`af-select ${typeOpen ? "is-open" : ""}`}
-                onClick={() => !disabled && setTypeOpen((v) => !v)}
-                aria-haspopup="listbox"
-                aria-expanded={typeOpen}
-                disabled={disabled}
-              >
-                <span>
-                  {isLoadingTypes ? "Loading types..." : selectedLabel}
-                </span>
-                <span className="af-select-arrow">▾</span>
-              </button>
-
-              {typeOpen && !disabled && (
-                <div className="af-select-menu" role="listbox">
-                  {options.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={`af-select-option ${
-                        opt.id === flowTypeId ? "is-selected" : ""
-                      }`}
-                      onClick={() => {
-                        setFlowTypeId(opt.id);
-                        setFlowTypeName(opt.name);
-                        setTypeOpen(false);
-                      }}
-                    >
-                      {opt.name}
-                    </button>
-                  ))}
-
-                  {options.length === 0 && !isLoadingTypes && (
-                    <div className="af-select-option" style={{ cursor: "default" }}>
-                      No flow types found
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <SearchableSelect
+              options={options}
+              value={flowTypeId}
+              onChange={(val) => {
+                setFlowTypeId(val);
+                const found = options.find(o => o.id === val);
+                setFlowTypeName(found?.name || "");
+              }}
+              placeholder={isLoadingTypes ? "Loading types..." : "Choose flow type"}
+              labelKey="name"
+              valueKey="id"
+              disabled={disabled}
+              triggerClassName="af-input"
+            />
           </div>
 
           <label className="af-checkbox">
@@ -133,7 +105,7 @@ export default function AddFlowModal({
               onChange={(e) => setAlignAll(e.target.checked)}
               disabled={disabled}
             />
-            <span>Align all LPs</span>
+            <label className="af-label">Align all LPs</label>
           </label>
         </div>
 

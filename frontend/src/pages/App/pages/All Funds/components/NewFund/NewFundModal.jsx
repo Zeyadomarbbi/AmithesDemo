@@ -51,15 +51,15 @@ export default function NewFundModal({ open, onClose, onCreate }) {
     <div className="nf-backdrop" onClick={onClose}>
       <div className="nf-modal" onClick={stopClick}>
         <div className="nf-header">
-          <h2 className="nf-title">Create new fund</h2>
           <button
             type="button"
             className="nf-close"
             onClick={onClose}
             aria-label="Close"
           >
-            < CloseIcon />
+            <CloseIcon />
           </button>
+          <h2 className="nf-title">Create new fund</h2>
         </div>
 
         <div className="nf-body">

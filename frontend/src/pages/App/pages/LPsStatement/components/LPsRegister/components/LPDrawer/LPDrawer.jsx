@@ -56,7 +56,7 @@ export default function LPDrawer({
   /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);
-
+  const [isExpanded, setIsExpanded] = useState(false);
   /* --- Reset Form on Open --- */
   useEffect(() => {
       if (!isEdit) return;
@@ -91,6 +91,7 @@ export default function LPDrawer({
               swift: lp.swift || "",
           });
       }
+      if (!open) setIsExpanded(false);
   }, [open, lp, isEdit]);
 
   /* --- Handlers --- */
@@ -187,7 +188,10 @@ export default function LPDrawer({
 
   return (
     <div className="lp-drawer-backdrop" onClick={onClose}>
-      <aside className="lp-drawer" onClick={(e) => e.stopPropagation()}>
+      <aside 
+        className={`lp-drawer ${isExpanded ? "lp-drawer--expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* HEADER */}
         <header className="lp-drawer-header">
@@ -195,7 +199,8 @@ export default function LPDrawer({
             <button 
               type="button" 
               className="lp-drawer-back-btn" 
-              onClick={onClose}
+              onClick={() => setIsExpanded(prev => !prev)}
+              style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
             >
               <ChevronDoubleLeftIcon />
             </button>

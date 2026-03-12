@@ -10,6 +10,7 @@
   justify-content: center;
   z-index: 60;
   padding: 20px; /* Prevents touching screen edges */
+  overflow-y: auto;
 }
 
 /* =========================
@@ -25,7 +26,7 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* Moved here to allow the entire modal to scroll if needed */
+  overflow: visible; /* Moved here to allow the entire modal to scroll if needed */
 }
 
 /* =========================
@@ -33,14 +34,16 @@
    ========================= */
 .nf-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-end;
   margin-bottom: 24px;
   flex-shrink: 0;
 }
 
+
 .nf-title {
   margin: 0;
+  align-self: flex-start;
   font-size: 18px;
   font-weight: 600;
   color: #111827;

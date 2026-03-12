@@ -2,6 +2,7 @@
 import React from "react";
 import DateInputWithPicker from "../../../../../../../components/DateComponents/DateInput.jsx"; 
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./Phase.css";
 
 const Phase2 = ({ phaseName, values, onChange }) => {
@@ -47,6 +48,7 @@ const Phase2 = ({ phaseName, values, onChange }) => {
             <div className="mgmt-date-input">
               <input
                 type="number"
+                onWheel={noScroll}
                 className="mgmt-date-input-inner"
                 value={values.rate}
                 onChange={handleRateChange}

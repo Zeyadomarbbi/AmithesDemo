@@ -160,7 +160,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
               <input
                 type="number"
                 className="field-input-inner"
-                placeholder="0,000.00"
+                placeholder="ex: 1000"
                 value={shareValue}
                 onChange={(e) => setShareValue(e.target.value)}
               />

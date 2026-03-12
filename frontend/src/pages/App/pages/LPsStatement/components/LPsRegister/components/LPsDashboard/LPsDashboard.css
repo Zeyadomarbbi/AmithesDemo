@@ -33,12 +33,18 @@
 
 .lp-table thead th {
   padding: 12px 14px;
-  font-weight: 600;
-  color: #212833;
+  color: #1C1917;
   border-bottom: 1px solid #e6e9f1;
   white-space: nowrap;
   background: #f9fafb;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
 }
+
+
 
 .th-left {
   text-align: left;

@@ -1,5 +1,6 @@
 import React from "react";
 import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
 import { EuroCurrencyIcon, MoreActionsButton } from "../../../../../Icons.jsx";
 
 export default function TranchCard({ 
@@ -18,7 +19,8 @@ export default function TranchCard({
   onSaveTranche,
   totalTranches 
 }) {
-  console.log("periods", periods);
+  const formatNumber = useNumberFormatter();
+
   const updateField = (field) => (val) => {
     onUpdateField(realIndex, field)({ target: { value: val } });
   };
@@ -47,7 +49,7 @@ export default function TranchCard({
         <div className="mini-row-column">
           <span className="mini-row-label">Amount</span>
           <span className="mini-row-value">
-            {tranch.commitment ? `${Number(tranch.commitment).toLocaleString("fr-FR")} ${selectedCurrency?.symbol || ""}` : "-"}
+            {tranch.commitment ? `${formatNumber(tranch.commitment)} ${selectedCurrency?.symbol || ""}` : "-"}
           </span>
         </div>
         <div className="mini-row-column">
@@ -109,6 +111,8 @@ export default function TranchCard({
               type="number"
               value={tranch.commitment}
               onChange={onUpdateField(realIndex, "commitment")}
+              onWheel={(e) => e.target.blur()}
+              placeholder="0.00"
               disabled={isSubmitting}
             />
             <span className="lp-drawer-field-icon-suffix">

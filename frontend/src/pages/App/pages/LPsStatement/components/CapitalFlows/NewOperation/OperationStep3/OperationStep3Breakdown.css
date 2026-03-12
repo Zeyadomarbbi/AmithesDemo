@@ -16,7 +16,7 @@
 .op3-table {
   border-collapse: collapse;
   width: 100%;
-  max-width: 1220px;
+  max-width: none; /* was 1220px */
   font-size: 14px;
   background: #ffffff;
 }
@@ -146,13 +146,13 @@
 
 .op3-scroll-x {
   width: 100%;
-  max-width: 1220px;
+  max-width: 100%; /* was 1220px */
   overflow-x: auto;
 }
 
 .op3-table--wide {
   width: max-content;
-  min-width: 1220px;
+  min-width: 100%;
   max-width: none;
 }
 

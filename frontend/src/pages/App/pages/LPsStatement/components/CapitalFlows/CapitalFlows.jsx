@@ -8,7 +8,7 @@ import OperationPanel from "./NewOperation/OperationPanel.jsx";
 import { useFlowTypes } from "../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useOperationDetails } from "../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
 import { useCapitalFlowLPOperationAllocation } from "../../../../hooks/LPsStatement/useCapitalFlowLPOperationAllocation.js";
-import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import "./CapitalFlows.css";
 
 export default function CapitalFlows() {
@@ -17,7 +17,6 @@ export default function CapitalFlows() {
   const shareClasses = outlet.shareClasses || [];
   const fundId = outlet.fundId;
   const commitments = outlet.commitments;
-  console.log("[CapitalFlows] outlet:", outlet);
   const [operationFilter, setOperationFilter] = useState("All operations");
   const [search, setSearch] = useState("");
   const [breakdown, setBreakdown] = useState("operations");
@@ -25,7 +24,6 @@ export default function CapitalFlows() {
   const [opOpen, setOpOpen] = useState(false);
   const [opMode, setOpMode] = useState("new");
   const [selectedOp, setSelectedOp] = useState(null);
-
   const { 
     operations, 
     loading: opsLoading, 
@@ -100,6 +98,26 @@ export default function CapitalFlows() {
         <PageSpinner label="Loading capital flows..." />
       ) : pageError ? (
         <PageError message={pageError} />
+      ) : operations.length === 0 ? (
+        <>
+          <div className="cf-row cf-row--filters-newop">
+            <FlowFilters
+              variant="chipsOnly"
+              operationFilter={operationFilter}
+              setOperationFilter={setOperationFilter}
+              search={search}
+              setSearch={setSearch}
+            />
+            <FlowHeader
+              variant="buttonOnly"
+              onNewOperation={handleNewOperation}
+              operationFilter={operationFilter}
+              breakdown={breakdown}
+              setBreakdown={setBreakdown}
+            />
+          </div>
+          <PageNoData message="No capital flow operations found for this fund." />
+        </>
       ) : (
         <>
           <div className="cf-row cf-row--filters-newop">
@@ -118,7 +136,6 @@ export default function CapitalFlows() {
               setBreakdown={setBreakdown}
             />
           </div>
-
           <FlowTable
             operationFilter={operationFilter}
             search={search}

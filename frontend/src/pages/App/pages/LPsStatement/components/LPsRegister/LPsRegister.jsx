@@ -14,7 +14,6 @@ import { PageSpinner, PageError } from "../../../../../../components/LoadingScre
 import { useCountries } from "../../../../hooks/Reference/useCountries.js";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods.jsx";
-import { useShareClasses } from "../../../../hooks/useShareClass.js";
 import { useLimitedPartners } from "../../../../hooks/LPsStatement/useLimitedPartners.jsx";
 import { useLimitedPartnerFundCommitment } from "../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
 import "./LPsRegister.css";

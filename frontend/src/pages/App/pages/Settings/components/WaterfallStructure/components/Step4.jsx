@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./Steps.css";
 
 const Step4 = ({ values, onChange, shareClasses = [] }) => {
@@ -130,6 +131,7 @@ const Step4 = ({ values, onChange, shareClasses = [] }) => {
               <div className="wf-field-input wf-input-with-unit">
                 <input
                   type="number"
+                  onWheel={noScroll}
                   className="wf-text-input-inner"
                   value={env.allocation || ""}
                   onChange={(e) => handleEnvelopeAllocationChange(index, e.target.value)}

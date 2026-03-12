@@ -25,6 +25,7 @@ function SidePanel() {
   
   const location = useLocation();
   const navigate = useNavigate();
+  const fundSelectorRef = useRef(null);
 
   const pathSegments = location.pathname.split('/');
   const currentSection = pathSegments[1] === 'funds' && pathSegments[3] 
@@ -56,6 +57,9 @@ function SidePanel() {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
+      }
+      if (fundSelectorRef.current && !fundSelectorRef.current.contains(event.target)) {
+        setIsFundSelectorOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -98,7 +102,8 @@ function SidePanel() {
         </div>
 
         <div className="frame-1-2">
-          <div className="fund-selector-container">
+          <div className="fund-selector-container" ref={fundSelectorRef}>
+
             <div className="fund-selector-button">
               <div className="fund-info-section">
                 <span className="side-panel-fund-name">
@@ -118,17 +123,14 @@ function SidePanel() {
 
               <div 
                 className={`dropdown-arrow-icon ${isFundSelectorOpen ? 'open' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation(); 
-                  setIsFundSelectorOpen(!isFundSelectorOpen);
-                }}
+                onClick={() => setIsFundSelectorOpen(!isFundSelectorOpen)}
               >
                 <ChevronDownIconWhite />
               </div>
             </div>
             
             {isFundSelectorOpen && (
-              <div className="fund-selector-dropdown" onClick={(e) => e.stopPropagation()}>
+              <div className="fund-selector-dropdown">
                 
                 <div className="side-panel-search-wrapper">
                   <SearchBar 

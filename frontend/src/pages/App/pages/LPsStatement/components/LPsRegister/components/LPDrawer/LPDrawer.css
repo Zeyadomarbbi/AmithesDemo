@@ -59,6 +59,18 @@
   z-index: 50; 
 }
 
+.lp-drawer--expanded {
+  width: calc(100% - 280px) !important;
+}
+
+.lp-drawer-back-btn .chevron-icon {
+  transition: transform 0.3s ease;
+}
+
+.lp-drawer--expanded .lp-drawer-back-btn .chevron-icon {
+  transform: rotate(180deg);
+}
+
 /* ========= HEADER ========= */
 .lp-drawer-header {
   flex-shrink: 0;

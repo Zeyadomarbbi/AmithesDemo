@@ -7,7 +7,7 @@ import React, {
   useEffect
 } from "react";
 import { useOutletContext } from "react-router-dom";
-import AddFlowModal from "./components/AddFlowModal.jsx";
+import AddFlowModal from "./components/AddFlowModal/AddFlowModal.jsx";
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
 import "./OperationStep2.css";
@@ -123,6 +123,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const fundId = fundIdProp ?? outlet.fundId;
   const opKind = useMemo(() => {
     const t = String(operationType || "").toLowerCase();
+    if (t.includes("equalization") && t.includes("capital")) return "equalization";
     if (t.includes("equalization")) return "equalization";
     if (t.includes("distribution")) return "distribution";
     return "capital_call";
@@ -133,10 +134,36 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const totalsLabel = isDistribution ? "Distributed Amount (€)" : "Call Amount (€)";
   const { flowTypes, fetchFlowTypes, isLoading: isLoadingTypes } = useFlowTypes();
   const { flows: fetchedFlows, fetchFlows, isLoading: isLoadingCFFlowDetails } = useCapitalFlowFlowDetails(fundId, operationId);
+  const CAPITAL_CALL_NAMES = new Set([
+    "investment",
+    "due diligence fees",
+    "management fees",
+    "opex",
+    "other (capital call)",
+    "structuring fees",
+    "rounding",
+  ]);
+
+  const DISTRIBUTION_NAMES = new Set([
+    "divestment",
+    "dividends",
+    "interests",
+    "other (distribution)",
+    "other expenses",
+  ]);
+
   const filteredFlowTypes = useMemo(() => {
     const arr = Array.isArray(flowTypes) ? flowTypes : [];
-    if (opKind === "equalization") return arr;
-    return arr.filter(t => !String(t?.name || "").toLowerCase().includes("equalization"));
+
+    if (opKind === "capital_call" || opKind === "equalization") {
+      return arr.filter(t => CAPITAL_CALL_NAMES.has(String(t?.name || "").toLowerCase().trim()));
+    }
+
+    if (opKind === "distribution") {
+      return arr.filter(t => DISTRIBUTION_NAMES.has(String(t?.name || "").toLowerCase().trim()));
+    }
+
+    return arr;
   }, [flowTypes, opKind]);
 
   useEffect(() => {
@@ -201,6 +228,36 @@ const OperationStep2 = forwardRef(function OperationStep2(
     }
   }, [fetchedFlows, flowTypes, setDraft]);
 
+  useEffect(() => {
+    if (opKind !== "equalization") return;
+    if (isLoadingTypes || !flowTypes?.length) return;
+
+    const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
+      (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
+    )?.flow_type_id ?? null;
+
+    const alreadyHasEq = (draft?.flows ?? []).some(f => f.isSyntheticEqualization);
+    
+    console.log("EQ inject check:", { eqFlowTypeId, alreadyHasEq, draftFlows: draft?.flows });
+
+    if (alreadyHasEq || !eqFlowTypeId) return;
+
+    setDraft(prev => ({
+      ...(prev || EMPTY_DRAFT),
+      flows: [
+        ...(prev?.flows ?? []),
+        {
+          id: EQ_FLOW_SYNTHETIC_ID,
+          label: "Equalization",
+          flowType: "Equalization",
+          data: { flowTypeId: eqFlowTypeId, flow_type_id: eqFlowTypeId },
+          operation_flow_id: null,
+          isSyntheticEqualization: true,
+        }
+      ]
+    }));
+  }, [opKind, flowTypes, isLoadingTypes, draft?.flows, setDraft]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
@@ -214,6 +271,9 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const isEqualization = useMemo(() => {
     return (safeDraft.flows ?? []).some(f => f.isSyntheticEqualization);
   }, [safeDraft.flows]);
+    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
+  console.log("flowTypes at inject time:", flowTypes, "opKind:", opKind);
+
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
     let dueDateObj = dueDate;
@@ -222,6 +282,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       else if (dueDateObj.$d) dueDateObj = dueDateObj.$d;
     }
     const due = dueDateObj instanceof Date ? dueDateObj : new Date(dueDateObj);
+    due.setHours(23, 59, 59, 999);
     if (Number.isNaN(due.getTime())) return Array.isArray(commitments) ? commitments : [];
     return (Array.isArray(commitments) ? commitments : []).filter((c) => {
       const closing = c?.closing_period_date ? new Date(c.closing_period_date) : null;
@@ -418,6 +479,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
       (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
     )?.flow_type_id ?? null;
+    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
 
     const newFlow = {
       id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
