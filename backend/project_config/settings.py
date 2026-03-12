@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,7 +26,6 @@ SECRET_KEY = 'django-insecure-3qrl7p8cdyb_t1k254#bd9frwxpncj&q91icvd=6=kta)19#ha
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-
 ALLOWED_HOSTS = ['*']
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -89,14 +89,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-IS_PRODUCTION = not DEBUG
 
-SESSION_COOKIE_SECURE = IS_PRODUCTION
-CSRF_COOKIE_SECURE = IS_PRODUCTION
-SESSION_COOKIE_SAMESITE = 'None' if IS_PRODUCTION else 'Lax'
-CSRF_COOKIE_SAMESITE = 'None' if IS_PRODUCTION else 'Lax'
-CSRF_COOKIE_HTTPONLY = False
-CORS_ALLOW_CREDENTIALS = True
 # 4. Critical for useApi.js 'X-CSRFToken' header
 # Allows JavaScript to read the CSRF cookie to put it in the header
 
@@ -186,4 +179,12 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }

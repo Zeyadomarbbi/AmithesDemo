@@ -1,32 +1,28 @@
 import { useMemo } from 'react';
 import { API_BASE_URL } from "./apiConfig";
 
-function getCSRFToken() {
-  const cookie = document.cookie
-    .split("; ")
-    .find(row => row.startsWith("csrftoken="));
-  return cookie ? cookie.split("=")[1] : null;
+function getAccessToken() {
+  return localStorage.getItem("access");
 }
 
-// Moved outside the hook: no need to recreate this function on every render
 const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
 
 async function request(endpoint, options = {}) {
-  const csrfToken = getCSRFToken();
+  const token = getAccessToken();
   const isFormData = options.body instanceof FormData;
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    credentials: "include",
     ...options,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(csrfToken && { "X-CSRFToken": csrfToken }),
+      ...(token && { "Authorization": `Bearer ${token}` }),
       ...options.headers,
     },
   });
 
-  // Global Auth Guard
   if (response.status === 401) {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }
@@ -42,9 +38,6 @@ async function request(endpoint, options = {}) {
 }
 
 export default function useApi() {
-  // CRITICAL FIX: Wrap the return object in useMemo.
-  // This ensures that the 'api' object reference never changes between re-renders,
-  // preventing infinite loops in useEffect hooks that list [api] as a dependency.
   return useMemo(() => ({
     get: (endpoint, options = {}) => 
       request(endpoint, { method: "GET", ...options }),
@@ -52,7 +45,7 @@ export default function useApi() {
     post: (endpoint, data, options = {}) =>
       request(endpoint, { 
         method: "POST", 
-        ...(data && { body: formatBody(data) }), // Only add body if data exists
+        ...(data && { body: formatBody(data) }), 
         ...options 
       }),
 
@@ -72,5 +65,5 @@ export default function useApi() {
 
     delete: (endpoint, options = {}) => 
       request(endpoint, { method: "DELETE", ...options }),
-  }), []); // Empty dependency array means this object is created exactly once.
+  }), []);
 }
