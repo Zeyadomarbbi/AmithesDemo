@@ -1,10 +1,15 @@
-import React from 'react';
+// FieldsSection.jsx
+import React, { useState } from 'react';
 import { useUsers } from '../../../../hooks/Core/useUsers'; 
+import Prompt from '../../../../components/Toast/Prompt';
+import Toast from '../../../../components/Toast/Toast';
 import './FieldsSection.css';
 
-// Added onSuccess to the destructured props
 function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSuccess }) {
   const { deleteUser, isLoading: isDeleting } = useUsers();
+
+  const [showDeletePrompt, setShowDeletePrompt] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleRoleChange = (e) => {
     const value = e.target.value;
@@ -26,30 +31,61 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
     return 'viewer';
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-      try {
-        await deleteUser(userId);
-        // This triggers fetchUsers() in AdminsPage to refresh the table
-        if (onSuccess) onSuccess(); 
-        onClose(); 
-      } catch (err) {
-        alert("Failed to delete user: " + err.message);
-      }
+  const handleDeleteConfirm = async () => {
+    setShowDeletePrompt(false);
+    try {
+      await deleteUser(userId);
+      setToast({
+        type:    'success',
+        title:   'User deleted',
+        message: 'The user has been permanently removed.',
+      });
+      if (onSuccess) onSuccess();
+      setTimeout(onClose, 800);
+    } catch (err) {
+      setToast({
+        type:    'error',
+        title:   'Delete failed',
+        message: err?.response?.data
+          ? Object.values(err.response.data).flat().join(' ')
+          : err?.message || 'Could not delete user. Please try again.',
+      });
     }
   };
 
   return (
     <div className="panel-fields-container">
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {showDeletePrompt && (
+        <Prompt
+          type="error"
+          title="Delete user"
+          message="Are you sure you want to delete this user? This action cannot be undone."
+          confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+          cancelLabel="Cancel"
+          onCancel={() => setShowDeletePrompt(false)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+
       {!isEditMode && (
         <div className="fields-row-frame">
           <div className="text-field-wrapper">
             <label className="field-label">Username*</label>
             <div className="input-box">
-              <input 
-                type="text" 
-                className="text-input" 
-                value={formData.username || ''} 
+              <input
+                type="text"
+                className="text-input"
+                value={formData.username || ''}
                 onChange={(e) => onChange('username', e.target.value)}
               />
             </div>
@@ -57,10 +93,10 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           <div className="text-field-wrapper">
             <label className="field-label">Password*</label>
             <div className="input-box">
-              <input 
-                type="password" 
-                className="text-input" 
-                value={formData.password || ''} 
+              <input
+                type="password"
+                className="text-input"
+                value={formData.password || ''}
                 onChange={(e) => onChange('password', e.target.value)}
               />
             </div>
@@ -73,10 +109,10 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           <div className="input-with-label">
             <label className="field-label">First Name*</label>
             <div className="input-box">
-              <input 
-                type="text" 
-                className="text-input" 
-                value={formData.first_name || ''} 
+              <input
+                type="text"
+                className="text-input"
+                value={formData.first_name || ''}
                 onChange={(e) => onChange('first_name', e.target.value)}
               />
             </div>
@@ -86,10 +122,10 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           <div className="input-with-label">
             <label className="field-label">Last Name*</label>
             <div className="input-box">
-              <input 
-                type="text" 
-                className="text-input" 
-                value={formData.last_name || ''} 
+              <input
+                type="text"
+                className="text-input"
+                value={formData.last_name || ''}
                 onChange={(e) => onChange('last_name', e.target.value)}
               />
             </div>
@@ -102,30 +138,32 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           <div className="input-with-label">
             <label className="field-label">Email*</label>
             <div className="input-box">
-              <input 
-                type="email" 
-                className="text-input" 
-                value={formData.email || ''} 
+              <input
+                type="email"
+                className="text-input"
+                value={formData.email || ''}
                 onChange={(e) => onChange('email', e.target.value)}
               />
             </div>
           </div>
         </div>
-        
+
         <div className="text-field-wrapper">
           <div className="input-with-label">
             <label className="field-label">Status*</label>
             <div className="input-box dropdown">
-              <select 
+              <select
                 className="select-input"
-                value={formData.is_active ? "true" : "false"}
-                onChange={(e) => onChange('is_active', e.target.value === "true")}
+                value={formData.is_active ? 'true' : 'false'}
+                onChange={(e) => onChange('is_active', e.target.value === 'true')}
               >
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
               <div className="chevron-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </div>
             </div>
           </div>
@@ -137,7 +175,7 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           <div className="input-with-label">
             <label className="field-label">Role</label>
             <div className="input-box dropdown">
-              <select 
+              <select
                 className="select-input"
                 value={getRoleValue()}
                 onChange={handleRoleChange}
@@ -147,7 +185,9 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
                 <option value="viewer">Viewer</option>
               </select>
               <div className="chevron-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </div>
             </div>
           </div>
@@ -156,15 +196,16 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
 
       {isEditMode && (
         <div className="destructive-action-row">
-           <button 
-            className="destructive-btn" 
-            onClick={handleDelete}
+          <button
+            className="destructive-btn"
+            onClick={() => setShowDeletePrompt(true)}
             disabled={isDeleting}
-           >
-             <span>{isDeleting ? 'Deleting...' : 'Delete User'}</span>
-           </button>
+          >
+            <span>{isDeleting ? 'Deleting...' : 'Delete User'}</span>
+          </button>
         </div>
       )}
+
     </div>
   );
 }
