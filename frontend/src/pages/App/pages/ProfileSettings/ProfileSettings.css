@@ -1,0 +1,68 @@
+/* ProfileSettings.css */
+
+.profile-settings-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 32px 40px;
+  box-sizing: border-box;
+}
+
+/* ── Header — mirrors DashboardHeader ── */
+.profile-settings-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+}
+
+.profile-settings-title {
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 33px;
+  color: #1C1917;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* ── Tabs — mirrors DashboardTabs ── */
+.profile-settings-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  margin-bottom: 32px;
+}
+
+.profile-settings-tab-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: border-color 0.2s;
+}
+
+.profile-settings-tab-item.active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B;
+}
+
+/* ── Content area ── */
+.profile-settings-content {
+  flex: 1;
+  overflow-y: auto;
+}

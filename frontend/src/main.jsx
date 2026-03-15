@@ -57,6 +57,11 @@ import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
 import ScenarioDetailPage from './pages/App/pages/Scenario/components/ScenarioList/Details/ScenarioDetailPage';
 import SynthesisDetailsDrawer from './pages/App/pages/Scenario/components/SynthesisList/Details/SynthesisDetailsDrawer';
 
+import ProfileSettings  from './pages/App/pages/ProfileSettings/ProfileSettings';
+import Profile       from './pages/App/pages/ProfileSettings/components/ProfileTab/Profile';
+import Account       from './pages/App/pages/ProfileSettings/components/AccountTab/Account';
+import Notifications from './pages/App/pages/ProfileSettings/components/NotificationsTab/Notifications';
+
 import './index.css';
 
 const router = createBrowserRouter([
@@ -83,7 +88,16 @@ const router = createBrowserRouter([
                 ]
               },
               { path: 'help', element: <HelpPage /> },
-
+              {
+                path: 'settings/profile',
+                element: <ProfileSettings />,
+                children: [
+                  { index: true,            element: <Navigate to="profile" replace /> },
+                  { path: 'profile',        element: <Profile /> },
+                  { path: 'account',        element: <Account /> },
+                  { path: 'notifications',  element: <Notifications /> },
+                ],
+              },
               // --- FUND SPECIFIC DOMAIN ---
               {
                 path: 'funds/:fundId',

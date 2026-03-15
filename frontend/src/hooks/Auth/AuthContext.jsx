@@ -1,5 +1,6 @@
+// AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import useApi from '../api/useApi'; 
+import useApi from '../api/useApi';
 
 const AuthContext = createContext(null);
 
@@ -34,18 +35,14 @@ export const AuthProvider = ({ children }) => {
 
   const loginAction = async (email, password) => {
     const data = await api.post('/api/login/', { email, password });
-    
-    // Critical: Persist JWT tokens
     localStorage.setItem('access', data.access);
     localStorage.setItem('refresh', data.refresh);
     localStorage.setItem('amethis_user', JSON.stringify(data.user));
-    
     setUser(data.user);
     return data;
   };
 
   const logoutAction = () => {
-    // API call is obsolete for stateless JWT. Clear local storage.
     setUser(null);
     localStorage.removeItem('amethis_user');
     localStorage.removeItem('access');
@@ -53,17 +50,55 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/login";
   };
 
-  const canEdit = user?.is_staff || user?.is_superuser;
+  // PATCH /api/me/ — updates User fields (first_name, last_name, email, username)
+  const updateUser = async (fields) => {
+    const data = await api.patch('/api/me/', fields);
+    setUser(data.user);
+    localStorage.setItem('amethis_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
+  // PATCH /api/me/profile/ — updates UserProfile fields (title, birthday, country, timezone, phone, two_fa_enabled)
+  const updateProfile = async (fields) => {
+    const data = await api.patch('/api/me/profile/', fields);
+    setUser(data.user);
+    localStorage.setItem('amethis_user', JSON.stringify(data.user));
+    return data.user;
+  };
+
+  // POST /api/me/change-password/
+  const changePassword = async (currentPassword, newPassword) => {
+    return await api.post('/api/me/change-password/', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  };
+
+  // DELETE /api/me/delete/ — wipes account then logs out
+  const deleteUser = async () => {
+    await api.delete('/api/me/delete/');
+    setUser(null);
+    localStorage.removeItem('amethis_user');
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
+    window.location.href = "/login";
+  };
+
+  const canEdit  = user?.is_staff || user?.is_superuser;
   const isViewer = user && !canEdit;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login: loginAction, 
-      logout: logoutAction,
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login:          loginAction,
+      logout:         logoutAction,
+      updateUser,
+      updateProfile,
+      changePassword,
+      deleteUser,
       canEdit,
-      isViewer
+      isViewer,
     }}>
       {children}
     </AuthContext.Provider>

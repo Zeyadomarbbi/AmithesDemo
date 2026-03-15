@@ -52,6 +52,7 @@ class WaterfallStep(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        managed = False
         db_table = "waterfall_step"
         ordering = ["step_number"]
 

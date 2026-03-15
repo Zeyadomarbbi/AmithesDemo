@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 from ..models.core import *
 from ..models.core import Timeframe
-from ..models.reference import Currency
+from ..models.reference import Currency, Country
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,43 +14,108 @@ class UserSerializer(serializers.ModelSerializer):
             'is_superuser', 'date_joined'
         ]
         extra_kwargs = {
-            # required=False allows us to skip password on PATCH
-            'password': {'write_only': True, 'required': False},
-            'username': {'required': True},
-            'email': {'required': True},
+            'password':    {'write_only': True, 'required': False},
+            'username':    {'required': True},
+            'email':       {'required': True},
             'date_joined': {'read_only': True}
         }
 
     def validate_username(self, value):
-        # Allow the current user to keep their own username
         user_id = self.instance.id if self.instance else None
         if User.objects.filter(username__iexact=value).exclude(id=user_id).exists():
             raise serializers.ValidationError("Username already exists.")
         return value
 
     def validate_email(self, value):
-        # Allow the current user to keep their own email
         user_id = self.instance.id if self.instance else None
         if User.objects.filter(email__iexact=value).exclude(id=user_id).exists():
             raise serializers.ValidationError("Email already exists.")
         return value
 
     def update(self, instance, validated_data):
-        # Pop password so it isn't handled by standard setattr
         password = validated_data.pop('password', None)
-        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
-        # Only set password if one was actually sent
         if password:
             instance.set_password(password)
-            
         instance.save()
         return instance
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
+    
+class UserProfileSerializer(serializers.ModelSerializer):
+    country_id   = serializers.IntegerField(source='country.country_id', read_only=True)
+    country_name = serializers.CharField(source='country.country_name', read_only=True)
+    country_iso2 = serializers.CharField(source='country.iso2_code', read_only=True)
+
+    country = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(),
+        allow_null=True,
+        required=False,
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'title',
+            'birthday',
+            'country',
+            'country_id',
+            'country_name',
+            'country_iso2',
+            'timezone',
+            'phone',
+            'two_fa_enabled',
+        ]
+ 
+class MeSerializer(serializers.ModelSerializer):
+    """Full read serializer — merges User + UserProfile."""
+    profile = UserProfileSerializer(read_only=True)
+ 
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_staff',
+            'is_superuser',
+            'date_joined',
+            'profile',
+        ]
+ 
+class UpdateMeSerializer(serializers.ModelSerializer):
+    """PATCH /api/me/ — User fields only."""
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'username']
+        extra_kwargs = {
+            'email':    {'required': False},
+            'username': {'required': False},
+        }
+ 
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
+ 
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return value
+ 
+ 
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True)
+    new_password     = serializers.CharField(required=True, min_length=8)
+ 
+    def validate_current_password(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect.")
+        return value
 
 class FundSerializer(serializers.ModelSerializer):
     # Explicitly map currency_id for the incoming payload
