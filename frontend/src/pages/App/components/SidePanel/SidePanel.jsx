@@ -231,10 +231,18 @@ function SidePanel() {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
           >
             <div className="user-avatar">
-              {getInitials(user?.username || user?.email)}
+              {getInitials(
+                (user?.first_name && user?.last_name)
+                  ? `${user.first_name} ${user.last_name}`
+                  : user?.username || user?.email
+              )}
             </div>
             <div className="user-details">
-              <span className="user-name">{user?.username || 'User'}</span>
+              <span className="user-name">
+                {(user?.first_name || user?.last_name)
+                  ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                  : user?.username || 'User'}
+              </span>
               <span className="user-email">{user?.email}</span>
             </div>
             <div className={`profile-arrow ${isProfileOpen ? 'rotate' : ''}`}>

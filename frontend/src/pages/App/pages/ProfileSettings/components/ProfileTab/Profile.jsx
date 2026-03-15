@@ -4,7 +4,8 @@ import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../../../../../hooks/Auth/AuthContext';
 import SearchableSelect from '../../../../../../components/SearchBar/SearchableSelect.jsx';
 import DateInputWithPicker from '../../../../../../components/DateComponents/DateInput.jsx';
-import './Profile.css';
+import Toast from '../../../../components/Toast/Toast.jsx';
+import '../ProfileSettings.shared.css';
 
 const TIMEZONE_OPTIONS = [
   { id: 'UTC-12:00', name: 'UTC−12:00', offset: '(UTC−12:00) Baker Island' },
@@ -36,63 +37,52 @@ const TIMEZONE_OPTIONS = [
   { id: 'UTC+12:00', name: 'UTC+12:00', offset: '(UTC+12:00) Auckland, Fiji' },
 ];
 
+const toLocalDateString = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 function ProfileTab() {
   const { user, countries = [] } = useOutletContext();
   const { updateUser, updateProfile } = useAuth();
 
   const [form, setForm] = useState({
-    first_name: user?.first_name || '',
-    last_name:  user?.last_name  || '',
-    username:   user?.username   || '',
-    title:      user?.profile?.title    || '',
-    birthday:   user?.profile?.birthday ? new Date(user.profile.birthday) : null,
-    country:    user?.profile?.country  || null,
-    timezone:   user?.profile?.timezone || 'UTC+00:00',
+    first_name: user?.first_name           || '',
+    last_name:  user?.last_name            || '',
+    username:   user?.username             || '',
+    title:      user?.profile?.title       || '',
+    birthday:   user?.profile?.birthday    ? new Date(user.profile.birthday) : null,
+    country:    user?.profile?.country_id  || null,
+    timezone:   user?.profile?.timezone    || 'UTC+00:00',
   });
 
   const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
-  const [error,  setError]  = useState('');
+  const [toast,  setToast]  = useState(null);
 
   useEffect(() => {
     if (user) {
       setForm({
-        first_name: user.first_name || '',
-        last_name:  user.last_name  || '',
-        username:   user.username   || '',
-        title:      user.profile?.title    || '',
-        birthday:   user.profile?.birthday ? new Date(user.profile.birthday) : null,
-        country:    user.profile?.country  || null,
-        timezone:   user.profile?.timezone || 'UTC+00:00',
+        first_name: user.first_name           || '',
+        last_name:  user.last_name            || '',
+        username:   user.username             || '',
+        title:      user.profile?.title       || '',
+        birthday:   user.profile?.birthday    ? new Date(user.profile.birthday) : null,
+        country:    user.profile?.country_id  || null,
+        timezone:   user.profile?.timezone    || 'UTC+00:00',
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setSaved(false);
-    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setSaved(false);
-    setError('');
-  console.log('--- Profile Submit Payload ---');
-  console.log('updateUser payload:', {
-    first_name: form.first_name,
-    last_name:  form.last_name,
-    username:   form.username,
-  });
-  console.log('updateProfile payload:', {
-    title:    form.title,
-    birthday: form.birthday ? form.birthday.toISOString().split('T')[0] : null,
-    country:  form.country,
-    timezone: form.timezone,
-  });
-  console.log('form.country raw value:', form.country);
-  console.log('countries[0] sample:', countries[0]);
+
     try {
       await updateUser({
         first_name: form.first_name,
@@ -102,19 +92,17 @@ function ProfileTab() {
 
       await updateProfile({
         title:    form.title,
-        birthday: form.birthday
-          ? form.birthday.toISOString().split('T')[0]
-          : null,
+        birthday: form.birthday ? toLocalDateString(form.birthday) : null,
         country:  form.country,
         timezone: form.timezone,
       });
 
-      setSaved(true);
+      setToast({ type: 'success', title: 'Profile updated', message: 'Your changes have been saved.' });
     } catch (err) {
       const msg = err?.response?.data
         ? Object.values(err.response.data).flat().join(' ')
         : 'Failed to save. Please try again.';
-      setError(msg);
+      setToast({ type: 'error', title: 'Update failed', message: msg });
     } finally {
       setSaving(false);
     }
@@ -134,64 +122,53 @@ function ProfileTab() {
   }));
 
   return (
-    <div className="settings-tab-container">
-      <div className="profile-tab-body">
+    <div className="up-container">
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      <div className="up-body">
 
         {/* Avatar */}
-        <div className="profile-avatar-block">
-          <div className="profile-avatar-circle">{getInitials()}</div>
-          <div className="profile-avatar-meta">
-            <span className="profile-avatar-label">Profile picture</span>
-            <span className="profile-avatar-hint">Avatar is generated from your initials.</span>
+        <div className="up-avatar-block">
+          <div className="up-avatar-circle">{getInitials()}</div>
+          <div className="up-avatar-meta">
+            <span className="up-avatar-label">Profile picture</span>
+            <span className="up-avatar-hint">Avatar is generated from your initials.</span>
           </div>
         </div>
 
-        <form className="settings-form" onSubmit={handleSubmit}>
+        <form className="up-form" onSubmit={handleSubmit}>
 
           {/* Row 1 — First name / Last name */}
-          <div className="settings-form-row">
-            <div className="settings-field">
-              <label className="settings-label">First name</label>
-              <input
-                className="settings-input"
-                name="first_name"
-                value={form.first_name}
-                onChange={handleChange}
-                placeholder="First name"
-              />
+          <div className="up-form-row">
+            <div className="up-field">
+              <label className="up-label">First name</label>
+              <input className="up-input" name="first_name" value={form.first_name} onChange={handleChange} placeholder="First name" />
             </div>
-            <div className="settings-field">
-              <label className="settings-label">Last name</label>
-              <input
-                className="settings-input"
-                name="last_name"
-                value={form.last_name}
-                onChange={handleChange}
-                placeholder="Last name"
-              />
+            <div className="up-field">
+              <label className="up-label">Last name</label>
+              <input className="up-input" name="last_name" value={form.last_name} onChange={handleChange} placeholder="Last name" />
             </div>
           </div>
 
           {/* Row 2 — Title / Birthday */}
-          <div className="settings-form-row">
-            <div className="settings-field">
-              <label className="settings-label">Representative title</label>
-              <input
-                className="settings-input"
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                placeholder="e.g. Investment Manager"
-              />
+          <div className="up-form-row">
+            <div className="up-field">
+              <label className="up-label">Representative title</label>
+              <input className="up-input" name="title" value={form.title} onChange={handleChange} placeholder="e.g. Investment Manager" />
             </div>
-            <div className="settings-field">
-              <label className="settings-label">Birthday</label>
+            <div className="up-field">
+              <label className="up-label">Birthday</label>
               <DateInputWithPicker
                 initialDate={form.birthday || new Date()}
-                onDateChange={(date) => {
-                  setForm(prev => ({ ...prev, birthday: date }));
-                  setSaved(false);
-                }}
+                onDateChange={(date) => setForm(prev => ({ ...prev, birthday: date }))}
                 isSingle={true}
                 dateFormat="DD/MM/YYYY"
               />
@@ -199,64 +176,45 @@ function ProfileTab() {
           </div>
 
           {/* Row 3 — Country (half width) */}
-          <div className="settings-form-row">
-            <div className="settings-field">
-              <label className="settings-label">Country</label>
-                <SearchableSelect
-                  options={formattedCountries}
-                  value={form.country}
-                  onChange={(val) => {
-                    setForm(prev => ({ ...prev, country: val }));
-                    setSaved(false);
-                  }}
-                  placeholder="Select a country"
-                  labelKey="name"
-                  valueKey="id"
-                  secondaryLabelKey="code"
-                  triggerClassName="settings-input"
-                />
+          <div className="up-form-row">
+            <div className="up-field">
+              <label className="up-label">Country</label>
+              <SearchableSelect
+                options={formattedCountries}
+                value={form.country}
+                onChange={(val) => setForm(prev => ({ ...prev, country: val }))}
+                placeholder="Select a country"
+                labelKey="name"
+                valueKey="id"
+                secondaryLabelKey="code"
+                triggerClassName="up-input"
+              />
             </div>
           </div>
 
           {/* Row 4 — Timezone (full width) */}
-          <div className="settings-field">
-            <label className="settings-label">Timezone</label>
+          <div className="up-field">
+            <label className="up-label">Timezone</label>
             <SearchableSelect
               options={TIMEZONE_OPTIONS}
               value={form.timezone}
-              onChange={(val) => {
-                setForm(prev => ({ ...prev, timezone: val }));
-                setSaved(false);
-              }}
+              onChange={(val) => setForm(prev => ({ ...prev, timezone: val }))}
               placeholder="Select a timezone"
               labelKey="name"
               valueKey="id"
               secondaryLabelKey="offset"
-              triggerClassName="settings-input"
+              triggerClassName="up-input"
             />
           </div>
 
           {/* Row 5 — Username (full width) */}
-          <div className="settings-field">
-            <label className="settings-label">Username</label>
-            <input
-              className="settings-input"
-              name="username"
-              value={form.username}
-              onChange={handleChange}
-              placeholder="username"
-            />
+          <div className="up-field">
+            <label className="up-label">Username</label>
+            <input className="up-input" name="username" value={form.username} onChange={handleChange} placeholder="username" />
           </div>
 
-          {error && <p className="settings-error">{error}</p>}
-
-          <div className="settings-form-actions">
-            {saved && <span className="settings-saved-badge">Saved</span>}
-            <button
-              type="submit"
-              className="settings-save-btn"
-              disabled={saving}
-            >
+          <div className="up-form-actions">
+            <button type="submit" className="up-save-btn" disabled={saving}>
               {saving ? 'Saving...' : 'Update profile'}
             </button>
           </div>
