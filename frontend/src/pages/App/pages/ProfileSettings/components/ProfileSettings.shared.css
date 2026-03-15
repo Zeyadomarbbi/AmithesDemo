@@ -20,10 +20,18 @@
 }
 
 .up-section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1C1917;
   margin: 0;
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
 }
 
 .up-section-desc {
@@ -196,15 +204,27 @@ textarea.up-input {
 /* ── Danger button (Account tab) ── */
 .up-danger-btn {
   padding: 9px 20px;
-  background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
+  background: #FFF1F2;
+  color: #E11D48;
+  border: none;
   border-radius: 6px;
   font-family: 'Inter';
-  font-size: 14px;
+  font-style: normal;
   font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease;
+}
+
+.up-danger-btn:hover:not(:disabled) {
+  background: #ffe4e6;
+}
+
+.up-danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .up-danger-btn:hover {

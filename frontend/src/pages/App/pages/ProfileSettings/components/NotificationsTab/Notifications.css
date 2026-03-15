@@ -1,0 +1,86 @@
+/* Notifications.css */
+
+/* ── Grid ── */
+.notif-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ── Card ── */
+.notif-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.notif-card:hover {
+  border-color: #375A89;
+  box-shadow: 0 0 0 3px rgba(55, 90, 137, 0.08);
+}
+
+.notif-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notif-card-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1C1917;
+  line-height: 20px;
+}
+
+.notif-card-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 18px;
+}
+
+/* ── Toggle ── */
+.notif-toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.2s ease;
+  padding: 0;
+}
+
+.notif-toggle.on  { background: #F7A93B; }
+.notif-toggle.off { background: #d1d5db; }
+
+.notif-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.notif-toggle.on  .notif-toggle-thumb { left: 23px; }
+.notif-toggle.off .notif-toggle-thumb { left: 3px; }
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .notif-grid {
+    grid-template-columns: 1fr;
+  }
+}
