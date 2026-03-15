@@ -1,6 +1,3 @@
 # VS Code settings (if specific to your machine)
 .vscode/
 documents/
-
-# Global environment files
-.env

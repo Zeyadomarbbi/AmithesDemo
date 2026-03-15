@@ -1,2 +1,5 @@
-export const API_BASE_URL = "http://localhost:8000"
- // https://amethiswebpage-production-54ad.up.railway.app - http://127.0.0.1:8000 - http://localhost:8000
+const isDev = import.meta.env.VITE_DEV === 'true';
+
+export const API_BASE_URL = isDev
+  ? 'http://localhost:8000'
+  : import.meta.env.VITE_API_BASE_URL;
