@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate, useMatch } from 'react-router-dom';
 import { useAuth } from '../../../../hooks/Auth/AuthContext';
+import { useCountries } from '../../hooks/Reference/useCountries';
 import './ProfileSettings.css';
 
 const TABS = [
@@ -13,6 +14,7 @@ const TABS = [
 function ProfileSettings() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { countries = [] } = useCountries();
 
   const isProfile       = useMatch('/settings/profile/profile');
   const isAccount       = useMatch('/settings/profile/account');
@@ -44,7 +46,7 @@ function ProfileSettings() {
       </div>
 
       <div className="profile-settings-content">
-        <Outlet context={{ user }} />
+        <Outlet context={{ user, countries }} />
       </div>
     </div>
   );

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../../../../../hooks/Auth/AuthContext';
-import { useCountries } from '../../../../hooks/Reference/useCountries';
 import SearchableSelect from '../../../../../../components/SearchBar/SearchableSelect.jsx';
 import DateInputWithPicker from '../../../../../../components/DateComponents/DateInput.jsx';
 import './Profile.css';
@@ -38,18 +37,17 @@ const TIMEZONE_OPTIONS = [
 ];
 
 function ProfileTab() {
-  const { user } = useOutletContext();
+  const { user, countries = [] } = useOutletContext();
   const { updateUser, updateProfile } = useAuth();
-  const { countries = [] } = useCountries();
 
   const [form, setForm] = useState({
     first_name: user?.first_name || '',
     last_name:  user?.last_name  || '',
     username:   user?.username   || '',
-    title:    user?.profile?.title    || '',
-    birthday: user?.profile?.birthday ? new Date(user.profile.birthday) : null,
-    country:  user?.profile?.country  || null,
-    timezone: user?.profile?.timezone || 'UTC+00:00',
+    title:      user?.profile?.title    || '',
+    birthday:   user?.profile?.birthday ? new Date(user.profile.birthday) : null,
+    country:    user?.profile?.country  || null,
+    timezone:   user?.profile?.timezone || 'UTC+00:00',
   });
 
   const [saving, setSaving] = useState(false);
@@ -62,10 +60,10 @@ function ProfileTab() {
         first_name: user.first_name || '',
         last_name:  user.last_name  || '',
         username:   user.username   || '',
-        title:    user.profile?.title    || '',
-        birthday: user.profile?.birthday ? new Date(user.profile.birthday) : null,
-        country:  user.profile?.country  || null,
-        timezone: user.profile?.timezone || 'UTC+00:00',
+        title:      user.profile?.title    || '',
+        birthday:   user.profile?.birthday ? new Date(user.profile.birthday) : null,
+        country:    user.profile?.country  || null,
+        timezone:   user.profile?.timezone || 'UTC+00:00',
       });
     }
   }, [user]);
@@ -81,7 +79,20 @@ function ProfileTab() {
     setSaving(true);
     setSaved(false);
     setError('');
-
+  console.log('--- Profile Submit Payload ---');
+  console.log('updateUser payload:', {
+    first_name: form.first_name,
+    last_name:  form.last_name,
+    username:   form.username,
+  });
+  console.log('updateProfile payload:', {
+    title:    form.title,
+    birthday: form.birthday ? form.birthday.toISOString().split('T')[0] : null,
+    country:  form.country,
+    timezone: form.timezone,
+  });
+  console.log('form.country raw value:', form.country);
+  console.log('countries[0] sample:', countries[0]);
     try {
       await updateUser({
         first_name: form.first_name,
@@ -118,13 +129,12 @@ function ProfileTab() {
 
   const formattedCountries = countries.map(c => ({
     ...c,
-    name: c.country_name || c.name || '',
-    code: c.iso2_code    || c.iso2 || '',
+    name: c.name || '',
+    code: c.iso2 || '',
   }));
 
   return (
     <div className="settings-tab-container">
-
       <div className="profile-tab-body">
 
         {/* Avatar */}
@@ -188,43 +198,45 @@ function ProfileTab() {
             </div>
           </div>
 
-          {/* Row 3 — Country / Timezone */}
+          {/* Row 3 — Country (half width) */}
           <div className="settings-form-row">
             <div className="settings-field">
               <label className="settings-label">Country</label>
-              <SearchableSelect
-                options={formattedCountries}
-                value={form.country}
-                onChange={(val) => {
-                  setForm(prev => ({ ...prev, country: val }));
-                  setSaved(false);
-                }}
-                placeholder="Select a country"
-                labelKey="name"
-                valueKey="country_id"
-                secondaryLabelKey="code"
-                triggerClassName="settings-input"
-              />
-            </div>
-            <div className="settings-field">
-              <label className="settings-label">Timezone</label>
-              <SearchableSelect
-                options={TIMEZONE_OPTIONS}
-                value={form.timezone}
-                onChange={(val) => {
-                  setForm(prev => ({ ...prev, timezone: val }));
-                  setSaved(false);
-                }}
-                placeholder="Select a timezone"
-                labelKey="name"
-                valueKey="id"
-                secondaryLabelKey="offset"
-                triggerClassName="settings-input"
-              />
+                <SearchableSelect
+                  options={formattedCountries}
+                  value={form.country}
+                  onChange={(val) => {
+                    setForm(prev => ({ ...prev, country: val }));
+                    setSaved(false);
+                  }}
+                  placeholder="Select a country"
+                  labelKey="name"
+                  valueKey="id"
+                  secondaryLabelKey="code"
+                  triggerClassName="settings-input"
+                />
             </div>
           </div>
 
-          {/* Username — full width */}
+          {/* Row 4 — Timezone (full width) */}
+          <div className="settings-field">
+            <label className="settings-label">Timezone</label>
+            <SearchableSelect
+              options={TIMEZONE_OPTIONS}
+              value={form.timezone}
+              onChange={(val) => {
+                setForm(prev => ({ ...prev, timezone: val }));
+                setSaved(false);
+              }}
+              placeholder="Select a timezone"
+              labelKey="name"
+              valueKey="id"
+              secondaryLabelKey="offset"
+              triggerClassName="settings-input"
+            />
+          </div>
+
+          {/* Row 5 — Username (full width) */}
           <div className="settings-field">
             <label className="settings-label">Username</label>
             <input

@@ -53,6 +53,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         queryset=Country.objects.all(),
         allow_null=True,
         required=False,
+        write_only=True,   # ← add this
     )
 
     class Meta:
@@ -60,10 +61,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'title',
             'birthday',
-            'country',
-            'country_id',
-            'country_name',
-            'country_iso2',
+            'country',        # write-only — accepts PK on input
+            'country_id',     # read-only — returns PK on output
+            'country_name',   # read-only
+            'country_iso2',   # read-only
             'timezone',
             'phone',
             'two_fa_enabled',
