@@ -80,43 +80,6 @@ function getLpCommitmentNumber(lp) {
   return parseMoney(lp?.commitment) || 0;
 }
 
-function getPrimaryShareClassId(lp) {
-  const rows = Array.isArray(lp?.sharesRows) ? lp.sharesRows : [];
-  if (rows.length) {
-    let best = null;
-    let bestAmt = -Infinity;
-
-    rows.forEach((r) => {
-      const sc =
-        r?.share_class_id ??
-        r?.shareClassId ??
-        r?.shareClass ??
-        r?.share_class ??
-        r?.type ??
-        r?.class ??
-        null;
-
-      const amt = parseMoney(r?.commitment) || 0;
-      if (sc !== null && sc !== undefined && amt > bestAmt) {
-        bestAmt = amt;
-        best = sc;
-      }
-    });
-
-    if (best !== null && best !== undefined) return Number(best);
-  }
-
-  const direct =
-    lp?.share_class_id ??
-    lp?.shareClassId ??
-    lp?.shareClass ??
-    lp?.share_class ??
-    lp?.class ??
-    null;
-
-  return direct !== null && direct !== undefined ? Number(direct) : null;
-}
-
 function getMainAmountFromStep2(step2Row = {}) {
   if (step2Row.mainAmount !== undefined) return step2Row.mainAmount;
   if (step2Row.capitalCall !== undefined) return step2Row.capitalCall;
@@ -149,10 +112,6 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   const [saveError, setSaveError] = useState(null);
   const [savedOnce, setSavedOnce] = useState(false);
 
-  const committedLpIds = useMemo(() => {
-    return new Set((Array.isArray(commitments) ? commitments : []).map((c) => String(c.lp_id)));
-  }, [commitments]);
-
   const beforeByLp = useMemo(() => {
     const map = {};
     const safe = Array.isArray(existingAllocations) ? existingAllocations : [];
@@ -160,18 +119,14 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
     safe.forEach((alloc) => {
       if (Number(alloc?.operation_number ?? 0) >= currentOpNum) return;
-
       const lpId = String(alloc?.lp_id ?? "");
       if (!lpId) return;
-
       if (!map[lpId]) {
         map[lpId] = { capitalCall: 0, sharesIssued: 0 };
       }
-
       map[lpId].capitalCall += Number(alloc?.capital_call ?? 0);
       map[lpId].sharesIssued += Number(alloc?.shares_issued ?? 0);
     });
-
     return map;
   }, [existingAllocations, operationNumber]);
 
@@ -294,6 +249,39 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
   const { sorted, sortKey, toggleSort } = useTableSort(rows, "name");
 
+  // --- Totals Calculation ---
+  const totals = useMemo(() => {
+    const initial = {
+      beforeA: 0,
+      beforeShares: 0,
+      opAmount: 0,
+      opShares: 0,
+      afterA: 0,
+      afterShares: 0,
+      undrawn: 0,
+    };
+
+    return rows.reduce((acc, row) => {
+      if (distMode) {
+        acc.beforeA += row.beforeA_raw || 0;
+        acc.beforeShares += row.beforeShares_raw || 0;
+        acc.opAmount += row.opAmount_raw || 0;
+        acc.opShares += row.opSharesRedeemed_raw || 0;
+        acc.afterA += row.afterA_raw || 0;
+        acc.afterShares += row.afterShares_raw || 0;
+      } else {
+        acc.beforeA += row.beforeCalled_raw || 0;
+        acc.beforeShares += row.beforeShares_raw || 0;
+        acc.opAmount += row.opMainAmount_raw || 0;
+        acc.opShares += row.opSharesIssued_raw || 0;
+        acc.afterA += row.afterCalled_raw || 0;
+        acc.afterShares += row.afterShares_raw || 0;
+        acc.undrawn += row.undrawn_raw || 0;
+      }
+      return acc;
+    }, initial);
+  }, [rows, distMode]);
+
   const baseOpCols = useMemo(() => {
     if (distMode) return [];
     return [
@@ -303,12 +291,10 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     ];
   }, [distMode]);
 
-  const flowOpCols = useMemo(() => [], []);
-
   const opCols = useMemo(() => {
     if (distMode) return [];
-    return [...baseOpCols, ...flowOpCols];
-  }, [baseOpCols, flowOpCols, distMode]);
+    return [...baseOpCols];
+  }, [baseOpCols, distMode]);
 
   const submitToNext = useCallback(async () => {
     if (!onFinalSave) throw new Error("onFinalSave not provided.");
@@ -333,113 +319,63 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   if (distMode) {
     return (
       <div className="op3-root">
-        {saveErrorMsg && (
-          <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
-            {saveErrorMsg}
-          </div>
-        )}
-
+        {saveErrorMsg && <div className="op3-error">{saveErrorMsg}</div>}
         <div className="op3-table-wrapper">
           <div className="op3-scroll-x">
             <table className="op3-table op3-table--wide">
-              <colgroup>
-                <col className="op3-col-lp" />
-                <col className="op3-col-called" />
-                <col className="op3-col-calledpct" />
-                <col className="op3-col-shares" />
-                <col className="op3-col-op" />
-                <col className="op3-col-op" />
-                <col className="op3-col-op" />
-                <col className="op3-col-after" />
-                <col className="op3-col-after" />
-                <col className="op3-col-after" />
-              </colgroup>
-
               <thead>
                 <tr className="op3-top-row">
-                  <th className="op3-top op3-top-info op3-sticky-0" colSpan={1}>
-                    INFORMATION
-                  </th>
-                  <th className="op3-top op3-top-breakdown" colSpan={3}>
-                    BREAKDOWN BEFORE OPERATION
-                  </th>
-                  <th className="op3-top op3-top-op" colSpan={3}>
-                    OPERATION
-                  </th>
-                  <th className="op3-top op3-top-after" colSpan={3}>
-                    BREAKDOWN AFTER OPERATION
-                  </th>
+                  <th className="op3-top op3-top-info op3-sticky-0">INFORMATION</th>
+                  <th className="op3-top op3-top-breakdown" colSpan={3}>BREAKDOWN BEFORE</th>
+                  <th className="op3-top op3-top-op" colSpan={3}>OPERATION</th>
+                  <th className="op3-top op3-top-after" colSpan={3}>BREAKDOWN AFTER</th>
                 </tr>
-
                 <tr className="op3-head-row">
                   <th className="op3-head op3-head-lp op3-sticky-0">
-                    <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                    <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} />
                   </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Distributed before" columnKey="beforeA_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="% Distributed before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Distribution" columnKey="opAmount_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="% Distribution" columnKey="opPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Shares redeemed" columnKey="opSharesRedeemed_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Distributed after" columnKey="afterA_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="% Distributed after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                  </th>
-                  <th className="op3-head">
-                    <SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                  </th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distributed before" columnKey="beforeA_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="% Distributed before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distribution" columnKey="opAmount_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="% Distribution" columnKey="opPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Shares redeemed" columnKey="opSharesRedeemed_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distributed after" columnKey="afterA_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="% Distributed after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 </tr>
               </thead>
-
               <tbody>
-                {sorted.map((row, index) => {
-                  const isAlt = index % 2 === 1;
-                  return (
-                    <tr key={row.id} className={`op3-body-row ${isAlt ? "is-alt" : ""}`}>
-                      <td className="op3-cell-lp op3-sticky-0">
-                        <div className="op3-avatar">{row.initials}</div>
-                        <span className="op3-lp-name">{row.name}</span>
-                      </td>
-                      <td className="op3-cell-calc">{row.beforeA}</td>
-                      <td className="op3-cell-calc">{row.beforePct}</td>
-                      <td className="op3-cell-calc">{row.beforeShares}</td>
-                      <td className="op3-cell-fetched">{row.opAmount}</td>
-                      <td className="op3-cell-fetched">{row.opPct}</td>
-                      <td className="op3-cell-fetched">{row.opSharesRedeemed}</td>
-                      <td className="op3-cell-calc">{row.afterA}</td>
-                      <td className="op3-cell-calc">{row.afterPct}</td>
-                      <td className="op3-cell-calc">{row.afterShares}</td>
-                    </tr>
-                  );
-                })}
+                {sorted.map((row, index) => (
+                  <tr key={row.id} className={`op3-body-row ${index % 2 === 1 ? "is-alt" : ""}`}>
+                    <td className="op3-cell-lp op3-sticky-0">
+                      <div className="op3-avatar">{row.initials}</div>
+                      <span className="op3-lp-name">{row.name}</span>
+                    </td>
+                    <td className="op3-cell-calc">{row.beforeA}</td>
+                    <td className="op3-cell-calc">{row.beforePct}</td>
+                    <td className="op3-cell-calc">{row.beforeShares}</td>
+                    <td className="op3-cell-fetched">{row.opAmount}</td>
+                    <td className="op3-cell-fetched">{row.opPct}</td>
+                    <td className="op3-cell-fetched">{row.opSharesRedeemed}</td>
+                    <td className="op3-cell-calc">{row.afterA}</td>
+                    <td className="op3-cell-calc">{row.afterPct}</td>
+                    <td className="op3-cell-calc">{row.afterShares}</td>
+                  </tr>
+                ))}
               </tbody>
-
               <tfoot>
                 <tr className="op3-foot-row">
                   <td className="op3-foot-label op3-sticky-0">Total</td>
+                  <td className="op3-foot op3-cell-calc">{fmtMoney(totals.beforeA)}</td>
                   <td className="op3-foot op3-cell-calc"></td>
-                  <td className="op3-foot op3-cell-calc"></td>
-                  <td className="op3-foot op3-cell-calc"></td>
+                  <td className="op3-foot op3-cell-calc">{fmtShares(totals.beforeShares)}</td>
+                  <td className="op3-foot op3-cell-fetched">{fmtMoney(totals.opAmount)}</td>
                   <td className="op3-foot op3-cell-fetched"></td>
-                  <td className="op3-foot op3-cell-fetched"></td>
-                  <td className="op3-foot op3-cell-fetched"></td>
+                  <td className="op3-foot op3-cell-fetched">{fmtShares(totals.opShares)}</td>
+                  <td className="op3-foot op3-cell-calc">{fmtMoney(totals.afterA)}</td>
                   <td className="op3-foot op3-cell-calc"></td>
-                  <td className="op3-foot op3-cell-calc"></td>
-                  <td className="op3-foot op3-cell-calc"></td>
+                  <td className="op3-foot op3-cell-calc">{fmtShares(totals.afterShares)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -451,117 +387,71 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
   return (
     <div className="op3-root">
-      {saveErrorMsg && (
-        <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
-          {saveErrorMsg}
-        </div>
-      )}
-
+      {saveErrorMsg && <div className="op3-error">{saveErrorMsg}</div>}
       <div className="op3-table-wrapper">
         <div className="op3-scroll-x">
           <table className="op3-table op3-table--wide">
-            <colgroup>
-              <col className="op3-col-lp" />
-              <col className="op3-col-called" />
-              <col className="op3-col-calledpct" />
-              <col className="op3-col-shares" />
-              {opCols.map((c) => (
-                <col key={c.key} className="op3-col-op" />
-              ))}
-              <col className="op3-col-after" />
-              <col className="op3-col-after" />
-              <col className="op3-col-after" />
-              <col className="op3-col-undrawn" />
-            </colgroup>
-
             <thead>
               <tr className="op3-top-row">
-                <th className="op3-top op3-top-info op3-sticky-0" colSpan={1}>
-                  INFORMATION
-                </th>
-                <th className="op3-top op3-top-breakdown" colSpan={3}>
-                  BREAKDOWN BEFORE OPERATION
-                </th>
-                <th className="op3-top op3-top-op" colSpan={opCols.length}>
-                  OPERATION
-                </th>
-                <th className="op3-top op3-top-after" colSpan={4}>
-                  BREAKDOWN AFTER OPERATION
-                </th>
+                <th className="op3-top op3-top-info op3-sticky-0">INFORMATION</th>
+                <th className="op3-top op3-top-breakdown" colSpan={3}>BREAKDOWN BEFORE</th>
+                <th className="op3-top op3-top-op" colSpan={opCols.length}>OPERATION</th>
+                <th className="op3-top op3-top-after" colSpan={4}>BREAKDOWN AFTER</th>
               </tr>
-
               <tr className="op3-head-row">
                 <th className="op3-head op3-head-lp op3-sticky-0">
-                  <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} />
                 </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="Called before" columnKey="beforeCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="% Called before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                </th>
+                <th className="op3-head"><SortableHeaderRenderer label="Called before" columnKey="beforeCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="% Called before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 {opCols.map((c) => (
                   <th key={c.key} className="op3-head">
-                    <SortableHeaderRenderer label={c.label} columnKey={c.rawKey} currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={c.showCurrency} />
+                    <SortableHeaderRenderer label={c.label} columnKey={c.rawKey} currentSortKey={sortKey} toggleSort={toggleSort} showCurrency={c.showCurrency} />
                   </th>
                 ))}
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="Called after" columnKey="afterCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="% Called after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={false} />
-                </th>
-                <th className="op3-head">
-                  <SortableHeaderRenderer label="Undrawn" columnKey="undrawn_raw" currentSortKey={sortKey} toggleSort={toggleSort} center={true} showCurrency={true} />
-                </th>
+                <th className="op3-head"><SortableHeaderRenderer label="Called after" columnKey="afterCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="% Called after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Undrawn" columnKey="undrawn_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
               </tr>
             </thead>
-
             <tbody>
-              {sorted.map((row, index) => {
-                const isAlt = index % 2 === 1;
-                return (
-                  <tr key={row.id} className={`op3-body-row ${isAlt ? "is-alt" : ""}`}>
-                    <td className="op3-cell-lp op3-sticky-0">
-                      <div className="op3-avatar">{row.initials}</div>
-                      <span className="op3-lp-name">{row.name}</span>
-                    </td>
-                    <td className="op3-cell-calc">{row.before.calledBefore}</td>
-                    <td className="op3-cell-calc">{row.before.calledPctBefore}</td>
-                    <td className="op3-cell-calc">{row.before.sharesBefore}</td>
-                    {opCols.map((c) => (
-                      <td key={c.key} className="op3-cell-fetched">
-                        {row.op?.[c.key] ?? ""}
-                      </td>
-                    ))}
-                    <td className="op3-cell-calc">{row.after.calledAfter}</td>
-                    <td className="op3-cell-calc">{row.after.calledPctAfter}</td>
-                    <td className="op3-cell-calc">{row.after.sharesAfter}</td>
-                    <td className="op3-cell-calc">{row.after.undrawn}</td>
-                  </tr>
-                );
-              })}
+              {sorted.map((row, index) => (
+                <tr key={row.id} className={`op3-body-row ${index % 2 === 1 ? "is-alt" : ""}`}>
+                  <td className="op3-cell-lp op3-sticky-0">
+                    <div className="op3-avatar">{row.initials}</div>
+                    <span className="op3-lp-name">{row.name}</span>
+                  </td>
+                  <td className="op3-cell-calc">{row.before.calledBefore}</td>
+                  <td className="op3-cell-calc">{row.before.calledPctBefore}</td>
+                  <td className="op3-cell-calc">{row.before.sharesBefore}</td>
+                  {opCols.map((c) => (
+                    <td key={c.key} className="op3-cell-fetched">{row.op?.[c.key] ?? ""}</td>
+                  ))}
+                  <td className="op3-cell-calc">{row.after.calledAfter}</td>
+                  <td className="op3-cell-calc">{row.after.calledPctAfter}</td>
+                  <td className="op3-cell-calc">{row.after.sharesAfter}</td>
+                  <td className="op3-cell-calc">{row.after.undrawn}</td>
+                </tr>
+              ))}
             </tbody>
-
             <tfoot>
               <tr className="op3-foot-row">
                 <td className="op3-foot-label op3-sticky-0">Total</td>
+                <td className="op3-foot op3-cell-calc">{fmtMoney(totals.beforeA)}</td>
                 <td className="op3-foot op3-cell-calc"></td>
-                <td className="op3-foot op3-cell-calc"></td>
-                <td className="op3-foot op3-cell-calc"></td>
+                <td className="op3-foot op3-cell-calc">{fmtShares(totals.beforeShares)}</td>
                 {opCols.map((c) => (
-                  <td key={c.key} className="op3-foot op3-cell-fetched"></td>
+                  <td key={c.key} className="op3-foot op3-cell-fetched">
+                    {c.key === "mainAmount" ? fmtMoney(totals.opAmount) : 
+                     c.key === "sharesIssued" ? fmtShares(totals.opShares) : ""}
+                  </td>
                 ))}
+                <td className="op3-foot op3-cell-calc">{fmtMoney(totals.afterA)}</td>
                 <td className="op3-foot op3-cell-calc"></td>
-                <td className="op3-foot op3-cell-calc"></td>
-                <td className="op3-foot op3-cell-calc"></td>
-                <td className="op3-foot op3-cell-calc"></td>
+                <td className="op3-foot op3-cell-calc">{fmtShares(totals.afterShares)}</td>
+                <td className="op3-foot op3-cell-calc">{fmtMoney(totals.undrawn)}</td>
               </tr>
             </tfoot>
           </table>

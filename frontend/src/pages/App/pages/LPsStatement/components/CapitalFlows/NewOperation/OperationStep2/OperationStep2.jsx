@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { useOutletContext } from "react-router-dom";
 import AddFlowModal from "./components/AddFlowModal/AddFlowModal.jsx";
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
 import "./OperationStep2.css";
@@ -271,8 +272,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const isEqualization = useMemo(() => {
     return (safeDraft.flows ?? []).some(f => f.isSyntheticEqualization);
   }, [safeDraft.flows]);
-    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
-  console.log("flowTypes at inject time:", flowTypes, "opKind:", opKind);
 
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
@@ -507,7 +506,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return `${LPS_W}px 1fr ${TOT_W}px`;
   }, [isEqualization, flows.length, capMinPx]);
 
-  const flowCols = flows.length > 0 ? `repeat(${flows.length}, ${FLOW_W}px)` : undefined;
+  const flowCols = flows.length > 0 ? `repeat(${flows.length}, minmax(${FLOW_W}px, 1fr))` : undefined;
 
   const onChangeFlowTotal = (flowId, raw) => {
     setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
@@ -793,7 +792,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
 
-  return (
+ return (
     <>
       {saveErrorMsg && (
         <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
@@ -827,6 +826,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       <div className="op2-table-outer">
         <div className="op2-table-inner">
+
           {/* TOP STRIP */}
           <div className="op2-head-row" style={{ gridTemplateColumns: gridCols }}>
             <div className="op2-head-block op2-head-block--dark" />
@@ -852,14 +852,57 @@ const OperationStep2 = forwardRef(function OperationStep2(
             )}
           </div>
 
-          {/* BODY */}
+          {/* COLUMN HEADERS ROW — all headers as siblings so tallest drives height */}
+          <div className="op2-col-headers-row" style={{ gridTemplateColumns: gridCols }}>
+
+            {/* LPs / Share Class header */}
+            <div className="op2-col-header">
+              <span className="op2-main-col-title">
+                {breakdown === "share-class" ? "Share class" : "LPs"}
+              </span>
+            </div>
+
+            {/* Equalization header */}
+            {isEqualization && (
+              <div className="op2-col-header op2-col-header--eq">
+                <label className="wf-label">Equalization</label>
+                <div className="wf-field-input wf-input-with-unit">
+                  <input
+                    type="number"
+                    className="wf-text-input-inner"
+                    placeholder="Target %"
+                    value={eqTargetInput}
+                    onChange={(e) => setEqTargetInput(e.target.value)}
+                    disabled={isSaving}
+                    inputMode="decimal"
+                  />
+                  <PercentageIcon />
+                </div>
+              </div>
+            )}
+
+            {/* Flows header */}
+            <div className="op2-col-header op2-col-header--flows" style={{ gridTemplateColumns: flowCols }}>
+              {flows.length === 0 ? null : flows.map((flow) => (
+                <div key={flow.id} className="op2-cap-header-cell">
+                  <div className="op2-flow-title">{flow.label}</div>
+                  <div className="op2-flow-subtitle">{flow.flowType}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total header */}
+            <div className="op2-col-header op2-col-header--right">
+              <span className="op2-main-col-title">{totalsLabel}</span>
+            </div>
+
+          </div>
+
+          {/* BODY — headers removed from inside each col */}
           <div className="op2-body-row" style={{ gridTemplateColumns: gridCols }}>
+
             {/* LPs / Share Class column */}
             <div className="op2-col op2-col--lps">
-              <div className="op2-col-header">
-                <span>{breakdown === "share-class" ? "Share class" : "LPs"}</span>
-                <span className="op2-sort">⇅</span>
-              </div>
               <div className="op2-rows">
                 {rows.map((r) => (
                   <div key={r.id} className="op2-row">
@@ -875,17 +918,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {/* Equalization column */}
             {isEqualization && (
               <div className="op2-col op2-col--eq">
-                <div className="op2-col-header op2-col-header--eq">
-                  <span>Equalization</span>
-                  <input
-                    className="op2-eq-target-input"
-                    placeholder="Target %"
-                    value={eqTargetInput}
-                    onChange={(e) => setEqTargetInput(e.target.value)}
-                    disabled={isSaving}
-                    inputMode="decimal"
-                  />
-                </div>
                 <div className="op2-rows">
                   {rows.map((r) => {
                     const v = eqByRowId[r.id];
@@ -909,51 +941,35 @@ const OperationStep2 = forwardRef(function OperationStep2(
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="op2-cap-header">
-                      <div className="op2-cap-header-grid" style={{ gridTemplateColumns: flowCols }}>
-                        {flows.map((flow) => (
-                          <div key={flow.id} className="op2-cap-header-cell">
-                            <div className="op2-flow-title">{flow.label}</div>
-                            <div className="op2-flow-subtitle">{flow.flowType}</div>
+                  <div className="op2-cap-body">
+                    <div className="op2-cap-grid" style={{ gridTemplateColumns: flowCols }}>
+                      {flows.map((flow) => {
+                        const total = flowTotals[flow.id];
+                        return (
+                          <div key={flow.id} className="op2-flow-col">
+                            {rows.map((r) => {
+                              const pct = r.ownershipPct;
+                              const value =
+                                total !== null && total !== undefined && Number.isFinite(total) &&
+                                pct !== null && pct !== undefined && Number.isFinite(pct)
+                                  ? total * pct : null;
+                              return (
+                                <div key={r.id} className="op2-flow-cell">
+                                  {value === null ? "-" : formatMoney(value)}
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                    <div className="op2-cap-body">
-                      <div className="op2-cap-grid" style={{ gridTemplateColumns: flowCols }}>
-                        {flows.map((flow) => {
-                          const total = flowTotals[flow.id];
-                          return (
-                            <div key={flow.id} className="op2-flow-col">
-                              {rows.map((r) => {
-                                const pct = r.ownershipPct;
-                                const value =
-                                  total !== null && total !== undefined && Number.isFinite(total) &&
-                                  pct !== null && pct !== undefined && Number.isFinite(pct)
-                                    ? total * pct : null;
-                                return (
-                                  <div key={r.id} className="op2-flow-cell">
-                                    {value === null ? "-" : formatMoney(value)}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Totaux */}
+            {/* Totals column */}
             <div className="op2-col op2-col--tot">
-              <div className="op2-col-header op2-col-header--right">
-                <span>{totalsLabel}</span>
-                <span className="op2-sort">⇅</span>
-              </div>
               <div className="op2-rows">
                 {rows.map((r) => {
                   const v = totalsByRowId[r.id];
@@ -1024,20 +1040,21 @@ const OperationStep2 = forwardRef(function OperationStep2(
               <div className="op2-footer-percent">= {formatPct(grandPercent)}</div>
             </div>
           </div>
+
         </div>
       </div>
 
       {showAddFlow && (
-        <AddFlowModal 
-          onClose={closeFlow} 
-          onSave={handleSaveFlow} 
-          isSaving={isSaving} 
-          flowTypes={filteredFlowTypes}      
+        <AddFlowModal
+          onClose={closeFlow}
+          onSave={handleSaveFlow}
+          isSaving={isSaving}
+          flowTypes={filteredFlowTypes}
           isLoading={isLoadingTypes}
         />
       )}
     </>
   );
-});
+})
 
 export default OperationStep2;
