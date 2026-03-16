@@ -1,6 +1,6 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewOperation/AddFlowModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { CloseIcon } from "../../../../../../Icons";
+import { CloseIcon } from "../../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import SearchableSelect from "../../../../../../../../../../components/SearchBar/SearchableSelect";
 import "./AddFlowModal.css";
 

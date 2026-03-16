@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 
-import FlowHeader from "./FlowHeader.jsx";
-import FlowFilters from "./FlowFilters.jsx";
-import FlowTable from "./FlowTable.jsx";
+import FlowHeader from "./components/Header/FlowHeader.jsx";
+import FlowFilters from "./components/Filters/FlowFilters.jsx";
+import FlowTable from "./components/Table/FlowTable.jsx";
 import OperationPanel from "./NewOperation/OperationPanel.jsx";
 import { useFlowTypes } from "../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useOperationDetails } from "../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";

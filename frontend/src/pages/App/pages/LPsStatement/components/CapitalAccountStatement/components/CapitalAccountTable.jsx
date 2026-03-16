@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../components/Sort/TableSort';
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../components/useFormatter';
-import { PlusIcon, MinusIcon } from "../../../Icons.jsx";
+import { PlusIcon, MinusIcon } from "../../../../../../../components/Icons/InteractiveIcons.jsx";
 import './CapitalAccountTable.css'
 
 export default function CapitalAccountTable({ columns, data, navDetails, isLoading, adjustedNavValues, setAdjustedNavValues, onSaveAdjustedNav }) {

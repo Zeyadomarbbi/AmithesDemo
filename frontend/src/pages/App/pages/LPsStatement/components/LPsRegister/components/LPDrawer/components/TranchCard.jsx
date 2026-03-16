@@ -1,7 +1,8 @@
 import React from "react";
 import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
-import { EuroCurrencyIcon, MoreActionsButton } from "../../../../../Icons.jsx";
+import { MoreActionsIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -59,7 +60,7 @@ export default function TranchCard({
           </span>
         </div>
         <div className="mini-row-dots">
-          <MoreActionsButton />
+          <MoreActionsIcon />
         </div>
       </div>
     );

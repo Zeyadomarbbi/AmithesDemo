@@ -1,10 +1,8 @@
 // frontend/src/pages/App/pages/LPsStatement/components/CapitalFlowTable/FlowTable.jsx
 import React, { useMemo, useState } from "react";
+import { useNumberFormatter, useDateFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import { SortIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import "./FlowTable.css";
-import { useNumberFormatter, useDateFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter.js";
-import { SortIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
-
-/* ===================== HELPERS ===================== */
 
 function getCategory(op = {}) {
   const name = String(op?.operation_type_name ?? "").toLowerCase();

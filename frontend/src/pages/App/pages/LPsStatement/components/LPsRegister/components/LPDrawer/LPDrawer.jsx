@@ -1,17 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
-import { 
-  CloseIcon, 
-  ChevronDoubleLeftIcon, 
-  ChevronDownIcon,
-  LocationIcon, 
-  PlusIcon
-} from "../../../../Icons.jsx";
-
-/* Hooks */
-
-/* Components */
+import { CloseIcon, PlusIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { ChevronDoubleLeftIcon,  } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
+import { LocationIcon } from "../../../../../../../../components/Icons/MiscIcons.jsx";
 import TranchCard from "./components/TranchCard.jsx";
 
 /* Styles */

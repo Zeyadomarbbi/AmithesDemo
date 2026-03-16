@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 
 /* Components & Icons */
-import { PlusIcon, TransferIcon } from "../../Icons.jsx";
+import { PlusIcon, TransferIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
 import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";

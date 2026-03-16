@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { CloseIcon } from "../../../../Icons.jsx";
+import { CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput";
 import { useFundClosings } from "../../../../../../hooks/LPsStatement/useClosingPeriods"; 
 import "./AddPeriodModal.css";
