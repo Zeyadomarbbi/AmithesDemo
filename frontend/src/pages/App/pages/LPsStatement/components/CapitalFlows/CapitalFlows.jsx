@@ -74,14 +74,19 @@ export default function CapitalFlows() {
 
   const isFullyLoading = opsLoading || allocLoading;
   const pageError = opsError || allocError;
-
+  const handleOperationFilterChange = (filter) => {
+    setOperationFilter(filter);
+    if (filter === "All operations") {
+      setBreakdown("operations");
+    }
+  };
   return (
     <div className="cf-page">
       <div className="cf-row cf-row--search-breakdown">
         <FlowFilters
           variant="searchOnly"
           operationFilter={operationFilter}
-          setOperationFilter={setOperationFilter}
+          setOperationFilter={handleOperationFilterChange}
           search={search}
           setSearch={setSearch}
         />
@@ -104,7 +109,7 @@ export default function CapitalFlows() {
             <FlowFilters
               variant="chipsOnly"
               operationFilter={operationFilter}
-              setOperationFilter={setOperationFilter}
+              setOperationFilter={handleOperationFilterChange}
               search={search}
               setSearch={setSearch}
             />
@@ -124,7 +129,7 @@ export default function CapitalFlows() {
             <FlowFilters
               variant="chipsOnly"
               operationFilter={operationFilter}
-              setOperationFilter={setOperationFilter}
+              setOperationFilter={handleOperationFilterChange}
               search={search}
               setSearch={setSearch}
             />

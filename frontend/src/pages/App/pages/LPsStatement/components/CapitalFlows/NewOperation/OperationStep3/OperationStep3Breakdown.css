@@ -14,27 +14,24 @@
 }
 
 .op3-table {
-  border-collapse: collapse;
+  border-collapse: separate; /* Changed from collapse */
+  border-spacing: 0;         /* Added to mimic collapse without the sticky bug */
   width: 100%;
-  max-width: none; /* was 1220px */
+  max-width: none;
   font-size: 14px;
   background: #ffffff;
 }
 
 /* column widths (roughly matching Figma) */
-.op3-col-lp {
-  width: 200px;
-}
-.op3-col-commit,
-.op3-col-owner,
+.op3-col-lp,
 .op3-col-called,
 .op3-col-calledpct,
 .op3-col-shares,
-.op3-col-eq,
-.op3-col-call {
-  width: 140px;
+.op3-col-op,
+.op3-col-after,
+.op3-col-undrawn {
+  width: auto;
 }
-
 /* ========== TOP STRIP ========== */
 .op3-top-row th {
   padding: 10px 14px;
@@ -75,9 +72,20 @@
   padding: 8px 14px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
-  font-size: 12px;
+  
+  /* Typography from Figma */
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
   font-weight: 500;
-  color: #4b5563;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  
+  /* Alignment and sizing */
+  vertical-align: middle;
+  text-align: left;
+  white-space: nowrap; /* Forces one line */
 }
 
 .op3-head-lp {
@@ -89,7 +97,7 @@
 .op3-body-row td {
   padding: 8px 14px;
   border-bottom: 1px solid #e5e7eb;
-  text-align: right;
+  text-align: center; /* Changed from right */
   font-variant-numeric: tabular-nums;
 }
 
@@ -97,6 +105,7 @@
   text-align: left;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
 }
 
@@ -115,8 +124,16 @@
 }
 
 .op3-lp-name {
+  /* Text-SM/Normal */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
   font-size: 14px;
-  color: #374151;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
 }
 
 .op3-body-row.is-alt td {
@@ -137,7 +154,7 @@
 }
 
 .op3-foot {
-  text-align: right;
+  text-align: center;
 }
 
 /* ===================================================================== */
@@ -180,6 +197,7 @@
 .op3-sticky-1 {
   position: sticky;
   z-index: 4;
+  background-clip: padding-box; /* Prevents 1px background bleed/misalignment */
 }
 
 .op3-sticky-0 {

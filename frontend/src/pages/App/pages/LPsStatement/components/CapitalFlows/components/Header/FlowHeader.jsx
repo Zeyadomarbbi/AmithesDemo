@@ -1,4 +1,3 @@
-// frontend/src/pages/App/pages/LPsStatement/components/FlowHeader.jsx
 import React from "react";
 import { PlusIconWhite } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate.jsx";
@@ -15,7 +14,6 @@ export default function FlowHeader({
   if (operationFilter === "Capital call") buttonLabel = "New capital call";
   if (operationFilter === "Distribution") buttonLabel = "New distribution";
 
-  // ✅ SHOW BREAKDOWN ONLY for Capital call & Distribution (like before)
   const showBreakdown =
     operationFilter === "Capital call" || operationFilter === "Distribution";
 
@@ -32,16 +30,16 @@ export default function FlowHeader({
   return (
     <div className={`cf-header ${variantClass}`.trim()}>
       {renderBreakdown && (
-        <div className="cf-breakdown-row cf-breakdown-row--in-header">
-          <span className="cf-breakdown-label">Breakdown :</span>
+        <div className="cf-header-breakdown-row cf-header-breakdown-row--in-header">
+          <span className="cf-header-breakdown-label">Breakdown :</span>
 
-          <div className="cf-breakdown-chips">
+          <div className="cf-header-breakdown-chips">
             <button
               type="button"
               className={
                 breakdown === "operations"
-                  ? "cf-breakdown-chip active"
-                  : "cf-breakdown-chip"
+                  ? "cf-header-breakdown-chip active"
+                  : "cf-header-breakdown-chip"
               }
               onClick={() => setBreakdown("operations")}
             >
@@ -52,8 +50,8 @@ export default function FlowHeader({
               type="button"
               className={
                 breakdown === "lps"
-                  ? "cf-breakdown-chip active"
-                  : "cf-breakdown-chip"
+                  ? "cf-header-breakdown-chip active"
+                  : "cf-header-breakdown-chip"
               }
               onClick={() => setBreakdown("lps")}
             >
@@ -64,8 +62,8 @@ export default function FlowHeader({
               type="button"
               className={
                 breakdown === "shareClasses"
-                  ? "cf-breakdown-chip active"
-                  : "cf-breakdown-chip"
+                  ? "cf-header-breakdown-chip active"
+                  : "cf-header-breakdown-chip"
               }
               onClick={() => setBreakdown("shareClasses")}
             >
@@ -76,7 +74,7 @@ export default function FlowHeader({
       )}
       <PermissionGate>
         {renderButton && (
-          <button type="button" className="cf-new-op-btn" onClick={onNewOperation}>
+          <button type="button" className="cf-header-new-op-btn" onClick={onNewOperation}>
             <PlusIconWhite /> {buttonLabel}
           </button>
         )}
