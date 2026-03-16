@@ -64,11 +64,12 @@ export const useCapitalFlowFlowDetails = (fundId, operationId) => {
   };
 
   // DELETE: Remove a flow
-  const deleteFlow = async (flowId) => {
+  const deleteFlow = async (targetOperationId, flowId) => {
+    const endpoint = `/api/funds/${fundId}/operations/${targetOperationId}/flows/${flowId}/`;
     setIsLoading(true);
     setError(null);
     try {
-      await api.delete(`${baseEndpoint}${flowId}/`);
+      await api.delete(endpoint);
       setFlows((prev) => prev.filter((f) => f.operation_flow_id !== flowId));
     } catch (err) {
       setError(err.message);

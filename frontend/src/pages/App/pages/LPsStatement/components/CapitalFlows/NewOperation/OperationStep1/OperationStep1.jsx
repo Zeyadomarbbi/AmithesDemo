@@ -44,11 +44,7 @@ export default function OperationStep1({
       <div className="op1-field">
         <label className="op1-label">Operation type*</label>
           <SearchableSelect
-            options={filteredOperationTypes.length > 0 ? filteredOperationTypes : [
-              { operation_type_id: "1", name: "Capital Call" },
-              { operation_type_id: "2", name: "Distribution" },
-              { operation_type_id: "3", name: "Equalization/Capital Call" },
-            ]}
+            options={filteredOperationTypes}
             value={String(operationType)}
             onChange={(val) => setOperationType(String(val))}
             placeholder="Choose the operation type"

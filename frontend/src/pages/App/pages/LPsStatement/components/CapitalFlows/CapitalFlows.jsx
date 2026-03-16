@@ -37,6 +37,8 @@ export default function CapitalFlows() {
     error: allocError,
     fetchAllAllocations,
     createAllocation,
+    updateAllocation,
+    deleteAllocation
   } = useCapitalFlowLPOperationAllocation(fundId, null);
 
   const loadData = useCallback(async () => {
@@ -166,8 +168,10 @@ export default function CapitalFlows() {
           onClose={handleClosePanel}
           commitments={commitments}
           createOperationLPAllocation={createAllocation}
+          deleteOperationLPAllocation={deleteAllocation}  // ← add
           existingAllocations={lpAllocations}
           fetchAllAllocations={fetchAllAllocations}
+          operations={operations}
         />
       )}
     </div>

@@ -62,12 +62,13 @@ export const useCapitalFlowLPFlowAllocation = (fundId, operationId, flowId) => {
   };
 
   // DELETE: Remove a single LP allocation
-  const deleteAllocation = async (allocationId) => {
+  const deleteAllocation = async (targetOpId, targetFlowId, allocationId) => {
+    const endpoint = `/api/funds/${fundId}/operations/${targetOpId}/flows/${targetFlowId}/lp_allocations/${allocationId}/`;
     setIsLoading(true);
     setError(null);
     try {
-      await api.delete(`${baseEndpoint}${allocationId}/`);
-      setAllocations((prev) => 
+      await api.delete(endpoint);
+      setAllocations((prev) =>
         prev.filter((a) => a.lp_flow_allocation_id !== allocationId)
       );
     } catch (err) {

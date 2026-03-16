@@ -95,6 +95,8 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     operationId = null,
     operationNumber,
     totalFundCommitment = 0,
+    shareClasses = [],
+    operations = [],
     onFinalSave,
     commitments = [],
     existingAllocations = [], 
@@ -112,7 +114,51 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   const [saveError, setSaveError] = useState(null);
   const [savedOnce, setSavedOnce] = useState(false);
 
+  const shareClassLookup = useMemo(() => {
+    const map = new Map();
+    (Array.isArray(shareClasses) ? shareClasses : []).forEach((sc) => {
+      map.set(String(sc.share_class_id), sc);
+    });
+    return map;
+  }, [shareClasses]);
+  const operationTypeById = useMemo(() => {
+    const map = new Map();
+    (Array.isArray(operations) ? operations : []).forEach((op) => {
+      const id = op?.lps_operation_details_id ?? op?.operation_id ?? op?.id;
+      const typeName = String(op?.operation_type_name ?? op?.type_name ?? "").toLowerCase();
+      if (id) map.set(Number(id), typeName);
+    });
+    return map;
+  }, [operations]);
+
   const beforeByLp = useMemo(() => {
+    const map = {};
+    const safe = Array.isArray(existingAllocations) ? existingAllocations : [];
+    const currentOpNum = operationNumber != null ? Number(operationNumber) : Infinity;
+    const currentIsDistribution = isDistributionType(opType);
+
+    safe.forEach((alloc) => {
+      if (Number(alloc?.operation_number ?? 0) >= currentOpNum) return;
+
+      const allocOpId = Number(alloc?.lps_operation_details);
+      const allocTypeName = operationTypeById.get(allocOpId) ?? "";
+      const allocIsDistribution = allocTypeName.includes("distribution");
+
+      // Only sum same-type operations
+      if (currentIsDistribution !== allocIsDistribution) return;
+
+      const lpId = String(alloc?.lp_id ?? "");
+      if (!lpId) return;
+      if (!map[lpId]) {
+        map[lpId] = { capitalCall: 0, sharesIssued: 0 };
+      }
+      map[lpId].capitalCall += Number(alloc?.capital_call ?? 0);
+      map[lpId].sharesIssued += Number(alloc?.shares_issued ?? 0);
+    });
+    return map;
+  }, [existingAllocations, operationNumber, opType, operationTypeById]);
+
+  const sharesBeforeByLp = useMemo(() => {
     const map = {};
     const safe = Array.isArray(existingAllocations) ? existingAllocations : [];
     const currentOpNum = operationNumber != null ? Number(operationNumber) : Infinity;
@@ -121,10 +167,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
       if (Number(alloc?.operation_number ?? 0) >= currentOpNum) return;
       const lpId = String(alloc?.lp_id ?? "");
       if (!lpId) return;
-      if (!map[lpId]) {
-        map[lpId] = { capitalCall: 0, sharesIssued: 0 };
-      }
-      map[lpId].capitalCall += Number(alloc?.capital_call ?? 0);
+      if (!map[lpId]) map[lpId] = { sharesIssued: 0 };
       map[lpId].sharesIssued += Number(alloc?.shares_issued ?? 0);
     });
     return map;
@@ -147,7 +190,11 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
     });
 
     const arr = Array.from(lpMap.values());
-
+    console.log("[Step3] full perLp:", perLp);
+    console.log("[Step3] lps prop:", lps);
+    console.log("[Step3] commitments prop:", commitments);
+    console.log("[Step3] dueDate:", dueDate);
+    console.log("[Step3] lpMap built:", Array.from(lpMap.entries()));
     return arr.map((lp, idx) => {
       const lpIdStr = String(lp?.lp_id ?? lp?.id ?? `${idx}`);
       const name = lp?.name ?? lp?.fullName ?? lp?.lpName ?? lp?.label ?? "";
@@ -159,17 +206,26 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
 
       const step2 = perLp?.[lpIdStr] || {};
       const mainAmountNum = Number(getMainAmountFromStep2(step2) || 0);
-
       const aggBefore = beforeByLp[lpIdStr] || { capitalCall: 0, sharesIssued: 0 };
       const beforeAmount = Number(aggBefore.capitalCall);
-      const beforeShares = Number(aggBefore.sharesIssued);
+      const beforeShares = Number(sharesBeforeByLp[lpIdStr]?.sharesIssued || 0);
 
       if (distMode) {
         const distributedAfter = beforeAmount + mainAmountNum;
         const pctBefore = commitmentAmount > 0 ? beforeAmount / commitmentAmount : 0;
         const pctOp = commitmentAmount > 0 ? mainAmountNum / commitmentAmount : 0;
         const pctAfter = commitmentAmount > 0 ? distributedAfter / commitmentAmount : 0;
-        const sharesAfter = beforeShares;
+
+        const scId = step2?.shareClassId ?? null;
+        const sc = scId ? shareClassLookup.get(String(scId)) : null;
+        const isRedemption = sc?.distribution_method === "REDEMPTION_OF_SHARES";
+        const nominalValue = parseFloat(sc?.nominal_value || 0);
+        const sharesRedeemed = isRedemption && nominalValue > 0
+          ? mainAmountNum / nominalValue
+          : 0;
+        const sharesAfter = isRedemption
+          ? beforeShares - sharesRedeemed
+          : beforeShares;
 
         return {
           id: lpIdStr,
@@ -185,8 +241,8 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
           opAmount_raw: mainAmountNum,
           opPct: fmtPctFraction(pctOp),
           opPct_raw: pctOp,
-          opSharesRedeemed: "",
-          opSharesRedeemed_raw: 0,
+          opSharesRedeemed: fmtShares(sharesRedeemed),
+          opSharesRedeemed_raw: sharesRedeemed,
           afterA: fmtMoney(distributedAfter),
           afterA_raw: distributedAfter,
           afterPct: fmtPctFraction(pctAfter),
@@ -245,7 +301,7 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
         undrawn_raw: undrawn,
       };
     });
-  }, [lps, commitments, perLp, flows, distMode, beforeByLp, dueDate]);
+  }, [lps, commitments, perLp, flows, distMode, beforeByLp, dueDate, shareClassLookup]);
 
   const { sorted, sortKey, toggleSort } = useTableSort(rows, "name");
 

@@ -674,27 +674,31 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       const nomNum = parseFloat(nominalVal);
       const issuanceMethod = scObj?.issuance_method;
-      
       let computedShares = null;
-
       if (!Number.isFinite(nomNum) || nomNum <= 0) {
         computedShares = null;
-      } else if (issuanceMethod === "PRO_RATA_CALLED") {
-        computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+      } else if (isDistribution) {
+        // Distribution — shares redeemed
+        const distributionMethod = scObj?.distribution_method;
+        if (distributionMethod === "REDEMPTION_OF_SHARES") {
+          computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+        } else {
+          // Dividend — no shares redeemed
+          computedShares = 0;
+        }
       } else {
-        const currentCommitment = r.commitmentNumber ?? 0;
-        const prevCommitment = breakdown === "share-class"
-          ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0)
-          : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
-        const delta = currentCommitment - prevCommitment;
-        computedShares = delta > 0 ? delta / nomNum : 0;
-          console.log("[shares debug]", r.id, {
-            currentCommitment,
-            prevCommitment,
-            delta: currentCommitment - prevCommitment,
-            nomNum,
-            issuanceMethod,
-          });
+        // Capital call / Equalization — shares issued
+        if (issuanceMethod === "PRO_RATA_CALLED" || issuanceMethod === "Pro Rata Called Amount") {
+          computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+        } else {
+          // Upfront
+          const currentCommitment = r.commitmentNumber ?? 0;
+          const prevCommitment = breakdown === "share-class"
+            ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0)
+            : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
+          const delta = currentCommitment - prevCommitment;
+          computedShares = delta > 0 ? delta / nomNum : 0;
+        }
       }
 
       perLpOut[r.id] = {
@@ -727,7 +731,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
         input_type: "amount",
         input_amount: flowTotal,
         input_percentage: null,
-        computed_total_amount: eqGrandTotal,
+        computed_total_amount: flowTotal,
         allocation_percentage_of_commitment:
           totalCommitment > 0 && computedTotalAmount !== null && Number.isFinite(computedTotalAmount)
             ? Math.max(0, computedTotalAmount / totalCommitment) * 100
