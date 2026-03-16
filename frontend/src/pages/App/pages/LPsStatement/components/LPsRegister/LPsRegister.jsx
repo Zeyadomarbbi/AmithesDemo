@@ -14,8 +14,6 @@ import { PageSpinner, PageError } from "../../../../../../components/LoadingScre
 import { useCountries } from "../../../../hooks/Reference/useCountries.js";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods.jsx";
-import { useLimitedPartners } from "../../../../hooks/LPsStatement/useLimitedPartners.jsx";
-import { useLimitedPartnerFundCommitment } from "../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
 import "./LPsRegister.css";
 
 
@@ -135,7 +133,16 @@ function buildCommitmentSummary(commitments, closings, limitedPartners, shareCla
 export default function LPsRegister() {
   const outlet = useOutletContext() || {};
   const fundId = outlet.fundId;
-
+  const limitedPartners = outlet.limitedPartnersRaw || [];
+  const {
+    commitments,
+    reloadAll,
+    createCommitment,
+    updateCommitment,
+    deleteCommitment,
+    createLimitedPartner,    // ← add
+    updateLimitedPartner,    // ← add
+  } = outlet;
   /* --- State --- */
   const [searchTerm, setSearchTerm] = useState("");
   const [activeClass, setActiveClass] = useState(null);
@@ -150,8 +157,6 @@ export default function LPsRegister() {
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
   const shareClasses = outlet.shareClasses || [];
-  const { limitedPartners, fetchLimitedPartners, updateLimitedPartner } = useLimitedPartners();
-  const { commitments, fetchCommitments, updateCommitment, createCommitment } = useLimitedPartnerFundCommitment(fundId);
   const { countries, isLoading: countriesLoading } = useCountries();
   const { currencies, isLoading: currenciesLoading } = useCurrencies();
   /* --- Data Loading --- */
@@ -160,15 +165,14 @@ export default function LPsRegister() {
     try {
       await Promise.all([
         fetchFundClosings(),
-        fetchLimitedPartners(),
-        fetchCommitments()
+        reloadAll()
       ]);
     } catch (e) {
       console.error("❌ Failed to load LP Register data:", e);
     } finally {
       setIsLoadingData(false);
     }
-  }, [fundId, fetchFundClosings, fetchLimitedPartners, fetchCommitments]);
+  }, [fundId, fetchFundClosings, reloadAll]);
 
   useEffect(() => {
     if (fundId) {
@@ -210,9 +214,9 @@ export default function LPsRegister() {
   }, [selectedLP, commitments]);
 
   const handleSelectLP = useCallback(async (lp) => {
-    await fetchCommitments();
+    await reloadAll();
     setSelectedLP(lp);
-  }, [fetchCommitments]);
+  }, [reloadAll]);
   
   const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading;
 return (
@@ -281,7 +285,7 @@ return (
       open={isNewLpOpen || !!selectedLP} 
       onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
       onSave={async () => {
-        await Promise.all([fetchLimitedPartners(), fetchCommitments()]);
+        await reloadAll();
         setSelectedLP(null);
         setIsNewLpOpen(false);
       }}
@@ -291,6 +295,10 @@ return (
       shareClasses={shareClasses}
       currencies={currencies}
       currenciesLoading={currenciesLoading}
+      createCommitment={createCommitment}
+      updateCommitment={updateCommitment}
+      createLimitedPartner={createLimitedPartner}    // ← add
+      updateLimitedPartner={updateLimitedPartner} 
     />
     <AddPeriodModal 
       open={periodModalOpen} 

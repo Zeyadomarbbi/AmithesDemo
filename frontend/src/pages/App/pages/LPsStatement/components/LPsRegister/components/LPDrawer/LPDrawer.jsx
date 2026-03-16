@@ -10,8 +10,6 @@ import {
 } from "../../../../Icons.jsx";
 
 /* Hooks */
-import { useLimitedPartners } from "../../../../../../hooks/LPsStatement/useLimitedPartners.jsx";
-import { useLimitedPartnerFundCommitment } from "../../../../../../hooks/LPsStatement/useLimitedPartnerFundCommitment.jsx";
 
 /* Components */
 import TranchCard from "./components/TranchCard.jsx";
@@ -39,16 +37,18 @@ const EMPTY_TRANCHE = {
 };
 
 export default function LPDrawer({ 
-    lp, existingCommitments = [], open, onClose, onSave, periods = [],
-    countries = [], countriesLoading = false,
-    shareClasses: dbShareClasses = [], classesLoading = false,
-    currencies = [], currenciesLoading = false,
+  lp, existingCommitments = [], open, onClose, onSave, periods = [],
+  countries = [], countriesLoading = false,
+  shareClasses: dbShareClasses = [], classesLoading = false,
+  currencies = [], currenciesLoading = false,
+  createCommitment,
+  updateCommitment,
+  createLimitedPartner,    // ← add
+  updateLimitedPartner,    // ← add
 }) {
   const { fundId } = useParams();
   const isEdit = !!lp;
   /* --- API Hooks --- */
-  const { createLimitedPartner, updateLimitedPartner } = useLimitedPartners();
-  const { createCommitment, updateCommitment } = useLimitedPartnerFundCommitment(fundId);
 
   /* --- Form State --- */
   const [form, setForm] = useState(EMPTY_FORM);

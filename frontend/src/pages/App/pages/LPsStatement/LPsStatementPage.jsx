@@ -56,13 +56,22 @@ export default function LPsStatementPage() {
   const [isLoadingLps, setIsLoadingLps] = useState(false);
 
   // ✅ LP identity list
-  const { limitedPartners, fetchLimitedPartners } = useLimitedPartners();
+  const {
+    limitedPartners,
+    fetchLimitedPartners,
+    createLimitedPartner,
+    updateLimitedPartner,
+    deleteLimitedPartner,
+  } = useLimitedPartners();
   const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
   // ✅ Commitments list (fund-scoped)
   const {
     commitments,
     loading: isLoadingCommitments,
     fetchCommitments,
+    createCommitment,
+    updateCommitment,
+    deleteCommitment,
   } = useLimitedPartnerFundCommitment(fundId);
 
   // ✅ reload everything needed for calculations
@@ -173,12 +182,18 @@ export default function LPsStatementPage() {
           <Outlet
             context={{
               fundId,
-              lps, // ✅ normalized for Operation Step2/3 + can be used by LPsRegister if you want
-              limitedPartnersRaw: limitedPartners, // ✅ raw hook output (in case other pages rely on original fields)
+              lps,
+              limitedPartnersRaw: limitedPartners,
               shareClasses,
-              commitments, // ✅ fund commitments list
-              reloadAll, // ✅ refresh LPs + commitments
+              commitments,
+              reloadAll,
               isLoadingLps: isLoadingLps || isLoadingCommitments,
+              createCommitment,
+              updateCommitment,
+              deleteCommitment,
+              createLimitedPartner,    // ← add
+              updateLimitedPartner,    // ← add
+              deleteLimitedPartner,    // ← add
             }}
           />
         </div>
