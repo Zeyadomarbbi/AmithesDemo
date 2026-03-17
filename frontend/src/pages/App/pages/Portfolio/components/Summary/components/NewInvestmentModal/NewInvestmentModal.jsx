@@ -1,17 +1,21 @@
-import React, { useState } from "react";
-import "./NewInvestmentModal.css";
+import React, { useMemo, useState } from "react";
 import { useCountries } from "../../../../../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import "./NewInvestmentModal.css";
 
-const NewInvestmentModal = ({ onClose, onSave }) => {
-  const [name, setName] = useState("");
-  const [sector, setSector] = useState("");
-  const [countryId, setCountryId] = useState("");
-  const [ownership, setOwnership] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
+const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "create" }) => {
+  const [name, setName] = useState(initialValues?.name || "");
+  const [sector, setSector] = useState(initialValues?.sector || "");
+  const [countryId, setCountryId] = useState(initialValues?.countryId || "");
+  const [ownership, setOwnership] = useState(
+    initialValues?.ownership !== undefined && initialValues?.ownership !== null
+      ? String(initialValues.ownership)
+      : ""
+  );
+  const [currencyId, setCurrencyId] = useState(initialValues?.currencyId || "");
 
   const { countries = [] } = useCountries();
   const { currencies = [] } = useCurrencies();
@@ -20,31 +24,61 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
   const isOwnershipValid =
     Number.isFinite(ownershipNumber) && ownershipNumber >= 1 && ownershipNumber <= 100;
 
-  const isValid = name && sector && countryId && currencyId && isOwnershipValid;
-
   const formattedCurrencies = currencies.map((c) => ({
     ...c,
     customLabel: `${c.currency_name || c.name || c.currency_code || c.code || ""}`,
     customSecondary: c.currency_code || c.code || "",
   }));
 
+  const headerTitle = mode === "edit" ? "Edit investment" : "Create a new investment";
+  const headerDescription = mode === "edit"
+    ? "Update the investment details."
+    : "Description";
+  const saveLabel = mode === "edit" ? "Update" : "Save";
+
+  const resolvedCountryId = useMemo(() => {
+    if (countryId) return countryId;
+    if (!initialValues?.countryName) return "";
+    const match = countries.find((c) => {
+      const countryName = c.name || c.country_name || "";
+      return String(countryName).trim().toLowerCase() === String(initialValues.countryName).trim().toLowerCase();
+    });
+    return match?.id || "";
+  }, [countryId, countries, initialValues]);
+
+  const resolvedCurrencyId = useMemo(() => {
+    if (currencyId) return currencyId;
+    if (!initialValues) return "";
+    const match = currencies.find((c) => {
+      const code = c.currency_code || c.code || "";
+      const name = c.currency_name || c.name || "";
+      return (
+        String(code).trim().toLowerCase() === String(initialValues.currencyCode || "").trim().toLowerCase() ||
+        String(name).trim().toLowerCase() === String(initialValues.currencyName || "").trim().toLowerCase()
+      );
+    });
+    return match?.id || "";
+  }, [currencyId, currencies, initialValues]);
+
+  const isValid = name && sector && resolvedCountryId && resolvedCurrencyId && isOwnershipValid;
+
   const handleSave = async () => {
     if (!isValid) return;
 
-    const selectedCountry = countries.find((c) => String(c.id) === String(countryId));
+    const selectedCountry = countries.find((c) => String(c.id) === String(resolvedCountryId));
     const selectedCurrency =
-      currencies.find((c) => String(c.currency_code) === String(currencyId)) ||
-      currencies.find((c) => String(c.code) === String(currencyId)) ||
-      currencies.find((c) => String(c.id) === String(currencyId));
+      currencies.find((c) => String(c.currency_code) === String(resolvedCurrencyId)) ||
+      currencies.find((c) => String(c.code) === String(resolvedCurrencyId)) ||
+      currencies.find((c) => String(c.id) === String(resolvedCurrencyId));
 
     await onSave({
       name,
       sector,
       ownership: ownershipNumber,
-      countryId,
-      currencyId: selectedCurrency?.id || currencyId,
+      countryId: resolvedCountryId,
+      currencyId: selectedCurrency?.id || resolvedCurrencyId,
       countryName: selectedCountry?.name || "",
-      currencyCode: selectedCurrency?.currency_code || selectedCurrency?.code || String(currencyId),
+      currencyCode: selectedCurrency?.currency_code || selectedCurrency?.code || String(resolvedCurrencyId),
       currencyName: selectedCurrency?.currency_name || selectedCurrency?.name || "",
       currencySymbol: selectedCurrency?.currency_symbol || selectedCurrency?.symbol || "",
     });
@@ -53,8 +87,17 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
   };
 
   return (
-    <div className="portfolio-new-investment-overlay">
-      <div className="portfolio-new-investment-card">
+    <div
+      className="portfolio-new-investment-overlay"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+    >
+      <div
+        className="portfolio-new-investment-card"
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="portfolio-new-investment-header">
@@ -67,8 +110,8 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
             </button>
           </div>
           <div className="portfolio-new-investment-header-text">
-            <h2>Create a new investment</h2>
-            <p>Description</p>
+            <h2>{headerTitle}</h2>
+            <p>{headerDescription}</p>
           </div>
         </div>
 
@@ -103,7 +146,7 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
                   name: c.name || c.country_name || "",
                   code: c.iso3 || c.iso3_code || c.iso2 || c.iso2_code || "",
                 }))}
-                value={countryId}
+                value={resolvedCountryId}
                 onChange={(val) => setCountryId(val)}
                 placeholder="Select a country"
                 labelKey="name"
@@ -136,7 +179,7 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
               <label className="portfolio-new-investment-label">Local Currency*</label>
               <SearchableSelect
                 options={formattedCurrencies}
-                value={currencyId}
+                value={resolvedCurrencyId}
                 onChange={(val) => setCurrencyId(val)}
                 placeholder="Select a currency"
                 labelKey="customLabel"
@@ -158,7 +201,7 @@ const NewInvestmentModal = ({ onClose, onSave }) => {
             disabled={!isValid}
             onClick={handleSave}
           >
-            Save
+            {saveLabel}
           </button>
         </div>
 

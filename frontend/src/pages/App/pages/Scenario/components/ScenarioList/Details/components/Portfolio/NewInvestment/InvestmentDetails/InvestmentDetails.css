@@ -131,7 +131,7 @@
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 40px;
-  display: flex;
+  display: fle*999999999999x;
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 20px;
@@ -301,13 +301,15 @@
 }
 
 .invFooterBtn {
-  height: 48px;
-  padding: 0 40px;
-  border-radius: 6px;
+  height: 40px;
+  padding: 10px 70px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  border: none;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  gap: 6px;
 }
 
 .invBtnCancel { background: #f8fafc; color: #475569; }
@@ -474,6 +476,3 @@
 .badge-Other { background: #EDE9FE; color: #6D28D9; }
 .badge-Divestment { background: #FEE2E2; color: #B91C1C; }
 .badge-Partial-divestment { background: #FFE4E6; color: #BE123C; }
-
-
-  

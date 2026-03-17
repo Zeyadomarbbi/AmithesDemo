@@ -6,10 +6,9 @@ import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scen
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
 import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
-import { PageSpinner, PageError } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
+import { PageSpinner } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
 // Components
 import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
-import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons';
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
@@ -186,6 +185,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const { investments, fetchInvestments, createFlow, loading: loadInv } = usePortfolio(fundId);
   const { transactionTypes } = usePortfolioTransactionTypes();
   const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
+  console.log("investments", investments)
+  console.log("projections", projections)
   const handleToggleLock = (rowId) => {
         setLockedRows(prev => 
             prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]

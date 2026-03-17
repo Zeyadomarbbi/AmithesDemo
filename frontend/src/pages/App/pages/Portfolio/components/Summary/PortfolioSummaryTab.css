@@ -198,14 +198,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
-  border-radius: 10px;
-  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 2px solid transparent;
   background: #f59e0b;
   color: #ffffff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  height: 40px;
 }
 .primary-btn:hover { filter: brightness(0.95); }
 
@@ -235,26 +236,43 @@
 .portfolio-tables-scroll-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
 .portfolio-tables-scroll-container { scrollbar-width: auto; }
 
-/* ===== Sections — no independent scrolling ===== */
-.portfolio-section {
-}
-
+/* ===== Sections — each has its own horizontal scroll ===== */
 .portfolio-section .portfolio-table-card {
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
 }
 
-/* Remove the old per-section scroll wrapper behaviour */
 .portfolio-section .portfolio-table-scroll {
-  width: auto;
-  overflow: visible;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  display: block;
+  scrollbar-width: auto !important;
 }
+
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb; }
+.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+
+.portfolio-total-section .portfolio-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  display: block;
+  scrollbar-width: auto !important;
+}
+
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb; }
+.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
 
 /* ===== All tables share the same fixed layout & min-width ===== */
 .portfolio-table {
   width: 100%;
-  min-width: 1570px;   /* sum of all col widths: 220+140+130+190+220+200+150+160+160 */
+  min-width: 1570px !important;
   table-layout: fixed;
   border-collapse: collapse;
 }
@@ -345,13 +363,19 @@
   color: #1c1917;
 }
 
+/* ===== Blue sector/industry name (matches Figma) ===== */
 .name-sub {
   font-family: "Inter";
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
-  color: #375a89;
+  color: #375a89 !important;
+}
+
+/* Extra specificity to prevent any global override */
+.name-cell .name-sub {
+  color: #375a89 !important;
 }
 
 .portfolio-table tbody td {
@@ -366,6 +390,31 @@
   white-space: nowrap;
 }
 
+/* ===== Geography cell with flag ===== */
+.geography-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.country-flag-img {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: none !important;
+  padding: 0 !important;
+}
+
+/* ===== Subtotal row ===== */
 .portfolio-subtotal-row,
 .portfolio-subtotal-row.total-row {
   background: #375a89;

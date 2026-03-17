@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
 import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
 import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
+import { useCountries } from "../../hooks/Reference/useCountries";
+import { useCurrencies } from "../../hooks/Reference/useCurrencies";
 
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
@@ -10,6 +12,8 @@ import "./styles/portfolio.tables.css";
 
 const PortfolioPage = () => {
   const { fundId } = useParams();
+    const { countries = [] } = useCountries();
+    const { currencies = [] } = useCurrencies();
   
   // Use the clean, standardized API hook
   const { investments, loading, fetchInvestments } = usePortfolio(fundId);
@@ -31,7 +35,6 @@ const PortfolioPage = () => {
     isLoading: loading,
     refresh: fetchInvestments,
   };
-
   return (
     <TimeframeProvider fundId={fundId}>
       <div className="portfolio-page">
@@ -43,7 +46,7 @@ const PortfolioPage = () => {
             <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
             <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
           </div>
-          <Outlet context={{ fundId, portfolioDataset }} />
+          <Outlet context={{ fundId, portfolioDataset, countries, currencies }} />
         </main>
       </div>
     </TimeframeProvider>

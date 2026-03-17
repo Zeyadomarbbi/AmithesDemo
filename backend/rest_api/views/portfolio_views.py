@@ -5,6 +5,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db import transaction, IntegrityError
+from django.db.models import Prefetch
 
 from ..models.transactions import *
 from ..serializers.portfolio_serializers import *
@@ -15,10 +16,14 @@ from ..services import PortfolioKpiService
 class PortfolioInvestmentView(APIView):
     def get(self, request, fund_id, investment_id=None, **kwargs):
         scenario_id = kwargs.get('scenario_pk') or kwargs.get('scenario_id')
+        active_flows_prefetch = Prefetch(
+            'transaction_flows',
+            queryset=PortfolioTransactionFlow.objects.filter(is_deleted=False).order_by('date', 'flow_id')
+        )
 
         if investment_id:
             investment = get_object_or_404(
-                PortfolioInvestment.objects.prefetch_related('transaction_flows'), 
+                PortfolioInvestment.objects.prefetch_related(active_flows_prefetch), 
                 investment_id=investment_id, 
                 fund_id=fund_id, 
                 is_deleted=False
@@ -40,7 +45,7 @@ class PortfolioInvestmentView(APIView):
             # Show ONLY base fund deals
             queryset = queryset.filter(scenario_id__isnull=True)
 
-        qs = queryset.prefetch_related('transaction_flows').order_by("-created_at")
+        qs = queryset.prefetch_related(active_flows_prefetch).order_by("-created_at")
         serializer = PortfolioInvestmentSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -59,6 +64,33 @@ class PortfolioInvestmentView(APIView):
             scenario_id=scenario_id
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def put(self, request, fund_id, investment_id, **kwargs):
+        investment = get_object_or_404(
+            PortfolioInvestment,
+            investment_id=investment_id,
+            fund_id=fund_id,
+            is_deleted=False,
+        )
+        serializer = PortfolioInvestmentSerializer(
+            investment,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, fund_id, investment_id, **kwargs):
+        investment = get_object_or_404(
+            PortfolioInvestment,
+            investment_id=investment_id,
+            fund_id=fund_id,
+            is_deleted=False,
+        )
+        investment.is_deleted = True
+        investment.save(update_fields=["is_deleted", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class PortfolioTransactionFlowView(APIView):
     def get(self, request, fund_id, investment_id, pk=None):
@@ -148,6 +180,18 @@ class PortfolioTransactionFlowView(APIView):
 
         serializer.save(updated_by=updated_by)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, fund_id, investment_id, pk):
+        instance = get_object_or_404(
+            PortfolioTransactionFlow,
+            flow_id=pk,
+            portfolio_investment_id=investment_id,
+            portfolio_investment__fund_id=fund_id,
+            is_deleted=False
+        )
+        instance.is_deleted = True
+        instance.save(update_fields=["is_deleted", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class PortfolioFairValueFlowView(APIView):
     def get(self, request, fund_id, investment_id, pk=None):

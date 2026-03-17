@@ -1,6 +1,6 @@
 import React from "react";
-import { SortIcon } from "../../Icons";
 import { formatFxValue, getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
 import "../Deals/FxDealsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
@@ -45,6 +45,8 @@ const FxPortfolioView = ({ fundId, shared }) => {
     };
   });
 
+  const { sorted, sortKey, toggleSort } = useTableSort(aggregateRows, "name");
+
   const grandTotalCost = aggregateRows.reduce((acc, row) => acc + row.costLc, 0);
   const grandTotalInception = aggregateRows.reduce((acc, row) => acc + row.impactInception, 0);
   const grandImpactTotals = timeframeColumns.reduce((acc, column) => {
@@ -58,24 +60,32 @@ const FxPortfolioView = ({ fundId, shared }) => {
         <table className="fx-deals-table">
           <thead>
             <tr>
-              <th>Name <SortIcon /></th>
-              <th className="col-number">Cost LC <SortIcon /></th>
-              <th>Currency <SortIcon /></th>
-              <th className="col-number">FX Entry <SortIcon /></th>
+              <th>
+                <SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+              </th>
+              <th className="col-number">
+                <SortableHeaderRenderer label="Cost LC" columnKey="costLc" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+              </th>
+              <th>
+                <SortableHeaderRenderer label="Currency" columnKey="currency" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+              </th>
+              <th className="col-number">
+                <SortableHeaderRenderer label="FX Entry" columnKey="fxEntry" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+              </th>
               {timeframeColumns.map((column) => (
                 <th key={column.id} className="col-number">
-                  Impact {column.label} (e)
+                  <SortableHeaderRenderer label={`Impact ${column.label} (e)`} columnKey={column.impactKey} currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
                   <span className="header-currency-hint">({symbol})</span>
                 </th>
               ))}
               <th className="col-number">
-                Impact inception (e)
+                <SortableHeaderRenderer label="Impact inception (e)" columnKey="impactInception" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
                 <span className="header-currency-hint">({symbol})</span>
               </th>
             </tr>
           </thead>
           <tbody>
-            {aggregateRows.map((row, idx) => (
+            {sorted.map((row, idx) => (
               <tr key={`${row.name}-${idx}`}>
                 <td>{row.name}</td>
                 <td className="col-number">{formatFxValue(row.costLc)}</td>

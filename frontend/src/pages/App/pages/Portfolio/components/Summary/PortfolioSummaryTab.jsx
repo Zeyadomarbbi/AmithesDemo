@@ -13,9 +13,9 @@ import "./PortfolioSummaryTab.css";
 
 import {
   DownloadIcon,
-  SortIcon,
   PlusIconWhite
 } from "../../icons";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
 
 const toNumber = (v) =>
   Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
@@ -36,6 +36,52 @@ const formatCurrencyDisplay = (name, code, symbol) => {
   if (safeCode && safeSymbol) return `${safeCode} ${safeSymbol}`;
   return safeName || safeCode || safeSymbol || "";
 };
+
+// ── Country ISO code lookup for flag images ──────────────────────────────────
+const countryISO = {
+  "france": "fr",
+  "germany": "de",
+  "italy": "it",
+  "netherlands": "nl",
+  "uk": "gb",
+  "united kingdom": "gb",
+  "norway": "no",
+  "spain": "es",
+  "sweden": "se",
+  "switzerland": "ch",
+  "belgium": "be",
+  "denmark": "dk",
+  "usa": "us",
+  "united states": "us",
+  "austria": "at",
+  "portugal": "pt",
+  "finland": "fi",
+  "poland": "pl",
+  "ireland": "ie",
+  "luxembourg": "lu",
+  "czech republic": "cz",
+  "hungary": "hu",
+  "romania": "ro",
+  "greece": "gr",
+  "turkey": "tr",
+  "russia": "ru",
+  "china": "cn",
+  "japan": "jp",
+  "india": "in",
+  "australia": "au",
+  "canada": "ca",
+  "brazil": "br",
+  "mexico": "mx",
+  "south africa": "za",
+  "singapore": "sg",
+  "south korea": "kr",
+  "israel": "il",
+  "uae": "ae",
+  "united arab emirates": "ae",
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ownershipToDbValue = (ownershipPercent) => {
   const n = toNumber(ownershipPercent);
@@ -88,7 +134,7 @@ const SharedColGroup = () => (
 
 function PortfolioSummaryTabContent() {
   const api = useApi();
-  const { fundId, portfolioDataset } = useOutletContext();
+  const { fundId, portfolioDataset, countries, currencies } = useOutletContext();
   const numericFundId = Number(fundId);
   const [toast, setToast] = useState(null);
 
@@ -109,13 +155,29 @@ function PortfolioSummaryTabContent() {
   const selectedTimeframeDate = activeQuarterObj?.rawDate || activeQuarterObj?.date || null;
   const metricsCutoffDate     = selectedTimeframeDate || "9999-12-31";
   const effectiveTimeframe    = activeQuarterObj || null;
+  const getFlagUrl = useCallback((countryNameOrId) => {
+    if (!countryNameOrId || !countries) return null;
 
+    // Find the country by name (case-insensitive) or by ID
+    const countryData = countries.find(c => 
+      String(c.name).toLowerCase() === String(countryNameOrId).toLowerCase() ||
+      Number(c.id) === Number(countryNameOrId)
+    );
+
+    if (!countryData?.iso2) return null;
+
+    // FlagCDN expects lowercase ISO codes
+    const code = countryData.iso2.toLowerCase();
+    return `https://flagcdn.com/40x30/${code}.png`;
+  }, [countries]);
   const normalizeRow = (row) => ({
     id: row.investment_id ?? row.id ?? row.investmentId ?? row.portfolio_investment_id,
     name: row.name,
     sector: row.sector,
+    countryId: row.country_id ?? row.countryId ?? "",
     country: row.country_name ?? row.country ?? row.countryName,
     ownership: ownershipFromDbValue(row.ownership),
+    currencyId: row.currency_id ?? row.currencyId ?? "",
     currencyCode:   row.currency_code   ?? row.currencyCode   ?? row.currency ?? "",
     currencyName:   row.currency_name   ?? row.currencyName   ?? "",
     currencySymbol: row.currency_symbol ?? row.currencySymbol ?? "",
@@ -302,6 +364,66 @@ function PortfolioSummaryTabContent() {
     }
   };
 
+  const handleUpdateInvestment = async (investmentId, { name, sector, countryId, currencyId, ownership }) => {
+    if (!name || !String(name).trim()) {
+      throw new Error("Please enter an investment name.");
+    }
+    const ownershipValue = Number(String(ownership).replace(/,/g, "").trim());
+    if (!Number.isFinite(ownershipValue) || ownershipValue < 1 || ownershipValue > 100) {
+      throw new Error("Ownership must be between 1 and 100.");
+    }
+
+    const response = await api.put(`/api/funds/${numericFundId}/portfolio-investments/${investmentId}/`, {
+      name,
+      sector,
+      ownership: ownershipToDbValue(ownershipValue),
+      country_id: Number(countryId),
+      currency_id: Number(currencyId),
+    });
+
+    if (typeof portfolioDataset?.refresh === "function") {
+      await portfolioDataset.refresh();
+    }
+
+    const refreshedRows = (Array.isArray(portfolioDataset?.investments) ? portfolioDataset.investments : []).map(normalizeRow);
+    const refreshedInvestment =
+      refreshedRows.find((row) => Number(row.id) === Number(investmentId)) || normalizeRow(response);
+    setSelectedInvestment(refreshedInvestment);
+    return refreshedInvestment;
+  };
+
+  const handleDeleteInvestment = async (investmentId) => {
+    await api.delete(`/api/funds/${numericFundId}/portfolio-investments/${investmentId}/`);
+    if (typeof portfolioDataset?.refresh === "function") {
+      await portfolioDataset.refresh();
+    }
+    setUnrealizedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
+    setRealizedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
+    setUnallocatedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
+    setSelectedInvestment(null);
+    setToast({
+      type: "success",
+      message: "The investment has been deleted.",
+    });
+  };
+
+  const handleOpenInvestmentDetails = async (row) => {
+    if (!Number.isFinite(Number(row?.id))) {
+      setToast({ type: "error", message: "Please save the investment before opening details." });
+      return;
+    }
+
+    try {
+      const freshInvestment = await api.get(`/api/funds/${numericFundId}/portfolio-investments/${row.id}/`);
+      setSelectedInvestment(normalizeRow(freshInvestment));
+    } catch (err) {
+      setToast({
+        type: "error",
+        message: err.message || "Failed to load investment details.",
+      });
+    }
+  };
+
   const unrealizedSubtotal  = useMemo(() => buildSummary(unrealizedRows),  [unrealizedRows]);
   const realizedSubtotal    = useMemo(() => buildSummary(realizedRows),    [realizedRows]);
   const unallocatedSubtotal = useMemo(() => buildSummary(unallocatedRows), [unallocatedRows]);
@@ -336,14 +458,24 @@ function PortfolioSummaryTabContent() {
     <>
       {rows.map((r) => (
         <tr key={r.id}>
-          <td className="name-cell" onClick={() => {
-            if (!Number.isFinite(Number(r.id))) { setToast({ type: "error", message: "Please save the investment before opening details." }); return; }
-            setSelectedInvestment(r);
-          }}>
+          <td className="name-cell" onClick={() => handleOpenInvestmentDetails(r)}>
             <div className="name-main">{r.name}</div>
             <div className="name-sub">{r.sector}</div>
           </td>
-          <td>{r.country}</td>
+          <td>
+            <div className="geography-cell">
+              {getFlagUrl(r.country) && (
+                <img
+                  src={getFlagUrl(r.country)}
+                  alt={r.country}
+                  className="country-flag-img"
+                  width={20}
+                  height={15}
+                />
+              )}
+              <span>{r.country}</span>
+            </div>
+          </td>
           <td>{format2(r.cost)}</td>
           <td>{format2(calcDividendsTotal(r))}</td>
           <td>{format2(calcMoicLcIncl(r))}</td>
@@ -370,17 +502,21 @@ function PortfolioSummaryTabContent() {
     </tr>
   );
 
-  const tableHeaders = (gainLabel) => (
+  const { sorted: sortedUnrealized, sortKey: sortKeyU, toggleSort: toggleSortU } = useTableSort(unrealizedRows, "name");
+  const { sorted: sortedRealized,   sortKey: sortKeyR, toggleSort: toggleSortR } = useTableSort(realizedRows,   "name");
+  const { sorted: sortedUnallocated,sortKey: sortKeyA, toggleSort: toggleSortA } = useTableSort(unallocatedRows,"name");
+
+  const tableHeaders = (gainLabel, sortKey, toggleSort) => (
     <tr>
-      <th>Name <SortIcon /></th>
-      <th>Geography <SortIcon /></th>
-      <th>Cost <SortIcon /></th>
-      <th>Dividends / Interests <SortIcon /></th>
-      <th>MOIC LC (incl. dividends) <SortIcon /></th>
-      <th>MOIC € (excl. dividends) <SortIcon /></th>
-      <th>Gross IRR € <SortIcon /></th>
-      <th className="col-highlight">Fair Value <SortIcon /></th>
-      <th className="col-highlight">{gainLabel} <SortIcon /></th>
+      <th><SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Geography" columnKey="country" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Cost" columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Dividends / Interests" columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="MOIC LC (incl. dividends)" columnKey="moicLcIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="MOIC € (excl. dividends)" columnKey="moicExcl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Gross IRR €" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th className="col-highlight"><SortableHeaderRenderer label="Fair Value" columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th className="col-highlight"><SortableHeaderRenderer label={gainLabel} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
     </tr>
   );
 
@@ -406,80 +542,83 @@ function PortfolioSummaryTabContent() {
         </div>
       </div>
 
-      {/* ── Single shared horizontal scroll container for all 4 tables ── */}
-      <div className="portfolio-tables-scroll-container">
-
-        <section className="portfolio-section">
+      <section className="portfolio-section">
           <div className="portfolio-table-card">
             <div className="portfolio-section-header">
               <h2>Unrealized portfolio<span className="portfolio-count">{unrealizedRows.length}</span></h2>
             </div>
-            <table className="portfolio-table">
-              <SharedColGroup />
-              <thead>{tableHeaders("Unrealized Gain")}</thead>
-              <tbody>{renderTableBody(unrealizedRows)}{renderSubtotalRow(unrealizedSubtotal)}</tbody>
-            </table>
+            <div className="portfolio-table-scroll">
+              <table className="portfolio-table">
+                <SharedColGroup />
+                <thead>{tableHeaders("Unrealized Gain", sortKeyU, toggleSortU)}</thead>
+                <tbody>{renderTableBody(sortedUnrealized)}{renderSubtotalRow(unrealizedSubtotal)}</tbody>
+              </table>
+            </div>
           </div>
         </section>
-        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+
         <section className="portfolio-section">
           <div className="portfolio-table-card">
             <div className="portfolio-section-header">
               <h2>Realized portfolio<span className="portfolio-count">{realizedRows.length}</span></h2>
             </div>
-            <table className="portfolio-table">
-              <SharedColGroup />
-              <thead>{tableHeaders("Realized Gain")}</thead>
-              <tbody>{renderTableBody(realizedRows)}{renderSubtotalRow(realizedSubtotal)}</tbody>
-            </table>
+            <div className="portfolio-table-scroll">
+              <table className="portfolio-table">
+                <SharedColGroup />
+                <thead>{tableHeaders("Realized Gain", sortKeyR, toggleSortR)}</thead>
+                <tbody>{renderTableBody(sortedRealized)}{renderSubtotalRow(realizedSubtotal)}</tbody>
+              </table>
+            </div>
           </div>
         </section>
-        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
+
         <section className="portfolio-section">
           <div className="portfolio-table-card">
             <div className="portfolio-section-header">
               <h2>Unallocated portfolio<span className="portfolio-count">{unallocatedRows.length}</span></h2>
             </div>
-            <table className="portfolio-table">
+            <div className="portfolio-table-scroll">
+              <table className="portfolio-table">
+                <SharedColGroup />
+                <thead>{tableHeaders("Unallocated Gain", sortKeyA, toggleSortA)}</thead>
+                <tbody>{renderTableBody(sortedUnallocated)}{renderSubtotalRow(unallocatedSubtotal)}</tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section className="portfolio-total-section">
+          <div className="portfolio-table-scroll">
+            <table className="portfolio-table total-table">
               <SharedColGroup />
-              <thead>{tableHeaders("Unallocated Gain")}</thead>
-              <tbody>{renderTableBody(unallocatedRows)}{renderSubtotalRow(unallocatedSubtotal)}</tbody>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th></th>
+                  <th>Total Cost</th>
+                  <th>Total Dividends / Interests</th>
+                  <th>Total MOIC LC (incl. dividends)</th>
+                  <th>Total MOIC € (excl. dividends)</th>
+                  <th>Total Gross IRR €</th>
+                  <th className="col-highlight">Total Fair Value</th>
+                  <th className="col-highlight">Total Gain</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="portfolio-subtotal-row total-row">
+                  <td className="subtotal-name-cell">Total</td><td />
+                  <td>{format2(total.cost)}</td>
+                  <td>{format2(total.dividends)}</td>
+                  <td>{format2(total.moicLcIncl)}</td>
+                  <td>{format2(total.moicExcl)}</td>
+                  <td>{formatPercent(total.irr)}</td>
+                  <td className="col-highlight">{format2(total.value)}</td>
+                  <td className="col-highlight">{format2(total.gain)}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </section>
-        <tbody className="table-section-spacer"><tr aria-hidden="true"><td colSpan="100%"></td></tr></tbody>
-        <section className="portfolio-total-section">
-          <table className="portfolio-table total-table">
-            <SharedColGroup />
-            <thead>
-              <tr>
-                <th></th>
-                <th></th>
-                <th>Total Cost</th>
-                <th>Total Dividends / Interests</th>
-                <th>Total MOIC LC (incl. dividends)</th>
-                <th>Total MOIC € (excl. dividends)</th>
-                <th>Total Gross IRR €</th>
-                <th className="col-highlight">Total Fair Value</th>
-                <th className="col-highlight">Total Gain</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="portfolio-subtotal-row total-row">
-                <td className="subtotal-name-cell">Total</td><td />
-                <td>{format2(total.cost)}</td>
-                <td>{format2(total.dividends)}</td>
-                <td>{format2(total.moicLcIncl)}</td>
-                <td>{format2(total.moicExcl)}</td>
-                <td>{formatPercent(total.irr)}</td>
-                <td className="col-highlight">{format2(total.value)}</td>
-                <td className="col-highlight">{format2(total.gain)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-      </div>{/* end .portfolio-tables-scroll-container */}
 
       {isNewInvestmentOpen && (
         <NewInvestmentModal onClose={() => setIsNewInvestmentOpen(false)} onSave={handleAddInvestment} />
@@ -492,6 +631,8 @@ function PortfolioSummaryTabContent() {
           fundId={numericFundId}
           onClose={() => setSelectedInvestment(null)}
           onSaved={async () => { if (typeof portfolioDataset?.refresh === "function") await portfolioDataset.refresh(); }}
+          onUpdateInvestment={handleUpdateInvestment}
+          onDeleteInvestment={handleDeleteInvestment}
         />
       )}
 

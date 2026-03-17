@@ -17,10 +17,17 @@
     gap: 12px;
 }
 
+.fx-deals-shared-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
 .fx-deals-investment-tables {
     display: flex;
     flex-direction: column;
     gap: 0;
+    min-width: max-content;
+    width: 100%;
 }
 
 .fx-deals-subtitle {
@@ -67,29 +74,41 @@
 .fx-deals-table {
     width: 100%;
     border-collapse: collapse;
-    border-radius: 4px;
 }
+
+/* ===== Column widths ===== */
+.fx-deals-table th:nth-child(1),
+.fx-deals-table td:nth-child(1) { width: 140px; min-width: 140px; }
+
+.fx-deals-table th:nth-child(2),
+.fx-deals-table td:nth-child(2) { width: 160px; min-width: 160px; }
+
+.fx-deals-table th:nth-child(3),
+.fx-deals-table td:nth-child(3) { width: 120px; min-width: 120px; }
+
+.fx-deals-table th:nth-child(n+4),
+.fx-deals-table td:nth-child(n+4) { min-width: 160px; }
 
 /* ===== Table Headers ===== */
 
 .fx-deals-table thead th {
     padding: 12px 16px;
     border-bottom: 1px solid #e5e7eb;
-    
-    /* Typography per specification */
     font-family: 'Inter', sans-serif;
     font-style: normal;
     font-weight: 500;
     font-size: 14px;
     line-height: 16px;
-    text-align: left;
+    text-align: center;
     letter-spacing: 0.01em;
     color: #1C1917;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .fx-deals-table thead th.col-number {
-    text-align: right;
+    text-align: center;
 }
 
 /* ===== Table Body & Striping ===== */
@@ -100,9 +119,12 @@
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     color: #1C1917;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center
 }
 
-/* Striped logic: Odd rows gray, Even rows white */
 .fx-deals-table tbody tr:nth-child(odd):not(.fx-total-row) {
     background-color: #FAFAF9;
 }
@@ -112,7 +134,7 @@
 }
 
 .fx-deals-table .col-number {
-    text-align: right;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -133,8 +155,17 @@
 }
 
 .header-currency-hint {
-  color: #9CA3AF;     /* Gray text */
-  font-size: 12px;    /* Smaller than the 12px/14px header text */
-  font-weight: 400;   /* Normal weight (not bold like the rest of the header) */
-  padding-left: 4px;   /* Small spacing from the label */
+    color: #9CA3AF;
+    font-size: 12px;
+    font-weight: 400;
+    padding-left: 4px;
+}
+.fx-deals-table thead th:first-child,
+.fx-deals-table tbody td:first-child {
+    text-align: left;
+}
+
+.fx-deals-table thead th.col-number,
+.fx-deals-table tbody td.col-number {
+    text-align: left;
 }
