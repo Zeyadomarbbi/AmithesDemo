@@ -1,39 +1,44 @@
 // PortfolioPage.jsx
-import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
-import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
 import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
+import { usePortfolioDataset } from "./usePortfolioDataset";
 import { useCountries } from "../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../hooks/Reference/useCurrencies";
-
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
 import "./styles/portfolio.tables.css";
 
 const PortfolioPage = () => {
   const { fundId } = useParams();
-    const { countries = [] } = useCountries();
-    const { currencies = [] } = useCurrencies();
-  
-  // Use the clean, standardized API hook
-  const { investments, loading, fetchInvestments } = usePortfolio(fundId);
+  const { countries = [] } = useCountries();
+  const { currencies = [] } = useCurrencies();
+  const dataset = usePortfolioDataset(fundId);
 
-  // Auto-fetch when the portfolio layout mounts
-  useEffect(() => {
-    if (fundId) {
-      fetchInvestments();
-    }
-  }, [fundId, fetchInvestments]);
-
-  // Bridge the data shape so the downstream tabs don't need any changes
   const portfolioDataset = {
-    investments: investments.map((inv) => ({
-      ...inv,
-      transaction_flows: (inv.transaction_flows ?? []).filter((f) => f.scenario_id === null),
-      fair_value_flows: inv.fair_value_flows ?? [],
-    })),
-    isLoading: loading,
-    refresh: fetchInvestments,
+    investments: (dataset.investments || []).map((inv) => {
+      const investmentId = Number(inv.investment_id ?? inv.id ?? inv.investmentId);
+      const transactionFlows = dataset.flowsByInvestment?.[investmentId] ?? inv.transaction_flows ?? [];
+      const fairValueFlows = dataset.fairValuesByInvestment?.[investmentId] ?? inv.fair_value_flows ?? [];
+
+      return {
+        ...inv,
+        transaction_flows: transactionFlows.filter((f) => f.scenario_id === null),
+        fair_value_flows: fairValueFlows,
+      };
+    }),
+    isLoading: dataset.isLoading,
+    error: dataset.error,
+    loadedAt: dataset.loadedAt,
+    refresh: dataset.refresh,
+    refreshInvestment: async (investmentId) => {
+      await dataset.refresh();
+      const refreshedId = Number(investmentId);
+      return (dataset.investments || []).find((inv) => {
+        const id = Number(inv.investment_id ?? inv.id ?? inv.investmentId);
+        return id === refreshedId;
+      }) || null;
+    },
+    hasLoaded: Boolean(dataset.loadedAt),
   };
   return (
     <TimeframeProvider fundId={fundId}>

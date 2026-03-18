@@ -1,7 +1,7 @@
 import React from "react";
 import { formatFxValue, getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
-import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
 import "../Deals/FxDealsView.css";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
 const impactKeyForTimeframe = (timeframeLabel) => `impact${normalizeLabel(timeframeLabel)}`;

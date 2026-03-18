@@ -226,7 +226,7 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd,
                   <div className="invInputWrapper">
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       className="invTableInput invNum"
                       value={f.fxRate}
                       onChange={(e) => onUpdate(f.id, "fxRate", e.target.value)}

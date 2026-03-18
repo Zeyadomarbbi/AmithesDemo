@@ -1,12 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { useCountries } from "../../../../../../hooks/Reference/useCountries";
-import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies";
+import "./NewInvestmentModal.css";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
-import "./NewInvestmentModal.css";
 
-const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "create" }) => {
+const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "create", countries = [], currencies = [] }) => {
   const [name, setName] = useState(initialValues?.name || "");
   const [sector, setSector] = useState(initialValues?.sector || "");
   const [countryId, setCountryId] = useState(initialValues?.countryId || "");
@@ -17,12 +15,9 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
   );
   const [currencyId, setCurrencyId] = useState(initialValues?.currencyId || "");
 
-  const { countries = [] } = useCountries();
-  const { currencies = [] } = useCurrencies();
-
   const ownershipNumber = Number(String(ownership).replace(/,/g, "").trim());
   const isOwnershipValid =
-    Number.isFinite(ownershipNumber) && ownershipNumber >= 1 && ownershipNumber <= 100;
+    Number.isFinite(ownershipNumber) && ownershipNumber >= 0 && ownershipNumber <= 100;
 
   const formattedCurrencies = currencies.map((c) => ({
     ...c,
@@ -161,10 +156,10 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
               <div className="portfolio-new-investment-input-wrapper">
                 <input
                   className="portfolio-new-investment-input"
-                  placeholder="Please enter the ownership (1 - 100)..."
+                  placeholder="Please enter the ownership (0 - 100)..."
                   value={ownership}
                   type="number"
-                  min="1"
+                  min="0"
                   max="100"
                   step="0.01"
                   onChange={(e) => setOwnership(e.target.value)}

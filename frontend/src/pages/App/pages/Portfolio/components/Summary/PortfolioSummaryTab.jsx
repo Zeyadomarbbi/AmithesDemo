@@ -38,59 +38,16 @@ const formatCurrencyDisplay = (name, code, symbol) => {
 };
 
 // ── Country ISO code lookup for flag images ──────────────────────────────────
-const countryISO = {
-  "france": "fr",
-  "germany": "de",
-  "italy": "it",
-  "netherlands": "nl",
-  "uk": "gb",
-  "united kingdom": "gb",
-  "norway": "no",
-  "spain": "es",
-  "sweden": "se",
-  "switzerland": "ch",
-  "belgium": "be",
-  "denmark": "dk",
-  "usa": "us",
-  "united states": "us",
-  "austria": "at",
-  "portugal": "pt",
-  "finland": "fi",
-  "poland": "pl",
-  "ireland": "ie",
-  "luxembourg": "lu",
-  "czech republic": "cz",
-  "hungary": "hu",
-  "romania": "ro",
-  "greece": "gr",
-  "turkey": "tr",
-  "russia": "ru",
-  "china": "cn",
-  "japan": "jp",
-  "india": "in",
-  "australia": "au",
-  "canada": "ca",
-  "brazil": "br",
-  "mexico": "mx",
-  "south africa": "za",
-  "singapore": "sg",
-  "south korea": "kr",
-  "israel": "il",
-  "uae": "ae",
-  "united arab emirates": "ae",
-};
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ownershipToDbValue = (ownershipPercent) => {
   const n = toNumber(ownershipPercent);
-  return Number(Math.min(9.9999, n / 10).toFixed(4));
+  return Number(Math.max(0, Math.min(100, n)).toFixed(4));
 };
 
 const ownershipFromDbValue = (storedOwnership) => {
   const n = toNumber(storedOwnership);
-  if (n <= 10) return Number((n * 10).toFixed(2));
   return Number(n.toFixed(2));
 };
 
@@ -155,6 +112,7 @@ function PortfolioSummaryTabContent() {
   const selectedTimeframeDate = activeQuarterObj?.rawDate || activeQuarterObj?.date || null;
   const metricsCutoffDate     = selectedTimeframeDate || "9999-12-31";
   const effectiveTimeframe    = activeQuarterObj || null;
+
   const getFlagUrl = useCallback((countryNameOrId) => {
     if (!countryNameOrId || !countries) return null;
 
@@ -170,6 +128,7 @@ function PortfolioSummaryTabContent() {
     const code = countryData.iso2.toLowerCase();
     return `https://flagcdn.com/40x30/${code}.png`;
   }, [countries]);
+
   const normalizeRow = (row) => ({
     id: row.investment_id ?? row.id ?? row.investmentId ?? row.portfolio_investment_id,
     name: row.name,
@@ -258,11 +217,10 @@ function PortfolioSummaryTabContent() {
       }
     });
 
-    const fairRows    = fairValues.filter((fv) => fv?.date).filter((fv) => new Date(fv.date) <= cutoff).sort((a, b) => new Date(a.date) - new Date(b.date));
-    const latestFair  = fairRows.length ? fairRows[fairRows.length - 1] : null;
-    const fairAmountLc  = latestFair ? toNumber(latestFair.amount_lc ?? latestFair.amountLC) : 0;
-    const fairFx        = latestFair ? toNumber(latestFair.fx_rate ?? latestFair.fxRate) : 0;
-    const fairAmountEur = latestFair ? toNumber(latestFair.amount ?? (fairFx ? fairAmountLc / fairFx : 0)) : 0;
+    const matchingFair = fairValues.find((fv) => String(fv?.date) === String(date));
+    const fairAmountLc  = matchingFair ? toNumber(matchingFair.amount_lc ?? matchingFair.amountLC) : 0;
+    const fairFx        = matchingFair ? toNumber(matchingFair.fx_rate ?? matchingFair.fxRate) : 0;
+    const fairAmountEur = matchingFair ? toNumber(matchingFair.amount ?? (fairFx ? fairAmountLc / fairFx : 0)) : 0;
 
     if (fairAmountEur) cashflows.push({ date: new Date(date), amount: fairAmountEur });
 
@@ -274,9 +232,9 @@ function PortfolioSummaryTabContent() {
     const valueLc   = fairAmountLc || (fairAmountEur && fairFx ? fairAmountEur * fairFx : 0);
     const gainEur   = valueEur + dividendsEur - costEur;
     const moicExcl  = costEur ? valueEur / costEur : 0;
-    const moicLcIncl = costLc ? (valueLc + dividendsLc) / costLc : 0;
+    const moicIncl = costEur ? (fairAmountEur + dividendsEur) / costEur : 0;
 
-    return { cost: costEur, dividends: dividendsEur, fairValue: valueEur, unrealizedGain: gainEur, moicExcl, moicLcIncl, irr: irr ?? 0 };
+    return { cost: costEur, dividends: dividendsEur, fairValue: valueEur, unrealizedGain: gainEur, moicExcl, moicIncl, irr: irr ?? 0 };
   }, []);
 
   const loadSummaryData = useCallback(() => {
@@ -319,30 +277,78 @@ function PortfolioSummaryTabContent() {
   const calcDividendsTotal = (row) => toNumber(row.dividends) + toNumber(row.interests);
   const calcGain           = (row) => calcValue(row) + calcDividendsTotal(row) - toNumber(row.cost);
   const calcMoicExcl       = (row) => row.moicExcl   !== undefined ? toNumber(row.moicExcl)   : 0;
-  const calcMoicLcIncl     = (row) => row.moicLcIncl !== undefined ? toNumber(row.moicLcIncl) : 0;
+  const calcMoicIncl = (row) => row.moicIncl !== undefined ? toNumber(row.moicIncl) : 0;
 
-  const calcIrrAvg = (rows) => {
-    const vals = rows.map((r) => toNumber(r.irr)).filter((n) => Number.isFinite(n) && n !== 0);
-    if (!vals.length) return 0;
-    return vals.reduce((s, n) => s + n, 0) / vals.length;
-  };
+  const buildPortfolioCashflows = useCallback((rows) => {
+    const cutoff = new Date(metricsCutoffDate);
+    const cashflows = [];
 
-  const buildSummary = (rows) => {
+    rows.forEach((row) => {
+      const flows = Array.isArray(row?.transaction_flows) ? row.transaction_flows : [];
+      flows
+        .filter((f) => f?.date)
+        .filter((f) => new Date(f.date) <= cutoff)
+        .forEach((f) => {
+          const typeName = canonicalType(
+            f.transaction_name ?? f.transaction_type_name ?? f.transaction_type?.name ?? f.transaction_type ?? f.type ?? ""
+          );
+          const amountLc = toNumber(f.amount_lc ?? f.amountLC ?? f.amount);
+          const fxRate = toNumber(f.fx_rate ?? f.fxRate);
+          const amountEur = fxRate ? amountLc / fxRate : toNumber(f.amount ?? 0);
+          const absAmountEur = Math.abs(amountEur);
+
+          if (!Number.isFinite(absAmountEur) || absAmountEur === 0) return;
+
+          if (typeName === "Investment") {
+            cashflows.push({ date: new Date(f.date), amount: -absAmountEur });
+            return;
+          }
+
+          if (
+            typeName === "Dividend" ||
+            typeName === "Interest" ||
+            typeName === "Other" ||
+            typeName === "Divestment" ||
+            typeName === "Partial divestment"
+          ) {
+            cashflows.push({ date: new Date(f.date), amount: absAmountEur });
+          }
+        });
+
+      const fairValues = Array.isArray(row?.fair_value_flows) ? row.fair_value_flows : [];
+      const matchingFair = fairValues.find((fv) => String(fv?.date) === String(metricsCutoffDate));
+
+      if (matchingFair) {
+        const fairAmountLc = toNumber(matchingFair.amount_lc ?? matchingFair.amountLC);
+        const fairFx = toNumber(matchingFair.fx_rate ?? matchingFair.fxRate);
+        const fairAmountEur = toNumber(matchingFair.amount ?? (fairFx ? fairAmountLc / fairFx : 0));
+        if (Number.isFinite(fairAmountEur) && fairAmountEur !== 0) {
+          cashflows.push({ date: cutoff, amount: fairAmountEur });
+        }
+      }
+    });
+
+    return cashflows
+      .filter((c) => c?.date instanceof Date && !Number.isNaN(c.date.getTime()) && Number.isFinite(c.amount) && c.amount !== 0)
+      .sort((a, b) => a.date - b.date);
+  }, [metricsCutoffDate]);
+
+  const buildSummary = useCallback((rows) => {
     const cost      = rows.reduce((s, r) => s + toNumber(r.cost), 0);
     const dividends = rows.reduce((s, r) => s + calcDividendsTotal(r), 0);
     const value     = rows.reduce((s, r) => s + calcValue(r), 0);
     const gain      = rows.reduce((s, r) => s + calcGain(r), 0);
     const moicExcl  = cost ? value / cost : 0;
-    const moicLcIncl = cost ? (value + dividends) / cost : 0;
-    const irr       = calcIrrAvg(rows);
-    return { cost, dividends, value, gain, moicExcl, moicLcIncl, irr };
-  };
+    const moicIncl = cost ? (value + dividends) / cost : 0;
+    const irr       = safeXirr(buildPortfolioCashflows(rows)) ?? 0;
+    return { cost, dividends, value, gain, moicExcl, moicIncl, irr };
+  }, [buildPortfolioCashflows]);
 
   const handleAddInvestment = async ({ name, sector, countryId, currencyId, ownership }) => {
     if (!name || !String(name).trim()) { setToast({ type: "error", message: "Please enter an investment name." }); return; }
     const ownershipValue = Number(String(ownership).replace(/,/g, "").trim());
-    if (!Number.isFinite(ownershipValue) || ownershipValue < 1 || ownershipValue > 100) {
-      setToast({ type: "error", message: "Ownership must be between 1 and 100." }); return;
+    if (!Number.isFinite(ownershipValue) || ownershipValue < 0 || ownershipValue > 100) {
+      setToast({ type: "error", message: "Ownership must be between 0 and 100." }); return;
     }
     try {
       await api.post(`/api/funds/${numericFundId}/portfolio-investments/`, {
@@ -369,8 +375,8 @@ function PortfolioSummaryTabContent() {
       throw new Error("Please enter an investment name.");
     }
     const ownershipValue = Number(String(ownership).replace(/,/g, "").trim());
-    if (!Number.isFinite(ownershipValue) || ownershipValue < 1 || ownershipValue > 100) {
-      throw new Error("Ownership must be between 1 and 100.");
+    if (!Number.isFinite(ownershipValue) || ownershipValue < 0 || ownershipValue > 100) {
+      throw new Error("Ownership must be between 0 and 100.");
     }
 
     const response = await api.put(`/api/funds/${numericFundId}/portfolio-investments/${investmentId}/`, {
@@ -437,19 +443,19 @@ function PortfolioSummaryTabContent() {
   const total = useMemo(() => buildSummary(totalRows), [totalRows]);
 
   const handleDownloadExcel = () => {
-    const sectionHeaders = ["Name", "Geography", "Cost", "Dividends / Interests", "MOIC LC (incl. dividends)", "MOIC EUR (excl. dividends)", "Gross IRR EUR", "Fair Value", "Gain"];
+    const sectionHeaders = ["Name", "Geography", "Cost", "Dividends / Interests", "MOIC € (incl. dividends)", "MOIC EUR (excl. dividends)", "Gross IRR EUR", "Fair Value", "Gain"];
     const buildSectionRows = (rows, subtotal) => [
       sectionHeaders,
-      ...rows.map((r) => [r.name, r.country, toNumber(r.cost), toNumber(calcDividendsTotal(r)), toNumber(calcMoicLcIncl(r)), toNumber(calcMoicExcl(r)), toNumber(r.irr), toNumber(calcValue(r)), toNumber(calcGain(r))]),
-      ["Sub Total", "", toNumber(subtotal.cost), toNumber(subtotal.dividends), toNumber(subtotal.moicLcIncl), toNumber(subtotal.moicExcl), toNumber(subtotal.irr), toNumber(subtotal.value), toNumber(subtotal.gain)],
+      ...rows.map((r) => [r.name, r.country, toNumber(r.cost), toNumber(calcDividendsTotal(r)), toNumber(calcMoicIncl(r)), toNumber(calcMoicExcl(r)), toNumber(r.irr), toNumber(calcValue(r)), toNumber(calcGain(r))]),
+      ["Sub Total", "", toNumber(subtotal.cost), toNumber(subtotal.dividends), toNumber(subtotal.moicIncl), toNumber(subtotal.moicExcl), toNumber(subtotal.irr), toNumber(subtotal.value), toNumber(subtotal.gain)],
     ];
     exportWorkbook(`portfolio-summary-fund-${numericFundId}.xlsx`, [
       { name: "Unrealized",  rows: buildSectionRows(unrealizedRows,  unrealizedSubtotal) },
       { name: "Realized",    rows: buildSectionRows(realizedRows,    realizedSubtotal) },
       { name: "Unallocated", rows: buildSectionRows(unallocatedRows, unallocatedSubtotal) },
       { name: "Total", rows: [
-        ["Total Cost", "Total Dividends / Interests", "Total MOIC LC (incl. dividends)", "Total MOIC EUR (excl. dividends)", "Total Gross IRR EUR", "Total Fair Value", "Total Gain"],
-        [toNumber(total.cost), toNumber(total.dividends), toNumber(total.moicLcIncl), toNumber(total.moicExcl), toNumber(total.irr), toNumber(total.value), toNumber(total.gain)],
+        ["Total Cost", "Total Dividends / Interests", "Total MOIC € (incl. dividends)", "Total MOIC EUR (excl. dividends)", "Total Gross IRR EUR", "Total Fair Value", "Total Gain"],
+        [toNumber(total.cost), toNumber(total.dividends), toNumber(total.moicIncl), toNumber(total.moicExcl), toNumber(total.irr), toNumber(total.value), toNumber(total.gain)],
       ]},
     ]);
   };
@@ -478,7 +484,7 @@ function PortfolioSummaryTabContent() {
           </td>
           <td>{format2(r.cost)}</td>
           <td>{format2(calcDividendsTotal(r))}</td>
-          <td>{format2(calcMoicLcIncl(r))}</td>
+          <td>{format2(calcMoicIncl(r))}</td>
           <td>{format2(calcMoicExcl(r))}</td>
           <td>{formatPercent(r.irr)}</td>
           <td className="col-highlight">{format2(calcValue(r))}</td>
@@ -494,7 +500,7 @@ function PortfolioSummaryTabContent() {
       <td />
       <td>{format2(subtotal.cost)}</td>
       <td>{format2(subtotal.dividends)}</td>
-      <td>{format2(subtotal.moicLcIncl)}</td>
+      <td>{format2(subtotal.moicIncl)}</td>
       <td>{format2(subtotal.moicExcl)}</td>
       <td>{formatPercent(subtotal.irr)}</td>
       <td className="col-highlight">{format2(subtotal.value)}</td>
@@ -510,13 +516,13 @@ function PortfolioSummaryTabContent() {
     <tr>
       <th><SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
       <th><SortableHeaderRenderer label="Geography" columnKey="country" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th><SortableHeaderRenderer label="Cost" columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th><SortableHeaderRenderer label="Dividends / Interests" columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th><SortableHeaderRenderer label="MOIC LC (incl. dividends)" columnKey="moicLcIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th><SortableHeaderRenderer label="MOIC € (excl. dividends)" columnKey="moicExcl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th><SortableHeaderRenderer label="Gross IRR €" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th className="col-highlight"><SortableHeaderRenderer label="Fair Value" columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
-      <th className="col-highlight"><SortableHeaderRenderer label={gainLabel} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Cost" columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th><SortableHeaderRenderer label="Dividends / Interests" columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th><SortableHeaderRenderer label="MOIC (incl. dividends)" columnKey="moicIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th><SortableHeaderRenderer label="MOIC (excl. dividends)" columnKey="moicExcl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th><SortableHeaderRenderer label="Gross IRR" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th className="col-highlight"><SortableHeaderRenderer label="Fair Value" columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
+      <th className="col-highlight"><SortableHeaderRenderer label={gainLabel} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={true} /></th>
     </tr>
   );
 
@@ -597,7 +603,7 @@ function PortfolioSummaryTabContent() {
                   <th></th>
                   <th>Total Cost</th>
                   <th>Total Dividends / Interests</th>
-                  <th>Total MOIC LC (incl. dividends)</th>
+                  <th>Total MOIC € (incl. dividends)</th>
                   <th>Total MOIC € (excl. dividends)</th>
                   <th>Total Gross IRR €</th>
                   <th className="col-highlight">Total Fair Value</th>
@@ -609,7 +615,7 @@ function PortfolioSummaryTabContent() {
                   <td className="subtotal-name-cell">Total</td><td />
                   <td>{format2(total.cost)}</td>
                   <td>{format2(total.dividends)}</td>
-                  <td>{format2(total.moicLcIncl)}</td>
+                  <td>{format2(total.moicIncl)}</td>
                   <td>{format2(total.moicExcl)}</td>
                   <td>{formatPercent(total.irr)}</td>
                   <td className="col-highlight">{format2(total.value)}</td>
@@ -621,7 +627,12 @@ function PortfolioSummaryTabContent() {
         </section>
 
       {isNewInvestmentOpen && (
-        <NewInvestmentModal onClose={() => setIsNewInvestmentOpen(false)} onSave={handleAddInvestment} />
+        <NewInvestmentModal
+          onClose={() => setIsNewInvestmentOpen(false)}
+          onSave={handleAddInvestment}
+          countries={countries}
+          currencies={currencies}
+        />
       )}
 
       {selectedInvestment && (
@@ -629,6 +640,8 @@ function PortfolioSummaryTabContent() {
           investment={selectedInvestment}
           timeframe={effectiveTimeframe}
           fundId={numericFundId}
+          countries={countries}
+          currencies={currencies}
           onClose={() => setSelectedInvestment(null)}
           onSaved={async () => { if (typeof portfolioDataset?.refresh === "function") await portfolioDataset.refresh(); }}
           onUpdateInvestment={handleUpdateInvestment}

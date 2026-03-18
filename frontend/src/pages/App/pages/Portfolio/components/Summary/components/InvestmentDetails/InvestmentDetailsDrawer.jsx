@@ -4,6 +4,8 @@ import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGat
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import useApi from "../../../../../../../../hooks/api/useApi";
 import { DoubleArrowLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons";
+import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
+
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
 import "./InvestmentDetails.css";
@@ -15,6 +17,11 @@ const toNumber = (v) => {
   const str = String(v ?? "").replace(/[^0-9.-]/g, "");
   const n = parseFloat(str);
   return Number.isFinite(n) ? n : 0;
+};
+
+const roundForApi = (v) => {
+  const n = toNumber(v);
+  return Number.isFinite(n) ? Number(n.toFixed(6)) : 0;
 };
 
 const formatMoney = (n, currency = "€") => {
@@ -36,6 +43,25 @@ const formatPercent = (n) => {
   return `${(n * 100).toFixed(2)}%`;
 };
 
+const getApiErrorMessage = (err, fallback = "Request failed.") => {
+  const data = err?.response?.data;
+  if (!data) return err?.message || fallback;
+  if (typeof data === "string") return data;
+  if (typeof data.detail === "string") return data.detail;
+  if (typeof data.error === "string") return data.error;
+
+  const firstEntry = Object.entries(data).find(([, value]) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return Boolean(value);
+  });
+
+  if (!firstEntry) return err?.message || fallback;
+
+  const [field, value] = firstEntry;
+  const message = Array.isArray(value) ? value[0] : value;
+  return `${field}: ${message}`;
+};
+
 const canonicalType = (type) => {
   const t = String(type || "").trim().toLowerCase();
   if (t.includes("dividend")) return "Dividend";
@@ -45,12 +71,6 @@ const canonicalType = (type) => {
   if (t.includes("invest")) return "Investment";
   if (t === "other") return "Other";
   return "Other";
-};
-
-const round6 = (n) => {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return 0;
-  return Number(v.toFixed(6));
 };
 
 const safeXirr = (cashflows) => {
@@ -66,47 +86,12 @@ const safeXirr = (cashflows) => {
   }
 };
 
-const countryISO = {
-  "france": "fr", "germany": "de", "italy": "it", "netherlands": "nl",
-  "uk": "gb", "united kingdom": "gb", "norway": "no", "spain": "es",
-  "sweden": "se", "switzerland": "ch", "belgium": "be", "denmark": "dk",
-  "usa": "us", "united states": "us", "austria": "at", "portugal": "pt",
-  "finland": "fi", "poland": "pl", "ireland": "ie", "luxembourg": "lu",
-  "czech republic": "cz", "hungary": "hu", "romania": "ro", "greece": "gr",
-  "turkey": "tr", "russia": "ru", "china": "cn", "japan": "jp",
-  "india": "in", "australia": "au", "canada": "ca", "brazil": "br",
-  "mexico": "mx", "south africa": "za", "singapore": "sg", "south korea": "kr",
-  "israel": "il", "uae": "ae", "united arab emirates": "ae",
-};
 
-const getFlagUrl = (country) => {
-  if (!country) return null;
-  const iso = countryISO[String(country).toLowerCase().trim()];
-  return iso ? `https://flagcdn.com/40x30/${iso}.png` : null;
-};
 
-const EditIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const DeleteIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <polyline points="3 6 5 6 21 6" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M10 11v6M14 11v6" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved, onUpdateInvestment, onDeleteInvestment }) {
+export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved, onUpdateInvestment, onDeleteInvestment, countries = [], currencies = [] }) {
   const api = useApi();
   const [currentInvestment, setCurrentInvestment] = useState(investment);
-  console.log("currentInvestment", currentInvestment)
   const [flows, setFlows] = useState([]);
-  console.log("flows", flows)
   const [fairValueFxRate, setFairValueFxRate] = useState(0);
   const [fairValueAmountLC, setFairValueAmountLC] = useState(0);
   const [fairValueId, setFairValueId] = useState(null);
@@ -118,12 +103,31 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   const [expanded, setExpanded] = useState(false);
   const flowIdRef = useRef(1);
 
+  const getFlagUrl = useCallback((countryNameOrId) => {
+    if (!countryNameOrId || !countries) return null;
+
+    // Find the country by name (case-insensitive) or by ID
+    const countryData = countries.find(c => 
+      String(c.name).toLowerCase() === String(countryNameOrId).toLowerCase() ||
+      Number(c.id) === Number(countryNameOrId)
+    );
+
+    if (!countryData?.iso2) return null;
+
+    // FlagCDN expects lowercase ISO codes
+    const code = countryData.iso2.toLowerCase();
+    return `https://flagcdn.com/40x30/${code}.png`;
+  }, [countries]);
+
+
   const headerCurrency =
     currentInvestment?.currency ||
     [
-      currentInvestment?.currencyName,
-      currentInvestment?.currencyCode ? `(${currentInvestment.currencyCode})` : "",
-      currentInvestment?.currencySymbol,
+      currentInvestment?.currencyName || currentInvestment?.currency_name,
+      (currentInvestment?.currencyCode || currentInvestment?.currency_code)
+        ? `(${currentInvestment?.currencyCode || currentInvestment?.currency_code})`
+        : "",
+      currentInvestment?.currencySymbol || currentInvestment?.currency_symbol,
     ].filter(Boolean).join(" ").trim() || "EUR €";
 
   const headerCountry = currentInvestment?.country || "Germany";
@@ -199,7 +203,10 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
   useEffect(() => {
     if (!currentInvestment) return;
-    const rawFlows = currentInvestment.transaction_flows || [];
+    if (!currentInvestment) return;
+    const rawFlows = (currentInvestment.transaction_flows || []).filter(
+      (flow) => flow.scenario_id === null || flow.scenario_id === undefined
+    );
     setFlows(rawFlows.map(mapFlowFromApi));
     if (!fairValueDateLabel) {
       setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0); return;
@@ -295,9 +302,15 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   }, [flows, fairValueDateLabel, fairValueAmountLC]);
 
   const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
-  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
   const moicInclEuro = investmentEuro > 0
-    ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment) / investmentEuro : 0;
+    ? (
+      sumsByTypeEuro.Dividend +
+      sumsByTypeEuro.Interest +
+      sumsByTypeEuro.Other +
+      sumsByTypeEuro.Divestment +
+      toNumber(fairValueAmount)
+    ) / investmentEuro
+    : 0;
 
   const firstInvestmentFlow = useMemo(() => {
     const investmentFlows = flows.filter((f) => canonicalType(f.type) === "Investment");
@@ -310,12 +323,23 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
     })[0];
   }, [flows]);
 
+  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
   const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
-  const moicInclLC = firstInvestmentAmountLC > 0 ? toNumber(fairValueAmountLC) / firstInvestmentAmountLC : 0;
-  const moicExclEuro = toNumber(fairValueAmount) > 0
-    ? (sumsByTypeEuro.Divestment + investmentEuro) / toNumber(fairValueAmount) : 0;
-  const moicExclLC = toNumber(fairValueAmountLC) > 0
-    ? (sumsByTypeLC.Divestment + investmentLC) / toNumber(fairValueAmountLC) : 0;
+  const moicInclLC = firstInvestmentAmountLC > 0
+    ? (
+      sumsByTypeLC.Dividend +
+      sumsByTypeLC.Interest +
+      sumsByTypeLC.Other +
+      sumsByTypeLC.Divestment +
+      toNumber(fairValueAmountLC)
+    ) / firstInvestmentAmountLC
+    : 0;
+  const moicExclEuro = investmentEuro > 0
+    ? (sumsByTypeEuro.Dividend + toNumber(fairValueAmount)) / investmentEuro
+    : 0;
+  const moicExclLC = investmentLC > 0
+    ? (sumsByTypeLC.Dividend + toNumber(fairValueAmountLC)) / investmentLC
+    : 0;
 
   const handleAddFlow = () => {
     setFlows((prev) => [
@@ -415,14 +439,14 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
       const validFlows = flows.filter((f) => {
         const fx = toNumber(f.fxRate);
         const lc = toNumber(f.amountLC);
-        return Boolean(f.date) && Boolean(f.type) && fx > 0 && Number.isFinite(lc);
+        return Boolean(f.date) && Boolean(f.type) && fx > 0 && Number.isFinite(lc) && lc !== 0;
       });
       const flowRequests = validFlows.map((f) => {
         const transactionId = typeMap.get(normalizeType(f.type));
         if (!transactionId) throw new Error(`Unknown transaction type: ${f.type}`);
-        const amountLC = round6(toNumber(f.amountLC));
-        const fxRate = round6(toNumber(f.fxRate));
-        const amountEuro = fxRate ? round6(amountLC / fxRate) : 0;
+        const amountLC = roundForApi(f.amountLC);
+        const fxRate = roundForApi(f.fxRate);
+        const amountEuro = fxRate ? amountLC / fxRate : 0;
         const isPartial = canonicalType(f.type) === "Partial divestment";
         const divestmentPct = f.divestmentPercentage ?? null;
         if (isPartial) {
@@ -436,21 +460,22 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
           : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
         const payload = {
           transaction_id: transactionId, date: f.date, amount_lc: amountLC,
-          fx_rate: fxRate, amount: amountEuro,
-          divestment_percentage: isPartial ? round6(toNumber(divestmentPct)) : null,
+          fx_rate: fxRate, amount: roundForApi(amountEuro),
+          divestment_percentage: isPartial ? roundForApi(divestmentPct) : null,
         };
         return isUpdate ? api.put(endpoint, payload) : api.post(endpoint, payload);
       });
       const requests = [...flowRequests];
-      if (fairValueDateLabel) {
+      const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
+      if (hasFairValueInput) {
         const endpoint = fairValueId
           ? `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/${fairValueId}/`
           : `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`;
         const payload = {
           date: fairValueDateLabel,
-          amount_lc: round6(toNumber(fairValueAmountLC)),
-          fx_rate: round6(toNumber(fairValueFxRate)),
-          amount: round6(toNumber(fairValueAmount)),
+          amount_lc: roundForApi(fairValueAmountLC),
+          fx_rate: roundForApi(fairValueFxRate),
+          amount: roundForApi(fairValueAmount),
         };
         requests.push(fairValueId ? api.put(endpoint, payload) : api.post(endpoint, payload));
       }
@@ -461,11 +486,9 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
       onClose();
     } catch (err) {
       console.error("Save failed:", err.message);
-      setToast({ type: "error", message: err.message || "Failed to save." });
+      setToast({ type: "error", message: getApiErrorMessage(err, "Failed to save.") });
     }
   };
-
-  const flagUrl = getFlagUrl(headerCountry);
 
   return (
     <div className="invDrawerOverlay" onClick={onClose}>
@@ -497,11 +520,13 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
               <div className="invMetaItem">
                 <span className="invMetaLabel">Country</span>
                 <span className="invMetaValue">
-                  {flagUrl && (
+                  {getFlagUrl(headerCountry) && (
                     <img
-                      src={flagUrl}
+                      src={getFlagUrl(headerCountry)}
                       alt={headerCountry}
-                      style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", border: "none", boxShadow: "none" }}
+                      className="country-flag-img"
+                      width={20}
+                      height={15}
                     />
                   )}
                   {headerCountry}
@@ -544,11 +569,11 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
           <div className="invCardsRow">
             {[
-              { label: "Investment",  value: sumsByType.Investment },
-              { label: "Dividends",   value: sumsByType.Dividend },
-              { label: "Interests",   value: sumsByType.Interest },
-              { label: "Other",       value: sumsByType.Other },
-              { label: "Divestment",  value: sumsByType.Divestment },
+              { label: "Investment",  value: sumsByTypeEuro.Investment },
+              { label: "Dividends",   value: sumsByTypeEuro.Dividend },
+              { label: "Interests",   value: sumsByTypeEuro.Interest },
+              { label: "Other",       value: sumsByTypeEuro.Other },
+              { label: "Divestment",  value: sumsByTypeEuro.Divestment },
             ].map(({ label, value }) => (
               <div className="invSummaryCard" key={label}>
                 <div className="invCardTitle">{label}</div>
@@ -573,7 +598,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
               <input
                 className="invInputBase"
                 type="number"
-                step="0.0001"
+                step="any"
                 value={fairValueFxRate}
                 onChange={(e) => setFairValueFxRate(e.target.value)}
               />
@@ -583,7 +608,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
               <input
                 className="invInputBase"
                 type="number"
-                step="0.01"
+                step="any"
                 value={fairValueAmountLC}
                 onChange={(e) => setFairValueAmountLC(e.target.value)}
               />
@@ -665,6 +690,8 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
           }}
           onClose={() => setIsEditOpen(false)}
           onSave={handleEditInvestment}
+          countries={countries}
+          currencies={currencies}
         />
       )}
 
