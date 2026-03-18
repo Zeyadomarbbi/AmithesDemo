@@ -179,7 +179,7 @@ export default function LPDrawer({
   if (!open) return null;
 
   return (
-    <div className="lp-drawer-backdrop" onClick={onClose}>
+    <div className="lp-drawer-backdrop">
       <aside 
         className={`lp-drawer ${isExpanded ? "lp-drawer--expanded" : ""}`}
         onClick={(e) => e.stopPropagation()}

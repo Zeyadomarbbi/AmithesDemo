@@ -217,6 +217,26 @@ export default function LPsRegister() {
     await reloadAll();
     setSelectedLP(lp);
   }, [reloadAll]);
+
+  const filteredTotals = useMemo(() => {
+    const grandTotal = filteredRows.reduce((sum, r) => sum + r.totalNumeric, 0);
+
+    const closingTotals = {};
+    tableColumns.forEach((col) => {
+      let running = 0;
+      filteredRows.forEach((row) => {
+        running += row.closingValues[col.id] || 0;
+      });
+      closingTotals[col.id] = running;
+    });
+
+    return {
+      commitment: formatAmount(grandTotal),
+      commitmentNumber: grandTotal,
+      ownership: grandTotal > 0 ? `${((grandTotal / summaryData.grandTotalNumeric) * 100).toFixed(2)}%` : "0.00%",
+      closingTotals,
+    };
+  }, [filteredRows, tableColumns]);
   
   const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading;
 return (
@@ -269,12 +289,7 @@ return (
       <LPsDashboard 
         displayRows={filteredRows}
         tableColumns={tableColumns}
-        totals={{
-          commitment: summaryData.grandTotal,
-          commitmentNumber: summaryData.grandTotalNumeric,
-          ownership: "100.00%",
-          closingTotals: summaryData.closingTotals
-        }}
+        totals={filteredTotals}
         onSelectLP={handleSelectLP}
       />
     )}

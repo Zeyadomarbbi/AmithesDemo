@@ -13,12 +13,16 @@ export const SortIcon = () => (
 export function useTableSort(data, initialSortKey = "name") {
   const [sortKey, setSortKey] = React.useState(initialSortKey);
   const [sortDir, setSortDir] = React.useState("asc");
+  const getVal = (obj, key) => {
+    if (!key) return undefined;
+    return key.split(".").reduce((o, k) => o?.[k], obj);
+  };
 
   const sorted = React.useMemo(() => {
     const arr = [...data];
     arr.sort((a, b) => {
-      const va = a[sortKey];
-      const vb = b[sortKey];
+      const va = getVal(a, sortKey);
+      const vb = getVal(b, sortKey);
 
       if (va == null) return 1;
       if (vb == null) return -1;

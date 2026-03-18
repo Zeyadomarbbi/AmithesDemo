@@ -84,7 +84,7 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
         <div className="share-meta-column">
           <div className="share-meta-label">Nominal value</div>
           <div className="share-meta-value">
-            {shareClass.nominal_value || "–"}
+            {shareClass.nominal_value ? Number(shareClass.nominal_value).toFixed(2) : "–"}
           </div>
         </div>
 

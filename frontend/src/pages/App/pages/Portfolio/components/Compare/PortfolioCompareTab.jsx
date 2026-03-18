@@ -109,12 +109,21 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     return fundInvestments.filter((inv) => String(inv?.name || "").toLowerCase().includes(q));
   }, [fundInvestments, investmentSearchTerm]);
 
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setIsInvDropdownOpen(false);
+      setIsColumnDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <section className="compare-section">
       <div className="compare-timeframes-row">
 
         {/* INVESTMENT DROPDOWN */}
-        <div className="quarter-selector-container">
+        <div className="quarter-selector-container" onMouseDown={(e) => e.stopPropagation()}>
           <div
             className={`quarter-selector-button ${isInvDropdownOpen ? 'active' : ''}`}
             onClick={() => setIsInvDropdownOpen(!isInvDropdownOpen)}
@@ -197,7 +206,8 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
         </div>
 
         {/* COLUMNS DROPDOWN */}
-        <div className="quarter-selector-container">
+        <div className="quarter-selector-container" onMouseDown={(e) => e.stopPropagation()}>
+
           <div
             className={`quarter-selector-button ${isColumnDropdownOpen ? 'active' : ''}`}
             onClick={() => setIsColumnDropdownOpen(!isColumnDropdownOpen)}
