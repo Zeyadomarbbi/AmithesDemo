@@ -86,8 +86,6 @@ const safeXirr = (cashflows) => {
   }
 };
 
-
-
 export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved, onUpdateInvestment, onDeleteInvestment, countries = [], currencies = [] }) {
   const api = useApi();
   const [currentInvestment, setCurrentInvestment] = useState(investment);
