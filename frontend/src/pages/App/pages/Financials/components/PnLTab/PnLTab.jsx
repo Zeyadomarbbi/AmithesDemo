@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
-import { RefreshUpIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { UploadIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import { usePnLApi } from "../../../../hooks/Financials/usePnLApi";
 import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload";
 import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
@@ -370,7 +370,7 @@ function PnLTabContent() {
     "--pnl-cols": String(headerPeriods.length),
     "--pnl-label-col": "260px",
     "--pnl-period-col": "160px",
-    "--pnl-actions-col": "minmax(110px, 1fr)",
+    "--pnl-actions-col": headerPeriods.length === 0 ? "auto" : "minmax(110px, 1fr)",
   }), [headerPeriods.length]);
 
   const hasNoData =
@@ -393,7 +393,7 @@ function PnLTabContent() {
         </div>
         <div className="right-tools">
           <button className="ghost-btn" type="button" onClick={handleUploadClick} disabled={!effectiveFundId || uploading}>
-            <RefreshUpIcon /> {uploading ? "Uploading..." : "Upload"}
+            <UploadIcon /> {uploading ? "Uploading..." : "Upload"}
           </button>
           <button className="ghost-btn" type="button" onClick={handleDownload}>
             <DownloadIcon /> Download

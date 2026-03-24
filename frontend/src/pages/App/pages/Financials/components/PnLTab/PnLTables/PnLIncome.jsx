@@ -1,34 +1,29 @@
-// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLIncome/PnLIncome.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { MinusIcon, EditLineIcon, TrashBinIcon, KebabIcon, PlusIconWhite } from '/src/components/Icons/InteractiveIcons';
+import { MinusIcon, EditLineIcon, TrashBinIcon, MoreActionsHorizontalIcon, PlusIconWhite } from '/src/components/Icons/InteractiveIcons';
+import { useNumberFormatter } from '/src/components/useFormatter.js'
 import { noScroll } from '../../../../../../../components/disableNumberScroll'
-
 import "./FinancialTables.css";
 
 const PnLIncome = ({
   headerPeriods = [],
-
   showIncome,
   setShowIncome,
-
   incomeLines,
   setIncomeLines,
-
   incomeValues,
   setIncomeValues,
-
   totalIncomeByPeriod = {},
-
   onAddRow,
   onRemoveRow,
-
-  // Passed from PnLTab
   onUpdateLineItem,
   onDeleteLineItem,
 }) => {
+  const formatNumber = useNumberFormatter();
+
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingCell, setEditingCell] = useState(null);
   const menuWrapRef = useRef(null);
 
   useEffect(() => {
@@ -61,13 +56,11 @@ const PnLIncome = ({
     if (!editingId) return;
     const line = incomeLines.find((l) => l.id === editingId);
     const newLabel = draftLabel;
-
     setIncomeLines((prev) =>
       prev.map((l) => (l.id === editingId ? { ...l, label: newLabel } : l))
     );
     setEditingId(null);
     setDraftLabel("");
-
     if (line && !line.isCustom && Number.isFinite(Number(line.id))) {
       try {
         await onUpdateLineItem({ lineItemId: Number(line.id), name: newLabel });
@@ -88,6 +81,8 @@ const PnLIncome = ({
     setOpenMenuId(null);
     onDeleteLineItem({ lineItemId: line.id, isCustom: line.isCustom, index });
   };
+
+  const cellKey = (index, pid) => `${index}:${pid}`;
 
   const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
 
@@ -143,35 +138,61 @@ const PnLIncome = ({
                 )}
               </div>
 
-              {/* PERIOD INPUTS */}
+              {/* PERIOD CELLS */}
               {periods.map((p) => {
-                const pid   = String(p.id);
+                const pid = String(p.id);
+                const key = cellKey(index, pid);
                 const value = incomeValues[index]?.byPeriod?.[pid] ?? "";
+                const isEditingCell = editingCell === key;
+
                 return (
                   <div key={pid} className="detail-input-wrapper">
-                    <input
-                      className="amount-input"
-                      type="number"
-                      onWheel={noScroll}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={value}
-                      onChange={(e) => {
-                        const copy = [...incomeValues];
-                        const row  = copy[index] || { byPeriod: {} };
-                        copy[index] = {
-                          ...row,
-                          byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
-                        };
-                        setIncomeValues(copy);
-                      }}
-                    />
+                    {isEditingCell ? (
+                      <input
+                        className="amount-input"
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoFocus
+                        onWheel={noScroll}
+                        value={value}
+                        onChange={(e) => {
+                          const copy = [...incomeValues];
+                          const row = copy[index] || { byPeriod: {} };
+                          copy[index] = {
+                            ...row,
+                            byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
+                          };
+                          setIncomeValues(copy);
+                        }}
+                        onBlur={() => setEditingCell(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === "Escape") setEditingCell(null);
+                        }}
+                      />
+                    ) : (
+                      <div className="amount-display">
+                        <span className="amount-display-text">
+                          {formatNumber(value !== "" ? value : 0)}
+                        </span>
+                        <button
+                          type="button"
+                          className="pnl-edit-btn"
+                          onClick={() => setEditingCell(key)}
+                          aria-label="Edit value"
+                          title="Edit value"
+                        >
+                          <EditLineIcon />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
 
-              {/* ACTIONS — kebab always far right */}
-              <div className="pnl-row-actions">
+              {/* ACTIONS */}
+              <div className="pnl-row-actions" style={{ gridColumn: headerPeriods.length + 2 }}>
+
                 <div
                   className="pnl-kebab-wrap"
                   ref={(el) => { if (openMenuId === line.id) menuWrapRef.current = el; }}
@@ -182,7 +203,7 @@ const PnLIncome = ({
                     aria-label="Row actions"
                     onClick={() => setOpenMenuId((prev) => prev === line.id ? null : line.id)}
                   >
-                    <KebabIcon />
+                    <MoreActionsHorizontalIcon />
                   </button>
 
                   {openMenuId === line.id && (
@@ -225,7 +246,7 @@ const PnLIncome = ({
 
         {periods.map((p) => (
           <div key={p.id} className="group-value">
-            {Number(totalIncomeByPeriod?.[p.id] || 0).toLocaleString()}
+            {formatNumber(totalIncomeByPeriod?.[p.id] || 0)}
           </div>
         ))}
 

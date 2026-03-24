@@ -1,21 +1,22 @@
 /* frontend/src/pages/App/pages/Financials/components/PnLTables/FinancialTables.css */
-/* ===========================
-   SHARED (Income + Expenses + Tax)
-   =========================== */
 
-/* group row */
-.pnl-income .group-row,
-.pnl-expenses .group-row,
-.pnl-tax .group-row {
+/* ===== TABLE WRAPPERS ===== */
+.pnl-income,
+.pnl-expenses,
+.pnl-tax {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* ===== GROUP ROW (shared base) ===== */
+.group-row {
   border-bottom: 1px solid var(--border-soft);
   font-size: 14px;
   padding: 14px 16px;
 }
 
-/* ===== BLUE BAND HEADER ===== */
-.pnl-income .group-row--band,
-.pnl-expenses .group-row--band,
-.pnl-tax .group-row--band {
+/* ===== BLUE BAND ===== */
+.group-row--band {
   height: 55px;
   background: #375A89;
   border-top: 1px solid rgba(204, 205, 206, 0.5);
@@ -29,20 +30,14 @@
   box-sizing: border-box;
 }
 
-/* LEFT cluster */
-.pnl-income .group-left,
-.pnl-expenses .group-left,
-.pnl-tax .group-left {
+.group-left {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
 }
 
-/* toggle */
-.pnl-income .group-toggle,
-.pnl-expenses .group-toggle,
-.pnl-tax .group-toggle {
+.group-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -50,74 +45,30 @@
   padding: 0;
   background: none;
   cursor: pointer;
-
   font-size: 14px;
   color: #ffffff;
 }
 
-/* totals */
-.pnl-income .group-value,
-.pnl-expenses .group-value,
-.pnl-tax .group-value {
+.group-value {
   text-align: center;
   font-weight: 500;
   color: #ffffff;
 }
 
-/* last column */
-.pnl-income .group-action-cell,
-.pnl-expenses .group-action-cell,
-.pnl-tax .group-action-cell {
+.group-action-cell {
   justify-self: end;
   text-align: right;
-}
-
-/* Add button (same style) */
-.pnl-income .pill-btn,
-.pnl-expenses .pill-btn,
-.pnl-tax .pill-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-
-  padding: 8px 16px;
-
-  background: rgba(55, 90, 137, 0.2);
-  border: none;
-  border-radius: 4px;
-
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #375a89;
-
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.pnl-income .pill-btn:focus,
-.pnl-income .pill-btn:focus-visible,
-.pnl-expenses .pill-btn:focus,
-.pnl-expenses .pill-btn:focus-visible,
-.pnl-tax .pill-btn:focus,
-.pnl-tax .pill-btn:focus-visible {
-  outline: none;
+  min-width: var(--pnl-actions-col);
 }
 
 /* ===== DETAIL ROWS ===== */
-.pnl-income .detail-row,
-.pnl-expenses .detail-row,
-.pnl-tax .detail-row {
+.detail-row {
   display: grid;
   grid-template-columns:
     var(--pnl-label-col)
     repeat(var(--pnl-cols), var(--pnl-period-col))
     var(--pnl-actions-col);
   align-items: center;
-
   padding: 14px 16px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--border-soft);
@@ -125,76 +76,56 @@
   background-color: #ffffff;
 }
 
-.pnl-income .detail-row:nth-of-type(odd),
-.pnl-expenses .detail-row:nth-of-type(odd),
-.pnl-tax .detail-row:nth-of-type(odd) {
+.detail-row:nth-of-type(odd) {
   background-color: #FAFAF9;
 }
 
-/* LABEL CELL */
-.pnl-income .detail-label,
-.pnl-expenses .detail-label,
-.pnl-tax .detail-label {
+/* ===== LABEL CELL ===== */
+.detail-label {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
 
-.pnl-income .detail-label-text,
-.pnl-expenses .detail-label-text,
-.pnl-tax .detail-label-text {
-  flex: none;
-  min-width: 0;
-  white-space: nowrap;
-  font-family: var(--font-body);
-  font-weight: 480;
+.detail-label-text {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
   font-size: 14px;
-  color: #1c1917;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
 }
 
-/* pen icon (no box) */
-.pnl-income .pnl-edit-btn,
-.pnl-expenses .pnl-edit-btn,
-.pnl-tax .pnl-edit-btn {
+.pnl-edit-btn {
   border: none;
   background: transparent;
   padding: 0;
   margin: 0;
-
   width: 16px;
   height: 16px;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
   color: #375a89;
   flex: 0 0 auto;
 }
 
-.pnl-income .pnl-edit-btn svg,
-.pnl-expenses .pnl-edit-btn svg,
-.pnl-tax .pnl-edit-btn svg {
+.pnl-edit-btn svg {
   width: 16px;
   height: 16px;
   display: block;
 }
 
-.pnl-income .pnl-edit-btn:focus,
-.pnl-income .pnl-edit-btn:focus-visible,
-.pnl-expenses .pnl-edit-btn:focus,
-.pnl-expenses .pnl-edit-btn:focus-visible,
-.pnl-tax .pnl-edit-btn:focus,
-.pnl-tax .pnl-edit-btn:focus-visible {
+.pnl-edit-btn:focus,
+.pnl-edit-btn:focus-visible {
   outline: none;
 }
 
-/* INPUTS */
-.pnl-income .detail-input-wrapper,
-.pnl-expenses .detail-input-wrapper,
-.pnl-tax .detail-input-wrapper {
+/* ===== INPUTS ===== */
+.detail-input-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,20 +136,14 @@
   justify-self: center;
 }
 
-.pnl-income .amount-input,
-.pnl-income .pnl-label-input,
-.pnl-expenses .amount-input,
-.pnl-expenses .pnl-label-input,
-.pnl-tax .amount-input,
-.pnl-tax .pnl-label-input {
+.amount-input,
+.pnl-label-input {
   width: 100%;
   height: 40px;
   padding: 8px 12px;
-
   border: 1px solid rgba(204, 205, 206, 0.5);
   background: rgba(55, 90, 137, 0.12);
   border-radius: 4px;
-
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
@@ -226,64 +151,49 @@
   box-sizing: border-box;
 }
 
-.pnl-income .amount-input:focus,
-.pnl-income .pnl-label-input:focus,
-.pnl-expenses .amount-input:focus,
-.pnl-expenses .pnl-label-input:focus,
-.pnl-tax .amount-input:focus,
-.pnl-tax .pnl-label-input:focus {
+.amount-input:focus,
+.pnl-label-input:focus {
   outline: none;
   background: #ffffff;
 }
 
-/* ACTIONS */
-.pnl-income .pnl-row-actions,
-.pnl-expenses .pnl-row-actions,
-.pnl-tax .pnl-row-actions {
+/* ===== ACTIONS ===== */
+.pnl-row-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  justify-self: end;
+  min-width: var(--pnl-actions-col);
+  grid-column: -1;
 }
 
-/* kebab button */
-.pnl-income .pnl-kebab,
-.pnl-expenses .pnl-kebab,
-.pnl-tax .pnl-kebab {
+.pnl-kebab {
   border: none;
   background: transparent;
   padding: 0;
   margin: 0;
-
   width: 28px;
   height: 28px;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
   color: #375a89;
 }
 
-/* dropdown positioning container */
-.pnl-income .pnl-kebab-wrap,
-.pnl-expenses .pnl-kebab-wrap,
-.pnl-tax .pnl-kebab-wrap {
+.pnl-kebab-wrap {
   position: relative;
   display: inline-flex;
   justify-content: flex-end;
+  overflow: visible;
 }
 
-/* kebab menu */
-.pnl-income .pnl-kebab-menu,
-.pnl-expenses .pnl-kebab-menu,
-.pnl-tax .pnl-kebab-menu {
+.pnl-kebab-menu {
   position: absolute;
   right: calc(100% + 8px);
   left: auto;
   top: 50%;
   transform: translateY(-50%);
-
   min-width: 120px;
   background: #ffffff;
   border: 1px solid rgba(204, 205, 206, 0.6);
@@ -292,70 +202,86 @@
   z-index: 50;
 }
 
-.pnl-income .pnl-kebab-item,
-.pnl-expenses .pnl-kebab-item,
-.pnl-tax .pnl-kebab-item {
+.pnl-kebab-item {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
-
-  padding: 10px 10px;
+  padding: 10px;
   border: none;
   background: transparent;
   border-radius: 6px;
-
   cursor: pointer;
   font-size: 14px;
   line-height: 18px;
 }
 
-.pnl-income .pnl-kebab-item:hover,
-.pnl-expenses .pnl-kebab-item:hover,
-.pnl-tax .pnl-kebab-item:hover {
+.pnl-kebab-item:hover {
   background: rgba(15, 23, 42, 0.05);
 }
 
-.pnl-income .pnl-kebab-delete,
-.pnl-expenses .pnl-kebab-delete,
-.pnl-tax .pnl-kebab-delete {
+.pnl-kebab-delete {
   color: #dc2626;
 }
 
-/* lock to last grid column */
-/* lock to last grid column */
-.pnl-income .pnl-row-actions,
-.pnl-expenses .pnl-row-actions,
-.pnl-tax .pnl-row-actions {
-  justify-self: end;
-  min-width: var(--pnl-actions-col);
+/* ===== ADD ROW BUTTON ===== */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-/* menu/dots never clipped */
-.pnl-income .pnl-kebab-wrap,
-.pnl-expenses .pnl-kebab-wrap,
-.pnl-tax .pnl-kebab-wrap {
-  overflow: visible;
+.pill-btn:focus,
+.pill-btn:focus-visible {
+  outline: none;
 }
 
-/* last column */
-.pnl-income .group-action-cell,
-.pnl-expenses .group-action-cell,
-.pnl-tax .group-action-cell {
-  min-width: var(--pnl-actions-col);
+/* ===== TYPEHERE ROW VARIANT ===== */
+.detail-row--typehere .pnl-row-actions {
+  align-self: start;
+  margin-top: 6px;
 }
 
-.pnl-income .detail-row.detail-row--typehere .pnl-row-actions,
-.pnl-expenses .detail-row.detail-row--typehere .pnl-row-actions,
-.pnl-tax .detail-row.detail-row--typehere .pnl-row-actions {
-  align-self: start !important;
-  margin-top: 6px !important;
+.detail-row,
+.group-row--band {
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
 }
 
-/* table wrappers */
-.pnl-income,
-.pnl-expenses,
-.pnl-tax {
-  background: #ffffff;
-  overflow: hidden;
+.amount-display {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.amount-display-text {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
 }

@@ -25,15 +25,11 @@ body {
 }
 
 .financials-content {
-  width: 100%;
-  margin-left: 0;
-  margin-right: auto;
-  max-width: 100%;
-  background: #ffffff;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 24px;
+  width: 100%;
+  background-color: #ffffff;
 }
 
 .financials-title {
@@ -46,15 +42,11 @@ body {
 }
 /* ===== Tabs ===== */
 .financials-tabs {
-  /* Container Styling */
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 16px;
   width: 100%;
-  
- 
-  /* The Grey Separator Line */
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
   margin-bottom: 4px;
 }
@@ -63,36 +55,30 @@ body {
   background: none;
   border: none;
   cursor: pointer;
- 
-  /* Spacing */
+
   padding: 0 4px 12px;
- 
-  /* Typography */
-  font-family: var(--font-body);
+
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
- 
-  /* Color: Always Blue */
+
   color: #375A89;
- 
-  /* BORDER LOGIC */
-  /* Transparent border prevents jumping on hover/active */
+
   border-bottom: 2px solid transparent;
- 
-  /* Pull item down to overlap container border */
   margin-bottom: -1px;
- 
+
   transition: border-color 0.2s;
+
+  text-decoration: none !important;
 }
- 
+
 .tab.active {
   color: #375A89;
-  /* The Orange Active Line */
   border-bottom: 2px solid #F7A93B;
 }
- 
+
 .tab.active::after {
   content: none;
   display: none;
