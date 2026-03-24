@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, MoreActionsHorizontalIcon } from '/src/components/Icons/InteractiveIcons';
 import { useNumberFormatter } from '/src/components/useFormatter.js'
-import { useTableSort, SortableHeaderRenderer } from "../../../../../../../components/Sort/TableSort.jsx";
 import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./FinancialTables.css";
 
@@ -195,7 +194,6 @@ const PnLTax = ({
 
               {/* ACTIONS */}
               <div className="pnl-row-actions" style={{ gridColumn: headerPeriods.length + 2 }}>
-
                 <div
                   className="pnl-kebab-wrap"
                   ref={(el) => { if (openMenuId === line.id) menuWrapRef.current = el; }}
