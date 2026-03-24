@@ -226,7 +226,7 @@ export default function LPDrawer({
               />
             </div>
             <div className="lp-drawer-field">
-              <label className="lp-drawer-field-label">Adress<span className="lp-drawer-required">*</span></label>
+              <label className="lp-drawer-field-label">Adress<span className="lp-drawer-required"></span></label>
               <div className="lp-drawer-field-input-with-icon">
                 <input 
                   className="lp-drawer-field-input" 
