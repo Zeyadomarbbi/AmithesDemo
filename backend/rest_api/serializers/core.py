@@ -162,9 +162,9 @@ class ShareClassSerializer(serializers.ModelSerializer):
 
     # Accept uploaded file
     document_file = serializers.FileField(write_only=True, required=False)
-
     # Read-only URL for frontend
     document_url = serializers.SerializerMethodField()
+    clear_document = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = ShareClass
@@ -177,12 +177,13 @@ class ShareClassSerializer(serializers.ModelSerializer):
             "issuance_method",
             "distribution_method",
             "ppm_description",
-            "document_link",    # DB column
-            "document_file",    # Upload field
-            "document_url",     # Computed download URL
-            "document_name", # <--- Ensure this is here
-            "document_mime_type", # <--- Ensure this is here
-            "document_size", # <--- Ensure this is here
+            "document_link",    
+            "document_file",    
+            "document_url",     
+            "document_name", 
+            "document_mime_type", 
+            "document_size", 
+            "clear_document", # 2. Register field
             "created_at",
             "created_by",
             "updated_at",
@@ -211,11 +212,23 @@ class ShareClassSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # 3. Intercept clear flag
+        clear_doc = validated_data.pop("clear_document", False)
         file_obj = validated_data.pop("document_file", None)
-        if file_obj:
+        
+        if clear_doc:
+            validated_data["document_link"] = None
+            validated_data["document_name"] = None
+            validated_data["document_mime_type"] = None
+            validated_data["document_size"] = None
+        elif file_obj:
             from django.core.files.storage import default_storage
             path = default_storage.save(f"share_class_docs/{file_obj.name}", file_obj)
             validated_data["document_link"] = default_storage.url(path)
+            validated_data["document_name"] = file_obj.name
+            validated_data["document_mime_type"] = getattr(file_obj, 'content_type', None)
+            validated_data["document_size"] = file_obj.size
+            
         return super().update(instance, validated_data)
     
 class FundManFeeCommitmentYearSerializer(serializers.ModelSerializer):

@@ -8,37 +8,41 @@ import { PieChartIcon } from '/src/components/Icons/AnalysisIcons';
 
 import "./NewShareClassDrawer.css";
 
-const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
-  // --- Form State ---
+const NewShareClassDrawer = ({ isOpen, onClose, onSave, initialData }) => {
   const [name, setName] = useState("");
   const [isin, setIsin] = useState("");
   const [shareValue, setShareValue] = useState("");
-  
-  // These are required; we keep your defaults as they ensure the "required" state is met upon opening
   const [issuanceMethod, setIssuanceMethod] = useState("pro-rata");
   const [distributionMethod, setDistributionMethod] = useState("dividend");
   const [description, setDescription] = useState("");
   
-  // --- UI State ---
   const [isExpanded, setIsExpanded] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- Reset Form on Open ---
   useEffect(() => {
     if (isOpen) {
-      setName("");
-      setIsin("");
-      setShareValue("");
-      setIssuanceMethod("pro-rata");
-      setDistributionMethod("dividend");
-      setDescription("");
-      setUploadedFile(null);
+      if (initialData) {
+        setName(initialData.share_class_name || "");
+        setIsin(initialData.isin_code || "");
+        setShareValue(initialData.nominal_value !== undefined && initialData.nominal_value !== null ? String(initialData.nominal_value) : "");
+        setIssuanceMethod(initialData.issuance_method === "UPFRONT" ? "upfront" : "pro-rata");
+        setDistributionMethod(initialData.distribution_method === "REDEMPTION_OF_SHARES" ? "redemption" : "dividend");
+        setDescription(initialData.ppm_description || "");
+        setUploadedFile(initialData.document_name ? { name: initialData.document_name, size: initialData.document_size } : null);
+      } else {
+        setName("");
+        setIsin("");
+        setShareValue("");
+        setIssuanceMethod("pro-rata");
+        setDistributionMethod("dividend");
+        setDescription("");
+        setUploadedFile(null);
+      }
       setIsSaving(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
-  // --- STRICT VALIDATION LOGIC ---
   const isFormValid = useMemo(() => {
     return (
       name.trim() !== "" && 
@@ -60,36 +64,29 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
 
   const { trigger, InputComponent } = useFileUpload(handleFileSelected);
 
-  const handleSave = async () => {
+  const handleSaveAction = async () => {
     if (!isFormValid || isSaving) return;
 
     setIsSaving(true);
 
     try {
-      const dbIssuanceMethod = issuanceMethod === "pro-rata" 
-        ? "PRO_RATA_CALLED" 
-        : "UPFRONT";
+      const dbIssuanceMethod = issuanceMethod === "pro-rata" ? "PRO_RATA_CALLED" : "UPFRONT";
+      const dbDistributionMethod = distributionMethod === "dividend" ? "DIVIDEND" : "REDEMPTION_OF_SHARES";
 
-      const dbDistributionMethod = distributionMethod === "dividend" 
-        ? "DIVIDEND" 
-        : "REDEMPTION_OF_SHARES";
-
-      const newShareClassData = {
+      const shareClassData = {
         share_class_name: name,
         isin_code: isin,
         nominal_value: shareValue ? parseFloat(shareValue) : 0,
         issuance_method: dbIssuanceMethod,
         distribution_method: dbDistributionMethod,
         ppm_description: description,
-        document_file: (uploadedFile instanceof File) ? uploadedFile : null 
+        document_file: (uploadedFile instanceof File) ? uploadedFile : null,
+        clear_document: (!uploadedFile && initialData?.document_name) ? true : false
       };
 
-      // onCreate in parent handles the global Toast for success/error
-      await onCreate(newShareClassData);
+      await onSave(shareClassData, initialData?.share_class_id);
       onClose();
-      
     } catch (error) {
-      // Error is caught here to stop loading state, but parent handles notification
       console.error("Save failed:", error);
     } finally {
       setIsSaving(false);
@@ -102,7 +99,6 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
     <div className="share-drawer-overlay">
       <div className={`share-drawer ${isExpanded ? "share-drawer--expanded" : ""}`}>
         
-        {/* HEADER */}
         <div className="share-drawer-header">
           <div className="share-drawer-header-actions">
             <button 
@@ -112,15 +108,13 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
             >
               <ChevronLeftIcon />
             </button>
-            
             <button type="button" className="share-drawer-close" onClick={onClose}>
               <CloseIcon />
             </button>
           </div>
-          <div className="share-drawer-title">New share class</div>
+          <div className="share-drawer-title">{initialData ? "Edit share class" : "New share class"}</div>
         </div>
 
-        {/* BODY */}
         <div className="share-drawer-body">
           <div className="share-drawer-row share-drawer-row--two">
             <div className="share-drawer-field">
@@ -237,7 +231,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
                       <div className="share-file-details">
                         <span className="share-file-name">{uploadedFile.name}</span>
                         <span className="share-file-size">
-                          {(uploadedFile.size / 1024).toFixed(0)} KB
+                          {uploadedFile.size ? (uploadedFile.size / 1024).toFixed(0) : 0} KB
                         </span>
                       </div>
                     </div>
@@ -257,7 +251,6 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="share-drawer-footer">
           <button
             type="button"
@@ -270,7 +263,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onCreate }) => {
           <button
             type="button"
             className="share-drawer-footer-btn share-drawer-footer-btn--save"
-            onClick={handleSave}
+            onClick={handleSaveAction}
             disabled={isSaving || !isFormValid}
           >
             {isSaving ? "Saving..." : "Save"}

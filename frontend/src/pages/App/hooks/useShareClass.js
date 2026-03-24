@@ -37,8 +37,15 @@ export function useShareClasses(fundId) {
   };
 
   const update = async (id, payload) => {
-    // Standard JSON update
-    await api.put(`/api/funds/${fundId}/share-classes/${id}/`, payload);
+    const formData = new FormData();
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] !== null && payload[key] !== undefined) {
+        formData.append(key, payload[key]);
+      }
+    });
+
+    // useApi automatically detects FormData and omits Content-Type header for PUT as well
+    await api.put(`/api/funds/${fundId}/share-classes/${id}/`, formData);
     await fetchAll();
   };
 
