@@ -24,7 +24,7 @@ function PortfolioCard({ data, isLoading = false }) {
       <div className="pc-card-portfolio-wide">
         <div className="pc-fund-card-header">
           <span className="pc-fund-title">PORTFOLIO</span>
-          <span className="pc-fund-unit">(m€)</span>
+          <span className="pc-fund-unit">(€)</span>
         </div>
         <div className="pc-portfolio-body pc-empty-state">
           Loading Portfolio Metrics...

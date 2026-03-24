@@ -1,14 +1,7 @@
 // TableSort.jsx
 import React from "react";
+import { SortIcon } from "../Icons/InteractiveIcons";
 import "./TableSort.css";
-
-/* ---------- SVG sort icon used in table headers (Internal to TableSort.jsx) ---------- */
-export const SortIcon = () => (
-    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.5286 0.195262C3.78894 -0.0650874 4.21106 -0.0650874 4.4714 0.195262L7.80474 3.5286C8.06509 3.78894 8.06509 4.21106 7.80474 4.4714C7.54439 4.73175 7.12228 4.73175 6.86193 4.4714L4 1.60948L1.13807 4.4714C0.877722 4.73175 0.455612 4.73175 0.195262 4.4714C-0.0650874 4.21106 -0.0650874 3.78894 0.195262 3.5286L3.5286 0.195262ZM0.195262 7.5286C0.455612 7.26825 0.877722 7.26825 1.13807 7.5286L4 10.3905L6.86193 7.5286C7.12228 7.26825 7.54439 7.26825 7.80474 7.5286C8.06509 7.78895 8.06509 8.21106 7.80474 8.47141L4.4714 11.8047C4.21106 12.0651 3.78894 12.0651 3.5286 11.8047L0.195262 8.47141C-0.0650874 8.21106 -0.0650874 7.78895 0.195262 7.5286Z" fill="#375A89"/>
-    </svg>
-);
-
 
 export function useTableSort(data, initialSortKey = "name") {
   const [sortKey, setSortKey] = React.useState(initialSortKey);
@@ -49,7 +42,7 @@ export function useTableSort(data, initialSortKey = "name") {
   return { sorted, sortKey, sortDir, toggleSort };
 }
 
-export function SortableHeaderRenderer({ label, columnKey, currentSortKey, toggleSort, center = true, showCurrency = true }) {
+export function SortableHeaderRenderer({ label, columnKey, currentSortKey, toggleSort, center = true, showCurrency = true, showSortIcon = true }) {
     const isActive = currentSortKey === columnKey;
 
     return (
@@ -57,7 +50,7 @@ export function SortableHeaderRenderer({ label, columnKey, currentSortKey, toggl
             <div className="sort-header-group">
                 {label}
                 {showCurrency && <span className="sort-currency-indicator">(€)</span>}
-                <SortIcon active={isActive} />
+                {showSortIcon && <SortIcon active={isActive} />}
             </div>
         </div>
     );

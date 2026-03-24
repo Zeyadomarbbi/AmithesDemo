@@ -8,10 +8,14 @@ const CustomXAxisTick = ({ x, y, payload }) => {
   if (!payload || !payload.value) return null;
   const lines = payload.value.split('\n');
   return (
-    <g transform={`translate(${x},${y + 12})`}>
-      <text textAnchor="middle" className="pvc-chart-xaxis-tick">
+    <g transform={`translate(${x},${y + 24})`}> 
+      <text 
+        transform="rotate(-35)" 
+        textAnchor="end" 
+        className="pvc-chart-xaxis-tick"
+      >
         {lines.map((line, index) => (
-          <tspan x="0" dy={index === 0 ? 0 : 20} key={index}>{line}</tspan>
+          <tspan x="0" dy={index === 0 ? 0 : 14} key={index}>{line}</tspan>
         ))}
       </text>
     </g>
@@ -72,8 +76,8 @@ function PortfolioValueChart({ data = [] }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
-            margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
-            barSize={54}
+            margin={{ top: 20, right: 20, left: 0, bottom: 50 }}
+            maxBarSize={54}
           >
             <defs>
               <pattern

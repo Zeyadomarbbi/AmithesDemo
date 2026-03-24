@@ -149,7 +149,6 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                         <th className="th-label col-pnl">
                             <div className="th-wrapper pnl-wrapper">
                                 <span>PnL</span>
-                                <SortIcon className="sort-icon" />
                             </div>
                         </th>
                         {years.map((y) => (
