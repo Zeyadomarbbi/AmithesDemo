@@ -275,12 +275,17 @@ def _insert_operation_details(*, fund_id: int, payload: dict, request) -> int:
     return int(row[0])
 
 class FundClosingDetail(generics.RetrieveUpdateDestroyAPIView):
-    # Changed to RetrieveUpdateDestroyAPIView in case you want to edit 
-    # the description later via the Detail endpoint.
     serializer_class = FundClosingSerializer
 
     def get_queryset(self):
         return FundClosing.objects.filter(fund_id=self.kwargs.get('fund_id'))
+
+    def perform_update(self, serializer):
+        fund_id = self.kwargs.get('fund_id')
+        serializer.save(fund_id=fund_id)
+
+    def perform_destroy(self, instance):
+        instance.delete()
     
 class FundClosingListCreate(generics.ListCreateAPIView):
     serializer_class = FundClosingSerializer
