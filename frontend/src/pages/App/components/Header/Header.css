@@ -1,22 +1,15 @@
 /* in: frontend/src/components/Header.css */
 
 .top-header {
-  /* Layout */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  
-  /* Dimensions & Spacing */
   min-height: 69px;
-  padding: 1rem 2.5rem;
+  padding: 0.5rem 2.5rem; /* Reduced vertical padding for two rows */
   box-sizing: border-box;
-  
-  /* Styling */
   background: #FAFAF9;
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  
-  /* Positioning in RootLayout */
   flex-shrink: 0;
   width: 100%;
 }
@@ -25,44 +18,57 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
+  gap: 2px; /* Tight gap between name and currency */
   min-width: 0;
   flex: 1;
 }
 
-.header-fund-name {
-  /* Typography */
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: clamp(12px, 3.5vw, 14px);
-  line-height: 1.4;
-  letter-spacing: 0.01em;
-  
-  /* Color */
-  color: #375A89;
-  
-  display: flex;
-  align-items: center;
-  
-  /* Prevent overflow */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Row 1: Fund Name & ShortName */
+.header-row-primary {
   width: 100%;
 }
 
-/* Mobile Adjustments */
-@media (max-width: 768px) {
-  .top-header {
-    padding: 0.75rem 1rem;
-    min-height: 56px;
-  }
+.header-fund-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
 }
 
-@media (max-width: 576px) {
+.header-fund-shortname {
+  font-weight: 400;
+  color: #64748b; /* Muted slate color */
+  margin-left: 4px;
+}
+
+/* Row 2: Currency Details */
+.header-row-secondary {
+  width: 100%;
+}
+
+.header-currency-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; /* Smaller metadata size */
+  font-weight: 500;
+  color: #94a3b8; /* Lighter slate for secondary info */
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
   .top-header {
-    padding: 0.75rem 0.75rem;
-    min-height: 52px;
+    padding: 0.5rem 1rem;
+    min-height: 56px;
   }
 }

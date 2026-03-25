@@ -16,7 +16,7 @@ function AppLayout() {
     <div className={`app-layout ${isViewer ? 'mode-viewer' : ''}`}>
       <SidePanel /> 
       <div className="right-column">
-        {showHeader && <Header />}
+        <Header className={showHeader ? '' : 'hidden'} />
         <main className="main-content">
           <Outlet />
         </main>
