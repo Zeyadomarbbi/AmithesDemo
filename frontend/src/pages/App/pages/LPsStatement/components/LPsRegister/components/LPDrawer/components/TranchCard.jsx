@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
 import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
-import Prompt from "../../../../../../../components/Toast/Prompt.jsx"
+import Prompt from "../../../../../../../components/Toast/Prompt.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -19,65 +19,128 @@ export default function TranchCard({
   isSubmitting, 
   onUpdateField, 
   onSaveTranche,
+  onDeleteTranche,
   totalTranches,
   classColorMap = {}
 }) {
   const formatNumber = useNumberFormatter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [deletePromptOpen, setDeletePromptOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const updateField = (field) => (val) => {
     onUpdateField(realIndex, field)({ target: { value: val } });
   };
 
   // --- COLLAPSED / SUMMARY VIEW ---
   if (tranch.collapsed) {
-    const selectedShare  = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
+    const selectedShare = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
     const selectedCurrency = currencies?.find(c => String(c.id) === String(tranch.currencyId));
     const selectedPeriod = periods?.find(p => String(p.id) === String(tranch.closingId));
     const shareStyle = classColorMap[selectedShare?.share_class_name] || {};
 
     return (
-      <div className="shares-mini-row" onClick={() => onSaveTranche(realIndex)} style={{ cursor: "pointer" }}>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Type of share</span>
+      <>
+        <div className="shares-mini-row">
+          <div className="mini-row-column">
+            <span className="mini-row-label">Type of share</span>
             <div
               className="share-badge"
               style={{ background: shareStyle.bg, color: shareStyle.color }}
             >
               {selectedShare?.share_class_name || "-"}
             </div>
-        </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Currency</span>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Currency</span>
             <span className="mini-row-value">
-                {selectedCurrency ? (
-                  <>
-                    {selectedCurrency.name} 
-                    <span className="mini-row-hint">({selectedCurrency.code})</span>
-                  </>
-                ) : "-"}
+              {selectedCurrency ? (
+                <>
+                  {selectedCurrency.name}
+                  <span className="mini-row-hint">({selectedCurrency.code})</span>
+                </>
+              ) : "-"}
             </span>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Amount</span>
+            <span className="mini-row-value">
+              {tranch.commitment ? (
+                <>
+                  {formatNumber(tranch.commitment)}
+                  <span className="mini-row-hint">({selectedCurrency?.symbol || ""})</span>
+                </>
+              ) : "-"}
+            </span>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Closing</span>
+            <span className="mini-row-value">
+              {selectedPeriod?.name || "-"}
+            </span>
+          </div>
+
+          <div className="mini-row-dots" ref={menuRef}>
+            <button
+              className="mini-row-more-btn"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(prev => !prev); }}
+            >
+              <MoreActionsIcon />
+            </button>
+            {menuOpen && (
+              <div className="mini-row-menu">
+                <div
+                  className="mini-row-menu-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onSaveTranche(realIndex);
+                  }}
+                >
+                  <EditIcon />
+                  <span>Edit</span>
+                </div>
+                <div
+                  className="mini-row-menu-item mini-row-menu-item--danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    setDeletePromptOpen(true);
+                  }}
+                >
+                  <DeleteIcon />
+                  <span>Delete</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Amount</span>
-          <span className="mini-row-value">
-            {tranch.commitment ? (
-              <>
-                {formatNumber(tranch.commitment)} 
-                <span className="mini-row-hint">({selectedCurrency?.symbol || ""})</span>
-              </>
-            ) : "-"}
-          </span>
-        </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Closing</span>
-          <span className="mini-row-value">
-            {selectedPeriod?.name || "-"}
-          </span>
-        </div>
-        <div className="mini-row-dots">
-          <MoreActionsIcon />
-        </div>
-      </div>
+
+        {deletePromptOpen && (
+          <Prompt
+            type="error"
+            title="Delete commitment"
+            message="This commitment will be permanently deleted. This action cannot be undone."
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            onCancel={() => setDeletePromptOpen(false)}
+            onConfirm={() => {
+              setDeletePromptOpen(false);
+              onDeleteTranche(realIndex);
+            }}
+          />
+        )}
+      </>
     );
   }
 

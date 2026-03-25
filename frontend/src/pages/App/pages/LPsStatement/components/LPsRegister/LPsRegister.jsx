@@ -428,6 +428,7 @@ export default function LPsRegister() {
         currenciesLoading={currenciesLoading}
         createCommitment={createCommitment}
         updateCommitment={updateCommitment}
+        deleteCommitment={deleteCommitment}
         createLimitedPartner={createLimitedPartner}    // ← add
         updateLimitedPartner={updateLimitedPartner} 
         classColorMap={classColorMap}

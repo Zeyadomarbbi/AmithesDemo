@@ -5,6 +5,7 @@ import { CloseIcon, PlusIcon } from "../../../../../../../../components/Icons/In
 import { ChevronDoubleLeftIcon,  } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
 import { LocationIcon } from "../../../../../../../../components/Icons/MiscIcons.jsx";
 import TranchCard from "./components/TranchCard.jsx";
+import Toast from "../../../../../../components/Toast/Prompt.jsx";
 
 /* Styles */
 import "./LPDrawer.css";
@@ -35,6 +36,7 @@ export default function LPDrawer({
   currencies = [], currenciesLoading = false,
   createCommitment,
   updateCommitment,
+  deleteCommitment,
   createLimitedPartner,    // ← add
   updateLimitedPartner,    // ← add
   classColorMap = {}
@@ -177,6 +179,19 @@ export default function LPDrawer({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteTranche = async (idx) => {
+    const t = tranches[idx];
+    if (t.commitment_id) {
+      try {
+        await deleteCommitment(t.commitment_id);
+      } catch (err) {
+        alert("Failed to delete commitment.");
+        return;
+      }
+    }
+    setTranches(prev => prev.filter((_, i) => i !== idx));
   };
 
   if (!open) return null;
@@ -327,6 +342,7 @@ export default function LPDrawer({
                     periods={periods}
                     isSubmitting={isSubmitting}
                     onUpdateField={updateTrancheField}
+                    onDeleteTranche={handleDeleteTranche}
                     onSaveTranche={handleSaveTranche}
                     totalTranches={tranches.length}
                     classColorMap={classColorMap}

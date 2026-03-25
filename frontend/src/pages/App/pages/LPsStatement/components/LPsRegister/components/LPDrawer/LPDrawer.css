@@ -483,6 +483,68 @@
   flex: none;
 }
 
+/* ========= TRANCHE CARD MORE MENU ========= */
+.mini-row-dots {
+  position: relative;
+}
+
+.mini-row-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  color: #375A89;
+  width: 24px;
+  height: 24px;
+}
+
+.mini-row-more-btn:hover {
+  background: rgba(55, 90, 137, 0.08);
+}
+
+.mini-row-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 6px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  min-width: 140px;
+  padding: 4px;
+}
+
+.mini-row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1C1917;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.mini-row-menu-item:hover {
+  background: #F3F4F6;
+}
+
+.mini-row-menu-item--danger {
+  color: #DC2626;
+}
+
+.mini-row-menu-item--danger:hover {
+  background: #FEF2F2;
+}
+
 /* ========= RESPONSIVE ========= */
 @media (max-width: 768px) {
   .lp-drawer {
