@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 
 /* Components & Icons */
-import { PlusIcon, TransferIcon, FilterColumnsIcon, CheckMarkIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
+import { PlusIcon, TransferIcon, FilterColumnsIcon, CheckMarkIcon, EditIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
+import { ChevronDownIcon, RightArrowIcon } from "../../../../../../components/Icons/DirectionIcons.jsx";
 import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
 import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
@@ -10,12 +11,14 @@ import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
 import LPDrawer from "./components/LPDrawer/LPDrawer.jsx"
 import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate.jsx";
 import { PageSpinner, PageError } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
+
 /* Hooks */
 import { useCountries } from "../../../../hooks/Reference/useCountries.js";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriods.jsx";
 import "./LPsRegister.css";
-
+// Make sure to import the QuarterSelector CSS here if it isn't globally available:
+import "../../../../../../components/QuarterSelection/QuarterSelector.css"; 
 
 function generatePalette(count) {
   return Array.from({ length: count }, (_, i) => {
@@ -159,9 +162,10 @@ export default function LPsRegister() {
     createCommitment,
     updateCommitment,
     deleteCommitment,
-    createLimitedPartner,    // ← add
-    updateLimitedPartner,    // ← add
+    createLimitedPartner, 
+    updateLimitedPartner, 
   } = outlet;
+  
   /* --- State --- */
   const [searchTerm, setSearchTerm] = useState("");
   const [activeClass, setActiveClass] = useState(null);
@@ -175,16 +179,20 @@ export default function LPsRegister() {
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [colPickerOpen, setColPickerOpen] = useState(false);
   const [colSearchTerm, setColSearchTerm] = useState("");
+  const [editingClosing, setEditingClosing] = useState(null);
   const pickerRef = useRef(null);
+
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
   const shareClasses = outlet.shareClasses || [];
   const { countries, isLoading: countriesLoading } = useCountries();
   const { currencies, isLoading: currenciesLoading } = useCurrencies();
+  
   const classColorMap = useMemo(() => {
     const uniqueClasses = [...new Set((shareClasses || []).map(sc => sc.share_class_name))];
     return buildClassColorMap(uniqueClasses);
   }, [shareClasses]);
+
   /* --- Data Loading --- */
   const loadAllData = useCallback(async () => {
     setIsLoadingData(true);
@@ -207,7 +215,6 @@ export default function LPsRegister() {
   }, [fundId, loadAllData]);
 
   /* --- Transformation Logic --- */
-  /* --- Transformation Logic with Logging --- */
   const summaryData = useMemo(() => {
     return buildCommitmentSummary(
       commitments, 
@@ -217,6 +224,7 @@ export default function LPsRegister() {
       fundId
     );
   }, [commitments, fundClosings, limitedPartners, shareClasses, fundId]);
+  
   const filteredRows = useMemo(() => {
     return summaryData.summaryRows.filter(row => {
       const name = row.lp?.name || "";
@@ -234,6 +242,13 @@ export default function LPsRegister() {
     }));
   }, [fundClosings]);
 
+  // NEW: Identify which closings have active commitments
+  const closingsWithCommitments = useMemo(() => {
+    if (!commitments) return new Set();
+    const activeIds = commitments.map(c => c.lps_fund_closing_period_id);
+    return new Set(activeIds);
+  }, [commitments]);
+
   useEffect(() => {
     setVisibleColumns(tableColumns.map(c => c.id));
   }, [tableColumns]);
@@ -245,6 +260,7 @@ export default function LPsRegister() {
   };
 
   const allClosingsSelected = visibleColumns.length === tableColumns.length && tableColumns.length > 0;
+  
   const toggleAllColumns = () => {
     if (allClosingsSelected) {
       setVisibleColumns([]);
@@ -252,6 +268,7 @@ export default function LPsRegister() {
       setVisibleColumns(tableColumns.map(c => c.id));
     }
   };
+
   useEffect(() => {
     const handler = (e) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
@@ -316,10 +333,6 @@ export default function LPsRegister() {
               <button className="btn-newlp" onClick={() => setIsNewLpOpen(true)}>
                 <PlusIcon /> <span>New LP</span>
               </button>
-              <button className="btn-newlp" onClick={() => setPeriodModalOpen(true)}>
-                <PlusIcon />
-                <span>Add closing period</span>
-              </button>
             </div>
           </PermissionGate>
         </div>
@@ -343,54 +356,128 @@ export default function LPsRegister() {
             </div>
           </div>
           <div className="lp-toolbar-right">
-            <div className="lp-col-picker-wrapper" ref={pickerRef}>
-              <button className="btn-col-picker" onClick={() => setColPickerOpen(prev => !prev)}>
-                <FilterColumnsIcon />
-              </button>
+            
+            {/* MATCHED QUARTER SELECTOR STYLE DROPDOWN */}
+            <div className="quarter-selector-container" ref={pickerRef} style={{ minWidth: "240px" }}>
+              <div 
+                className={`quarter-selector-button ${colPickerOpen ? 'active' : ''}`}
+                onClick={() => setColPickerOpen(prev => !prev)}
+              >
+                <div className="quarter-text-group">
+                  <span className="quarter-part">
+                    {allClosingsSelected 
+                      ? "All Closings" 
+                      : visibleColumns.length === 0 
+                        ? "Select Closings" 
+                        : `Closings (${visibleColumns.length})`}
+                  </span>
+                </div>
+                <div className={`quarter-icon ${colPickerOpen ? 'open' : ''}`}>
+                  <ChevronDownIcon />
+                </div>
+              </div>
+
               {colPickerOpen && (
-                <div className="lp-col-picker-dropdown">
+                <div className="quarter-dropdown">
                   <div className="quarter-search-wrapper">
                     <SearchBox
                       value={colSearchTerm}
                       onChange={(e) => setColSearchTerm(e.target.value)}
-                      placeholder="Search columns..."
+                      placeholder="Filter closings..."
                     />
                   </div>
-                  <div className="lp-col-picker-list">
+                  
+                  <div className="quarter-list">
+                    {/* All Closings Item */}
                     <div
-                      className={`lp-col-picker-item ${allClosingsSelected ? "selected" : ""}`}
+                      className={`quarter-item ${allClosingsSelected ? "selected" : ""}`}
                       onClick={toggleAllColumns}
                     >
-                      <div className={`lp-col-picker-checkbox ${allClosingsSelected ? "checked" : ""}`}>
-                        {allClosingsSelected && <CheckMarkIcon />}
+                      <div className="quarter-item-content">
+                        <div className={`qs-checkbox ${allClosingsSelected ? "checked" : ""}`}>
+                          {allClosingsSelected && <CheckMarkIcon />}
+                        </div>
+                        <span className="item-label-bold">All Closings</span>
                       </div>
-                      <span className="item-label-bold">All Closings</span>
                     </div>
 
+                    {/* Filtered Closings */}
                     {tableColumns
-                      .filter(col => col.name.toLowerCase().includes(colSearchTerm.toLowerCase()))
+                      .filter(col => 
+                        col.name.toLowerCase().includes(colSearchTerm.toLowerCase()) || 
+                        (col.date || "").toLowerCase().includes(colSearchTerm.toLowerCase())
+                      )
                       .map(col => {
                         const isChecked = visibleColumns.includes(col.id);
+                        const isEditable = !closingsWithCommitments.has(col.id); // Check if editable
+
                         return (
                           <div
                             key={col.id}
-                            className={`lp-col-picker-item ${isChecked ? "selected" : ""}`}
+                            className={`quarter-item ${isChecked ? "selected" : ""}`}
                             onClick={() => toggleColumn(col.id)}
                           >
-                            <div className={`lp-col-picker-checkbox ${isChecked ? "checked" : ""}`}>
-                              {isChecked && <CheckMarkIcon />}
+                            <div className="quarter-item-content">
+                              <div className={`qs-checkbox ${isChecked ? "checked" : ""}`}>
+                                {isChecked && <CheckMarkIcon />}
+                              </div>
+                              <span className="item-label-bold">{col.name}</span>
+                              <div className="item-details-group">
+                                <span className="item-arrow-icon"><RightArrowIcon /></span>
+                                <span className="item-date">{col.date || "-"}</span>
+                              </div>
                             </div>
-                            <span className="item-label-bold">{col.name}</span>
+                            
+                            {/* Only show Edit icon if there are NO commitments tied to this closing */}
+                            {isEditable && (
+                              <PermissionGate>
+                                <div 
+                                  className="edit-action" 
+                                  onClick={(e) => { 
+                                    e.stopPropagation();
+                                    const dbClosing = fundClosings.find(fc => fc.lps_fund_closing_period_id === col.id);
+                                    setEditingClosing(dbClosing); 
+                                    setPeriodModalOpen(true); 
+                                    setColPickerOpen(false); 
+                                  }}
+                                >
+                                  <EditIcon />
+                                </div>
+                              </PermissionGate>
+                            )}
                           </div>
                         );
                       })}
-                    {!tableColumns.filter(col => col.name.toLowerCase().includes(colSearchTerm.toLowerCase())).length && (
-                      <div className="quarter-no-results">No matches found</div>
+                      
+                    {/* Empty State */}
+                    {!tableColumns.filter(col => 
+                      col.name.toLowerCase().includes(colSearchTerm.toLowerCase()) ||
+                      (col.date || "").toLowerCase().includes(colSearchTerm.toLowerCase())
+                    ).length && (
+                      <div className="quarter-empty-state">No matches found</div>
                     )}
                   </div>
+
+                  {/* Footer Add Button */}
+                  <PermissionGate>
+                    <button 
+                      className="add-timeframe-btn" 
+                      onClick={() => { 
+                        setEditingClosing(null); 
+                        setPeriodModalOpen(true); 
+                        setColPickerOpen(false); 
+                      }}
+                    >
+                      <span className="add-icon"><PlusIcon /></span>
+                      <span className="add-text">Add a closing period</span>
+                    </button>
+                  </PermissionGate>
+
                 </div>
               )}
             </div>
+            {/* END MATCHED DROPDOWN */}
+
           </div>
         </div>
       </div>
@@ -429,14 +516,15 @@ export default function LPsRegister() {
         createCommitment={createCommitment}
         updateCommitment={updateCommitment}
         deleteCommitment={deleteCommitment}
-        createLimitedPartner={createLimitedPartner}    // ← add
+        createLimitedPartner={createLimitedPartner}
         updateLimitedPartner={updateLimitedPartner} 
         classColorMap={classColorMap}
       />
       <AddPeriodModal 
         open={periodModalOpen} 
-        onClose={() => setPeriodModalOpen(false)} 
-        onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); }} 
+        onClose={() => { setPeriodModalOpen(false); setEditingClosing(null); }} 
+        onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); setEditingClosing(null); }} 
+        editingClosing={editingClosing}
       />
       <AddTransferModal 
         open={isTransferOpen} 
