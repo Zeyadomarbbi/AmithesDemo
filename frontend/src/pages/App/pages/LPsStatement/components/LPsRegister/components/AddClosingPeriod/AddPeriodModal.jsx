@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { CloseIcon, DeleteIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput";
-import { useFundClosings } from "../../../../../../hooks/LPsStatement/useClosingPeriods"; 
+import { useFundClosings } from "../../../../../../hooks/LPsStatement/useClosingPeriods";
+import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import "./AddPeriodModal.css";
 
 function parseDateString(value) {
@@ -22,21 +23,36 @@ function formatDDMMYYYY(date) {
   return `${day}/${month}/${year}`;
 }
 
-const AddPeriodModal = ({ open, onClose, onSave }) => {
+function isoToDisplay(isoDate) {
+  if (!isoDate) return formatDDMMYYYY(new Date());
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+const AddPeriodModal = ({ open, onClose, onSave, editingClosing = null }) => {
   const { fundId } = useParams();
+  const isEdit = !!editingClosing;
+
   const [closingName, setClosingName] = useState("");
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
+  const [deletePromptOpen, setDeletePromptOpen] = useState(false);
 
-  const { createFundClosing, loading, error } = useFundClosings(fundId);
+  const { createFundClosing, updateFundClosing, deleteFundClosing, loading, error } = useFundClosings(fundId);
 
   useEffect(() => {
     if (open) {
-      setClosingName("");
-      setDescription("");
-      setEndDate(formatDDMMYYYY(new Date()));
+      if (isEdit) {
+        setClosingName(editingClosing.closing_name || "");
+        setDescription(editingClosing.description || "");
+        setEndDate(isoToDisplay(editingClosing.date));
+      } else {
+        setClosingName("");
+        setDescription("");
+        setEndDate(formatDDMMYYYY(new Date()));
+      }
     }
-  }, [open]);
+  }, [open, editingClosing, isEdit]);
 
   if (!open) return null;
 
@@ -47,7 +63,7 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
     const parsedDate = parseDateString(endDate);
     if (!parsedDate) return;
 
-    const isoDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
+    const isoDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(parsedDate.getDate()).padStart(2, "0")}`;
 
     try {
       const payload = {
@@ -56,32 +72,49 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
         description: description.trim(),
         fund: parseInt(fundId, 10),
       };
-      const newRecord = await createFundClosing(payload);
-      if (onSave) onSave(newRecord);
+
+      let result;
+      if (isEdit) {
+        result = await updateFundClosing(editingClosing.lps_fund_closing_period_id, payload);
+      } else {
+        result = await createFundClosing(payload);
+      }
+
+      if (onSave) onSave(result);
       onClose();
     } catch (err) {
       console.error("Submission failed:", err);
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteFundClosing(editingClosing.lps_fund_closing_period_id);
+      if (onSave) onSave();
+      onClose();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
   return (
-    <div className="lp-add-closing-period-modal-backdrop" onClick={onClose}>
-      <div className="lp-add-closing-period-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="lp-add-closing-period-modal-header">
-          <button type="button"
-            className="lp-add-closing-period-modal-close-btn"
-            onClick={onClose}>
-            <CloseIcon />
-          </button>
-          <h2 className="lp-add-closing-period-modal-title">Add new period</h2>
-        </div>
+    <>
+      <div className="lp-add-closing-period-modal-backdrop" onClick={onClose}>
+        <div className="lp-add-closing-period-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="lp-add-closing-period-modal-header">
+            <button type="button" className="lp-add-closing-period-modal-close-btn" onClick={onClose}>
+              <CloseIcon />
+            </button>
+            <h2 className="lp-add-closing-period-modal-title">
+              {isEdit ? "Edit closing period" : "Add new period"}
+            </h2>
+          </div>
 
-        <form className="lp-add-closing-period-modal-body" onSubmit={handleSubmit}>
-          {error && <div className="lp-add-closing-period-modal-error" style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+          <form className="lp-add-closing-period-modal-body" onSubmit={handleSubmit}>
+            {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
 
-          <div className="lp-add-closing-period-modal-field">
-            <label className="lp-add-closing-period-modal-label">Closing Name *</label>
-            <div className="lp-add-closing-period-modal-input-wrapper">
+            <div className="lp-add-closing-period-modal-field">
+              <label className="lp-add-closing-period-modal-label">Closing Name *</label>
               <input
                 type="text"
                 className="lp-add-closing-period-modal-input"
@@ -91,11 +124,9 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
                 disabled={loading}
               />
             </div>
-          </div>
 
-          <div className="lp-add-closing-period-modal-field">
-            <label className="lp-add-closing-period-modal-label">Description</label>
-            <div className="lp-add-closing-period-modal-input-wrapper">
+            <div className="lp-add-closing-period-modal-field">
+              <label className="lp-add-closing-period-modal-label">Description</label>
               <input
                 type="text"
                 className="lp-add-closing-period-modal-input"
@@ -105,11 +136,9 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
                 disabled={loading}
               />
             </div>
-          </div>
 
-          <div className="lp-add-closing-period-modal-field lp-add-closing-period-modal-field-end">
-            <label className="lp-add-closing-period-modal-label">End Date *</label>
-            <div className="lp-add-closing-period-modal-input-wrapper">
+            <div className="lp-add-closing-period-modal-field lp-add-closing-period-modal-field-end">
+              <label className="lp-add-closing-period-modal-label">End Date *</label>
               <DateInputWithPicker
                 initialDate={parseDateString(endDate) || new Date()}
                 onDateChange={(date) => setEndDate(formatDDMMYYYY(date))}
@@ -117,28 +146,46 @@ const AddPeriodModal = ({ open, onClose, onSave }) => {
                 dateFormat="DD/MM/YYYY"
               />
             </div>
-          </div>
 
-          <div className="lp-add-closing-period-modal-footer">
-            <button
-              type="button"
-              className="lp-add-closing-period-modal-btn-secondary"
-              onClick={onClose}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="lp-add-closing-period-modal-btn-primary"
-              disabled={loading || !closingName.trim()}
-            >
-              {loading ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </form>
+            <div className={`lp-add-closing-period-modal-footer ${isEdit ? 'is-edit' : ''}`}>
+              {isEdit && (
+                <button
+                  type="button"
+                  className="lp-add-closing-period-modal-btn-danger"
+                  onClick={() => setDeletePromptOpen(true)}
+                  disabled={loading}
+                >
+                  <DeleteIcon />
+                  <span>Delete</span>
+                </button>
+              )}
+              <button
+                type="submit"
+                className="lp-add-closing-period-modal-btn-primary"
+                disabled={loading || !closingName.trim()}
+              >
+                {loading ? "Saving..." : isEdit ? "Save Changes" : "Save"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+
+      {deletePromptOpen && (
+        <Prompt
+          type="error"
+          title="Delete closing period"
+          message="This closing period will be permanently deleted. This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onCancel={() => setDeletePromptOpen(false)}
+          onConfirm={() => {
+            setDeletePromptOpen(false);
+            handleDelete();
+          }}
+        />
+      )}
+    </>
   );
 };
 
