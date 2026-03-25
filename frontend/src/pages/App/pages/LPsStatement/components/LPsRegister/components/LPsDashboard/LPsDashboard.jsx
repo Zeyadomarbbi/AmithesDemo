@@ -9,6 +9,7 @@ const LPsDashboard = ({
   totals,
   onSelectLP,
   visibleColumnIds = [],
+  classColorMap = {}
 }) => {
   // 1. Initialize Formatters from Hooks
   const formatNumber = useNumberFormatter();
@@ -104,7 +105,10 @@ const LPsDashboard = ({
                 </td>
 
                 <td className="td-center">
-                  <span className={`tag ${row.displayClassColor}`}>
+                  <span
+                    className="tag"
+                    style={{ background: classColorMap[row.displayClass]?.bg, color: classColorMap[row.displayClass]?.color }}
+                  >
                     {row.displayClass}
                   </span>
                 </td>

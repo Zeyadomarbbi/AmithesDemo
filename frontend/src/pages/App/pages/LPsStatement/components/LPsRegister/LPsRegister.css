@@ -247,17 +247,25 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 12px;
-  height: 40px;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
-  border-radius: 4px;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.0005);
+  border-radius: 8px;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: #375A89;
+  transition: background 0.2s ease;
 }
 
-.btn-col-picker:hover,
+.btn-col-picker:hover {
+  background: #F8FAFC;
+}
+
 .btn-col-picker.active {
   background-color: #F8FAFC;
 }

@@ -1,8 +1,9 @@
 import React from "react";
 import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
-import { MoreActionsIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
+import Prompt from "../../../../../../../components/Toast/Prompt.jsx"
 
 export default function TranchCard({ 
   tranch, 
@@ -18,10 +19,11 @@ export default function TranchCard({
   isSubmitting, 
   onUpdateField, 
   onSaveTranche,
-  totalTranches 
+  totalTranches,
+  classColorMap = {}
 }) {
   const formatNumber = useNumberFormatter();
-
+  const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const updateField = (field) => (val) => {
     onUpdateField(realIndex, field)({ target: { value: val } });
   };
@@ -31,26 +33,39 @@ export default function TranchCard({
     const selectedShare  = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
     const selectedCurrency = currencies?.find(c => String(c.id) === String(tranch.currencyId));
     const selectedPeriod = periods?.find(p => String(p.id) === String(tranch.closingId));
-
+    const shareStyle = classColorMap[selectedShare?.share_class_name] || {};
 
     return (
       <div className="shares-mini-row" onClick={() => onSaveTranche(realIndex)} style={{ cursor: "pointer" }}>
         <div className="mini-row-column">
           <span className="mini-row-label">Type of share</span>
-          <div className="share-badge">
-            {selectedShare?.share_class_name || "-"}
-          </div>
+            <div
+              className="share-badge"
+              style={{ background: shareStyle.bg, color: shareStyle.color }}
+            >
+              {selectedShare?.share_class_name || "-"}
+            </div>
         </div>
         <div className="mini-row-column">
           <span className="mini-row-label">Currency</span>
-          <span className="mini-row-value">
-            {selectedCurrency ? `${selectedCurrency.name} (${selectedCurrency.code})` : "-"}
-          </span>
+            <span className="mini-row-value">
+                {selectedCurrency ? (
+                  <>
+                    {selectedCurrency.name} 
+                    <span className="mini-row-hint">({selectedCurrency.code})</span>
+                  </>
+                ) : "-"}
+            </span>
         </div>
         <div className="mini-row-column">
           <span className="mini-row-label">Amount</span>
           <span className="mini-row-value">
-            {tranch.commitment ? `${formatNumber(tranch.commitment)} ${selectedCurrency?.symbol || ""}` : "-"}
+            {tranch.commitment ? (
+              <>
+                {formatNumber(tranch.commitment)} 
+                <span className="mini-row-hint">({selectedCurrency?.symbol || ""})</span>
+              </>
+            ) : "-"}
           </span>
         </div>
         <div className="mini-row-column">

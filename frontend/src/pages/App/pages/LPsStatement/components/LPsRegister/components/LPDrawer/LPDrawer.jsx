@@ -37,6 +37,7 @@ export default function LPDrawer({
   updateCommitment,
   createLimitedPartner,    // ← add
   updateLimitedPartner,    // ← add
+  classColorMap = {}
 }) {
   const { fundId } = useParams();
   const isEdit = !!lp;
@@ -328,6 +329,7 @@ export default function LPDrawer({
                     onUpdateField={updateTrancheField}
                     onSaveTranche={handleSaveTranche}
                     totalTranches={tranches.length}
+                    classColorMap={classColorMap}
                   />
                 ))}
               </div>

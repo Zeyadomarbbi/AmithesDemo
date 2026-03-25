@@ -17,6 +17,25 @@ import { useFundClosings } from "../../../../hooks/LPsStatement/useClosingPeriod
 import "./LPsRegister.css";
 
 
+function generatePalette(count) {
+  return Array.from({ length: count }, (_, i) => {
+    const hue = Math.round((i / count) * 360);
+    return {
+      bg: `hsl(${hue}, 80%, 93%)`,
+      color: `hsl(${hue}, 60%, 30%)`,
+    };
+  });
+}
+
+function buildClassColorMap(uniqueClasses) {
+  const palette = generatePalette(uniqueClasses.length || 1);
+  const map = {};
+  uniqueClasses.forEach((cls, idx) => {
+    map[cls] = palette[idx];
+  });
+  return map;
+}
+
 function formatAmount(num) {
   return (Number(num) || 0).toLocaleString("fr-FR");
 }
@@ -155,13 +174,17 @@ export default function LPsRegister() {
   const [isNewLpOpen, setIsNewLpOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [colPickerOpen, setColPickerOpen] = useState(false);
+  const [colSearchTerm, setColSearchTerm] = useState("");
   const pickerRef = useRef(null);
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
   const shareClasses = outlet.shareClasses || [];
   const { countries, isLoading: countriesLoading } = useCountries();
   const { currencies, isLoading: currenciesLoading } = useCurrencies();
-  
+  const classColorMap = useMemo(() => {
+    const uniqueClasses = [...new Set((shareClasses || []).map(sc => sc.share_class_name))];
+    return buildClassColorMap(uniqueClasses);
+  }, [shareClasses]);
   /* --- Data Loading --- */
   const loadAllData = useCallback(async () => {
     setIsLoadingData(true);
@@ -221,10 +244,19 @@ export default function LPsRegister() {
     );
   };
 
+  const allClosingsSelected = visibleColumns.length === tableColumns.length && tableColumns.length > 0;
+  const toggleAllColumns = () => {
+    if (allClosingsSelected) {
+      setVisibleColumns([]);
+    } else {
+      setVisibleColumns(tableColumns.map(c => c.id));
+    }
+  };
   useEffect(() => {
     const handler = (e) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
         setColPickerOpen(false);
+        setColSearchTerm("");
       }
     };
     document.addEventListener("mousedown", handler);
@@ -315,27 +347,49 @@ export default function LPsRegister() {
               <button className="btn-col-picker" onClick={() => setColPickerOpen(prev => !prev)}>
                 <FilterColumnsIcon />
               </button>
-            {colPickerOpen && (
-              <div className="lp-col-picker-dropdown">
-                <div className="lp-col-picker-list">
-                  {tableColumns.map(col => {
-                    const isChecked = visibleColumns.includes(col.id);
-                    return (
-                      <div
-                        key={col.id}
-                        className={`lp-col-picker-item ${isChecked ? "selected" : ""}`}
-                        onClick={() => toggleColumn(col.id)}
-                      >
-                        <div className={`lp-col-picker-checkbox ${isChecked ? "checked" : ""}`}>
-                          {isChecked && <CheckMarkIcon />}
-                        </div>
-                        <span className="item-label-bold">{col.name}</span>
+              {colPickerOpen && (
+                <div className="lp-col-picker-dropdown">
+                  <div className="quarter-search-wrapper">
+                    <SearchBox
+                      value={colSearchTerm}
+                      onChange={(e) => setColSearchTerm(e.target.value)}
+                      placeholder="Search columns..."
+                    />
+                  </div>
+                  <div className="lp-col-picker-list">
+                    <div
+                      className={`lp-col-picker-item ${allClosingsSelected ? "selected" : ""}`}
+                      onClick={toggleAllColumns}
+                    >
+                      <div className={`lp-col-picker-checkbox ${allClosingsSelected ? "checked" : ""}`}>
+                        {allClosingsSelected && <CheckMarkIcon />}
                       </div>
-                    );
-                  })}
+                      <span className="item-label-bold">All Closings</span>
+                    </div>
+
+                    {tableColumns
+                      .filter(col => col.name.toLowerCase().includes(colSearchTerm.toLowerCase()))
+                      .map(col => {
+                        const isChecked = visibleColumns.includes(col.id);
+                        return (
+                          <div
+                            key={col.id}
+                            className={`lp-col-picker-item ${isChecked ? "selected" : ""}`}
+                            onClick={() => toggleColumn(col.id)}
+                          >
+                            <div className={`lp-col-picker-checkbox ${isChecked ? "checked" : ""}`}>
+                              {isChecked && <CheckMarkIcon />}
+                            </div>
+                            <span className="item-label-bold">{col.name}</span>
+                          </div>
+                        );
+                      })}
+                    {!tableColumns.filter(col => col.name.toLowerCase().includes(colSearchTerm.toLowerCase())).length && (
+                      <div className="quarter-no-results">No matches found</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         </div>
@@ -352,6 +406,7 @@ export default function LPsRegister() {
           totals={filteredTotals}
           onSelectLP={handleSelectLP}
           visibleColumnIds={visibleColumns}
+          classColorMap={classColorMap}
         />
       )}
 
@@ -375,6 +430,7 @@ export default function LPsRegister() {
         updateCommitment={updateCommitment}
         createLimitedPartner={createLimitedPartner}    // ← add
         updateLimitedPartner={updateLimitedPartner} 
+        classColorMap={classColorMap}
       />
       <AddPeriodModal 
         open={periodModalOpen} 
