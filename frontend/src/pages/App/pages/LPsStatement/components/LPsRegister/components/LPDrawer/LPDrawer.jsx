@@ -67,8 +67,9 @@ export default function LPDrawer({
 
   useEffect(() => {
       if (open && !isEdit) {
+          const euroId = currencies?.find(c => c.code === "EUR")?.id ?? "";
           setForm(EMPTY_FORM);
-          setTranches([{ ...EMPTY_TRANCHE, originalIndex: 0 }]);
+          setTranches([{ ...EMPTY_TRANCHE, currencyId: euroId, originalIndex: 0 }]);
           setIsSubmitting(false);
       }
       if (open && isEdit) {
@@ -84,7 +85,7 @@ export default function LPDrawer({
           });
       }
       if (!open) setIsExpanded(false);
-  }, [open, lp, isEdit]);
+  }, [open, lp, isEdit, currencies]);
 
   /* --- Handlers --- */
   const updateField = (field) => (e) => {
@@ -106,7 +107,8 @@ export default function LPDrawer({
   };
 
   const addNewTranche = () => {
-    setTranches(prev => [...prev, { ...EMPTY_TRANCHE, originalIndex: prev.length }]);
+    const euroId = currencies?.find(c => c.code === "EUR")?.id ?? "";
+    setTranches(prev => [...prev, { ...EMPTY_TRANCHE, currencyId: euroId, originalIndex: prev.length }]);
   };
 
   /* --- SAVE LOGIC (Commits to Database) --- */

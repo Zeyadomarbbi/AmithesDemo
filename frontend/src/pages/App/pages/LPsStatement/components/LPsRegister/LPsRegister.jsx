@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 
 /* Components & Icons */
-import { PlusIcon, TransferIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
+import { PlusIcon, TransferIcon, FilterColumnsIcon, CheckMarkIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
 import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
@@ -153,12 +153,15 @@ export default function LPsRegister() {
   const [periodModalOpen, setPeriodModalOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isNewLpOpen, setIsNewLpOpen] = useState(false);
-
+  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [colPickerOpen, setColPickerOpen] = useState(false);
+  const pickerRef = useRef(null);
   /* --- Hooks --- */
   const { fundClosings, fetchFundClosings, error: closingsError } = useFundClosings(fundId);
   const shareClasses = outlet.shareClasses || [];
   const { countries, isLoading: countriesLoading } = useCountries();
   const { currencies, isLoading: currenciesLoading } = useCurrencies();
+  
   /* --- Data Loading --- */
   const loadAllData = useCallback(async () => {
     setIsLoadingData(true);
@@ -208,6 +211,26 @@ export default function LPsRegister() {
     }));
   }, [fundClosings]);
 
+  useEffect(() => {
+    setVisibleColumns(tableColumns.map(c => c.id));
+  }, [tableColumns]);
+
+  const toggleColumn = (id) => {
+    setVisibleColumns(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setColPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const selectedLPCommitments = useMemo(() => {
     if (!selectedLP || !commitments) return [];
     return commitments.filter(c => String(c.lp_id) === String(selectedLP.lp_id));
@@ -239,94 +262,132 @@ export default function LPsRegister() {
   }, [filteredRows, tableColumns]);
   
   const isFullyLoading = isLoadingData || countriesLoading || currenciesLoading;
-return (
-  <div className="lp-register-container">
 
-    <div className="lp-toolbar">
-      <div className="lp-toolbar-left">
-        <SearchBox 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          placeholder="Search by LP..." 
-        />
-        <div className="lp-class-filter">
-          {shareClasses.map((sc) => (
-            <button
-              key={sc.share_class_id}
-              className={`lp-chip ${activeClass === sc.share_class_name ? "lp-chip-active" : ""}`}
-              onClick={() => setActiveClass(sc.share_class_name)}
-            >
-              {sc.share_class_name}
-              {activeClass === sc.share_class_name && (
-                <span className="lp-chip-clear" onClick={(e) => { e.stopPropagation(); setActiveClass(null); }}>✕</span>
-              )}
-            </button>
-          ))}
+  return (
+    <div className="lp-register-container">
+      <div className="lp-toolbar">
+        {/* Row 1 */}
+        <div className="lp-toolbar-row">
+          <div className="lp-toolbar-left">
+            <SearchBox 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              placeholder="Search by LP..." 
+            />
+          </div>
+          <PermissionGate>
+            <div className="lp-toolbar-right">
+              <button className="btn-transfer" onClick={() => setIsTransferOpen(true)}>
+                <TransferIcon />
+                <span>Add transfer</span>
+              </button>
+              <button className="btn-newlp" onClick={() => setIsNewLpOpen(true)}>
+                <PlusIcon /> <span>New LP</span>
+              </button>
+              <button className="btn-newlp" onClick={() => setPeriodModalOpen(true)}>
+                <PlusIcon />
+                <span>Add closing period</span>
+              </button>
+            </div>
+          </PermissionGate>
+        </div>
+
+        {/* Row 2 */}
+        <div className="lp-toolbar-row">
+          <div className="lp-toolbar-left">
+            <div className="lp-class-filter">
+              {shareClasses.map((sc) => (
+                <button
+                  key={sc.share_class_id}
+                  className={`lp-chip ${activeClass === sc.share_class_name ? "lp-chip-active" : ""}`}
+                  onClick={() => setActiveClass(sc.share_class_name)}
+                >
+                  {sc.share_class_name}
+                  {activeClass === sc.share_class_name && (
+                    <span className="lp-chip-clear" onClick={(e) => { e.stopPropagation(); setActiveClass(null); }}>✕</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="lp-toolbar-right">
+            <div className="lp-col-picker-wrapper" ref={pickerRef}>
+              <button className="btn-col-picker" onClick={() => setColPickerOpen(prev => !prev)}>
+                <FilterColumnsIcon />
+              </button>
+            {colPickerOpen && (
+              <div className="lp-col-picker-dropdown">
+                <div className="lp-col-picker-list">
+                  {tableColumns.map(col => {
+                    const isChecked = visibleColumns.includes(col.id);
+                    return (
+                      <div
+                        key={col.id}
+                        className={`lp-col-picker-item ${isChecked ? "selected" : ""}`}
+                        onClick={() => toggleColumn(col.id)}
+                      >
+                        <div className={`lp-col-picker-checkbox ${isChecked ? "checked" : ""}`}>
+                          {isChecked && <CheckMarkIcon />}
+                        </div>
+                        <span className="item-label-bold">{col.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
         </div>
       </div>
-      <PermissionGate>
-        <div className="lp-toolbar-right">
-          <button className="btn-transfer" onClick={() => setIsTransferOpen(true)}>
-            <TransferIcon />
-            <span>Add transfer</span>
-          </button>
-          <button className="btn-newlp" onClick={() => setIsNewLpOpen(true)}>
-            <PlusIcon /> <span>New LP</span>
-          </button>
-          <button className="btn-newlp" onClick={() => setPeriodModalOpen(true)}>
-            <PlusIcon />
-            <span>Add closing period</span>
-          </button>
-        </div>
-      </PermissionGate>
-    </div>
 
-    {isFullyLoading ? (
-      <PageSpinner label="Loading Register..." />
-    ) : closingsError ? (
-      <PageError message={closingsError} />
-    ) : (
-      <LPsDashboard 
-        displayRows={filteredRows}
-        tableColumns={tableColumns}
-        totals={filteredTotals}
-        onSelectLP={handleSelectLP}
+      {isFullyLoading ? (
+        <PageSpinner label="Loading Register..." />
+      ) : closingsError ? (
+        <PageError message={closingsError} />
+      ) : (
+        <LPsDashboard 
+          displayRows={filteredRows}
+          tableColumns={tableColumns}
+          totals={filteredTotals}
+          onSelectLP={handleSelectLP}
+          visibleColumnIds={visibleColumns}
+        />
+      )}
+
+      <LPDrawer 
+        lp={selectedLP} 
+        existingCommitments={selectedLPCommitments}
+        open={isNewLpOpen || !!selectedLP} 
+        onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
+        onSave={async () => {
+          await reloadAll();
+          setSelectedLP(null);
+          setIsNewLpOpen(false);
+        }}
+        periods={tableColumns}
+        countries={countries}
+        countriesLoading={countriesLoading}
+        shareClasses={shareClasses}
+        currencies={currencies}
+        currenciesLoading={currenciesLoading}
+        createCommitment={createCommitment}
+        updateCommitment={updateCommitment}
+        createLimitedPartner={createLimitedPartner}    // ← add
+        updateLimitedPartner={updateLimitedPartner} 
       />
-    )}
+      <AddPeriodModal 
+        open={periodModalOpen} 
+        onClose={() => setPeriodModalOpen(false)} 
+        onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); }} 
+      />
+      <AddTransferModal 
+        open={isTransferOpen} 
+        onClose={() => setIsTransferOpen(false)} 
+        onSave={() => { loadAllData(); setIsTransferOpen(false); }}
+        lps={summaryData.summaryRows.map(r => r.lp)}
+      />
 
-    <LPDrawer 
-      lp={selectedLP} 
-      existingCommitments={selectedLPCommitments}
-      open={isNewLpOpen || !!selectedLP} 
-      onClose={() => { setSelectedLP(null); setIsNewLpOpen(false); }} 
-      onSave={async () => {
-        await reloadAll();
-        setSelectedLP(null);
-        setIsNewLpOpen(false);
-      }}
-      periods={tableColumns}
-      countries={countries}
-      countriesLoading={countriesLoading}
-      shareClasses={shareClasses}
-      currencies={currencies}
-      currenciesLoading={currenciesLoading}
-      createCommitment={createCommitment}
-      updateCommitment={updateCommitment}
-      createLimitedPartner={createLimitedPartner}    // ← add
-      updateLimitedPartner={updateLimitedPartner} 
-    />
-    <AddPeriodModal 
-      open={periodModalOpen} 
-      onClose={() => setPeriodModalOpen(false)} 
-      onSave={() => { fetchFundClosings(); setPeriodModalOpen(false); }} 
-    />
-    <AddTransferModal 
-      open={isTransferOpen} 
-      onClose={() => setIsTransferOpen(false)} 
-      onSave={() => { loadAllData(); setIsTransferOpen(false); }}
-      lps={summaryData.summaryRows.map(r => r.lp)}
-    />
-
-  </div>
-);
+    </div>
+  );
 }

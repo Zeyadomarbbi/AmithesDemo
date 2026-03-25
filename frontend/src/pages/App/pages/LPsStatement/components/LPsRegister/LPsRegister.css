@@ -54,17 +54,21 @@
 /* ============= TOOLBAR LAYOUT ============= */
 .lp-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start; /* Aligns right-side buttons to the top row */
+  flex-direction: column;
+  gap: 10px;
   margin: 14px 0 18px 0;
-  gap: 16px;
+}
+
+.lp-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .lp-toolbar-left {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  align-items: center;
+  gap: 8px;
 }
 
 .lp-toolbar-right {
@@ -231,7 +235,97 @@
 
 
 
-/* sort icon */
+/* --- COL PICKER WRAPPER --- */
+.lp-col-picker-wrapper {
+  position: relative;
+  display: inline-block;
+  z-index: 30;
+}
+
+/* --- TRIGGER BUTTON --- */
+.btn-col-picker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #375A89;
+}
+
+.btn-col-picker:hover,
+.btn-col-picker.active {
+  background-color: #F8FAFC;
+}
+
+/* --- DROPDOWN --- */
+.lp-col-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+/* --- LIST --- */
+.lp-col-picker-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 250px;
+  overflow-y: auto;
+  gap: 2px;
+}
+
+/* --- ITEMS --- */
+.lp-col-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.lp-col-picker-item:hover {
+  background-color: #F3F4F6;
+}
+
+.lp-col-picker-item.selected {
+  background-color: #F8FAFC;
+}
+
+/* --- CHECKBOX --- */
+.lp-col-picker-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.lp-col-picker-checkbox.checked {
+  background-color: #F7A93B;
+  border-color: #F7A93B;
+}
 
 
 
