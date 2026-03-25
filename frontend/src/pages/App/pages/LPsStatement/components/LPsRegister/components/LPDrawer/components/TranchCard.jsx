@@ -3,7 +3,6 @@ import SearchableSelect from "../../../../../../../../../components/SearchBar/Se
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
 import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
-import Prompt from "../../../../../../../components/Toast/Prompt.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -20,12 +19,10 @@ export default function TranchCard({
   onUpdateField, 
   onSaveTranche,
   onDeleteTranche,
-  totalTranches,
   classColorMap = {}
 }) {
   const formatNumber = useNumberFormatter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -115,7 +112,7 @@ export default function TranchCard({
                   onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
-                    setDeletePromptOpen(true);
+                    onDeleteTranche(realIndex);
                   }}
                 >
                   <DeleteIcon />
@@ -125,21 +122,6 @@ export default function TranchCard({
             )}
           </div>
         </div>
-
-        {deletePromptOpen && (
-          <Prompt
-            type="error"
-            title="Delete commitment"
-            message="This commitment will be permanently deleted. This action cannot be undone."
-            confirmLabel="Delete"
-            cancelLabel="Cancel"
-            onCancel={() => setDeletePromptOpen(false)}
-            onConfirm={() => {
-              setDeletePromptOpen(false);
-              onDeleteTranche(realIndex);
-            }}
-          />
-        )}
       </>
     );
   }

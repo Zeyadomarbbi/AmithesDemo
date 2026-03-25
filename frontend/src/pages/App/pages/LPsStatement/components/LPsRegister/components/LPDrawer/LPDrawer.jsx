@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { CloseIcon, PlusIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
-import { ChevronDoubleLeftIcon,  } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
+import { ChevronDoubleLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
 import { LocationIcon } from "../../../../../../../../components/Icons/MiscIcons.jsx";
 import TranchCard from "./components/TranchCard.jsx";
 import Toast from "../../../../../../components/Toast/Prompt.jsx";
@@ -37,22 +37,22 @@ export default function LPDrawer({
   createCommitment,
   updateCommitment,
   deleteCommitment,
-  createLimitedPartner,    // ← add
-  updateLimitedPartner,    // ← add
+  createLimitedPartner,
+  updateLimitedPartner,
   classColorMap = {}
 }) {
   const { fundId } = useParams();
   const isEdit = !!lp;
-  /* --- API Hooks --- */
 
-  /* --- Form State --- */
   const [form, setForm] = useState(EMPTY_FORM);
   const [tranches, setTranches] = useState([]);
-  /* --- UI State --- */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastTrancheRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  /* --- Reset Form on Open --- */
+  
+  // Prompt State
+  const [promptConfig, setPromptConfig] = useState(null);
+
   useEffect(() => {
       if (!isEdit) return;
 
@@ -87,10 +87,12 @@ export default function LPDrawer({
               swift: lp.swift || "",
           });
       }
-      if (!open) setIsExpanded(false);
+      if (!open) {
+        setIsExpanded(false);
+        setPromptConfig(null);
+      }
   }, [open, lp, isEdit, currencies]);
 
-  /* --- Handlers --- */
   const updateField = (field) => (e) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
   };
@@ -114,19 +116,32 @@ export default function LPDrawer({
     setTranches(prev => [...prev, { ...EMPTY_TRANCHE, currencyId: euroId, originalIndex: prev.length }]);
   };
 
-  /* --- SAVE LOGIC (Commits to Database) --- */
-  const handleFinalSave = async () => {
-    // 1. Basic Validation
+  // -----------------------------------------------------
+  // INTERCEPT: Final Save (Create LP, Edit LP, Save Tranches)
+  // -----------------------------------------------------
+  const confirmFinalSave = () => {
     if (!form.lpName) {
       alert("Please fill in the required fields (LP Name).");
       return;
     }
+    
+    setPromptConfig({
+      type: "success",
+      title: isEdit ? "Confirm Changes" : "Create New LP",
+      message: isEdit 
+        ? "Are you sure you want to save changes to this LP and its commitments?" 
+        : "Are you sure you want to create this new Limited Partner?",
+      confirmLabel: "Confirm",
+      onConfirm: executeFinalSave
+    });
+  };
 
+  const executeFinalSave = async () => {
+    setPromptConfig(null);
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // 2. Construct LP Payload
       const lpPayload = {
         name: form.lpName,
         address: form.address,
@@ -140,8 +155,6 @@ export default function LPDrawer({
 
       let currentLpId = lp?.lp_id;
 
-      // 3. Create or Update the LP Meta
-      console.log("Committing LP to DB...", lpPayload);
       if (isEdit) {
         await updateLimitedPartner(currentLpId, lpPayload);
       } else {
@@ -149,7 +162,6 @@ export default function LPDrawer({
         currentLpId = lpResponse.lp_id;
       }
 
-      // 4. Process all Tranches
       const commitmentPromises = tranches.map(t => {
         if (!t.shareClassId || !t.currencyId || !t.closingId) return Promise.resolve();
 
@@ -169,7 +181,6 @@ export default function LPDrawer({
 
       await Promise.all(commitmentPromises);
       
-      // 5. Close Drawer on Success
       onSave?.(); 
       onClose();
       
@@ -181,7 +192,21 @@ export default function LPDrawer({
     }
   };
 
-  const handleDeleteTranche = async (idx) => {
+  // -----------------------------------------------------
+  // INTERCEPT: Delete Tranche
+  // -----------------------------------------------------
+  const confirmDeleteTranche = (idx) => {
+    setPromptConfig({
+      type: "error",
+      title: "Delete Commitment",
+      message: "Are you sure you want to permanently delete this tranche?",
+      confirmLabel: "Delete",
+      onConfirm: () => executeDeleteTranche(idx)
+    });
+  };
+
+  const executeDeleteTranche = async (idx) => {
+    setPromptConfig(null);
     const t = tranches[idx];
     if (t.commitment_id) {
       try {
@@ -194,6 +219,8 @@ export default function LPDrawer({
     setTranches(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const closePrompt = () => setPromptConfig(null);
+
   if (!open) return null;
 
   return (
@@ -202,8 +229,6 @@ export default function LPDrawer({
         className={`lp-drawer ${isExpanded ? "lp-drawer--expanded" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-        
-        {/* HEADER */}
         <header className="lp-drawer-header">
           <div className="lp-drawer-header-actions">
             <button 
@@ -214,7 +239,6 @@ export default function LPDrawer({
             >
               <ChevronDoubleLeftIcon />
             </button>
-            
             <button 
               type="button" 
               className="lp-drawer-close-btn" 
@@ -230,7 +254,6 @@ export default function LPDrawer({
           </div>
         </header>
 
-        {/* BODY */}
         <div className="lp-drawer-content">
           <section className="lp-drawer-section">
             <h3 className="lp-drawer-section-title">LP information</h3>
@@ -324,7 +347,7 @@ export default function LPDrawer({
           </section>
             
           <section className="lp-drawer-tranches-section">
-            <h3 className="lp-drawer-section-title">Shares & Commitments</h3>
+            <h3 className="lp-drawer-section-title">Shares & Commitments ({tranches.length})</h3>
             {tranches.length > 0 && (
               <div className="lp-drawer-tranches-list">
                 {tranches.map((t, idx) => (
@@ -342,9 +365,8 @@ export default function LPDrawer({
                     periods={periods}
                     isSubmitting={isSubmitting}
                     onUpdateField={updateTrancheField}
-                    onDeleteTranche={handleDeleteTranche}
+                    onDeleteTranche={confirmDeleteTranche} 
                     onSaveTranche={handleSaveTranche}
-                    totalTranches={tranches.length}
                     classColorMap={classColorMap}
                   />
                 ))}
@@ -362,7 +384,6 @@ export default function LPDrawer({
           </section>
         </div>
 
-        {/* FOOTER */}
         <footer className="lp-drawer-footer">
           <button 
             className="lp-drawer-btn-secondary-wide" 
@@ -375,13 +396,25 @@ export default function LPDrawer({
           <button 
             className="lp-drawer-btn-primary-wide" 
             type="button" 
-            onClick={handleFinalSave} 
+            onClick={confirmFinalSave} 
             disabled={isSubmitting || !form.lpName}
           >
             {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Create LP"}
           </button>
         </footer>
       </aside>
+
+      {/* Render Prompt Modal conditionally */}
+      {promptConfig && (
+        <Toast
+          type={promptConfig.type}
+          title={promptConfig.title}
+          message={promptConfig.message}
+          confirmLabel={promptConfig.confirmLabel}
+          onConfirm={promptConfig.onConfirm}
+          onCancel={closePrompt}
+        />
+      )}
     </div>
   );
 }
