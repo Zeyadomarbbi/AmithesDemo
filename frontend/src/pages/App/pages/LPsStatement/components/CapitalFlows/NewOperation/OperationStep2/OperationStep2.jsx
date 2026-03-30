@@ -9,8 +9,11 @@ import React, {
 import { useOutletContext } from "react-router-dom";
 import AddFlowModal from "./components/AddFlowModal/AddFlowModal.jsx";
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { EuroCurrencyIcon }from '/src/components/Icons/FinancialIcons';
+import { EditLineIcon }from '/src/components/Icons/InteractiveIcons';
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
+import { useNumberFormatter, usePercentageFormatter } from '/src/components/useFormatter.js'
 import "./OperationStep2.css";
 
 const LPS_W = 340;
@@ -57,18 +60,6 @@ function parseMoney(value) {
   return any ? sum : null;
 }
 
-function formatMoney(n) {
-  if (n === null || n === undefined || !Number.isFinite(n)) return "-";
-  return new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(n);
-}
-
-function formatPct(n) {
-  if (n === null || n === undefined || !Number.isFinite(n)) return "-%";
-  return `${n.toFixed(2)}%`;
-}
 
 function rowAmountForFlow(flow, row, flowTotal) {
   const pct = row.ownershipPct;
@@ -119,7 +110,10 @@ const OperationStep2 = forwardRef(function OperationStep2(
   },
   ref
 ) {
+  const formatNumber = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
   const [showAddFlow, setShowAddFlow] = useState(false);
+  const [flowPercentInputs, setFlowPercentInputs] = useState({});
   const outlet = useOutletContext() || {};
   const fundId = fundIdProp ?? outlet.fundId;
   const opKind = useMemo(() => {
@@ -481,12 +475,14 @@ const OperationStep2 = forwardRef(function OperationStep2(
     console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
 
     const newFlow = {
-      id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      label,
-      flowType: flowData?.flowTypeName || flowData?.flowType || "",
-      data: { ...flowData, flowTypeId },
-      operation_flow_id: null,
-      isSyntheticEqualization: eqFlowTypeId !== null && Number(flowTypeId) === Number(eqFlowTypeId)
+        id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        label,
+        flowType: flowData?.flowTypeName || flowData?.flowType || "",
+        data: { ...flowData, flowTypeId },
+        operation_flow_id: null,
+        isSyntheticEqualization: eqFlowTypeId !== null && Number(flowTypeId) === Number(eqFlowTypeId),
+        alignAll: flowData?.alignAll ?? true,
+        selectedLpIds: flowData?.selectedLpIds ?? null,
     };
     
     setFlows((prev) => [...prev, newFlow]);
@@ -509,8 +505,24 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const flowCols = flows.length > 0 ? `repeat(${flows.length}, minmax(${FLOW_W}px, 1fr))` : undefined;
 
   const onChangeFlowTotal = (flowId, raw) => {
-    setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
-    setFlowTotals((prev) => ({ ...prev, [flowId]: parseMoney(raw) }));
+      setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
+      const parsed = parseMoney(raw);
+      setFlowTotals((prev) => ({ ...prev, [flowId]: parsed }));
+      const pct = (parsed !== null && Number.isFinite(parsed) && totalCommitment > 0)
+          ? String(((parsed / totalCommitment) * 100).toFixed(4))
+          : "";
+      setFlowPercentInputs((prev) => ({ ...prev, [flowId]: pct }));
+  };
+  const onChangeFlowPercent = (flowId, raw) => {
+      const pct = parseMoney(raw);
+      const newTotal = (pct !== null && Number.isFinite(pct) && totalCommitment > 0)
+          ? (pct / 100) * totalCommitment
+          : null;
+      setFlowTotalInputs((prev) => ({
+          ...prev,
+          [flowId]: newTotal !== null ? String(newTotal) : "",
+      }));
+      setFlowTotals((prev) => ({ ...prev, [flowId]: newTotal }));
   };
 
   const eqTargetPct = useMemo(() => {
@@ -927,7 +939,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                     const v = eqByRowId[r.id];
                     return (
                       <div key={r.id} className="op2-row op2-row--right">
-                        <span className="op2-num">{v === null ? "-" : formatMoney(v)}</span>
+                        <span className="op2-num">{v === null ? "-" : formatNumber(v)}</span>
                       </div>
                     );
                   })}
@@ -952,16 +964,26 @@ const OperationStep2 = forwardRef(function OperationStep2(
                         return (
                           <div key={flow.id} className="op2-flow-col">
                             {rows.map((r) => {
-                              const pct = r.ownershipPct;
-                              const value =
-                                total !== null && total !== undefined && Number.isFinite(total) &&
-                                pct !== null && pct !== undefined && Number.isFinite(pct)
-                                  ? total * pct : null;
-                              return (
-                                <div key={r.id} className="op2-flow-cell">
-                                  {value === null ? "-" : formatMoney(value)}
-                                </div>
-                              );
+                                const excluded = flow.selectedLpIds !== null &&
+                                    Array.isArray(flow.selectedLpIds) &&
+                                    !flow.selectedLpIds.includes(r.id);
+
+                                if (excluded) {
+                                    return (
+                                        <div key={r.id} className="op2-flow-cell">-</div>
+                                    );
+                                }
+
+                                const pct = r.ownershipPct;
+                                const value =
+                                    total !== null && total !== undefined && Number.isFinite(total) &&
+                                    pct !== null && pct !== undefined && Number.isFinite(pct)
+                                        ? total * pct : null;
+                                return (
+                                    <div key={r.id} className="op2-flow-cell">
+                                        {value === null ? "-" : formatNumber(value)}
+                                    </div>
+                                );
                             })}
                           </div>
                         );
@@ -979,7 +1001,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   const v = totalsByRowId[r.id];
                   return (
                     <div key={r.id} className="op2-row op2-row--right">
-                      <span className="op2-num">{v === null ? "-" : formatMoney(v)}</span>
+                      <span className="op2-num">{v === null ? "-" : formatNumber(v)}</span>
                     </div>
                   );
                 })}
@@ -993,55 +1015,81 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
             {isEqualization && (
               <div className="op2-footer-cell">
-                <div className="op2-footer-total-input">
-                  <span className="op2-footer-euro">€</span>
-                  <span className="op2-footer-dash">
-                    {eqGrandTotal === null ? "-" : formatMoney(eqGrandTotal)}
-                  </span>
-                </div>
-                <div className="op2-footer-percent">
-                  = {eqGrandTotalPct === null ? "-%" : formatPct(eqGrandTotalPct)}
-                </div>
+                  <div className="op2-footer-total-input">
+                      <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(eqGrandTotal)}</span>
+                      <span><EuroCurrencyIcon /></span>
+                  </div>
+                  <div className="op2-footer-percent">
+                      <div className="op2-footer-total-input">
+                          <span className="op2-footer-dash">{eqGrandTotalPct === null ? "-" : eqGrandTotalPct.toFixed(2)}</span>
+                          <span><PercentageIcon /></span>
+                      </div>
+                  </div>
               </div>
             )}
 
             <div className="op2-footer-cell op2-footer-cell--cap">
-              {flows.length === 0 ? (
+            {flows.length === 0 ? (
                 <>
-                  <div className="op2-footer-total-input op2-footer-total-input--wide">
-                    <span className="op2-footer-euro">€</span>
-                    <input className="op2-footer-input" disabled />
-                  </div>
-                  <div className="op2-footer-percent">= -%</div>
-                </>
-              ) : (
-                <div className="op2-cap-footer-grid" style={{ gridTemplateColumns: flowCols }}>
-                  {flows.map((flow) => (
-                    <div key={flow.id} className="op2-flow-footer-col">
-                      <div className="op2-footer-total-input">
-                        <span className="op2-footer-euro">€</span>
-                        <input
-                          className="op2-footer-input"
-                          value={flowTotalInputs[flow.id] ?? ""}
-                          onChange={(e) => onChangeFlowTotal(flow.id, e.target.value)}
-                          inputMode="decimal"
-                          placeholder=""
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="op2-footer-percent">= {formatPct(flowPercents[flow.id])}</div>
+                    <div className="op2-footer-total-input op2-footer-total-input--wide">
+                        <input className="op2-footer-input" disabled />
+                        <span><EuroCurrencyIcon /></span>
                     </div>
-                  ))}
+                    <div className="op2-footer-percent">
+                        <div className="op2-footer-total-input">
+                            <span className="op2-footer-dash">-</span>
+                            <span><PercentageIcon /></span>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className="op2-cap-footer-grid" style={{ gridTemplateColumns: flowCols }}>
+                {flows.map((flow) => (
+                    <div key={flow.id} className="op2-flow-footer-col">
+                        <div className="op2-footer-total-input">
+                            <input
+                                className="op2-footer-input"
+                                value={flowTotalInputs[flow.id] ?? ""}
+                                onChange={(e) => onChangeFlowTotal(flow.id, e.target.value)}
+                                inputMode="decimal"
+                                placeholder=""
+                                disabled={isSaving}
+                            />
+                            <span> <EuroCurrencyIcon /></span>
+                        </div>
+                        <div className="op2-footer-percent">
+                            <div className="op2-footer-total-input">
+                                <input
+                                    className="op2-footer-input"
+                                    value={flowPercentInputs[flow.id] ?? (flowPercents[flow.id] !== null ? String(flowPercents[flow.id]?.toFixed(2) ?? "") : "")}
+                                    onChange={(e) => {
+                                        setFlowPercentInputs((prev) => ({ ...prev, [flow.id]: e.target.value }));
+                                        onChangeFlowPercent(flow.id, e.target.value);
+                                    }}
+                                    inputMode="decimal"
+                                    placeholder="ex. 10.00"
+                                    disabled={isSaving}
+                                />
+                                <span> <PercentageIcon /></span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
                 </div>
               )}
             </div>
 
             <div className="op2-footer-cell">
               <div className="op2-footer-total-input">
-                <span className="op2-footer-euro">€</span>
-                <span className="op2-footer-dash">{grandTotal === null ? "-" : formatMoney(grandTotal)}</span>
+                  <span className="op2-footer-dash">{grandTotal === null ? "-" : formatNumber(grandTotal)}</span>
+                  <span><EuroCurrencyIcon /></span>
               </div>
-              <div className="op2-footer-percent">= {formatPct(grandPercent)}</div>
+              <div className="op2-footer-percent">
+                  <div className="op2-footer-total-input">
+                      <span className="op2-footer-dash">{grandPercent === null ? "-" : formatPercent(grandPercent)}</span>
+                      <span><PercentageIcon /></span>
+                  </div>
+              </div>
             </div>
           </div>
 
@@ -1050,11 +1098,12 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       {showAddFlow && (
         <AddFlowModal
-          onClose={closeFlow}
-          onSave={handleSaveFlow}
-          isSaving={isSaving}
-          flowTypes={filteredFlowTypes}
-          isLoading={isLoadingTypes}
+            onClose={closeFlow}
+            onSave={handleSaveFlow}
+            isSaving={isSaving}
+            flowTypes={filteredFlowTypes}
+            isLoading={isLoadingTypes}
+            lpRows={rows}
         />
       )}
     </>

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { API_BASE_URL } from "./apiConfig";
 
 function getAccessToken() {
-  return localStorage.getItem("access");
+  return localStorage.getItem("access") || sessionStorage.getItem("access");
 }
 
 const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
@@ -21,8 +21,10 @@ async function request(endpoint, options = {}) {
   });
 
   if (response.status === 401) {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
+    ['access', 'refresh', 'amethis_user'].forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }
@@ -32,7 +34,7 @@ async function request(endpoint, options = {}) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     const error = new Error(errorData.detail || errorData.error || "Request failed");
-    error.response = { data: errorData, status: response.status };  // ← attach full body
+    error.response = { data: errorData, status: response.status };
     throw error;
   }
 

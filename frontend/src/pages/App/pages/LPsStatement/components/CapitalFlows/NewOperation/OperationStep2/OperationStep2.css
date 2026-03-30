@@ -275,7 +275,6 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1px solid rgba(204, 205, 206, 0.35);
 }
 
 .op2-flow-title {
@@ -308,9 +307,6 @@
 .op2-cap-grid {
   display: grid;
   width: 100%;
-}
-
-.op2-flow-col {
 }
 
 .op2-flow-cell {
@@ -351,7 +347,6 @@
 
 .op2-flow-footer-col {
   padding: 0 8px 6px 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .op2-footer-total-input {
@@ -377,7 +372,8 @@
 }
 
 .op2-footer-dash {
-  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
 }
 
 .op2-footer-input {
