@@ -23,9 +23,7 @@ const PnLTax = ({
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
-  // "rowIndex:periodId" → true
   const [editingCell, setEditingCell] = useState(null);
-
   const menuWrapRef = useRef(null);
 
   useEffect(() => {
