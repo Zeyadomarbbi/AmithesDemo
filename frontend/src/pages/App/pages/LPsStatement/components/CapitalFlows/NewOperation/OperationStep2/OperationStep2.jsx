@@ -551,15 +551,20 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const pct = r.ownershipPct;
       let sum = 0;
       let hasAny = false;
-      
+            
       if (pct !== null && pct !== undefined && Number.isFinite(pct)) {
-        for (const fid of flowIds) {
-          const t = flowTotals[fid];
-          if (t !== null && t !== undefined && Number.isFinite(t)) { 
-            sum += t * pct; 
-            hasAny = true; 
+          for (const f of flows) {
+              const fid = f.id;
+              const excluded = f.selectedLpIds !== null &&
+                  Array.isArray(f.selectedLpIds) &&
+                  !f.selectedLpIds.includes(r.id);
+              if (excluded) continue;
+              const t = flowTotals[fid];
+              if (t !== null && t !== undefined && Number.isFinite(t)) { 
+                  sum += t * pct; 
+                  hasAny = true; 
+              }
           }
-        }
       }
 
       if (isEqualization) {
@@ -653,13 +658,20 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const pct = r.ownershipPct;
       const rowFlows = {};
 
-      for (const f of flows) {
+    for (const f of flows) {
+        const excluded = f.selectedLpIds !== null &&
+            Array.isArray(f.selectedLpIds) &&
+            !f.selectedLpIds.includes(r.id);
+        if (excluded) {
+            rowFlows[f.id] = null;
+            continue;
+        }
         const t = flowTotals[f.id];
         rowFlows[f.id] =
-          t !== null && t !== undefined && Number.isFinite(t) &&
-          pct !== null && pct !== undefined && Number.isFinite(pct)
-            ? t * pct : null;
-      }
+            t !== null && t !== undefined && Number.isFinite(t) &&
+            pct !== null && pct !== undefined && Number.isFinite(pct)
+                ? t * pct : null;
+    }
 
       const mainAmount = totalsByRowId[r.id];
       const scKey = breakdown === "share-class" ? (r.shareClassKey ?? r.name ?? null) : (r.shareClassId ?? null);
