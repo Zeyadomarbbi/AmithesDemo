@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../components/Sort/TableSort';
-import "./OperationStep3Breakdown.css";
+import "./OperationStep3.css";
 
 /** -------------------------
  * Helpers
@@ -87,7 +87,7 @@ function getMainAmountFromStep2(step2Row = {}) {
   return null;
 }
 
-const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
+const OperationStep3 = forwardRef(function OperationStep3(
   {
     lps = [],
     step2Result,
@@ -517,4 +517,4 @@ const OperationStep3Breakdown = forwardRef(function OperationStep3Breakdown(
   );
 });
 
-export default OperationStep3Breakdown;
+export default OperationStep3;

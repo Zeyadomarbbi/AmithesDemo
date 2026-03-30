@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import OperationStep1 from "./OperationStep1/OperationStep1.jsx";
 import OperationStep2 from "./OperationStep2/OperationStep2.jsx";
-import OperationStep3Breakdown from "./OperationStep3/OperationStep3Breakdown.jsx";
+import OperationStep3 from "./OperationStep3/OperationStep3.jsx";
 import OperationStep4 from "./OperationStep4/OperationStep4.jsx";
 import { PageSpinner, PageError } from "../../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import { CloseIcon } from "../../../../../../../components/Icons/InteractiveIcons.jsx";
@@ -519,7 +519,7 @@ export default function OperationPanel({
 
       case 3:
         return (
-          <OperationStep3Breakdown
+          <OperationStep3
             ref={step3Ref}
             lps={safeLps}
             shareClasses={shareClasses}
