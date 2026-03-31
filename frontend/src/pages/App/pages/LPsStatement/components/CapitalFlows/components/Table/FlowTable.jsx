@@ -12,21 +12,6 @@ function getCategory(op = {}) {
   return "capital";
 }
 
-function fmt(v) {
-  if (v === null || v === undefined || (typeof v === "number" && isNaN(v))) return "-";
-  return Number(v).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function fmtPct(v) {
-  if (v === null || v === undefined || (typeof v === "number" && isNaN(v))) return "-";
-  return `${Number(v).toFixed(2)}%`;
-}
-
-function fmtDate(iso) {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
 function getLpName(lpId, lps = []) {
   const found = lps.find((l) => String(l?.lp_id ?? l?.id) === String(lpId));
   return found?.name ?? found?.fullName ?? `LP ${lpId}`;
