@@ -28,22 +28,27 @@ async function refreshAccessToken() {
 async function request(endpoint, options = {}, retry = true) {
   const token = getAccessToken();
   const isFormData = options.body instanceof FormData;
+  const isAuthRoute =
+    endpoint.includes('/api/login/') ||
+    endpoint.includes('/api/token/refresh/');
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token && { "Authorization": `Bearer ${token}` }),
+      ...(!isAuthRoute && token && {
+        "Authorization": `Bearer ${token}`
+      }),
       ...options.headers,
     },
   });
 
-  if (response.status === 401 && retry) {
+  if (response.status === 401 && retry && !isAuthRoute) {
     const refreshed = await refreshAccessToken();
-    if (refreshed) return request(endpoint, options, false); // one retry
+    if (refreshed) return request(endpoint, options, false);
     throw new Error("Unauthorized");
   }
-
+  
   if (response.status === 204) return null;
 
   if (!response.ok) {
