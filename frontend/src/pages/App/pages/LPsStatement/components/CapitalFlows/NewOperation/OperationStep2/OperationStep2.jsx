@@ -61,11 +61,26 @@ function parseMoney(value) {
 }
 
 
-function rowAmountForFlow(flow, row, flowTotal) {
-  const pct = row.ownershipPct;
-  if (flowTotal === null || !Number.isFinite(flowTotal)) return null;
-  if (pct === null || !Number.isFinite(pct)) return null;
-  return flowTotal * pct;
+function getFlowRowAmount(flow, row, total, breakdown) {
+  if (total === null || !Number.isFinite(total)) return null;
+
+  if (flow.operation_flow_id) {
+    const originalTotal = parseFloat(flow.data?.computed_total_amount || flow.data?.input_amount || 0);
+    const scale = originalTotal > 0 ? (total / originalTotal) : 1;
+
+    if (breakdown === "lps" && Array.isArray(flow.data?.lp_allocations)) {
+      const alloc = flow.data.lp_allocations.find((a) => String(a.lp_id) === String(row.id));
+      return alloc ? parseFloat(alloc.allocated_amount || 0) * scale : null;
+    }
+    if (breakdown === "share-class" && Array.isArray(flow.data?.share_class_allocations)) {
+      const alloc = flow.data.share_class_allocations.find((a) => String(a.share_class_id) === String(row.shareClassKey || row.shareClassId));
+      return alloc ? parseFloat(alloc.total_allocated_amount || 0) * scale : null;
+    }
+  }
+
+  const excluded = flow.selectedLpIds !== null && Array.isArray(flow.selectedLpIds) && !flow.selectedLpIds.includes(row.id);
+  if (excluded || row.ownershipPct === null) return null;
+  return total * row.ownershipPct;
 }
 
 function getNominalValueFromShareClass(sc = {}) {
@@ -112,6 +127,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 ) {
   const formatNumber = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
+  const [isEditingEq, setIsEditingEq] = useState(false);
   const [showAddFlow, setShowAddFlow] = useState(false);
   const [flowPercentInputs, setFlowPercentInputs] = useState({});
   const outlet = useOutletContext() || {};
@@ -659,19 +675,8 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const rowFlows = {};
 
     for (const f of flows) {
-        const excluded = f.selectedLpIds !== null &&
-            Array.isArray(f.selectedLpIds) &&
-            !f.selectedLpIds.includes(r.id);
-        if (excluded) {
-            rowFlows[f.id] = null;
-            continue;
-        }
-        const t = flowTotals[f.id];
-        rowFlows[f.id] =
-            t !== null && t !== undefined && Number.isFinite(t) &&
-            pct !== null && pct !== undefined && Number.isFinite(pct)
-                ? t * pct : null;
-    }
+          rowFlows[f.id] = getFlowRowAmount(f, r, flowTotals[f.id], breakdown);
+      }
 
       const mainAmount = totalsByRowId[r.id];
       const scKey = breakdown === "share-class" ? (r.shareClassKey ?? r.name ?? null) : (r.shareClassId ?? null);
@@ -741,7 +746,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const flowTotal = flowTotals[f.id] ?? null;
 
       const perLpAmounts = rows
-        .map((r) => rowAmountForFlow(f, r, flowTotal))
+        .map((r) => getFlowRowAmount(f, r, flowTotal, breakdown))
         .filter((v) => v !== null && Number.isFinite(v));
 
       const computedTotalAmount = flowTotal;
@@ -895,16 +900,41 @@ const OperationStep2 = forwardRef(function OperationStep2(
               <div className="op2-col-header op2-col-header--eq">
                 <label className="wf-label">Equalization</label>
                 <div className="wf-field-input wf-input-with-unit">
-                  <input
-                    type="number"
-                    className="wf-text-input-inner"
-                    placeholder="Target %"
-                    value={eqTargetInput}
-                    onChange={(e) => setEqTargetInput(e.target.value)}
-                    disabled={isSaving}
-                    inputMode="decimal"
-                  />
-                  <PercentageIcon />
+                  {isEditingEq ? (
+                    <>
+                      <input
+                        autoFocus
+                        type="number"
+                        className="wf-text-input-inner"
+                        placeholder="Target %"
+                        value={eqTargetInput}
+                        onChange={(e) => setEqTargetInput(e.target.value)}
+                        onBlur={(e) => {
+                          if (e.target.value) {
+                            setEqTargetInput(parseFloat(e.target.value).toFixed(6));
+                          }
+                          setIsEditingEq(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.target.blur();
+                        }}
+                        disabled={isSaving}
+                        inputMode="decimal"
+                      />
+                      <PercentageIcon />
+                    </>
+                  ) : (
+                    <div 
+                      className="wf-text-input-inner" 
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: isSaving ? "default" : "pointer", width: "100%" }}
+                      onClick={() => !isSaving && setIsEditingEq(true)}
+                    >
+                      <span style={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {eqTargetInput !== "" && eqTargetInput !== null ? formatPercent(Number(eqTargetInput)) : "Target"}
+                      </span>
+                      <EditLineIcon />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -951,7 +981,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                     const v = eqByRowId[r.id];
                     return (
                       <div key={r.id} className="op2-row op2-row--right">
-                        <span className="op2-num">{v === null ? "-" : formatNumber(v)}</span>
+                        <span className="op2-num">{v === null ? "-" : formatNumber(Number(v.toFixed(2)))}</span>
                       </div>
                     );
                   })}
@@ -987,10 +1017,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                                 }
 
                                 const pct = r.ownershipPct;
-                                const value =
-                                    total !== null && total !== undefined && Number.isFinite(total) &&
-                                    pct !== null && pct !== undefined && Number.isFinite(pct)
-                                        ? total * pct : null;
+                                const value = getFlowRowAmount(flow, r, total, breakdown);
                                 return (
                                     <div key={r.id} className="op2-flow-cell">
                                         {value === null ? "-" : formatNumber(value)}
@@ -1028,7 +1055,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {isEqualization && (
               <div className="op2-footer-cell">
                   <div className="op2-footer-total-input">
-                      <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(eqGrandTotal)}</span>
+                      <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(Number(eqGrandTotal.toFixed(2)))}</span>
                       <span><EuroCurrencyIcon /></span>
                   </div>
                   <div className="op2-footer-percent">
