@@ -11,7 +11,7 @@ function SearchBar({ placeholder, onSearch, className, containerClassName }) {
     if (onSearch) onSearch(value);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && onSearch) onSearch(query);
   };
 
@@ -26,7 +26,7 @@ function SearchBar({ placeholder, onSearch, className, containerClassName }) {
         placeholder={placeholder}
         value={query}
         onChange={handleChange}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyDown}
       />
     </div>
   );

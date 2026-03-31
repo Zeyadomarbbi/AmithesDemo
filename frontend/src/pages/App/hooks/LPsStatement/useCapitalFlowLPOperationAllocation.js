@@ -92,6 +92,23 @@ export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
     }
   };
 
+  const deleteAllocation = async (targetOpId, allocationId) => {
+    const url = `/api/funds/${fundId}/operations/${targetOpId}/lp-allocations/${allocationId}/`;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await api.delete(url);
+      setAllocations((prev) =>
+        prev.filter((a) => a.lp_operation_allocation_id !== allocationId)
+      );
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     allocations,
     summary,
@@ -101,6 +118,7 @@ export const useCapitalFlowLPOperationAllocation = (fundId, operationId) => {
     fetchAllocations,
     fetchSummary,
     createAllocation,
-    updateAllocation
+    updateAllocation,
+    deleteAllocation
   };
 };

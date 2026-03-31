@@ -15,49 +15,72 @@ const ShareClasses = () => {
   const { fundId } = useOutletContext();
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isNewShareOpen, setIsNewShareOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingShareClass, setEditingShareClass] = useState(null);
 
   const { 
     data: savedShareClasses, 
     isLoading, 
     error, 
     create,
+    update, // <-- Extracted update from your hook
     remove,
     fetchAll 
   } = useShareClasses(fundId);
 
-  const handleCreate = async (payload) => {
-    try {
-      await create(payload);
-      setToast({
-        type: "success",
-        title: "Share Class Created",
-        message: "The new share class has been added successfully."
-      });
-    } catch (err) {
-      setToast({
-        type: "error",
-        title: "Creation Failed",
-        message: err.message || "An error occurred while creating the share class."
-      });
+  const handleSave = async (payload, id) => {
+    if (id) {
+      // Edit Flow
+      try {
+        await update(id, payload);
+        setToast({ 
+          type: "success", 
+          title: "Share Class Updated", 
+          message: "The share class has been updated successfully." 
+        });
+      } catch (err) {
+        setToast({ 
+          type: "error", 
+          title: "Update Failed", 
+          message: err.message || "An error occurred while updating the share class." 
+        });
+      }
+    } else {
+      // Create Flow
+      try {
+        await create(payload);
+        setToast({ 
+          type: "success", 
+          title: "Share Class Created", 
+          message: "The new share class has been added successfully." 
+        });
+      } catch (err) {
+        setToast({ 
+          type: "error", 
+          title: "Creation Failed", 
+          message: err.message || "An error occurred while creating the share class." 
+        });
+      }
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await remove(id);
-      setToast({
-        type: "success",
-        title: "Share Class Deleted",
-        message: "The share class has been successfully removed."
-      });
+      setToast({ type: "success", title: "Share Class Deleted", message: "The share class has been successfully removed." });
     } catch (err) {
-      setToast({
-        type: "error",
-        title: "Deletion Failed",
-        message: err.message || "An error occurred while deleting the share class."
-      });
+      setToast({ type: "error", title: "Deletion Failed", message: err.message || "An error occurred while deleting the share class." });
     }
+  };
+
+  const openDrawerForNew = () => {
+    setEditingShareClass(null);
+    setIsDrawerOpen(true);
+  };
+
+  const openDrawerForEdit = (cls) => {
+    setEditingShareClass(cls);
+    setIsDrawerOpen(true);
   };
 
   const filteredShareClasses = (savedShareClasses || []).filter((cls) => {
@@ -87,21 +110,23 @@ const ShareClasses = () => {
             <ShareClassCard 
               key={cls.share_class_id} 
               shareClass={cls} 
+              onEdit={() => openDrawerForEdit(cls)}
               onDelete={() => handleDelete(cls.share_class_id)}
             />
           ))
         )}
       </div>
 
-      <button type="button" className="share-new-btn" onClick={() => setIsNewShareOpen(true)}>
+      <button type="button" className="share-new-btn" onClick={openDrawerForNew}>
         <PlusIcon />
         <span>New share class</span>
       </button>
 
       <NewShareClassDrawer 
-        isOpen={isNewShareOpen} 
-        onClose={() => setIsNewShareOpen(false)} 
-        onCreate={handleCreate} 
+        isOpen={isDrawerOpen} 
+        initialData={editingShareClass}
+        onClose={() => setIsDrawerOpen(false)} 
+        onSave={handleSave} 
       />
 
       {toast && (

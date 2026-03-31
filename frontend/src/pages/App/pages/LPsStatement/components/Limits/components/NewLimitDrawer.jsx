@@ -1,8 +1,8 @@
 // frontend/src/pages/App/pages/LPsStatement/components/NewLimitDrawer.jsx
 import React, { useState } from "react";
+import { ChevronDownIcon, ChevronDoubleLeftIcon,} from "../../../../../../../components/Icons/DirectionIcons";
+import { CloseIcon} from "../../../../../../../components/Icons/InteractiveIcons";
 import "./NewLimitDrawer.css";
-import { ChevronDownIcon, CloseIcon, ChevronDoubleLeftIcon,} from "../../../Icons.jsx";
-
 
 export default function NewLimitDrawer({ open, onClose, onSave }) {
   if (!open) return null;

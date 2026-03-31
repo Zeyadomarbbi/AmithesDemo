@@ -8,6 +8,8 @@ const LPsDashboard = ({
   tableColumns,
   totals,
   onSelectLP,
+  visibleColumnIds = [],
+  classColorMap = {}
 }) => {
   // 1. Initialize Formatters from Hooks
   const formatNumber = useNumberFormatter();
@@ -16,7 +18,7 @@ const LPsDashboard = ({
   // 2. Initialize Sorting Logic
   // Using 'lp.name' as initial key (ensure useTableSort handles nested keys or use row.lp?.name)
   const { sorted, sortKey, toggleSort } = useTableSort(displayRows, "lp.name");
-
+  const displayColumns = tableColumns.filter(c => visibleColumnIds.includes(c.id));
   return (
     <div className="lp-table-row">
       <div className="lp-table-container">
@@ -63,7 +65,7 @@ const LPsDashboard = ({
                   showCurrency={false}
                 />
               </th>
-              {tableColumns.map((col) => (
+              {displayColumns.map((col) => (
                 <th key={col.id}>
                   <SortableHeaderRenderer
                     label={col.name}
@@ -103,7 +105,10 @@ const LPsDashboard = ({
                 </td>
 
                 <td className="td-center">
-                  <span className={`tag ${row.displayClassColor}`}>
+                  <span
+                    className="tag"
+                    style={{ background: classColorMap[row.displayClass]?.bg, color: classColorMap[row.displayClass]?.color }}
+                  >
                     {row.displayClass}
                   </span>
                 </td>
@@ -119,7 +124,7 @@ const LPsDashboard = ({
                 </td>
                 
                 {/* Individual LP Commitment per Closing Period */}
-                {tableColumns.map((col) => {
+                {displayColumns.map((col) => {
                   const val = row.closingValues[col.id];
                   // Parse value to ensure numeric formatting if transformer returns strings
                   const numericVal = (val && val !== "—") 
@@ -152,7 +157,7 @@ const LPsDashboard = ({
               </td>
               
               {/* Grand Total per Closing Period */}
-              {tableColumns.map((col) => {
+              {displayColumns.map((col) => {
                 const totalVal = totals.closingTotals?.[col.id];
                 // Strip formatting if the total arrives as a string
                 const numericTotal = typeof totalVal === 'string' 

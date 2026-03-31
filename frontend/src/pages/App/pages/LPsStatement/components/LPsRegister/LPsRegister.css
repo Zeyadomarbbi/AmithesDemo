@@ -54,17 +54,21 @@
 /* ============= TOOLBAR LAYOUT ============= */
 .lp-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start; /* Aligns right-side buttons to the top row */
+  flex-direction: column;
+  gap: 10px;
   margin: 14px 0 18px 0;
-  gap: 16px;
+}
+
+.lp-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .lp-toolbar-left {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  align-items: center;
+  gap: 8px;
 }
 
 .lp-toolbar-right {
@@ -185,12 +189,6 @@
 .btn-newlp:hover {
   background: rgba(55, 90, 137, 0.28);
 }
-
-.btn-plus {
-  font-size: 16px;
-  line-height: 16px;
-}
-
 /* ============= TAGS ============= */
 
 .tag {
@@ -213,29 +211,6 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-
-.tag-purple {
-  background: #f2e5ff;
-  color: #7d1ed7;
-}
-
-.tag-yellow {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.tag-green {
-  background: #dcfce7;
-  color: #166534;
-}
-
-
-
-/* sort icon */
-
-
-
-
 /* ============= RESPONSIVE ============= */
 
 @media (max-width: 960px) {

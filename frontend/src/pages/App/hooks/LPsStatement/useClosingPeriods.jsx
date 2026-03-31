@@ -48,12 +48,45 @@ export const useFundClosings = (fundId = null) => {
     }
   };
 
+  const updateFundClosing = async (recordId, payload) => {
+    if (!fundId || !recordId) throw new Error("Missing identifiers");
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.patch(`/api/funds/${fundId}/fund-closings/${recordId}/`, payload);
+      setFundClosings(prev => prev.map(c => c.lps_fund_closing_period_id === recordId ? data : c));
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteFundClosing = async (recordId) => {
+    if (!fundId || !recordId) throw new Error("Missing identifiers");
+    setLoading(true);
+    setError(null);
+    try {
+      await api.delete(`/api/funds/${fundId}/fund-closings/${recordId}/`);
+      setFundClosings(prev => prev.filter(c => c.lps_fund_closing_period_id !== recordId));
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     fundClosings,
     loading,
     error,
     fetchFundClosings,
     createFundClosing,
+    updateFundClosing,
+    deleteFundClosing,
     fetchFundClosingDetail,
   };
 };

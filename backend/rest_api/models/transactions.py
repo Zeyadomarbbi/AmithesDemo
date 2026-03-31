@@ -38,6 +38,7 @@ class FundWaterfallSteps(models.Model):
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = "fund_waterfall_steps"
         constraints = [
             models.UniqueConstraint(
@@ -80,6 +81,7 @@ class FundWaterfallStepRules(models.Model):
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = "fund_waterfall_step_rules"
         unique_together = ("fund_waterfall_step", "share_class")
 
@@ -109,6 +111,7 @@ class FundWaterfallEnvelopes(models.Model):
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = "fund_waterfall_envelopes"
         constraints = [
             models.UniqueConstraint(
@@ -151,6 +154,7 @@ class FundWaterfallEnvelopeRules(models.Model):
     created_by = models.IntegerField(null=True, blank=True)
 
     class Meta:
+        managed = False
         db_table = "fund_waterfall_envelope_rules"
         unique_together = ("envelope", "share_class")
         constraints = [
@@ -207,6 +211,7 @@ class FundManFeeRules(models.Model):
 
     class Meta:
         db_table = "fund_man_fee_rules"
+        managed = False
         constraints = [
             # Phase 1 → share_class required | Phase 2 → share_class must be NULL
             models.CheckConstraint(
@@ -245,8 +250,10 @@ class ScenarioList(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
     objects = ScenarioManager() # Default manager filters out deleted items
     all_objects = models.Manager()
+
     class Meta:
         db_table = "scenario_list"
+        managed = False
         ordering = ["scenario_name", "created_at"]
         constraints = [
             models.UniqueConstraint(
@@ -273,6 +280,7 @@ class ScenarioSynthesis(models.Model):
     class Meta:
         db_table = "scenario_synthesis"
         ordering = ["synthesis_name", "created_at"]
+        managed = False
         constraints = [
             models.UniqueConstraint(
                 fields=["fund", "synthesis_name"],
@@ -736,6 +744,7 @@ class ScenarioDueDiligenceFee(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        managed = False
         db_table = 'scenario_due_diligence_fees'
         unique_together = ('investment_id', 'scenario_id')
 

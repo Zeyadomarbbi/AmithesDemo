@@ -1,29 +1,38 @@
 import React from 'react';
-// 1. Remove useParams (we will use the custom hook instead for consistency)
-// import { useParams } from 'react-router-dom'; 
-
-import { useFundData } from '../../hooks/Core/FundContext';     // Import the Data Hook
-import { useActiveFund } from '../../hooks/useActiveFund'; // Import the ID Hook
+import { useFundData } from '../../hooks/Core/FundContext';
+import { useActiveFund } from '../../hooks/useActiveFund';
+import { useCurrencies } from "../../hooks/Reference/useCurrencies";
 import './Header.css';
 
-// 2. Remove the props argument
-function Header() { 
-  // 3. Get the Global Data
+function Header() {
   const { funds } = useFundData();
-  
-  // 4. Get the Current ID
   const activeFundId = useActiveFund();
+  const { currencies, isLoading } = useCurrencies();
 
-  // 5. Find the Fund
-  const currentFund = funds.find(f => f.id.toString() === activeFundId.toString());
+  const currentFund = funds.find(f => f.id.toString() === activeFundId?.toString());
   
-  // Guard clause
-  if (!currentFund) return <header className="top-header"></header>;
+  if (!currentFund || isLoading) {
+    return <header className="top-header"></header>;
+  }
+
+  const currentCurrency = currencies?.find(c => c.id === currentFund.currencyId);
 
   return (
     <header className="top-header">
       <div className="header-text-container">
-        <span className="header-fund-name">{currentFund.name}</span>
+        <div className="header-row-primary">
+          <span className="header-fund-name">
+            {currentFund.name} <span className="header-fund-shortname">({currentFund.shortName})</span>
+          </span>
+        </div>
+        
+        {currentCurrency && (
+          <div className="header-row-secondary">
+            <span className="header-currency-info">
+              {currentCurrency.name} ({currentCurrency.code} — {currentCurrency.symbol})
+            </span>
+          </div>
+        )}
       </div>
     </header>
   );

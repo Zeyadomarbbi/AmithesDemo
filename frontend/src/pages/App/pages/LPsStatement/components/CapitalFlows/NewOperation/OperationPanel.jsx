@@ -2,11 +2,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import OperationStep1 from "./OperationStep1/OperationStep1.jsx";
 import OperationStep2 from "./OperationStep2/OperationStep2.jsx";
-import OperationStep3Breakdown from "./OperationStep3/OperationStep3Breakdown.jsx";
+import OperationStep3 from "./OperationStep3/OperationStep3.jsx";
 import OperationStep4 from "./OperationStep4/OperationStep4.jsx";
 import { PageSpinner, PageError } from "../../../../../../../components/LoadingScreens/LoadingScreens.jsx";
-import { CloseIcon } from "../../../Icons.jsx";
-import { ChevronDoubleLeftIcon } from "../../../Icons.jsx";
+import { CloseIcon } from "../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { ChevronDoubleLeftIcon } from "../../../../../../../components/Icons/DirectionIcons.jsx";
 import { useOperationTypes } from "../../../../../hooks/LPsStatement/useOperationTypes.js";
 import { useOperationDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
 import { useCapitalFlowFlowDetails } from "../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
@@ -78,11 +78,13 @@ export default function OperationPanel({
   lps = [],
   shareClasses = [],
   fundId,
+  operations = [], 
   onClose,
   commitments,
   createOperationLPAllocation,
-  existingAllocations,   // ← from parent
-  fetchAllAllocations,   // ← from parent
+  deleteOperationLPAllocation,  // ← add
+  existingAllocations,
+  fetchAllAllocations,
 }) {
   if (!open) return null;
   const [isExpanded, setIsExpanded] = useState(false); // New state for expansion
@@ -122,8 +124,8 @@ export default function OperationPanel({
 
   const { operationTypes, fetchOperationTypes, isLoading: typesLoading, error: typesError } = useOperationTypes();
   const { createOperation, updateOperation, fetchOperation, deleteOperation, loading: opLoading, error: opError } = useOperationDetails(fundId);
-  const { createFlow, updateFlow } = useCapitalFlowFlowDetails(fundId, null);
-  const { createAllocation: createFlowLPAllocation } = useCapitalFlowLPFlowAllocation(fundId, null, null);
+  const { createFlow, updateFlow, deleteFlow } = useCapitalFlowFlowDetails(fundId, null);
+  const { createAllocation: createFlowLPAllocation, deleteAllocation: deleteFlowLPAllocation } = useCapitalFlowLPFlowAllocation(fundId, null, null);
   const [detailReady, setDetailReady] = useState(!isDetail); // true immediately if "new" mode
 
   // Fetch all past allocations for this fund on mount (used for "before" in Step 3)
@@ -222,13 +224,19 @@ export default function OperationPanel({
   const handleFinalSave = async () => {
     const { flows, perLp, total_operation_amount, overall_percentage_of_commitment } = step2Result;
     const computedTFC = isDetail && operationId
-      ? totalFundCommitment  // already loaded from DB in detail mode
-      : computeTotalFundCommitment(commitments, dueDate);  // recompute for new
+      ? totalFundCommitment
+      : computeTotalFundCommitment(commitments, dueDate);
+
     setIsSaving(true);
     setSaveError(null);
-    console.log("[handleFinalSave] totalFundCommitment:", computedTFC);
 
-    const rollbackState = { operationId: null };
+    // Track every created resource for rollback
+    const created = {
+      operationId: null,
+      flowIds: [],           // [{ operationId, flowId }]
+      allocationIds: [],     // [{ operationId, flowId, allocationId }]
+      lpAllocationIds: [],   // [{ operationId, allocationId }]
+    };
 
     try {
       let targetOperationId;
@@ -246,18 +254,20 @@ export default function OperationPanel({
             : (overall_percentage_of_commitment ?? 0)
         ).toFixed(4),
       };
-      console.log("[handleFinalSave] operationPayload:", operationPayload);
+
       if (isDetail && operationId) {
         await updateOperation(operationId, operationPayload);
         targetOperationId = operationId;
       } else {
         const newOperationId = await createOperation(operationPayload);
-        rollbackState.operationId = newOperationId;
+        created.operationId = newOperationId;
         targetOperationId = newOperationId;
       }
+
       const eqFlowTypeId = flows.find(
         (f) => String(f.flow_name ?? "").toLowerCase() === "equalization"
       )?.flow_type_id ?? null;
+
       for (const flow of flows) {
         const flowPayload = {
           operation: targetOperationId,
@@ -271,23 +281,24 @@ export default function OperationPanel({
           allocation_percentage_of_commitment: Number(
             Math.max(0, (flow.allocation_percentage_of_commitment ?? 0) / 100).toFixed(6)
           ),
-          computed_total_amount: flow.computed_total_amount !== null ? Number(Number(flow.computed_total_amount).toFixed(2)) : null,
+          computed_total_amount: flow.computed_total_amount !== null
+            ? Number(Number(flow.computed_total_amount).toFixed(2))
+            : null,
           commitment_amount: computedTFC,
         };
 
         let opFlowId;
 
         if (flow.operation_flow_id) {
-          // UPDATE existing flow
           const updatedFlow = await updateFlow(targetOperationId, flow.operation_flow_id, flowPayload);
           opFlowId = updatedFlow?.operation_flow_id ?? flow.operation_flow_id;
         } else {
-          // CREATE new flow
           const createdFlow = await createFlow(targetOperationId, flowPayload);
           opFlowId = createdFlow?.operation_flow_id ?? createdFlow?.id;
           if (!opFlowId) throw new Error(`Flow "${flow.flow_name}" created but missing operation_flow_id.`);
+          created.flowIds.push({ operationId: targetOperationId, flowId: opFlowId });
         }
-        
+
         for (const [lpId, lpData] of Object.entries(perLp)) {
           let allocatedAmount;
 
@@ -299,11 +310,20 @@ export default function OperationPanel({
 
           if (allocatedAmount === null || !Number.isFinite(Number(allocatedAmount))) continue;
 
-          await createFlowLPAllocation(targetOperationId, opFlowId, {
+          const createdAlloc = await createFlowLPAllocation(targetOperationId, opFlowId, {
             operation_flow_id: opFlowId,
             lp_id: Number(lpId),
             allocated_amount: Number(Number(allocatedAmount).toFixed(4)),
           });
+
+          const allocId = createdAlloc?.lp_flow_allocation_id ?? null;
+          if (allocId) {
+            created.allocationIds.push({
+              operationId: targetOperationId,
+              flowId: opFlowId,
+              allocationId: allocId,
+            });
+          }
         }
       }
 
@@ -312,7 +332,7 @@ export default function OperationPanel({
         const commitmentNum = lpData.commitmentNumber ?? 0;
         const lpCalledPct = commitmentNum > 0 ? mainAmount / commitmentNum : 0;
 
-        await createOperationLPAllocation(targetOperationId, {
+        const createdLpAlloc = await createOperationLPAllocation(targetOperationId, {
           lps_operation_details_id: targetOperationId,
           lp_id: Number(lpId),
           share_class_id: lpData.shareClassId ? Number(lpData.shareClassId) : null,
@@ -323,21 +343,62 @@ export default function OperationPanel({
           ).toFixed(4),
           shares_issued: (lpData.sharesIssued ?? 0).toFixed(6),
         });
+
+        const lpAllocId = createdLpAlloc?.lp_operation_allocation_id ?? null;
+        if (lpAllocId) {
+          created.lpAllocationIds.push({
+            operationId: targetOperationId,
+            allocationId: lpAllocId,
+          });
+        }
       }
 
       setOperationId(targetOperationId);
       return targetOperationId;
 
     } catch (e) {
-      if (rollbackState.operationId) {
+      // Rollback in reverse order: lp allocations → flow allocations → flows → operation
+      const rollbackErrors = [];
+
+      for (const { operationId: opId, flowId, allocationId } of [...created.allocationIds].reverse()) {
         try {
-          await deleteOperation(rollbackState.operationId);
-        } catch (rollbackError) {
-          console.error("Critical: Frontend rollback failed. Orphaned operation ID:", rollbackState.operationId, rollbackError);
+          await deleteFlowLPAllocation?.(opId, flowId, allocationId);
+        } catch (err) {
+          rollbackErrors.push(`FlowLPAllocation ${allocationId}: ${err.message}`);
         }
       }
+
+      for (const { operationId: opId, allocationId } of [...created.lpAllocationIds].reverse()) {
+        try {
+          await deleteOperationLPAllocation?.(opId, allocationId);
+        } catch (err) {
+          rollbackErrors.push(`LPAllocation ${allocationId}: ${err.message}`);
+        }
+      }
+
+      for (const { operationId: opId, flowId } of [...created.flowIds].reverse()) {
+        try {
+          await deleteFlow?.(opId, flowId);
+        } catch (err) {
+          rollbackErrors.push(`Flow ${flowId}: ${err.message}`);
+        }
+      }
+
+      if (created.operationId) {
+        try {
+          await deleteOperation(created.operationId);
+        } catch (err) {
+          rollbackErrors.push(`Operation ${created.operationId}: ${err.message}`);
+        }
+      }
+
+      if (rollbackErrors.length > 0) {
+        console.error("Rollback partial failure. Orphaned resources:", rollbackErrors);
+      }
+
       setSaveError(e);
       throw e;
+
     } finally {
       setIsSaving(false);
     }
@@ -458,9 +519,11 @@ export default function OperationPanel({
 
       case 3:
         return (
-          <OperationStep3Breakdown
+          <OperationStep3
             ref={step3Ref}
             lps={safeLps}
+            shareClasses={shareClasses}
+            operations={operations}
             operationId={operationId}
             step2Result={step2Result}
             operationType={operationTypeName}

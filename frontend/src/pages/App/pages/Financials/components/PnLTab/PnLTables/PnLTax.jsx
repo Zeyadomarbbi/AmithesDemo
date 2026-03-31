@@ -1,33 +1,29 @@
-// frontend/src/pages/App/pages/Financials/components/PnLTables/PnLTax/PnLTax.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, KebabIcon } from '/src/components/Icons/InteractiveIcons';
+import { EditLineIcon, MinusIcon, PlusIconWhite, TrashBinIcon, MoreActionsHorizontalIcon } from '/src/components/Icons/InteractiveIcons';
+import { useNumberFormatter } from '/src/components/useFormatter.js'
 import { noScroll } from '../../../../../../../components/disableNumberScroll'
 import "./FinancialTables.css";
 
 const PnLTax = ({
   headerPeriods = [],
-
   showTax,
   setShowTax,
-
   taxLines,
   setTaxLines,
-
   taxValues,
   setTaxValues,
-
   totalTaxByPeriod = {},
-
   onAddRow,
   onRemoveRow,
-
-  // Passed from PnLTab
   onUpdateLineItem,
   onDeleteLineItem,
 }) => {
+  const formatNumber = useNumberFormatter();
+
   const [editingId, setEditingId] = useState(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingCell, setEditingCell] = useState(null);
   const menuWrapRef = useRef(null);
 
   useEffect(() => {
@@ -60,20 +56,15 @@ const PnLTax = ({
     if (!editingId) return;
     const line = taxLines.find((l) => l.id === editingId);
     const newLabel = draftLabel;
-
-    // Optimistic update
     setTaxLines((prev) =>
       prev.map((l) => (l.id === editingId ? { ...l, label: newLabel } : l))
     );
     setEditingId(null);
     setDraftLabel("");
-
-    // Persist for saved rows
     if (line && !line.isCustom && Number.isFinite(Number(line.id))) {
       try {
         await onUpdateLineItem({ lineItemId: Number(line.id), name: newLabel });
       } catch {
-        // Rollback on failure
         setTaxLines((prev) =>
           prev.map((l) => (l.id === line.id ? { ...l, label: line.label } : l))
         );
@@ -88,12 +79,10 @@ const PnLTax = ({
 
   const handleDeleteRow = (line, index) => {
     setOpenMenuId(null);
-    onDeleteLineItem({
-      lineItemId: line.id,
-      isCustom: line.isCustom,
-      index,
-    });
+    onDeleteLineItem({ lineItemId: line.id, isCustom: line.isCustom, index });
   };
+
+  const cellKey = (index, pid) => `${index}:${pid}`;
 
   const periods = Array.isArray(headerPeriods) ? headerPeriods : [];
 
@@ -102,7 +91,7 @@ const PnLTax = ({
       {showTax &&
         taxLines.map((line, index) => {
           const isEditingThis = editingId === line.id;
-          const rowClass    = index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
+          const rowClass = index % 2 === 0 ? "detail-row--grey" : "detail-row--white";
           const typeHereClass = line.isCustom ? "detail-row--typehere" : "";
 
           return (
@@ -149,35 +138,60 @@ const PnLTax = ({
                 )}
               </div>
 
-              {/* PERIOD INPUTS */}
+              {/* PERIOD CELLS */}
               {periods.map((p) => {
-                const pid   = String(p.id);
+                const pid = String(p.id);
+                const key = cellKey(index, pid);
                 const value = taxValues[index]?.byPeriod?.[pid] ?? "";
+                const isEditingCell = editingCell === key;
+
                 return (
                   <div key={pid} className="detail-input-wrapper">
-                    <input
-                      className="amount-input"
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      onWheel={noScroll}
-                      value={value}
-                      onChange={(e) => {
-                        const copy = [...taxValues];
-                        const row  = copy[index] || { byPeriod: {} };
-                        copy[index] = {
-                          ...row,
-                          byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
-                        };
-                        setTaxValues(copy);
-                      }}
-                    />
+                    {isEditingCell ? (
+                      <input
+                        className="amount-input"
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoFocus
+                        onWheel={noScroll}
+                        value={value}
+                        onChange={(e) => {
+                          const copy = [...taxValues];
+                          const row = copy[index] || { byPeriod: {} };
+                          copy[index] = {
+                            ...row,
+                            byPeriod: { ...(row.byPeriod || {}), [pid]: e.target.value },
+                          };
+                          setTaxValues(copy);
+                        }}
+                        onBlur={() => setEditingCell(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === "Escape") setEditingCell(null);
+                        }}
+                      />
+                    ) : (
+                      <div className="amount-display">
+                        <span className="amount-display-text">
+                          {formatNumber(value !== "" ? value : 0)}
+                        </span>
+                        <button
+                          type="button"
+                          className="pnl-edit-btn"
+                          onClick={() => setEditingCell(key)}
+                          aria-label="Edit value"
+                          title="Edit value"
+                        >
+                          <EditLineIcon />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
 
               {/* ACTIONS */}
-              <div className="pnl-row-actions">
+              <div className="pnl-row-actions" style={{ gridColumn: headerPeriods.length + 2 }}>
                 <div
                   className="pnl-kebab-wrap"
                   ref={(el) => { if (openMenuId === line.id) menuWrapRef.current = el; }}
@@ -188,7 +202,7 @@ const PnLTax = ({
                     aria-label="Row actions"
                     onClick={() => setOpenMenuId((prev) => prev === line.id ? null : line.id)}
                   >
-                    <KebabIcon />
+                    <MoreActionsHorizontalIcon />
                   </button>
 
                   {openMenuId === line.id && (
@@ -231,7 +245,7 @@ const PnLTax = ({
 
         {periods.map((p) => (
           <div key={p.id} className="group-value">
-            {Number(totalTaxByPeriod?.[p.id] || 0).toLocaleString()}
+            {formatNumber(totalTaxByPeriod?.[p.id] || 0)}
           </div>
         ))}
 

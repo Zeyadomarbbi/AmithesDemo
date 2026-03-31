@@ -14,6 +14,8 @@ from rest_framework import status, generics
 from django.utils import timezone
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 from ..models.core import *
 from ..serializers.core import *
 
@@ -271,6 +273,9 @@ class ShareClassView(APIView):
     - /funds/<fund_id>/share-classes/          -> GET all / POST new
     - /funds/<fund_id>/share-classes/<id>/     -> GET one / PUT / DELETE
     """
+    
+    # Enforce parser classes to guarantee multipart/form-data support for file uploads on POST/PUT
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self, fund_id, share_class_id=None):
         qs = ShareClass.objects.filter(fund_id=fund_id, is_deleted=False)
@@ -294,6 +299,7 @@ class ShareClassView(APIView):
         fund = get_object_or_404(Fund, fund_id=fund_id)
         user_id = request.user.id if request.user.is_authenticated else 1
 
+        # request.data contains both form text fields and files seamlessly
         serializer = ShareClassSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save(fund=fund, created_by=user_id)
@@ -302,6 +308,9 @@ class ShareClassView(APIView):
 
     def put(self, request, fund_id, share_class_id):
         obj = get_object_or_404(self.get_queryset(fund_id, share_class_id))
+        
+        # request.data inherently supports multipart file data. 
+        # partial=True ensures fields not appended to FormData (like an unchanged document) are ignored, preserving existing data.
         serializer = ShareClassSerializer(obj, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save(updated_at=timezone.now())
@@ -310,7 +319,11 @@ class ShareClassView(APIView):
 
     def delete(self, request, fund_id, share_class_id):
         obj = get_object_or_404(self.get_queryset(fund_id, share_class_id))
-        obj.delete()
+        
+        # Align deletion method with get_queryset filter (soft delete)
+        obj.is_deleted = True
+        obj.save(update_fields=['is_deleted'])
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class FundManFeeCommitmentYearRetrieveView(generics.RetrieveAPIView):

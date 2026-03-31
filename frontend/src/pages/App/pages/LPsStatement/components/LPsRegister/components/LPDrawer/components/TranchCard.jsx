@@ -1,7 +1,8 @@
-import React from "react";
-import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import React, { useRef, useState, useEffect } from "react";
+import SimpleDropdown from "../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
-import { EuroCurrencyIcon, MoreActionsButton } from "../../../../../Icons.jsx";
+import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
+import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -17,9 +18,22 @@ export default function TranchCard({
   isSubmitting, 
   onUpdateField, 
   onSaveTranche,
-  totalTranches 
+  onDeleteTranche,
+  classColorMap = {}
 }) {
   const formatNumber = useNumberFormatter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const updateField = (field) => (val) => {
     onUpdateField(realIndex, field)({ target: { value: val } });
@@ -27,41 +41,88 @@ export default function TranchCard({
 
   // --- COLLAPSED / SUMMARY VIEW ---
   if (tranch.collapsed) {
-    const selectedShare  = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
+    const selectedShare = dbShareClasses?.find(s => String(s.share_class_id) === String(tranch.shareClassId));
     const selectedCurrency = currencies?.find(c => String(c.id) === String(tranch.currencyId));
     const selectedPeriod = periods?.find(p => String(p.id) === String(tranch.closingId));
-
+    const shareStyle = classColorMap[selectedShare?.share_class_name] || {};
 
     return (
-      <div className="shares-mini-row" onClick={() => onSaveTranche(realIndex)} style={{ cursor: "pointer" }}>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Type of share</span>
-          <div className="share-badge">
-            {selectedShare?.share_class_name || "-"}
+      <>
+        <div className="shares-mini-row">
+          <div className="mini-row-column">
+            <span className="mini-row-label">Type of share</span>
+            <div
+              className="share-badge"
+              style={{ background: shareStyle.bg, color: shareStyle.color }}
+            >
+              {selectedShare?.share_class_name || "-"}
+            </div>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Currency</span>
+            <span className="mini-row-value">
+              {selectedCurrency ? (
+                <>
+                  {selectedCurrency.name}
+                  <span className="mini-row-hint">({selectedCurrency.code})</span>
+                </>
+              ) : "-"}
+            </span>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Amount</span>
+            <span className="mini-row-value">
+              {tranch.commitment ? (
+                <>
+                  {formatNumber(tranch.commitment)}
+                  <span className="mini-row-hint">({selectedCurrency?.symbol || ""})</span>
+                </>
+              ) : "-"}
+            </span>
+          </div>
+          <div className="mini-row-column">
+            <span className="mini-row-label">Closing</span>
+            <span className="mini-row-value">
+              {selectedPeriod?.name || "-"}
+            </span>
+          </div>
+
+          <div className="mini-row-dots" ref={menuRef}>
+            <button
+              className="mini-row-more-btn"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(prev => !prev); }}
+            >
+              <MoreActionsIcon />
+            </button>
+            {menuOpen && (
+              <div className="mini-row-menu">
+                <div
+                  className="mini-row-menu-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onSaveTranche(realIndex);
+                  }}
+                >
+                  <EditIcon />
+                  <span>Edit</span>
+                </div>
+                <div
+                  className="mini-row-menu-item mini-row-menu-item--danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onDeleteTranche(realIndex);
+                  }}
+                >
+                  <DeleteIcon />
+                  <span>Delete</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Currency</span>
-          <span className="mini-row-value">
-            {selectedCurrency ? `${selectedCurrency.name} (${selectedCurrency.code})` : "-"}
-          </span>
-        </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Amount</span>
-          <span className="mini-row-value">
-            {tranch.commitment ? `${formatNumber(tranch.commitment)} ${selectedCurrency?.symbol || ""}` : "-"}
-          </span>
-        </div>
-        <div className="mini-row-column">
-          <span className="mini-row-label">Closing</span>
-          <span className="mini-row-value">
-            {selectedPeriod?.name || "-"}
-          </span>
-        </div>
-        <div className="mini-row-dots">
-          <MoreActionsButton />
-        </div>
-      </div>
+      </>
     );
   }
 
@@ -74,31 +135,29 @@ export default function TranchCard({
       <div className="lp-drawer-grid-2">
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Type of share*</label>
-          <SearchableSelect
-            options={dbShareClasses ?? []}
-            value={tranch.shareClassId}
-            onChange={updateField("shareClassId")}
-            placeholder={classesLoading ? "Loading..." : "Select Share Class"}
-            labelKey="share_class_name"
-            valueKey="share_class_id"
-            disabled={isSubmitting || classesLoading}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={dbShareClasses ?? []}
+                value={tranch.shareClassId}
+                onChange={updateField("shareClassId")}
+                placeholder={classesLoading ? "Loading..." : "Select Share Class"}
+                labelKey="share_class_name"
+                valueKey="share_class_id"
+                disabled={isSubmitting || classesLoading}
+            />
         </div>
 
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Currency*</label>
-          <SearchableSelect
-            options={currencies ?? []}
-            value={tranch.currencyId}
-            onChange={updateField("currencyId")}
-            placeholder={currenciesLoading ? "Loading..." : "Select Currency"}
-            labelKey="name"
-            valueKey="id"
-            secondaryLabelKey="code"
-            disabled={isSubmitting || currenciesLoading}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={(currencies ?? []).map((c) => ({
+                    id: c.id,
+                    name: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
+                }))}
+                value={tranch.currencyId}
+                onChange={updateField("currencyId")}
+                placeholder={currenciesLoading ? "Loading..." : "Select Currency"}
+                disabled={isSubmitting || currenciesLoading}
+            />
         </div>
       </div>
 
@@ -123,16 +182,13 @@ export default function TranchCard({
 
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Closing*</label>
-          <SearchableSelect
-            options={periods ?? []}
-            value={tranch.closingId}
-            onChange={updateField("closingId")}
-            placeholder="Select Closing"
-            labelKey="name"
-            valueKey="id"
-            disabled={isSubmitting}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={periods ?? []}
+                value={tranch.closingId}
+                onChange={updateField("closingId")}
+                placeholder="Select Closing"
+                disabled={isSubmitting}
+            />
         </div>
       </div>
 

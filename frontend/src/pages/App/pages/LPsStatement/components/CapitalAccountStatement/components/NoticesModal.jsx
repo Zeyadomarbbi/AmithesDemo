@@ -1,8 +1,6 @@
 import React, { useRef, useState } from "react";
-import SearchBox from "../../../../../../../components/SearchBox/SearchBox.jsx";
+import SearchBar from "/src/components/SearchBar/SearchBar.jsx";
 import "./NoticesModal.css";
-
-
 
 const MOCK_ROWS = [
   {
@@ -183,13 +181,10 @@ export default function NoticesModal({ isOpen, onClose }) {
                 onChange={handleUploadChange}
               />
             </div>
-<SearchBox
-  placeholder="Search by template..."
-  value={templateSearch}
-  onChange={(e) => setTemplateSearch(e.target.value)}
-  search={templateSearch}
-  setSearch={setTemplateSearch}
-/>
+              <SearchBar
+                placeholder="Search by template..."
+                onSearch={setTemplateSearch}
+              />
             {/* cards */}
             <div className="nm-template-list">
               {MOCK_TEMPLATES

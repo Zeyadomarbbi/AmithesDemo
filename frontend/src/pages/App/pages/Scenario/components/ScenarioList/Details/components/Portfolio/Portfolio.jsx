@@ -6,23 +6,18 @@ import { useScenarioPortfolioProjections } from "../../../../../../../hooks/Scen
 import { useShareClasses } from "../../../../../../../hooks/useShareClass.js";
 import { executeDeferredUpdates } from "../../../../../../../hooks/Scenarios/ScenarioPortfolioHelpers.js";
 import { PermissionGate } from "../../../../../../../../../hooks/Auth/PermissionGate.jsx";
-import { PageSpinner, PageError } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
-// Components
+import { PageSpinner } from "../../../../../../../../../components/LoadingScreens/LoadingScreens.jsx"
+import { useCountries } from "../../../../../../../hooks/Reference/useCountries";
+import { useCurrencies } from "../../../../../../../hooks/Reference/useCurrencies";
 import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
-import { ChevronDoubleLeftIcon } from '/src/components/Icons/DirectionIcons';
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
-import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../components/useFormatter';
-
-// Portfolio Tables
+import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../components/useFormatter';
 import PortfolioSection from "./PortfolioTables/PortfolioSection";
-
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import TargetFinalizationModal from "./TargetSelectionModal/TargetFinalizationModal.jsx";
-// Simulation Results
 import SimulationResults from "./SimulationResults/SimulationResults.jsx"; 
-
 import "./Portfolio.css";
 
 // --- [HELPER FUNCTIONS] ---
@@ -162,9 +157,10 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
   const [simRefreshTrigger, setSimRefreshTrigger] = useState(0);
   const [lockedRows, setLockedRows] = useState([]);
+  const { countries = [] } = useCountries();
+  const { currencies = [], isLoading: currenciesLoading } = useCurrencies();
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
-  const formatDate    = useDateFormatter();
   const { data: shareClassesData } = useShareClasses(fundId);
 
     // 2. Extract just the names for the modal columns
@@ -176,16 +172,23 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   // --- Simulation Panel State ---
   // Default to false (collapsed) or true based on preference
   const [isSimPanelOpen, setIsSimPanelOpen] = useState(false);
-
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-
   const [pendingFlows, setPendingFlows] = useState([]);
   const [localEditedProjections, setLocalEditedProjections] = useState({});
+  const { 
+      investments, 
+      fetchInvestments, 
+      createFlow, 
+      updateInvestment, 
+      deleteInvestment, 
+      loading: loadInv 
+    } = usePortfolio(fundId);
 
-  const { investments, fetchInvestments, createFlow, loading: loadInv } = usePortfolio(fundId);
   const { transactionTypes } = usePortfolioTransactionTypes();
   const { projections, fetchProjections, updateProjection, loading: loadProj } = useScenarioPortfolioProjections(fundId, scenarioId);
+  console.log("investments", investments)
+  console.log("projections", projections)
   const handleToggleLock = (rowId) => {
         setLockedRows(prev => 
             prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
@@ -487,6 +490,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
           scenarioId={scenarioId}
           onClose={() => setShowNewInvestmentModal(false)} 
           onSuccess={handleCreationSuccess} 
+          countries={countries}
+          currencies={currencies}
         />
       )}
 
@@ -496,6 +501,11 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
           fundId={fundId}
           scenarioId={scenarioId}
           transactionTypes={transactionTypes}
+          onUpdateInvestment={(invId, payload) => updateInvestment(scenarioId, invId, payload)}
+          onDeleteInvestment={(invId) => {
+            deleteInvestment(scenarioId, invId);
+            setSelectedInvestmentId(null);
+          }}
           exitDate={drawerData.exit_date} 
           exitValue={drawerData.exit_value} 
           onClose={() => setSelectedInvestmentId(null)}
@@ -503,6 +513,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
               fetchInvestments(scenarioId); // pass scenarioId
               fetchProjections();
           }}
+          countries={countries}
+          currencies={currencies}
         />
       )}
 

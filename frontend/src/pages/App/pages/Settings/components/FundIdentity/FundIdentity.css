@@ -157,3 +157,33 @@
 .fund-identity-input .custom-select-dropdown {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
+.fund-identity-input,
+.fund-identity-form .date-input-container .input-trigger {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover State */
+.fund-identity-input:hover,
+.fund-identity-form .date-input-container .input-trigger:hover {
+  border-color: #375A89 !important;
+}
+
+/* Focus State */
+.fund-identity-input:focus-within,
+.fund-identity-form .date-input-container .input-trigger:focus-within {
+  border-color: #375A89 !important;
+  box-shadow: 0 0 0 1px #375A89 !important;
+  background: #FFFFFF;
+}
+
+/* Button Sync */
+.fund-identity-btn-save {
+  /* Match transition timing */
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fund-identity-btn-save:hover:not(:disabled) {
+  background-color: #e2962d;
+  box-shadow: 0 0 0 1px #375A89;
+}

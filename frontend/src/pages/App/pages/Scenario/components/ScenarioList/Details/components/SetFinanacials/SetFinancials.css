@@ -135,8 +135,7 @@
 
 .sf-projected {
   color: #375A89;
-  font-style: italic;
-  letter-spacing: 0.01em;
+  font-weight: 700;
 }
 
 /* shared overlay base */

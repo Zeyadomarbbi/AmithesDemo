@@ -144,6 +144,43 @@
   pointer-events: none;
 }
 
+/* --- Interactive State Sync --- */
+
+/* 1. Input & Static Field Sync */
+.mgmt-field-input.static-field,
+.mgmt-date-input,
+.mgmt-date-wrapper .input-trigger {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mgmt-field-input.static-field:hover,
+.mgmt-date-input:hover,
+.mgmt-date-wrapper:not(.mgmt-disabled) .input-trigger:hover {
+  border-color: #375A89 !important;
+}
+
+.mgmt-date-input:focus-within,
+.mgmt-date-wrapper:not(.mgmt-disabled) .input-trigger:focus-within {
+  border-color: #375A89 !important;
+  box-shadow: 0 0 0 1px #375A89 !important;
+  background: #FFFFFF !important;
+}
+
+/* 2. Static/Disabled Exceptions */
+.mgmt-date-input.static-value:hover {
+  border-color: #375A89;
+}
+
+.mgmt-date-input.static-value:focus-within {
+  box-shadow: none;
+  border-color: #E5E7EB;
+}
+
+.mgmt-date-wrapper.mgmt-disabled .input-trigger:hover {
+  border-color: #E5E7EB !important;
+  box-shadow: none !important;
+}
+
 /* Mobile Adjustments */
 @media (max-width: 768px) {
   .mgmt-left-container {

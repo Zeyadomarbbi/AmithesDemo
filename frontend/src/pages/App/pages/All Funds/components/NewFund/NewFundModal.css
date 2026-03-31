@@ -166,6 +166,40 @@
   color: #ffffff;
 }
 
+/* Update Inputs and Selects */
+.nf-input,
+.nf-select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nf-input:hover,
+.nf-select:hover {
+  border-color: #375A89;
+}
+
+.nf-input:focus,
+.nf-select:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* Update Buttons */
+.nf-btn {
+  /* Inherit transition, adding transform/shadow for depth */
+  transition: opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nf-btn:hover:not(:disabled) {
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* Specific Secondary Button Hover */
+.nf-btn-secondary:hover:not(:disabled) {
+  border: 1px solid #375A89;
+  background: #FFFFFF;
+  color: #375A89;
+}
+
 /* =========================
    MOBILE ADJUSTMENTS
    ========================= */

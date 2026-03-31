@@ -29,8 +29,8 @@ const yearFromDate = (rawDate) => {
 const fmtRatio = (x) =>
   Number.isFinite(Number(x)) ? `${Number(x).toFixed(2)}x` : "-";
 
-export default function KPIsTable({ funds = [], onFundClick }) {
-  const api = useApi(); // ✅ Initialize API engine
+export default function KPIsTable({ allFunds = [], displayFunds = [], onFundClick }) {
+  const api = useApi();
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
 
@@ -42,7 +42,8 @@ export default function KPIsTable({ funds = [], onFundClick }) {
     let isMounted = true;
 
     const loadAllKpis = async () => {
-      const ids = funds.map((fund) => fund.id).filter(Boolean);
+      // Use allFunds for the fetch payload
+      const ids = allFunds.map((fund) => fund.id).filter(Boolean);
       
       if (ids.length === 0) {
         setFundKpisByFundId({});
@@ -54,10 +55,7 @@ export default function KPIsTable({ funds = [], onFundClick }) {
       setIsKpisLoading(true);
 
       try {
-        // 1. Fetch Portfolio KPIs via service (passing api instance)
         const portfolioKpisPromise = fetchPortfolioKpisByFundIds(api, ids);
-
-        // 2. Fetch CAS KPIs via direct engine call
         const casBulkPromise = api.post("/api/funds/cas-kpis/bulk/", {
           fund_ids: ids,
           timeframe_id: null,
@@ -84,11 +82,11 @@ export default function KPIsTable({ funds = [], onFundClick }) {
     return () => {
       isMounted = false;
     };
-  }, [funds, api]); // ✅ Added api to dependencies
+  }, [allFunds, api]); // <-- Dependency is now allFunds, isolating the fetch from search
 
   const tableRows = useMemo(
     () =>
-      funds.map((fund) => {
+      displayFunds.map((fund) => { // <-- Use displayFunds for the UI mapping
         const fundKpi = fundKpisByFundId[String(fund.id)] || {};
         const casKpi = casKpisByFundId[String(fund.id)] || {};
         
@@ -114,7 +112,7 @@ export default function KPIsTable({ funds = [], onFundClick }) {
           tvpi:       k.tvpi?.total ?? fund.tvpi,
         };
       }),
-    [funds, fundKpisByFundId, casKpisByFundId]
+    [displayFunds, fundKpisByFundId, casKpisByFundId] // <-- Add displayFunds to dependencies
   );
 
   const { sorted, sortKey, toggleSort } = useTableSort(tableRows);
@@ -122,7 +120,7 @@ export default function KPIsTable({ funds = [], onFundClick }) {
   if (isKpisLoading) {
     return <PageSpinner label="Calculating KPIs…" />;
   }
-
+  
   return (
     <div className="table-wrapper">
       <table className="clean-table">

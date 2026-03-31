@@ -1,6 +1,36 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
+ 
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    title    = models.CharField(max_length=100, blank=True)
+    birthday = models.DateField(null=True, blank=True)
+    country = models.ForeignKey(
+        'Country',
+        on_delete=models.SET_NULL,
+        db_column='country_id',
+        null=True,
+        blank=True,
+        related_name='user_profiles'
+    )
+    timezone = models.CharField(max_length=60, default='UTC+00:00', blank=True)
+    phone          = models.CharField(max_length=30, blank=True)
+    two_fa_enabled = models.BooleanField(default=False)
+ 
+    class Meta:
+        managed = False
+        db_table = 'user_profile'
+ 
+    def __str__(self):
+        return f"Profile({self.user.username})"
+    
 class Fund(models.Model):
     fund_id = models.AutoField(primary_key=True)
     legal_name = models.CharField(max_length=255, unique=True)
@@ -22,6 +52,7 @@ class Fund(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
+        managed = False
         db_table = "fund"
         ordering = ['formation_date', 'legal_name', 'short_name']
 
@@ -71,6 +102,7 @@ class ShareClass(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
+        managed = False
         db_table = "share_class"
         ordering = ['share_class_name']
         constraints = [

@@ -5,17 +5,7 @@ import { PermissionGate } from '../../hooks/Auth/PermissionGate';
 import SearchBar from '../SearchBar/SearchBar';
 import './QuarterSelector.css';
 
-function QuarterSelector({ 
-    options = [], 
-    selected, 
-    onChange,
-    onAdd,
-    onEdit,
-    onDelete,
-    isLoading,
-    isSingle = true,
-    maxSelections = null 
-}) {
+function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onDelete, isLoading, isSingle = true, maxSelections = null }) {
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState("");

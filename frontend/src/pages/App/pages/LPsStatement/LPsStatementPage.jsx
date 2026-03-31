@@ -56,13 +56,22 @@ export default function LPsStatementPage() {
   const [isLoadingLps, setIsLoadingLps] = useState(false);
 
   // ✅ LP identity list
-  const { limitedPartners, fetchLimitedPartners } = useLimitedPartners();
+  const {
+    limitedPartners,
+    fetchLimitedPartners,
+    createLimitedPartner,
+    updateLimitedPartner,
+    deleteLimitedPartner,
+  } = useLimitedPartners();
   const { data: shareClasses = [], isLoading: classesLoading } = useShareClasses(fundId);
   // ✅ Commitments list (fund-scoped)
   const {
     commitments,
     loading: isLoadingCommitments,
     fetchCommitments,
+    createCommitment,
+    updateCommitment,
+    deleteCommitment,
   } = useLimitedPartnerFundCommitment(fundId);
 
   // ✅ reload everything needed for calculations
@@ -149,36 +158,44 @@ export default function LPsStatementPage() {
   return (
     <div className="lp-page">
       <div className="lp-page-container">
+        {/* 1. Header Row */}
         <div className="lp-page-header">
           <h1 className="lp-page-title">LPs Statement</h1>
-
-          <div className="lp-page-tabs-container">
-            <div className="lp-page-tabs">
-              {TABS.map((tab) => (
-                <NavLink
-                  key={tab.path}
-                  to={tab.path}
-                  className={({ isActive }) =>
-                    `lp-page-tab ${isActive ? "lp-page-tab--active" : ""}`
-                  }
-                >
-                  {tab.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
+          {/* If you add header actions (like a button or dropdown) later, they go here */}
         </div>
 
+        {/* 2. Tabs Row */}
+        <div className="lp-page-tabs">
+          {TABS.map((tab) => (
+            <NavLink
+              key={tab.path}
+              to={tab.path}
+              className={({ isActive }) =>
+                `lp-page-tab ${isActive ? "lp-page-tab--active" : ""}`
+              }
+            >
+              {tab.label}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* 3. Content Area */}
         <div className="lp-page-content-area">
           <Outlet
             context={{
               fundId,
-              lps, // ✅ normalized for Operation Step2/3 + can be used by LPsRegister if you want
-              limitedPartnersRaw: limitedPartners, // ✅ raw hook output (in case other pages rely on original fields)
+              lps,
+              limitedPartnersRaw: limitedPartners,
               shareClasses,
-              commitments, // ✅ fund commitments list
-              reloadAll, // ✅ refresh LPs + commitments
+              commitments,
+              reloadAll,
               isLoadingLps: isLoadingLps || isLoadingCommitments,
+              createCommitment,
+              updateCommitment,
+              deleteCommitment,
+              createLimitedPartner,    // ← add
+              updateLimitedPartner,    // ← add
+              deleteLimitedPartner,    // ← add
             }}
           />
         </div>

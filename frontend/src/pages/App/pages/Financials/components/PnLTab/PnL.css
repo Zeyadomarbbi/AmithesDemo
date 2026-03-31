@@ -190,6 +190,8 @@ body,
   font-size: 14px;
   font-weight: 500;
   padding: 14px 16px;
+  box-sizing: border-box; /* <-- ADD THIS */
+  width: 100%;            /* <-- ADD THIS */
 }
 
 .net-value {

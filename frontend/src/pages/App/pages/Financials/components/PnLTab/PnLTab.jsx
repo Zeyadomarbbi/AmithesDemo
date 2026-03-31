@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
-import { RefreshUpIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
+import { UploadIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import { usePnLApi } from "../../../../hooks/Financials/usePnLApi";
 import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload";
 import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort.jsx";
 
 import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
 import Toast from "../../../../components/Toast/Toast.jsx";
@@ -50,6 +51,15 @@ function valuesMapToRows(lines, valueMap) {
     });
     return { byPeriod };
   });
+}
+
+// Pairs lines + values into a single array for sorting, preserving source index
+function zipRows(lines, values) {
+  return (lines || []).map((line, i) => ({
+    line,
+    values: values?.[i] ?? { byPeriod: {} },
+    sourceIndex: i,
+  }));
 }
 
 function PnLTabContent() {
@@ -107,9 +117,9 @@ function PnLTabContent() {
     }
   };
 
-  const [showIncome, setShowIncome]   = useState(true);
+  const [showIncome, setShowIncome]     = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
-  const [showTax, setShowTax]         = useState(true);
+  const [showTax, setShowTax]           = useState(true);
 
   const [incomeLines,   setIncomeLines]   = useState([]);
   const [expenseLines,  setExpenseLines]  = useState([]);
@@ -136,33 +146,33 @@ function PnLTabContent() {
   }, [sortedQuarters, selectedTimeframeIds]);
 
   const loadPnL = useCallback(async () => {
-    if (!effectiveFundId) return;
-    setPnlLoading(true);
-    setPnlError("");
-    try {
-      const data = await fetchPnL(); // Fetch all data; remove selectedTimeframeIds
-      const normalizeLines = (arr) =>
-        (arr || []).map((x) => ({
-          ...x,
-          id: x.line_item_id,
-          label: x.name ?? x.label ?? "",
-          isCustom: false,
-        }));
-      const incLines = normalizeLines(data.incomeLines);
-      const expLines = normalizeLines(data.expenseLines);
-      const taxLs    = normalizeLines(data.taxLines);
-      setIncomeLines(incLines);
-      setExpenseLines(expLines);
-      setTaxLines(taxLs);
-      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
-      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
-      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
-    } catch (e) {
-      setPnlError(e?.message || "Failed to load PnL");
-    } finally {
-      setPnlLoading(false);
-    }
-  }, [effectiveFundId, fetchPnL]);
+    if (!effectiveFundId) return;
+    setPnlLoading(true);
+    setPnlError("");
+    try {
+      const data = await fetchPnL();
+      const normalizeLines = (arr) =>
+        (arr || []).map((x) => ({
+          ...x,
+          id: x.line_item_id,
+          label: x.name ?? x.label ?? "",
+          isCustom: false,
+        }));
+      const incLines = normalizeLines(data.incomeLines);
+      const expLines = normalizeLines(data.expenseLines);
+      const taxLs    = normalizeLines(data.taxLines);
+      setIncomeLines(incLines);
+      setExpenseLines(expLines);
+      setTaxLines(taxLs);
+      setIncomeValues(valuesMapToRows(incLines, data.incomeValues));
+      setExpenseValues(valuesMapToRows(expLines, data.expenseValues));
+      setTaxValues(valuesMapToRows(taxLs, data.taxValues));
+    } catch (e) {
+      setPnlError(e?.message || "Failed to load PnL");
+    } finally {
+      setPnlLoading(false);
+    }
+  }, [effectiveFundId, fetchPnL]);
 
   useEffect(() => { loadPnL(); }, [loadPnL]);
 
@@ -171,6 +181,25 @@ function PnLTabContent() {
     setExpenseValues((prev) => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
     setTaxValues((prev)     => ensureValueShape(Array.isArray(prev) ? prev : [], headerPeriods));
   }, [headerPeriods]);
+
+  // ── Sort state — one per section ─────────────────────────────────────────
+
+  const incomeZipped  = useMemo(() => zipRows(incomeLines,  incomeValues),  [incomeLines,  incomeValues]);
+  const expenseZipped = useMemo(() => zipRows(expenseLines, expenseValues), [expenseLines, expenseValues]);
+  const taxZipped     = useMemo(() => zipRows(taxLines,     taxValues),     [taxLines,     taxValues]);
+
+  const { sorted: sortedIncomeRows,  sortKey: incomeSortKey,  toggleSort: toggleIncomeSort  } = useTableSort(incomeZipped,  null);
+  const { sorted: sortedExpenseRows, sortKey: expenseSortKey, toggleSort: toggleExpenseSort } = useTableSort(expenseZipped, null);
+  const { sorted: sortedTaxRows,     sortKey: taxSortKey,     toggleSort: toggleTaxSort     } = useTableSort(taxZipped,     null);
+
+  const sortedIncomeLines   = useMemo(() => sortedIncomeRows.map(r  => r.line),   [sortedIncomeRows]);
+  const sortedIncomeValues  = useMemo(() => sortedIncomeRows.map(r  => r.values), [sortedIncomeRows]);
+  const sortedExpenseLines  = useMemo(() => sortedExpenseRows.map(r => r.line),   [sortedExpenseRows]);
+  const sortedExpenseValues = useMemo(() => sortedExpenseRows.map(r => r.values), [sortedExpenseRows]);
+  const sortedTaxLines      = useMemo(() => sortedTaxRows.map(r     => r.line),   [sortedTaxRows]);
+  const sortedTaxValues     = useMemo(() => sortedTaxRows.map(r     => r.values), [sortedTaxRows]);
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   const totalIncomeByPeriod = useMemo(() => {
     const out = {};
@@ -209,8 +238,6 @@ function PnLTabContent() {
   const removeExpenseRow = (i) => { setExpenseLines((p) => p.filter((_, j) => j !== i)); setExpenseValues((p) => p.filter((_, j) => j !== i)); };
   const removeTaxRow     = (i) => { setTaxLines((p)     => p.filter((_, j) => j !== i)); setTaxValues((p)     => p.filter((_, j) => j !== i)); };
 
-  // ── Shared line item actions — defined once, passed down as props ──────────
-
   const handleUpdateLineItem = useCallback(async ({ lineItemId, name }) => {
     if (!Number.isFinite(Number(lineItemId))) return;
     try {
@@ -218,7 +245,7 @@ function PnLTabContent() {
     } catch (err) {
       console.error("Failed to update line item:", err);
       setToast({ type: "error", title: "Update Failed", message: err?.message || "Could not update line item." });
-      throw err; // re-throw so the child can rollback
+      throw err;
     }
   }, [updateLineItem]);
 
@@ -229,14 +256,12 @@ function PnLTabContent() {
       } catch (err) {
         console.error("Failed to delete line item:", err);
         setToast({ type: "error", title: "Delete Failed", message: err?.message || "Could not delete line item." });
-        return; // abort — don't remove from UI
+        return;
       }
     }
     setLines((prev)  => prev.filter((_, i) => i !== index));
     setValues((prev) => prev.filter((_, i) => i !== index));
   }, [deleteLineItem]);
-
-  // ─────────────────────────────────────────────────────────────────────────
 
   const handleDownload = () => {
     const periodHeaders = headerPeriods.map((p) => getPeriodLabel(p));
@@ -351,14 +376,27 @@ function PnLTabContent() {
     }
   };
 
-  const HeaderRow = ({ leftSlot = null }) => (
+  // HeaderRow now accepts sort props; when provided, renders SortableHeaderRenderer
+  const HeaderRow = ({ leftSlot = null, sortKey = null, toggleSort = null }) => (
     <div className="table-header-row">
       <div className="header-left-slot">{leftSlot}</div>
       {headerPeriods.map((p) => {
         const label = getPeriodLabel(p);
+        const colKey = `values.byPeriod.${String(p.id)}`;
         return (
           <div key={p.id || label} className="col-period">
-            <span className="period-label">{label} <span>(€)</span></span>
+            {toggleSort ? (
+              <SortableHeaderRenderer
+                label={label}
+                columnKey={colKey}
+                currentSortKey={sortKey}
+                toggleSort={toggleSort}
+                center={true}
+                showCurrency={true}
+              />
+            ) : (
+              <span className="period-label">{label} <span>(€)</span></span>
+            )}
           </div>
         );
       })}
@@ -370,7 +408,7 @@ function PnLTabContent() {
     "--pnl-cols": String(headerPeriods.length),
     "--pnl-label-col": "260px",
     "--pnl-period-col": "160px",
-    "--pnl-actions-col": "minmax(110px, 1fr)",
+    "--pnl-actions-col": headerPeriods.length === 0 ? "auto" : "minmax(110px, 1fr)",
   }), [headerPeriods.length]);
 
   const hasNoData =
@@ -393,7 +431,7 @@ function PnLTabContent() {
         </div>
         <div className="right-tools">
           <button className="ghost-btn" type="button" onClick={handleUploadClick} disabled={!effectiveFundId || uploading}>
-            <RefreshUpIcon /> {uploading ? "Uploading..." : "Upload"}
+            <UploadIcon /> {uploading ? "Uploading..." : "Upload"}
           </button>
           <button className="ghost-btn" type="button" onClick={handleDownload}>
             <DownloadIcon /> Download
@@ -420,12 +458,16 @@ function PnLTabContent() {
             <div className="pnl-card-scroll" style={scopeVars}>
               <div className="pnl-grid-scope">
                 <div className="financials-section-title">Income</div>
-                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addIncomeRow}><PlusIcon /> Add income</button>} />
+                <HeaderRow
+                  leftSlot={<button className="pill-btn" type="button" onClick={addIncomeRow}><PlusIcon /> Add income</button>}
+                  sortKey={incomeSortKey}
+                  toggleSort={toggleIncomeSort}
+                />
                 <PnLIncome
                   fundId={effectiveFundId} headerPeriods={headerPeriods}
                   showIncome={showIncome} setShowIncome={setShowIncome}
-                  incomeLines={incomeLines} setIncomeLines={setIncomeLines}
-                  incomeValues={incomeValues} setIncomeValues={setIncomeValues}
+                  incomeLines={sortedIncomeLines} setIncomeLines={setIncomeLines}
+                  incomeValues={sortedIncomeValues} setIncomeValues={setIncomeValues}
                   totalIncomeByPeriod={totalIncomeByPeriod}
                   onAddRow={addIncomeRow} onRemoveRow={removeIncomeRow}
                   onUpdateLineItem={handleUpdateLineItem}
@@ -439,12 +481,16 @@ function PnLTabContent() {
             <div className="pnl-card-scroll" style={scopeVars}>
               <div className="pnl-grid-scope">
                 <div className="financials-section-title">Expense</div>
-                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addExpenseRow}><PlusIcon /> Add expense</button>} />
+                <HeaderRow
+                  leftSlot={<button className="pill-btn" type="button" onClick={addExpenseRow}><PlusIcon /> Add expense</button>}
+                  sortKey={expenseSortKey}
+                  toggleSort={toggleExpenseSort}
+                />
                 <PnLExpenses
                   fundId={effectiveFundId} headerPeriods={headerPeriods}
                   showExpenses={showExpenses} setShowExpenses={setShowExpenses}
-                  expenseLines={expenseLines} setExpenseLines={setExpenseLines}
-                  expenseValues={expenseValues} setExpenseValues={setExpenseValues}
+                  expenseLines={sortedExpenseLines} setExpenseLines={setExpenseLines}
+                  expenseValues={sortedExpenseValues} setExpenseValues={setExpenseValues}
                   totalExpensesByPeriod={totalExpensesByPeriod}
                   onAddRow={addExpenseRow} onRemoveRow={removeExpenseRow}
                   onUpdateLineItem={handleUpdateLineItem}
@@ -458,12 +504,16 @@ function PnLTabContent() {
             <div className="pnl-card-scroll" style={scopeVars}>
               <div className="pnl-grid-scope">
                 <div className="financials-section-title">Tax</div>
-                <HeaderRow leftSlot={<button className="pill-btn" type="button" onClick={addTaxRow}><PlusIcon /> Add tax</button>} />
+                <HeaderRow
+                  leftSlot={<button className="pill-btn" type="button" onClick={addTaxRow}><PlusIcon /> Add tax</button>}
+                  sortKey={taxSortKey}
+                  toggleSort={toggleTaxSort}
+                />
                 <PnLTax
                   fundId={effectiveFundId} headerPeriods={headerPeriods}
                   showTax={showTax} setShowTax={setShowTax}
-                  taxLines={taxLines} setTaxLines={setTaxLines}
-                  taxValues={taxValues} setTaxValues={setTaxValues}
+                  taxLines={sortedTaxLines} setTaxLines={setTaxLines}
+                  taxValues={sortedTaxValues} setTaxValues={setTaxValues}
                   totalTaxByPeriod={totalTaxByPeriod}
                   onAddRow={addTaxRow} onRemoveRow={removeTaxRow}
                   onUpdateLineItem={handleUpdateLineItem}

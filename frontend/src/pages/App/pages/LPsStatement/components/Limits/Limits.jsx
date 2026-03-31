@@ -1,7 +1,7 @@
 // frontend/src/pages/App/pages/LPsStatement/components/Limits.jsx
 import React, { useMemo, useState } from "react";
 import NewLimitDrawer from "./components/NewLimitDrawer.jsx";
-import { SortIcon, PlusIcon } from "../../Icons.jsx";
+import { SortIcon, PlusIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector.jsx";
 import "./Limits.css";
 

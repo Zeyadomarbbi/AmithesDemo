@@ -1,8 +1,9 @@
 // PortfolioPage.jsx
-import { useEffect } from 'react';
 import { Outlet, NavLink, useParams } from 'react-router-dom';
-import { usePortfolio } from "../../hooks/Portfolio/usePortfolio"; // Adjust path to your clean hook
 import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
+import { useCountries } from "../../hooks/Reference/useCountries";
+import { useCurrencies } from "../../hooks/Reference/useCurrencies";
+import { usePortfolioDataset } from "./usePortfolioDataset";
 
 import "./styles/portfolio.tokens.css";
 import "./PortfolioPage.css";
@@ -10,44 +11,81 @@ import "./styles/portfolio.tables.css";
 
 const PortfolioPage = () => {
   const { fundId } = useParams();
-  
-  // Use the clean, standardized API hook
-  const { investments, loading, fetchInvestments } = usePortfolio(fundId);
+  const { countries = [] } = useCountries();
+  const { currencies = [] } = useCurrencies();
+  const dataset = usePortfolioDataset(fundId);
 
-  // Auto-fetch when the portfolio layout mounts
-  useEffect(() => {
-    if (fundId) {
-      fetchInvestments();
-    }
-  }, [fundId, fetchInvestments]);
-
-  // Bridge the data shape so the downstream tabs don't need any changes
   const portfolioDataset = {
-    investments: investments.map((inv) => ({
-      ...inv,
-      transaction_flows: (inv.transaction_flows ?? []).filter((f) => f.scenario_id === null),
-      fair_value_flows: inv.fair_value_flows ?? [],
-    })),
-    isLoading: loading,
-    refresh: fetchInvestments,
-  };
+    investments: (dataset.investments || []).map((inv) => {
+      const investmentId = Number(inv.investment_id ?? inv.id ?? inv.investmentId);
+      const transactionFlows = dataset.flowsByInvestment?.[investmentId] ?? inv.transaction_flows ?? [];
+      const fairValueFlows = dataset.fairValuesByInvestment?.[investmentId] ?? inv.fair_value_flows ?? [];
 
+      return {
+        ...inv,
+        transaction_flows: transactionFlows.filter((f) => f.scenario_id === null),
+        fair_value_flows: fairValueFlows,
+      };
+    }),
+    isLoading: dataset.isLoading,
+    error: dataset.error,
+    loadedAt: dataset.loadedAt,
+    refresh: dataset.refresh,
+    fetchInvestments: dataset.fetchInvestments,
+    fetchInvestment: dataset.fetchInvestment,
+    createInvestment: dataset.createInvestment,
+    updateInvestment: dataset.updateInvestment,
+    deleteInvestment: dataset.deleteInvestment,
+    saveFlow: dataset.saveFlow,
+    deleteFlow: dataset.deleteFlow,
+    saveFairValue: dataset.saveFairValue,
+    fetchTransactionTypes: dataset.fetchTransactionTypes,
+  };
   return (
-    <TimeframeProvider fundId={fundId}>
-      <div className="portfolio-page">
-        <main className="portfolio-content">
-          <h1 className="portfolio-title">Portfolio</h1>
-          <div className="portfolio-tabs">
-            <NavLink to="summary" className="portfolio-tabs-tab">Portfolio Summary</NavLink>
-            <NavLink to="fx" className="portfolio-tabs-tab">Portfolio FX</NavLink>
-            <NavLink to="compare" className="portfolio-tabs-tab">Compare</NavLink>
-            <NavLink to="limits" className="portfolio-tabs-tab">Limits</NavLink>
-          </div>
-          <Outlet context={{ fundId, portfolioDataset }} />
-        </main>
-      </div>
-    </TimeframeProvider>
-  );
+    <TimeframeProvider fundId={fundId}>
+      <div className="portfolio-page">
+        <div className="portfolio-page-container">
+          {/* 1. Header Row */}
+          <div className="portfolio-page-header">
+            <h1 className="portfolio-page-title">Portfolio</h1>
+          </div>
+
+          {/* 2. Tabs Row */}
+          <div className="portfolio-page-tabs">
+            <NavLink 
+              to="summary" 
+              className={({ isActive }) => `portfolio-page-tab ${isActive ? "active" : ""}`}
+            >
+              Portfolio Summary
+            </NavLink>
+            <NavLink 
+              to="fx" 
+              className={({ isActive }) => `portfolio-page-tab ${isActive ? "active" : ""}`}
+            >
+              Portfolio FX
+            </NavLink>
+            <NavLink 
+              to="compare" 
+              className={({ isActive }) => `portfolio-page-tab ${isActive ? "active" : ""}`}
+            >
+              Compare
+            </NavLink>
+            <NavLink 
+              to="limits" 
+              className={({ isActive }) => `portfolio-page-tab ${isActive ? "active" : ""}`}
+            >
+              Limits
+            </NavLink>
+          </div>
+
+          {/* 3. Content Area */}
+          <div className="portfolio-page-content-area">
+            <Outlet context={{ fundId, portfolioDataset, countries, currencies }} />
+          </div>
+        </div>
+      </div>
+    </TimeframeProvider>
+  );
 };
 
 export default PortfolioPage;

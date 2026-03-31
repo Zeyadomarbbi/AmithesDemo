@@ -9,7 +9,7 @@ import './LoginPage.css';
 function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-
+  const [rememberMe, setRememberMe] = useState(false);
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,8 +29,7 @@ function LoginPage() {
 
     try {
       const normalizedIdentity = identity.trim().toLowerCase();
-      await login(normalizedIdentity, password);
-      
+      await login(normalizedIdentity, password, rememberMe);
       triggerToast("Success", "Logging you in...", "success");
       
       setTimeout(() => {
@@ -110,7 +109,13 @@ function LoginPage() {
 
           <div className="remember-row">
             <div className="checkbox-content">
-              <input type="checkbox" className="custom-checkbox" id="remember" />
+              <input 
+                type="checkbox" 
+                className="custom-checkbox" 
+                id="remember" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
               <label htmlFor="remember" className="checkbox-label">
                 Remember for 30 days
               </label>

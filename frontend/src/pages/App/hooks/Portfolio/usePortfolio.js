@@ -6,14 +6,6 @@ export const usePortfolio = (fundId) => {
   const [loading, setLoading] = useState(false);
   const [investments, setInvestments] = useState([]);
 
-  // --- PORTFOLIO INVESTMENTS (With Nested Flows) ---
-
-  /**
-   * Fetching Logic:
-   * Returns investments with their nested transaction_flows.
-   * No scenarioId: Global view (Master + all Scenarios)
-   * With scenarioId: Specific Scenario view
-   */
   const fetchInvestments = useCallback(async (scenarioId = null) => {
     setLoading(true);
     try {
@@ -45,6 +37,21 @@ export const usePortfolio = (fundId) => {
     }
   };
 
+  const updateInvestment = async (scenarioId, investmentId, payload) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/`;
+    
+    try {
+      const data = await api.patch(endpoint, payload);
+      fetchInvestments(scenarioId);
+      return data;
+    } catch (err) {
+      console.error("Investment update failed", err.message);
+      throw err;
+    }
+  };
+
   const deleteInvestment = async (scenarioId, investmentId) => {
     const endpoint = scenarioId
       ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
@@ -54,10 +61,9 @@ export const usePortfolio = (fundId) => {
       fetchInvestments(scenarioId);
     } catch (err) {
       console.error("Investment deletion failed", err.message);
+      throw err;
     }
   };
-
-  // --- TRANSACTION FLOWS (Individual Actions) ---
 
   const createFlow = async (investmentId, scenarioId, payload) => {
     const endpoint = scenarioId
@@ -91,6 +97,7 @@ export const usePortfolio = (fundId) => {
     loading,
     fetchInvestments,
     createInvestment,
+    updateInvestment,
     deleteInvestment,
     createFlow,
     deleteFlow

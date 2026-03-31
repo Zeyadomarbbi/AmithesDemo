@@ -1,15 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import useApi from "../../../../hooks/api/useApi"; // Import the new centralized hook
-import { useAuth } from "../../../../hooks/Auth/AuthContext"; // Import useAuth
+import useApi from "../../../../hooks/api/useApi";
+import { useAuth } from "../../../../hooks/Auth/AuthContext";
+
 const FundContext = createContext(null);
 
 export function FundProvider({ children }) {
-  const api = useApi(); // Initialize the API engine
+  const api = useApi();
   const { user } = useAuth();
   const [funds, setFunds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFundId, setActiveFundId] = useState(() => localStorage.getItem('lastActiveFundId'));
+
+  // --- REFERENCE DATA ---
+  const [currencies, setCurrencies] = useState([]);
+  const [currenciesLoading, setCurrenciesLoading] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [countriesLoading, setCountriesLoading] = useState(false);
 
   // --- DATA NORMALIZER ---
   const formatFund = useCallback((f) => ({
@@ -25,16 +32,14 @@ export function FundProvider({ children }) {
     createdAt: f.created_at,
     updatedAt: f.updated_at ?? null,
     isDeleted: f.is_deleted,
-    isSetupComplete: f.is_setup_complete ?? false, 
+    isSetupComplete: f.is_setup_complete ?? false,
   }), []);
 
   // --- ACTIONS ---
   const refreshFunds = useCallback(async () => {
     if (!user) return;
     try {
-      
       setIsLoading(true);
-      // Use new api.get - API_BASE_URL is handled internally by useApi
       const data = await api.get("/api/funds/");
       setFunds(data.filter(f => !f.is_deleted).map(formatFund));
       setError(null);
@@ -52,15 +57,14 @@ export function FundProvider({ children }) {
         short_name: payload.shortName,
         formation_date: payload.formationDate,
         currency_id: payload.currency_id,
-        phase_name: payload.phaseName || "Marketing", 
+        phase_name: payload.phaseName || "Marketing",
         legal_form: payload.legalForm || "",
         management_company: payload.manCo || "",
         fund_strategy: payload.strategy || "",
       });
-      
       const newFund = formatFund(data);
       setFunds((prev) => [newFund, ...prev]);
-      return { success: true, id: newFund.id }; 
+      return { success: true, id: newFund.id };
     } catch (e) {
       return { success: false, error: e.message };
     }
@@ -100,20 +104,42 @@ export function FundProvider({ children }) {
     refreshFunds();
   }, [refreshFunds]);
 
+  useEffect(() => {
+    if (!user) return;
+    setCurrenciesLoading(true);
+    api.get("/api/currencies/")
+      .then(setCurrencies)
+      .catch(() => {})
+      .finally(() => setCurrenciesLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    setCountriesLoading(true);
+    api.get("/api/countries/")
+      .then(setCountries)
+      .catch(() => {})
+      .finally(() => setCountriesLoading(false));
+  }, [user]);
+
   return (
-    <FundContext.Provider 
-      value={{ 
-        funds, 
-        isLoading, 
-        error, 
+    <FundContext.Provider
+      value={{
+        funds,
+        isLoading,
+        error,
         activeFundId,
         setActiveFundId,
-        refreshFunds, 
-        initializeFund, 
-        updateFund, 
-        deleteFund, 
+        refreshFunds,
+        initializeFund,
+        updateFund,
+        deleteFund,
         formatFund,
-        api // Passing the new api object down
+        api,
+        currencies,
+        currenciesLoading,
+        countries,
+        countriesLoading,
       }}
     >
       {children}

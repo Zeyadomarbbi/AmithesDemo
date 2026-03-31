@@ -44,6 +44,19 @@ const formatFxRate = (rate) => {
   return n.toFixed(4);
 };
 
+const isYearEndDate = (dateValue) => {
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getMonth() === 11 && d.getDate() === 31;
+};
+
+const buildHistoricalLabel = (dateValue) => {
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return String(dateValue || "");
+  if (isYearEndDate(d)) return `FY ${String(d.getFullYear()).slice(-2)}`;
+  return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+};
+
 const toSafeArray = (value) => (Array.isArray(value) ? value : []);
 
 const canonicalFlowType = (value) => {
@@ -135,7 +148,72 @@ const getSameQuarterLastYearEndDate = (dateValue) => {
   return getQuarterEndDate(d.getFullYear() - 1, q);
 };
 
+const buildHistoricalTimeframesFromFairValues = (fairValues = []) => {
+  const seen = new Set();
+  return fairValues
+    .filter((fairValue) => fairValue?.date)
+    .map((fairValue) => {
+      const rawDate = fairValue.date;
+      return {
+        id: fairValue.fair_value_id ?? fairValue.id ?? rawDate,
+        rawDate,
+        date: rawDate,
+        display_label: buildHistoricalLabel(rawDate),
+      };
+    })
+    .filter((timeframe) => {
+      if (!timeframe.rawDate || seen.has(timeframe.rawDate)) return false;
+      seen.add(timeframe.rawDate);
+      return true;
+    })
+    .sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+};
+
+const matchesTimeframeDate = (itemDate, timeframeDate) => {
+  const item = new Date(itemDate);
+  const timeframe = new Date(timeframeDate);
+  if (Number.isNaN(item.getTime()) || Number.isNaN(timeframe.getTime())) return false;
+  return item.getFullYear() === timeframe.getFullYear() && item.getMonth() === timeframe.getMonth();
+};
+
+const filterFairValuesBySelectedTimeframes = (fairValues = [], selectedTimeframes = []) => {
+  if (!selectedTimeframes.length) return fairValues;
+  return fairValues.filter((fairValue) =>
+    selectedTimeframes.some((timeframe) =>
+      matchesTimeframeDate(fairValue?.date, timeframe?.rawDate || timeframe?.date)
+    )
+  );
+};
+
 const getFxForExactQuarter = (rowsWithFx, referenceDate) => {
+  if (!rowsWithFx.length) return null;
+  const target = getYearAndQuarter(referenceDate);
+  if (!target) return null;
+
+  // 1. Try exact quarter match first
+  const matched = rowsWithFx
+    .filter((row) => row?.__date)
+    .filter((row) => {
+      const yq = getYearAndQuarter(row.__date);
+      return yq && yq.year === target.year && yq.quarter === target.quarter;
+    })
+    .sort((a, b) => a.__date - b.__date);
+
+  if (matched.length) return matched[matched.length - 1].__fx;
+
+  // 2. Fall back to the closest fx rate on or before the reference date
+  const refDate = new Date(referenceDate);
+  const before = rowsWithFx
+    .filter((row) => row?.__date && row.__date <= refDate)
+    .sort((a, b) => a.__date - b.__date);
+
+  if (before.length) return before[before.length - 1].__fx;
+
+  // 3. If nothing before, take the earliest available
+  return rowsWithFx[0].__fx;
+};
+
+const getFxForSameQuarterExactYear = (rowsWithFx, referenceDate) => {
   if (!rowsWithFx.length) return null;
   const target = getYearAndQuarter(referenceDate);
   if (!target) return null;
@@ -148,8 +226,26 @@ const getFxForExactQuarter = (rowsWithFx, referenceDate) => {
     })
     .sort((a, b) => a.__date - b.__date);
 
-  if (!matched.length) return null;
-  return matched[matched.length - 1].__fx;
+  return matched.length ? matched[matched.length - 1].__fx : null;
+};
+
+const getLastFlowOnOrBeforeDate = (flows = [], cutoffDate) => {
+  const cutoff = new Date(cutoffDate);
+  if (Number.isNaN(cutoff.getTime())) return null;
+  const rows = flows
+    .filter((flow) => flow?.date)
+    .map((flow) => ({
+      flow,
+      date: new Date(flow.date),
+      fx: Number(flow.fx_rate ?? flow.fxRate),
+    }))
+    .filter((item) =>
+      !Number.isNaN(item.date.getTime()) &&
+      item.date <= cutoff
+    )
+    .sort((a, b) => a.date - b.date);
+
+  return rows.length ? rows[rows.length - 1].flow : null;
 };
 
 export const getLatestFxRowByCutoff = (rows = [], selectedTimeframes = []) => {
@@ -230,19 +326,29 @@ export const splitDealRowsIntoTwoTables = (rows = []) => {
 const buildFxRowFromFlow = ({
   flow,
   investment,
+  allFlows = [],
   allFairValues = [],
   selectedTimeframes,
 }) => {
   const costLc = Math.abs(parseFxValue(flow.amount_lc));
-  const sortedFairValueFx = getSortedFlowsWithFx(
-    allFairValues.map((fv) => ({ date: fv.date, fx_rate: fv.fx_rate }))
+  const sortedCombinedTimeline = getSortedFlowsWithFx(
+    [
+      ...allFairValues.map((fv) => ({ date: fv.date, fx_rate: fv.fx_rate })),
+      ...allFlows.map((timelineFlow) => ({
+        date: timelineFlow.date,
+        fx_rate: timelineFlow.fx_rate ?? timelineFlow.fxRate,
+      })),
+    ]
   );
-  const sortedFxTimeline = sortedFairValueFx;
-  const oldestFx = sortedFxTimeline.length ? sortedFxTimeline[0].__fx : null;
-  const latestFx = sortedFxTimeline.length
-    ? sortedFxTimeline[sortedFxTimeline.length - 1].__fx
+  const sortedFxTimeline = sortedCombinedTimeline;
+  const latestTimelineDate = sortedFxTimeline.length
+    ? sortedFxTimeline[sortedFxTimeline.length - 1].__date
     : null;
-  const fxAtInvestmentDate = getFxForExactQuarter(sortedFxTimeline, flow.date);
+  const latestFx = latestTimelineDate
+    ? getFxForExactQuarter(sortedFxTimeline, latestTimelineDate)
+    : null;
+  const flowDateFx = getFxAsOfDate(sortedFxTimeline, flow.date);
+  const fxAtInvestmentDate = getFxAsOfDate(sortedFxTimeline, flow.date);
   const hasInvestmentDateFx = Number.isFinite(fxAtInvestmentDate) && fxAtInvestmentDate > 0;
 
   const row = {
@@ -254,28 +360,34 @@ const buildFxRowFromFlow = ({
     currency: investment.currency_code || "-",
     fxRate: formatFxRate(hasInvestmentDateFx ? fxAtInvestmentDate : null),
     impactInception:
-      oldestFx && latestFx
-        ? formatFxValue(costLc / latestFx - costLc / oldestFx)
+      flowDateFx && latestFx
+        ? formatFxValue(costLc / latestFx - costLc / flowDateFx)
         : "-",
   };
 
-  selectedTimeframes.forEach((timeframe) => {
+  selectedTimeframes.forEach((timeframe, index) => {
     const impactKey = toImpactKeyForQuarter(timeframe.display_label);
     const fxAsOfKey = toFxAsOfKeyForQuarter(timeframe.display_label);
 
     const timeframeDate = timeframe.rawDate || timeframe.date;
     const timeframeQuarterDate = getQuarterAnchorDate(timeframeDate) || timeframeDate;
-    const fxAtDate = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
+    const fxAtDateForTimeframe = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
     const sameQuarterLastYearDate = getSameQuarterLastYearEndDate(timeframeDate);
-    const fxOneYearBefore = sameQuarterLastYearDate
-      ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearDate)
-      : oldestFx;
+    const isOldestTimeframe = index === selectedTimeframes.length - 1;
+    const fxAtDate = fxAtDateForTimeframe;
+    const fxOneYearBefore = isOldestTimeframe
+      ? flowDateFx
+      : (
+        sameQuarterLastYearDate
+          ? (getFxForSameQuarterExactYear(sortedFxTimeline, sameQuarterLastYearDate) ?? flowDateFx)
+          : flowDateFx
+      );
 
     row[impactKey] =
       fxAtDate && fxOneYearBefore
         ? formatFxValue(costLc / fxAtDate - costLc / fxOneYearBefore)
         : "-";
-    row[fxAsOfKey] = fxAtDate ? formatFxRate(fxAtDate) : "-";
+    row[fxAsOfKey] = fxAtDateForTimeframe ? formatFxRate(fxAtDateForTimeframe) : "-";
   });
 
   return row;
@@ -292,14 +404,22 @@ const buildFxRowFromFairValue = ({
   const fairValueDisplay = Number.isFinite(fairValueEur) && fairValueEur !== 0
     ? fairValueEur
     : fairValueLc;
-  const sortedFairValueFx = getSortedFlowsWithFx(
+
+  // Sort all fair values by date to build fx timeline
+  const sortedFxTimeline = getSortedFlowsWithFx(
     allFairValues.map((fv) => ({ date: fv.date, fx_rate: fv.fx_rate }))
   );
-  const sortedFxTimeline = sortedFairValueFx;
   const oldestFx = sortedFxTimeline.length ? sortedFxTimeline[0].__fx : null;
-  const latestFx = sortedFxTimeline.length
-    ? sortedFxTimeline[sortedFxTimeline.length - 1].__fx
-    : null;
+
+  // Use this fair value's own fx_rate directly
+  const thisFx = Number(fairValue.fx_rate ?? fairValue.fxRate);
+  const thisFxValid = Number.isFinite(thisFx) && thisFx > 0;
+
+  // fxOneYearBefore = fx of same quarter previous year
+  const sameQuarterLastYearDate = getSameQuarterLastYearEndDate(fairValue.date);
+  const fxOneYearBefore = sameQuarterLastYearDate
+    ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearDate)
+    : oldestFx;
 
   const row = {
     id: fairValue.fair_value_id ?? fairValue.id ?? `${investment.investment_id}-${fairValue.date}`,
@@ -308,41 +428,60 @@ const buildFxRowFromFairValue = ({
     date: formatDateDisplay(fairValue.date),
     fairValueOnDate: formatFxValue(fairValueDisplay),
     currency: investment.currency_code || "-",
-    fxRate: formatFxRate(fairValue.fx_rate ?? fairValue.fxRate),
+    // fx rate = this fair value's own fx rate
+    fxRate: thisFxValid ? formatFxRate(thisFx) : "-",
+    // impact = (fvLc / thisFx) - (fvLc / fxOneYearBefore)
+    impactPeriod:
+      thisFxValid && fxOneYearBefore
+        ? formatFxValue(fairValueLc / thisFx - fairValueLc / fxOneYearBefore)
+        : "-",
+    // inception = (fvLc / thisFx) - (fvLc / oldestFx)
     impactInception:
-      oldestFx && latestFx
-        ? formatFxValue(fairValueLc / latestFx - fairValueLc / oldestFx)
+      thisFxValid && oldestFx
+        ? formatFxValue(fairValueLc / thisFx - fairValueLc / oldestFx)
         : "-",
   };
 
+  // Populate timeframe-keyed fields for compatibility with resolveImpactKeys
   selectedTimeframes.forEach((timeframe) => {
     const impactKey = toImpactKeyForQuarter(timeframe.display_label);
     const fxAsOfKey = toFxAsOfKeyForQuarter(timeframe.display_label);
-    const fairValueKey = toFairValueKeyForQuarter(timeframe.display_label);
 
     const timeframeDate = timeframe.rawDate || timeframe.date;
     const timeframeQuarterDate = getQuarterAnchorDate(timeframeDate) || timeframeDate;
-    const fxAtDate = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
-    const sameQuarterLastYearDate = getSameQuarterLastYearEndDate(timeframeDate);
-    const fxOneYearBefore = sameQuarterLastYearDate
-      ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearDate)
-      : oldestFx;
-    const latestFairValue = pickLatestByDate(allFairValues, timeframeQuarterDate);
+    const fxAtTimeframe = getFxForExactQuarter(sortedFxTimeline, timeframeQuarterDate);
+    const sameQuarterLastYearForTf = getSameQuarterLastYearEndDate(timeframeDate);
+    const isOldestTimeframe = timeframe === selectedTimeframes[selectedTimeframes.length - 1];
+    const fxOneYearBeforeForTf = sameQuarterLastYearForTf
+      ? getFxForExactQuarter(sortedFxTimeline, sameQuarterLastYearForTf)
+      : thisFx;
 
     row[impactKey] =
-      fxAtDate && fxOneYearBefore
-        ? formatFxValue(fairValueLc / fxAtDate - fairValueLc / fxOneYearBefore)
-        : "-";
-    row[fxAsOfKey] = fxAtDate ? formatFxRate(fxAtDate) : "-";
-    row[fairValueKey] = latestFairValue
-      ? formatFxValue(
-          Number.isFinite(Number(latestFairValue.amount)) &&
-            Number(latestFairValue.amount) !== 0
-            ? Number(latestFairValue.amount)
-            : parseFxValue(latestFairValue.amount_lc)
+      fxAtTimeframe && (isOldestTimeframe ? thisFxValid : fxOneYearBeforeForTf)
+        ? formatFxValue(
+          fairValueLc / fxAtTimeframe -
+          fairValueLc / (isOldestTimeframe ? thisFx : fxOneYearBeforeForTf)
         )
-      : "-";
+        : "-";
+    row[fxAsOfKey] = fxAtTimeframe ? formatFxRate(fxAtTimeframe) : "-";
   });
+
+  row.impactInception =
+    thisFxValid && oldestFx
+      ? formatFxValue(fairValueLc / thisFx - fairValueLc / oldestFx)
+      : "-";
+
+  if (selectedTimeframes.length) {
+    const latestTimeframe = selectedTimeframes[0];
+    const latestTimeframeDate = latestTimeframe?.rawDate || latestTimeframe?.date;
+    const latestTimeframeQuarterDate = getQuarterAnchorDate(latestTimeframeDate) || latestTimeframeDate;
+    const latestFxForInception = getFxForExactQuarter(sortedFxTimeline, latestTimeframeQuarterDate);
+
+    row.impactInception =
+      thisFxValid && latestFxForInception
+        ? formatFxValue(fairValueLc / latestFxForInception - fairValueLc / thisFx)
+        : row.impactInception;
+  }
 
   return row;
 };
@@ -377,14 +516,23 @@ export const useFxDealsRows = (
       const flows = toSafeArray(investment.transaction_flows);
       const costFlows = flows.filter(isInvestmentCostFlow);
       const fairValues = toSafeArray(investment.fair_value_flows);
+      const historicalTimeframes = buildHistoricalTimeframesFromFairValues(fairValues);
+      const filteredFairValues = filterFairValuesBySelectedTimeframes(fairValues, selectedTimeframes);
 
       return {
         title: investment.name || `Investment #${investmentId}`,
+        timeframes: historicalTimeframes,
         costRows: costFlows.map((flow) =>
-          buildFxRowFromFlow({ flow, investment, allFairValues: fairValues, selectedTimeframes })
+          buildFxRowFromFlow({
+            flow,
+            investment,
+            allFlows: flows,
+            allFairValues: fairValues,
+            selectedTimeframes: historicalTimeframes,
+          })
         ),
-        fvRows: fairValues.map((fairValue) =>
-          buildFxRowFromFairValue({ fairValue, investment, allFairValues: fairValues, selectedTimeframes })
+        fvRows: filteredFairValues.map((fairValue) =>
+          buildFxRowFromFairValue({ fairValue, investment, allFairValues: fairValues, selectedTimeframes: historicalTimeframes })
         ),
       };
     });

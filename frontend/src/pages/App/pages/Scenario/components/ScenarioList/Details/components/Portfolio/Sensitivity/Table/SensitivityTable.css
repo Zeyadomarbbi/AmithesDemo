@@ -67,7 +67,6 @@
     border-color: #375A89;
 }
 
-/* Hide manual chevron span — arrow handled by SearchableSelect */
 .sensitivity-dropdown-icon {
     display: none;
 }

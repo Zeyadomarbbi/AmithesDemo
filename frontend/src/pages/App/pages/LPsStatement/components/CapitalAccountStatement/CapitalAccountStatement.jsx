@@ -196,6 +196,7 @@ function CapitalAccountStatementContent() {
       rows: sortedKpiRows,
       columns: visibleColumns,
       adjustedNavValues,
+      navDetails: mapped?.navDetails ?? [], // ADD THIS LINE
       timeframeLabel: quarters?.find((q) => Number(q.id) === selectedTimeframeIds[0])?.display_label ?? "",
     });
   };

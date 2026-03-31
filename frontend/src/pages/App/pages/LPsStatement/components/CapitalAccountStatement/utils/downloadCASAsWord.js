@@ -25,6 +25,8 @@ const BORDER = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
 const BORDERS = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
 const HEADER_FILL = { fill: "375A89", type: ShadingType.CLEAR };
 const ALT_FILL    = { fill: "F8FAFC", type: ShadingType.CLEAR };
+// Added a specific fill for expanded rows to match the UI grey
+const EXPANDED_FILL = { fill: "F3F4F6", type: ShadingType.CLEAR }; 
 const CELL_MARGINS = { top: 80, bottom: 80, left: 120, right: 120 };
 
 function headerCell(text, width) {
@@ -43,17 +45,18 @@ function headerCell(text, width) {
   });
 }
 
-function dataCell(text, width, isKpi = false, isAlt = false) {
+// Added textColor parameter to style the waterfall labels differently
+function dataCell(text, width, isKpi = false, fillStyle = undefined, textColor = "000000") {
   return new TableCell({
     borders: BORDERS,
     width: { size: width, type: WidthType.DXA },
-    shading: isAlt ? ALT_FILL : undefined,
+    shading: fillStyle,
     margins: CELL_MARGINS,
     verticalAlign: VerticalAlign.CENTER,
     children: [
       new Paragraph({
         alignment: isKpi ? AlignmentType.LEFT : AlignmentType.RIGHT,
-        children: [new TextRun({ text, size: 18, font: "Arial", bold: isKpi })],
+        children: [new TextRun({ text, size: 18, font: "Arial", bold: isKpi, color: textColor })],
       }),
     ],
   });
@@ -61,7 +64,8 @@ function dataCell(text, width, isKpi = false, isAlt = false) {
 
 // ─── Main export ────────────────────────────────────────────────────────────
 
-export async function downloadCASAsWord({ rows, columns, adjustedNavValues, timeframeLabel }) {
+// NOTE: Added navDetails to the destructured arguments
+export async function downloadCASAsWord({ rows, columns, adjustedNavValues, navDetails, timeframeLabel }) {
   // Page: A4 landscape with 0.75" margins
   // Content width = 16838 - 2*1080 = 14678 DXA
   const CONTENT_WIDTH = 14678;
@@ -86,11 +90,12 @@ export async function downloadCASAsWord({ rows, columns, adjustedNavValues, time
   // Data rows
   const dataRows = rows.map((row, rowIdx) => {
     const isAlt = rowIdx % 2 === 1;
+    const fill = isAlt ? ALT_FILL : undefined;
     return new TableRow({
       children: [
-        dataCell(row.kpi, colWidths[0], true, isAlt),
+        dataCell(row.kpi, colWidths[0], true, fill),
         ...columns.map((col, i) =>
-          dataCell(formatValue(row.values?.[col.key], row.suffix), colWidths[i + 1], false, isAlt)
+          dataCell(formatValue(row.values?.[col.key], row.suffix), colWidths[i + 1], false, fill)
         ),
       ],
     });
@@ -104,20 +109,57 @@ export async function downloadCASAsWord({ rows, columns, adjustedNavValues, time
   const adjustedNavRow = hasAdjustedNav
     ? new TableRow({
         children: [
-          dataCell("Adjusted NAV", colWidths[0], true, false),
+          dataCell("    Adjusted NAV", colWidths[0], true, EXPANDED_FILL),
           ...columns.map((col, i) =>
             dataCell(
               formatValue(adjustedNavValues?.[col.key], undefined),
               colWidths[i + 1],
               false,
-              false
+              EXPANDED_FILL
             )
           ),
         ],
       })
     : null;
 
-  const tableRows = [headerRow, ...dataRows, ...(adjustedNavRow ? [adjustedNavRow] : [])];
+  // Waterfall Details
+  const waterfallMetrics = [
+    { key: 'nominal', label: 'Nominal' },
+    { key: 'hurdle',  label: 'Hurdle' },
+    { key: 'catchup', label: 'Catch-up' },
+    { key: 'special', label: 'Special Return' }
+  ];
+
+  const waterfallRows = [];
+  // Only render if navDetails data is provided
+  if (navDetails && navDetails.length > 0) {
+    waterfallMetrics.forEach(metric => {
+      const rowChildren = [
+        // KPI Cell - Note the custom grey text color ("666666") and expanded fill
+        dataCell(metric.label, colWidths[0], false, EXPANDED_FILL, "666666") 
+      ];
+
+      columns.forEach((col, i) => {
+        // Map column key back to navDetails label ("total" -> "Fund")
+        const targetLabel = col.key === "total" ? "Fund" : col.key;
+        const colData = navDetails.find((d) => d.label === targetLabel);
+        const val = colData ? colData[metric.key] : null;
+
+        // Data Cell
+        rowChildren.push(dataCell(formatValue(val), colWidths[i + 1], false, EXPANDED_FILL));
+      });
+
+      waterfallRows.push(new TableRow({ children: rowChildren }));
+    });
+  }
+
+  // Combine all rows into the final table
+  const tableRows = [
+      headerRow, 
+      ...dataRows, 
+      ...(adjustedNavRow ? [adjustedNavRow] : []),
+      ...waterfallRows // Append waterfall rows at the bottom
+  ];
 
   const doc = new Document({
     styles: {

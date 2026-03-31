@@ -104,15 +104,6 @@
   background-color: #fafafa;
 }
 
-.lp-cas-table tbody tr.lp-cas-nav-details-row {
-  background-color: #f3f4f6 !important;
-}
-
-.lp-cas-nav-details-row > td {
-  padding: 0;
-  border: none;
-}
-
 /* plus/minus button */
 .lp-cas-expand-btn {
   border: none;
@@ -140,106 +131,62 @@
 }
 
 /* ===========================================
-   NAV PER SHARE DROPDOWN
+   EXPANDED METRICS (Adjusted NAV & Waterfall)
    =========================================== */
 
-.lp-cas-nav-details {
-  background: #f3f4f6;
-  box-sizing: border-box;
-  padding: 0 16px 16px 16px;
+/* Remove borders from the table rows */
+.lp-cas-table tbody tr.lp-cas-adjusted-row,
+.lp-cas-table tbody tr.lp-cas-waterfall-row {
   border-bottom: none !important;
+  border-top: none !important;
 }
 
-.lp-cas-nav-details-inner {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.lp-cas-nav-details-table {
-  width: 100%;
-  min-width: 808px;
-  border-collapse: collapse;
-  font-family: "Inter", sans-serif;
-  font-size: 14px;
-  background: transparent;
-}
-
-.lp-cas-nav-details-table thead tr {
-  background: transparent;
-}
-
-.lp-cas-nav-th {
-  padding: 8px 16px;
-  text-align: center;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-  border: none;
-  background-color: #f3f4f6;
+.lp-cas-table tbody tr.lp-cas-spacer-row {
   border-bottom: none !important;
+  border-top: none !important;
 }
 
-.lp-cas-nav-th--first {
-  text-align: left;
-}
-
-.lp-cas-nav-th-euro {
-  font-size: 12px;
-  color: #a6a09b;
-}
-
-.lp-cas-nav-details-table tbody tr {
-  background: transparent;
-}
-
-.lp-cas-nav-td {
-  text-align: center;
-  font-weight: 400;
-  color: #1c1917;
-  border: none;
-  background-color: #f3f4f6;
-  border-bottom: none !important;
-}
-
-.lp-cas-nav-td--label {
-  text-align: left;
-}
-
-/* kill all borders in the inner table */
-.lp-cas-nav-details-table,
-.lp-cas-nav-details-table * {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* ===========================================
-   ADJUSTED NAV ROW
-   =========================================== */
-
-.lp-cas-adjusted-row {
+/* Apply background and remove any cell-level borders */
+.lp-cas-adjusted-row td,
+.lp-cas-waterfall-row td,
+.lp-cas-spacer-row td {
   background-color: #f3f4f6 !important;
+  border: none !important; 
 }
 
-.lp-cas-adjusted-row td {
-  background-color: #f3f4f6 !important;
+.lp-cas-spacer-row {
+  height: 24px;
+}
+
+.lp-cas-spacer-row td {
+  padding: 0 !important;
+}
+
+.lp-cas-waterfall-row .lp-cas-kpi-cell {
+  font-weight: 400 !important;
 }
 
 .lp-cas-adjusted-input {
-    width: 100%;
+    width: auto;
+    min-width: 80px;
+    max-width: 100%;
     border: 1px solid #e5e7eb;
     border-radius: 4px;
     padding: 4px 8px;
     font-size: inherit;
     text-align: center;
-    background: #f9fafb;
+    background: #ffffff;
     outline: none;
     font-family: "Inter", sans-serif;
+    box-sizing: border-box;
+}
+
+.lp-cas-adjusted-row .lp-cas-value-cell {
+    white-space: nowrap;
 }
 
 .lp-cas-adjusted-input:focus {
     border-color: #6b7280;
-    background: #fff;
 }
 
 /* ===========================================
@@ -252,6 +199,22 @@
 
 .lp-cas-table tbody td.lp-cas-value-cell {
   font-weight: 400 !important;
+}
+
+.lp-cas-adjusted-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lp-cas-adjusted-display .pnl-edit-btn {
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* ===========================================

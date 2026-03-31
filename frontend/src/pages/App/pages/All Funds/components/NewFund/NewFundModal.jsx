@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
 import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { CloseIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import "./NewFundModal.css";
 
@@ -113,20 +114,17 @@ export default function NewFundModal({ open, onClose, onCreate }) {
               Fund currency<span className="nf-required">*</span>
             </label>
             <div className="nf-select-wrapper">
-              <SearchableSelect
+              <SimpleDropdown
                 options={currencies.map((c) => ({
                   ...c,
-                  name: c.currency_name || c.name || c.currency_code || c.code || "",
-                  code: c.currency_code || c.code || "",
+                  displayName: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
                 }))}
                 value={currency}
                 onChange={(val) => setCurrency(val)}
                 placeholder={isLoading ? "Loading..." : "Please select a currency"}
                 disabled={isLoading}
-                labelKey="name"
+                labelKey="displayName"
                 valueKey="id"
-                secondaryLabelKey="code"
-                triggerClassName="nf-input nf-select-trigger"
               />
             </div>
           </div>

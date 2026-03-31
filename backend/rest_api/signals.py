@@ -1,15 +1,23 @@
 # signals.py
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.contrib.auth import get_user_model
 
 from .models import (
     PortfolioInvestment, PortfolioTransactionFlow, PortfolioFairValueFlow,
     PortfolioKpiCache, CapitalAccountKpiCache,
     FundWaterfallSteps, FundWaterfallStepRules, FundWaterfallEnvelopes, FundWaterfallEnvelopeRules,
     ShareClass, FinancialEntry, LPsFundCommitment, FundClosing, 
-    LPsOperationDetails, LPsOperationLPAllocation, LimitedPartner
+    LPsOperationDetails, LPsOperationLPAllocation, LimitedPartner, UserProfile
 )
 
+User = get_user_model()
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
+ 
 def _invalidate_capital_account_cache(fund_id):
     from django.db.models import Model
     if isinstance(fund_id, Model):

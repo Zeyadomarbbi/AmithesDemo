@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useFundData, useFundDetails } from "../../../../hooks/Core/FundContext";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies.js";
 import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 import Toast from '../../../../components/Toast/Toast.jsx';
-import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./FundIdentity.css";
 
 const FundIdentity = () => {
@@ -166,24 +166,16 @@ const FundIdentity = () => {
         {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund currency<span className="fund-identity-required">*</span></label>
-          <div className="fund-identity-input">
-            <SearchableSelect
-              options={currencies.map((c) => ({
-                ...c,
-                name: c.currency_name || c.name || c.currency_code || c.code || "",
-                code: c.currency_code || c.code || "",
-                symbol: c.currency_symbol || c.symbol || "",
-              }))}
-              value={formData.currency_id}
-              onChange={(val) => handleChange("currency_id")({ target: { value: val } })}
-              placeholder={currenciesLoading ? "Loading..." : "Please select"}
-              disabled={currenciesLoading}
-              labelKey="name"
-              valueKey="id"
-              secondaryLabelKey="code"
-              triggerClassName="fund-identity-input-inner"
+            <SimpleDropdown
+                options={currencies.map((c) => ({
+                    id: c.id,
+                    name: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
+                }))}
+                value={formData.currency_id}
+                onChange={(val) => handleChange("currency_id")({ target: { value: val } })}
+                placeholder={currenciesLoading ? "Loading..." : "Please select"}
+                disabled={currenciesLoading}
             />
-          </div>
         </div>
         {/* OPTIONAL */}
         <div className="fund-identity-field">
@@ -230,18 +222,15 @@ const FundIdentity = () => {
         {/* REQUIRED */}
         <div className="fund-identity-field">
           <label className="fund-identity-label">Fund's phase<span className="fund-identity-required">*</span></label>
-          <div className="fund-identity-input">
-              <SearchableSelect
-                options={phases}
-                value={formData.phase_name}
-                onChange={(val) => handleChange("phase_name")({ target: { value: val } })}
-                placeholder={phasesLoading ? "Loading..." : "Please select a phase"}
-                disabled={phasesLoading}
-                labelKey="name"
-                valueKey="name"
-                triggerClassName="fund-identity-input-inner"
+              <SimpleDropdown
+                  options={phases}
+                  value={formData.phase_name}
+                  onChange={(val) => handleChange("phase_name")({ target: { value: val } })}
+                  placeholder={phasesLoading ? "Loading..." : "Please select a phase"}
+                  disabled={phasesLoading}
+                  labelKey="name"
+                  valueKey="name"
               />
-            </div>
         </div>
       </form>
 

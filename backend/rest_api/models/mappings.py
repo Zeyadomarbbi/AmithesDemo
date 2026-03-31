@@ -17,6 +17,7 @@ class MapSynthesisScenario(models.Model):
     )
 
     class Meta:
+        managed = False
         db_table = 'map_synthesis_scenario'
         # Prevent duplicate scenarios within the same synthesis
         unique_together = ('synthesis', 'scenario')

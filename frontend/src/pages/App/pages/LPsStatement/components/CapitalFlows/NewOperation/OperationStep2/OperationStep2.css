@@ -5,11 +5,10 @@
 .op2-table-outer {
   margin-top: 24px;
   width: 100%;
-  overflow-x: auto; /* ✅ scrollbar lives here */
+  overflow-x: auto;
   overflow-y: visible;
-  padding: 0 24px 12px; /* ✅ bottom space so scrollbar is clearly under table */
+  padding: 0 24px 12px;
   box-sizing: border-box;
-
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
 }
@@ -23,9 +22,8 @@
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
   color: #1c1917;
-
-  /* ✅ IMPORTANT: do NOT hide overflow, otherwise the scroll feels "inside" */
-  overflow: visible;
+  overflow: hidden;
+  border: 1px solid rgba(229, 231, 235, 0.9);
 }
 
 /* optional: nicer scrollbar */
@@ -45,7 +43,7 @@
 
 .op2-head-row {
   display: grid;
-  height: 44px;
+  height: 48px;
 }
 
 .op2-head-block {
@@ -55,6 +53,8 @@
   font-size: 14px;
   letter-spacing: 0.01em;
   color: #ffffff;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .op2-head-block--dark {
@@ -95,25 +95,73 @@
   flex: 0 0 auto;
 }
 
+/* ================= COLUMN HEADERS ROW ================= */
+
+.op2-col-headers-row {
+  display: grid;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9);
+}
+
+.op2-col-header {
+  /* No fixed height — tallest sibling drives the row height */
+  min-height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.op2-col-header--right {
+  justify-content: flex-end;
+}
+
+.op2-col-header--eq {
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Flows header cell acts as a sub-grid for multiple flow columns */
+.op2-col-header--flows {
+  display: grid;
+  padding: 0;
+  align-items: stretch;
+}
+
+.op2-main-col-title {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+}
+
 /* ================= BODY ================= */
 
 .op2-body-row {
   display: grid;
-  min-height: 0; /* remove the 360px min-height causing the gap */
+  min-height: 0;
 }
 
 .op2-col {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
-/* LPs */
 .op2-col--lps {
   background: #ffffff;
-  border-right: 1px solid rgba(229, 231, 235, 0.9);
 }
 
-/* Totaux */
 .op2-col--tot {
   background: #ffffff;
 }
@@ -122,26 +170,6 @@
 .op2-col--tot,
 .op2-col--eq {
   min-width: 0;
-}
-
-/* headers */
-.op2-col-header {
-  box-sizing: border-box;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-  padding: 8px 14px; /* Unified padding */
-  border-bottom: 1px solid rgba(229, 231, 235, 0.9); /* Unified border */
-  gap: 6px;
-}
-
-.op2-col-header--right {
-  justify-content: flex-end;
-}
-
-.op2-col-header--eq {
-  justify-content: space-between;
 }
 
 .op2-sort {
@@ -156,7 +184,8 @@
 }
 
 .op2-row {
-  min-height: 48px;
+  height: 48px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -196,27 +225,19 @@
   color: #375a89;
 }
 
-/* ================= BLUE BOX (expands with middle column) ================= */
+/* ================= BLUE BOX ================= */
 
 .op2-col--cap {
   background: #ffffff;
-  border-right: 1px solid rgba(229, 231, 235, 0.9);
 }
 
-/* your figma blue box */
 .op2-bluebox {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-
-  width: 100%;
   height: 100%;
-
-  background: rgba(55, 90, 137, 0.2);
-  background-blend-mode: multiply;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  background: rgba(55, 90, 137, 0.1);
+  border-bottom: none;
 }
 
 .op2-cap-empty {
@@ -234,62 +255,47 @@
   align-items: center;
   padding: 8px 16px;
   gap: 6px;
-
-  width: 158px;
-  height: 32px;
-
   background: rgba(55, 90, 137, 0.2);
   border-radius: 4px;
   border: 1px solid rgba(55, 90, 137, 0.25);
-
   font-family: "Inter";
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.01em;
-
   color: #375a89;
   cursor: pointer;
 }
 
-/* flow header inside blue box */
-.op2-cap-header {
-  width: 100%;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-}
-
-.op2-cap-header-grid {
-  display: grid;
-  width: 100%;
-}
-
+/* Flow header cells — now live inside .op2-col-header--flows */
 .op2-cap-header-cell {
-  border-left: 1px solid rgba(204, 205, 206, 0.35);
-  padding: 10px 12px;
-  min-width: 0;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 6px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
 }
 
 .op2-flow-title {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 14px;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0 auto;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
 }
 
 .op2-flow-subtitle {
+  margin: 0 auto;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
   font-size: 12px;
-  font-weight: 500;
-  line-height: 14px;
-  color: rgba(15, 23, 42, 0.65);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 16px;
+  color: #375A89;
 }
 
 /* flow body */
@@ -303,16 +309,13 @@
   width: 100%;
 }
 
-.op2-flow-col {
-  border-left: 1px solid rgba(204, 205, 206, 0.35);
-}
-
 .op2-flow-cell {
   height: 48px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(204, 205, 206, 0.25);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
   font-variant-numeric: tabular-nums;
 }
 
@@ -322,6 +325,7 @@
   display: grid;
   background: #375a89;
   color: #ffffff;
+  box-sizing: border-box;
 }
 
 .op2-footer-cell {
@@ -343,7 +347,6 @@
 
 .op2-flow-footer-col {
   padding: 0 8px 6px 8px;
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .op2-footer-total-input {
@@ -369,7 +372,8 @@
 }
 
 .op2-footer-dash {
-  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
 }
 
 .op2-footer-input {
@@ -386,7 +390,7 @@
 }
 
 /* ================================
-   OP2 TOP RIGHT BREAKDOWN (like CAS)
+   OP2 TOP RIGHT BREAKDOWN
    ================================ */
 
 .op2-topbar {
@@ -432,7 +436,6 @@
   background: transparent;
   border-radius: 8px;
   cursor: pointer;
-
   font-family: "Inter", sans-serif;
   font-weight: 500;
   font-size: 14px;
@@ -447,6 +450,7 @@
   border-radius: 6px;
   color: #1c1917;
 }
+
 /* ==============================
    EQUALIZATION column (Step2)
    ============================== */
@@ -461,7 +465,6 @@
 
 .op2-col--eq {
   background: #ffffff;
-  border-right: 1px solid rgba(229, 231, 235, 0.9);
 }
 
 .op2-eq-header {
@@ -477,6 +480,12 @@
   padding: 0 4px;
 }
 
+.op2-eq-header-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
 
 .op2-eq-target-input {
   width: 100%;
@@ -499,3 +508,16 @@
   width: 18px;
   text-align: center;
 }
+
+.op2-col-header--eq .wf-text-input-inner::-webkit-outer-spin-button,
+.op2-col-header--eq .wf-text-input-inner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+.op2-col-header--eq .wf-label {
+  text-align: center;
+  width: 100%;
+}
+

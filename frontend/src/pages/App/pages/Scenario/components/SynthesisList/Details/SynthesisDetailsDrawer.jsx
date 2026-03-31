@@ -43,7 +43,6 @@ function SynthesisDetailsDrawer() {
         blueprint.push(
             { id: 'moic_portfolio', name: 'Portfolio MOIC', type: 'multiple', data: {}, isExpandable: true },
             { id: 'duration_avg', name: 'Average duration', type: 'years', data: {}, isExpandable: true },
-            { id: 'bridge', name: 'Bridge', type: 'na', data: {}, isExpandable: true },
             { id: 'hurdle', name: 'Hurdle', type: 'number', data: {}, isExpandable: false },
             { id: 'distributed_total', name: 'Total distributed', type: 'number', data: {}, isExpandable: false },
             { id: 'management_fees', name: 'Management fees', type: 'number', data: {}, isExpandable: false },

@@ -14,11 +14,10 @@ const DISTRIBUTION_MAP = {
   REDEMPTION_OF_SHARES: { label: "Redemption of Shares", variant: "purple" },
 };
 
-const ShareClassCard = ({ shareClass, onDelete }) => {
+const ShareClassCard = ({ shareClass, onEdit, onDelete }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const menuRef = useRef(null);
-
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -42,18 +41,30 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
     variant: "gray" 
   };
 
-  const handleDeleteClick = () => {
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
     setIsMenuOpen(false);
     setIsPromptOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = (e) => {
+    e.stopPropagation();
     if (onDelete) onDelete();
     setIsPromptOpen(false);
   };
 
+  const handleCancelDelete = (e) => {
+    e.stopPropagation();
+    setIsPromptOpen(false);
+  };
+
   return (
-    <div className="share-card">
+    <div className="share-card" onClick={onEdit} style={{ cursor: 'pointer' }}>
       <div className="share-card-header">
         <div className="share-card-title">{shareClass.share_class_name}</div>
         <div className="share-card-menu-container" ref={menuRef}>
@@ -61,7 +72,7 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
             type="button" 
             className="share-card-menu-btn" 
             aria-label="More actions"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={handleMenuClick}
           >
             <MoreActionsIcon />
           </button>
@@ -84,7 +95,7 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
         <div className="share-meta-column">
           <div className="share-meta-label">Nominal value</div>
           <div className="share-meta-value">
-            {shareClass.nominal_value || "–"}
+            {shareClass.nominal_value ? Number(shareClass.nominal_value).toFixed(2) : "–"}
           </div>
         </div>
 
@@ -125,6 +136,7 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
             rel="noopener noreferrer" 
             className="share-file-btn"
             style={{ textDecoration: 'none' }}
+            onClick={(e) => e.stopPropagation()}
           >
             <FileIcon />
             <span>{shareClass.document_name}</span>
@@ -141,7 +153,7 @@ const ShareClassCard = ({ shareClass, onDelete }) => {
           cancelLabel="Cancel"
           type="error"
           onConfirm={handleConfirmDelete}
-          onCancel={() => setIsPromptOpen(false)}
+          onCancel={handleCancelDelete}
         />
       )}
     </div>

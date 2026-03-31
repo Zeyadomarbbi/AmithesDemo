@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 
-import FlowHeader from "./FlowHeader.jsx";
-import FlowFilters from "./FlowFilters.jsx";
-import FlowTable from "./FlowTable.jsx";
+import FlowHeader from "./components/Header/FlowHeader.jsx";
+import FlowFilters from "./components/Filters/FlowFilters.jsx";
+import FlowTable from "./components/Table/FlowTable.jsx";
 import OperationPanel from "./NewOperation/OperationPanel.jsx";
 import { useFlowTypes } from "../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useOperationDetails } from "../../../../hooks/LPsStatement/useCapitalFlowOperationDetails.js";
@@ -37,6 +37,8 @@ export default function CapitalFlows() {
     error: allocError,
     fetchAllAllocations,
     createAllocation,
+    updateAllocation,
+    deleteAllocation
   } = useCapitalFlowLPOperationAllocation(fundId, null);
 
   const loadData = useCallback(async () => {
@@ -74,14 +76,19 @@ export default function CapitalFlows() {
 
   const isFullyLoading = opsLoading || allocLoading;
   const pageError = opsError || allocError;
-
+  const handleOperationFilterChange = (filter) => {
+    setOperationFilter(filter);
+    if (filter === "All operations") {
+      setBreakdown("operations");
+    }
+  };
   return (
     <div className="cf-page">
       <div className="cf-row cf-row--search-breakdown">
         <FlowFilters
           variant="searchOnly"
           operationFilter={operationFilter}
-          setOperationFilter={setOperationFilter}
+          setOperationFilter={handleOperationFilterChange}
           search={search}
           setSearch={setSearch}
         />
@@ -104,7 +111,7 @@ export default function CapitalFlows() {
             <FlowFilters
               variant="chipsOnly"
               operationFilter={operationFilter}
-              setOperationFilter={setOperationFilter}
+              setOperationFilter={handleOperationFilterChange}
               search={search}
               setSearch={setSearch}
             />
@@ -124,7 +131,7 @@ export default function CapitalFlows() {
             <FlowFilters
               variant="chipsOnly"
               operationFilter={operationFilter}
-              setOperationFilter={setOperationFilter}
+              setOperationFilter={handleOperationFilterChange}
               search={search}
               setSearch={setSearch}
             />
@@ -161,8 +168,10 @@ export default function CapitalFlows() {
           onClose={handleClosePanel}
           commitments={commitments}
           createOperationLPAllocation={createAllocation}
+          deleteOperationLPAllocation={deleteAllocation}  // ← add
           existingAllocations={lpAllocations}
           fetchAllAllocations={fetchAllAllocations}
+          operations={operations}
         />
       )}
     </div>

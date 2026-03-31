@@ -16,6 +16,14 @@ const canonicalType = (type) => {
   return "Other";
 };
 
+const isOnOrBeforeCutoff = (dateValue, cutoffDate) => {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+  if (!cutoffDate) return true;
+  return date <= new Date(cutoffDate);
+};
+
 const safeXirr = (cashflows) => {
   try {
     if (!cashflows || cashflows.length < 2) return 0;
@@ -86,10 +94,9 @@ const fetchInvestmentFairValues = async (api, fundId, investmentId) => {
  * METRICS CALCULATION
  */
 const computeInvestmentMetrics = (flows, fairValues, cutoffDate) => {
-  const cutoff = new Date(cutoffDate);
   const scopedFlows = flows
     .filter((f) => f?.date)
-    .filter((f) => new Date(f.date) <= cutoff);
+    .filter((f) => isOnOrBeforeCutoff(f.date, cutoffDate));
 
   if (!scopedFlows.length) return null;
 
@@ -118,13 +125,14 @@ const computeInvestmentMetrics = (flows, fairValues, cutoffDate) => {
       proceeds += Math.abs(amountEur);
       cashflows.push({ date: new Date(flow.date), amount: Math.abs(amountEur) });
     } else if (["Divestment", "Partial divestment", "Other"].includes(typeName)) {
+      proceeds += Math.abs(amountEur);
       cashflows.push({ date: new Date(flow.date), amount: Math.abs(amountEur) });
     }
   });
 
   const scopedFairValues = fairValues
     .filter((fv) => fv?.date)
-    .filter((fv) => new Date(fv.date) <= cutoff)
+    .filter((fv) => isOnOrBeforeCutoff(fv.date, cutoffDate))
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const latestFairValue = scopedFairValues[scopedFairValues.length - 1] || null;
@@ -134,7 +142,7 @@ const computeInvestmentMetrics = (flows, fairValues, cutoffDate) => {
   const fairValue = latestFairValue ? toNumber(latestFairValue.amount ?? (fairFx ? fairValueLc / fairFx : 0)) : 0;
 
   if (fairValue) {
-    cashflows.push({ date: new Date(cutoffDate), amount: fairValue });
+    cashflows.push({ date: new Date(cutoffDate || latestFairValue.date), amount: fairValue });
   }
 
   const grossIrr = safeXirr(
@@ -144,6 +152,63 @@ const computeInvestmentMetrics = (flows, fairValues, cutoffDate) => {
   );
 
   return { cost, proceeds, fairValue, grossIrr };
+};
+
+const buildPortfolioCashflows = (rowsWithMetrics = [], cutoffDate) => {
+  const cutoff = cutoffDate ? new Date(cutoffDate) : null;
+  const cashflows = [];
+
+  rowsWithMetrics.forEach(({ flows = [], fairValues = [] }) => {
+    flows
+      .filter((flow) => flow?.date)
+      .filter((flow) => isOnOrBeforeCutoff(flow.date, cutoffDate))
+      .forEach((flow) => {
+        const typeName = canonicalType(
+          flow.transaction_name ??
+            flow.transaction_type_name ??
+            flow.transaction_type?.name ??
+            flow.transaction_type ??
+            flow.type ??
+            ""
+        );
+
+        const amountLc = toNumber(flow.amount_lc ?? flow.amountLC ?? flow.amount);
+        const fxRate = toNumber(flow.fx_rate ?? flow.fxRate);
+        const amountEur = fxRate ? amountLc / fxRate : toNumber(flow.amount);
+        const absoluteAmount = Math.abs(amountEur);
+
+        if (!Number.isFinite(absoluteAmount) || absoluteAmount === 0) return;
+
+        if (typeName === "Investment") {
+          cashflows.push({ date: new Date(flow.date), amount: -absoluteAmount });
+          return;
+        }
+
+        if (["Dividend", "Interest", "Other", "Divestment", "Partial divestment"].includes(typeName)) {
+          cashflows.push({ date: new Date(flow.date), amount: absoluteAmount });
+        }
+      });
+
+    const scopedFairValues = fairValues
+      .filter((fv) => fv?.date)
+      .filter((fv) => isOnOrBeforeCutoff(fv.date, cutoffDate))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const latestFairValue = scopedFairValues[scopedFairValues.length - 1] || null;
+    if (!latestFairValue) return;
+
+    const fairValueLc = toNumber(latestFairValue.amount_lc ?? latestFairValue.amountLC);
+    const fairFx = toNumber(latestFairValue.fx_rate ?? latestFairValue.fxRate);
+    const fairValue = toNumber(latestFairValue.amount ?? (fairFx ? fairValueLc / fairFx : 0));
+
+    if (Number.isFinite(fairValue) && fairValue !== 0) {
+      cashflows.push({ date: cutoff || new Date(latestFairValue.date), amount: fairValue });
+    }
+  });
+
+  return cashflows
+    .filter((c) => c?.date instanceof Date && !Number.isNaN(c.date.getTime()) && Number.isFinite(c.amount) && c.amount !== 0)
+    .sort((a, b) => a.date - b.date);
 };
 
 /**
@@ -168,18 +233,25 @@ export const fetchPortfolioValueCreationKPIs = async (api, { fundId, cutoffDate 
     Number.isFinite(Number(row?.investment_id ?? row?.id))
   );
 
-  const metricsPerInvestment = await Promise.all(
+  const rowsWithMetrics = await Promise.all(
     rowsWithIds.map(async (row) => {
       const investmentId = Number(row.investment_id ?? row.id);
       const [flows, fairValues] = await Promise.all([
         fetchInvestmentFlows(api, fundId, investmentId),
         fetchInvestmentFairValues(api, fundId, investmentId),
       ]);
-      return computeInvestmentMetrics(flows, fairValues, cutoffDate);
+      return {
+        investmentId,
+        flows,
+        fairValues,
+        metrics: computeInvestmentMetrics(flows, fairValues, cutoffDate),
+      };
     })
   );
 
-  const validMetrics = metricsPerInvestment.filter(Boolean);
+  const validMetrics = rowsWithMetrics
+    .map((row) => row.metrics)
+    .filter(Boolean);
 
   const investmentCost = validMetrics.reduce((sum, item) => sum + item.cost, 0);
   const proceeds = validMetrics.reduce((sum, item) => sum + item.proceeds, 0);
@@ -187,7 +259,7 @@ export const fetchPortfolioValueCreationKPIs = async (api, { fundId, cutoffDate 
   const dealsCount = validMetrics.length;
   const totalValue = proceeds + fairMarketValue;
   const grossMultiple = investmentCost ? totalValue / investmentCost : 0;
-  const grossIrr = validMetrics.reduce((sum, item) => sum + item.grossIrr, 0);
+  const grossIrr = safeXirr(buildPortfolioCashflows(rowsWithMetrics, cutoffDate));
 
   return {
     raw: { investmentCost, proceeds, fairMarketValue, dealsCount, totalValue, grossMultiple, grossIrr },
@@ -205,4 +277,29 @@ export const fetchPortfolioValueCreationKPIs = async (api, { fundId, cutoffDate 
       { name: "Portfolio\nFair Market Value", value: fairMarketValue, isHatched: false },
     ],
   };
+};
+
+export const fetchPortfolioValueCreationKpiMap = async (api, fundIds = []) => {
+  if (!Array.isArray(fundIds) || fundIds.length === 0) return {};
+
+  const entries = await Promise.all(
+    fundIds.map(async (fundId) => {
+      try {
+        const result = await fetchPortfolioValueCreationKPIs(api, { fundId, cutoffDate: null });
+        return [
+          String(fundId),
+          {
+            totalCost: result?.raw?.investmentCost ?? 0,
+            deals: result?.raw?.dealsCount ?? 0,
+            grossIrr: result?.raw?.grossIrr ?? null,
+          },
+        ];
+      } catch (error) {
+        console.error(`Portfolio KPI map failed for fund ${fundId}:`, error.message);
+        return [String(fundId), { totalCost: 0, deals: 0, grossIrr: null }];
+      }
+    })
+  );
+
+  return Object.fromEntries(entries);
 };

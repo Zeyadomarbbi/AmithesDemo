@@ -121,29 +121,51 @@
   color: #111827;
 }
 
+/* --- FOOTER STYLING --- */
 .lp-add-closing-period-modal-footer {
   display: flex;
   gap: 0.8rem;
-  padding-top: 1.5rem;   /* Flexible vertical gap */
+  padding-top: 1.5rem;
+  justify-content: flex-end; /* Aligns single save button to the right */
 }
 
-.lp-add-closing-period-modal-btn-secondary,
+.lp-add-closing-period-modal-footer.is-edit {
+  justify-content: space-between; /* Spreads delete and save buttons apart */
+}
+
 .lp-add-closing-period-modal-btn-primary {
-  flex: 1;
+  min-width: 120px;
+  padding: 0 24px;
   height: 40px;
   border-radius: 4px;
   border: none;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-}
-
-.lp-add-closing-period-modal-btn-secondary {
-  background: #fafaf9;
-  color: #9ca3af;
-}
-
-.lp-add-closing-period-modal-btn-primary {
   background: #f7a93b;
   color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lp-add-closing-period-modal-btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #ef4444; 
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #fef2f2; 
+  color: #ef4444; 
+}
+
+.lp-add-closing-period-modal-btn-danger:hover {
+  background: #fee2e2;
 }

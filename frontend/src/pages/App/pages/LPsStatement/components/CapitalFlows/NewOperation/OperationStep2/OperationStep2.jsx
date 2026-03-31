@@ -8,8 +8,12 @@ import React, {
 } from "react";
 import { useOutletContext } from "react-router-dom";
 import AddFlowModal from "./components/AddFlowModal/AddFlowModal.jsx";
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import { EuroCurrencyIcon }from '/src/components/Icons/FinancialIcons';
+import { EditLineIcon }from '/src/components/Icons/InteractiveIcons';
 import { useFlowTypes } from "../../../../../../hooks/LPsStatement/useFlowTypes.js";
 import { useCapitalFlowFlowDetails } from "../../../../../../hooks/LPsStatement/useCapitalFlowFlowDetails.js";
+import { useNumberFormatter, usePercentageFormatter } from '/src/components/useFormatter.js'
 import "./OperationStep2.css";
 
 const LPS_W = 340;
@@ -56,18 +60,6 @@ function parseMoney(value) {
   return any ? sum : null;
 }
 
-function formatMoney(n) {
-  if (n === null || n === undefined || !Number.isFinite(n)) return "-";
-  return new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(n);
-}
-
-function formatPct(n) {
-  if (n === null || n === undefined || !Number.isFinite(n)) return "-%";
-  return `${n.toFixed(2)}%`;
-}
 
 function rowAmountForFlow(flow, row, flowTotal) {
   const pct = row.ownershipPct;
@@ -118,7 +110,10 @@ const OperationStep2 = forwardRef(function OperationStep2(
   },
   ref
 ) {
+  const formatNumber = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
   const [showAddFlow, setShowAddFlow] = useState(false);
+  const [flowPercentInputs, setFlowPercentInputs] = useState({});
   const outlet = useOutletContext() || {};
   const fundId = fundIdProp ?? outlet.fundId;
   const opKind = useMemo(() => {
@@ -271,8 +266,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
   const isEqualization = useMemo(() => {
     return (safeDraft.flows ?? []).some(f => f.isSyntheticEqualization);
   }, [safeDraft.flows]);
-    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
-  console.log("flowTypes at inject time:", flowTypes, "opKind:", opKind);
 
   const filteredCommitments = useMemo(() => {
     if (!dueDate) return Array.isArray(commitments) ? commitments : [];
@@ -482,12 +475,14 @@ const OperationStep2 = forwardRef(function OperationStep2(
     console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
 
     const newFlow = {
-      id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      label,
-      flowType: flowData?.flowTypeName || flowData?.flowType || "",
-      data: { ...flowData, flowTypeId },
-      operation_flow_id: null,
-      isSyntheticEqualization: eqFlowTypeId !== null && Number(flowTypeId) === Number(eqFlowTypeId)
+        id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        label,
+        flowType: flowData?.flowTypeName || flowData?.flowType || "",
+        data: { ...flowData, flowTypeId },
+        operation_flow_id: null,
+        isSyntheticEqualization: eqFlowTypeId !== null && Number(flowTypeId) === Number(eqFlowTypeId),
+        alignAll: flowData?.alignAll ?? true,
+        selectedLpIds: flowData?.selectedLpIds ?? null,
     };
     
     setFlows((prev) => [...prev, newFlow]);
@@ -507,11 +502,27 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return `${LPS_W}px 1fr ${TOT_W}px`;
   }, [isEqualization, flows.length, capMinPx]);
 
-  const flowCols = flows.length > 0 ? `repeat(${flows.length}, ${FLOW_W}px)` : undefined;
+  const flowCols = flows.length > 0 ? `repeat(${flows.length}, minmax(${FLOW_W}px, 1fr))` : undefined;
 
   const onChangeFlowTotal = (flowId, raw) => {
-    setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
-    setFlowTotals((prev) => ({ ...prev, [flowId]: parseMoney(raw) }));
+      setFlowTotalInputs((prev) => ({ ...prev, [flowId]: raw }));
+      const parsed = parseMoney(raw);
+      setFlowTotals((prev) => ({ ...prev, [flowId]: parsed }));
+      const pct = (parsed !== null && Number.isFinite(parsed) && totalCommitment > 0)
+          ? String(((parsed / totalCommitment) * 100).toFixed(4))
+          : "";
+      setFlowPercentInputs((prev) => ({ ...prev, [flowId]: pct }));
+  };
+  const onChangeFlowPercent = (flowId, raw) => {
+      const pct = parseMoney(raw);
+      const newTotal = (pct !== null && Number.isFinite(pct) && totalCommitment > 0)
+          ? (pct / 100) * totalCommitment
+          : null;
+      setFlowTotalInputs((prev) => ({
+          ...prev,
+          [flowId]: newTotal !== null ? String(newTotal) : "",
+      }));
+      setFlowTotals((prev) => ({ ...prev, [flowId]: newTotal }));
   };
 
   const eqTargetPct = useMemo(() => {
@@ -540,15 +551,20 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const pct = r.ownershipPct;
       let sum = 0;
       let hasAny = false;
-      
+            
       if (pct !== null && pct !== undefined && Number.isFinite(pct)) {
-        for (const fid of flowIds) {
-          const t = flowTotals[fid];
-          if (t !== null && t !== undefined && Number.isFinite(t)) { 
-            sum += t * pct; 
-            hasAny = true; 
+          for (const f of flows) {
+              const fid = f.id;
+              const excluded = f.selectedLpIds !== null &&
+                  Array.isArray(f.selectedLpIds) &&
+                  !f.selectedLpIds.includes(r.id);
+              if (excluded) continue;
+              const t = flowTotals[fid];
+              if (t !== null && t !== undefined && Number.isFinite(t)) { 
+                  sum += t * pct; 
+                  hasAny = true; 
+              }
           }
-        }
       }
 
       if (isEqualization) {
@@ -642,13 +658,20 @@ const OperationStep2 = forwardRef(function OperationStep2(
       const pct = r.ownershipPct;
       const rowFlows = {};
 
-      for (const f of flows) {
+    for (const f of flows) {
+        const excluded = f.selectedLpIds !== null &&
+            Array.isArray(f.selectedLpIds) &&
+            !f.selectedLpIds.includes(r.id);
+        if (excluded) {
+            rowFlows[f.id] = null;
+            continue;
+        }
         const t = flowTotals[f.id];
         rowFlows[f.id] =
-          t !== null && t !== undefined && Number.isFinite(t) &&
-          pct !== null && pct !== undefined && Number.isFinite(pct)
-            ? t * pct : null;
-      }
+            t !== null && t !== undefined && Number.isFinite(t) &&
+            pct !== null && pct !== undefined && Number.isFinite(pct)
+                ? t * pct : null;
+    }
 
       const mainAmount = totalsByRowId[r.id];
       const scKey = breakdown === "share-class" ? (r.shareClassKey ?? r.name ?? null) : (r.shareClassId ?? null);
@@ -675,27 +698,31 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       const nomNum = parseFloat(nominalVal);
       const issuanceMethod = scObj?.issuance_method;
-      
       let computedShares = null;
-
       if (!Number.isFinite(nomNum) || nomNum <= 0) {
         computedShares = null;
-      } else if (issuanceMethod === "PRO_RATA_CALLED") {
-        computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+      } else if (isDistribution) {
+        // Distribution — shares redeemed
+        const distributionMethod = scObj?.distribution_method;
+        if (distributionMethod === "REDEMPTION_OF_SHARES") {
+          computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+        } else {
+          // Dividend — no shares redeemed
+          computedShares = 0;
+        }
       } else {
-        const currentCommitment = r.commitmentNumber ?? 0;
-        const prevCommitment = breakdown === "share-class"
-          ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0)
-          : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
-        const delta = currentCommitment - prevCommitment;
-        computedShares = delta > 0 ? delta / nomNum : 0;
-          console.log("[shares debug]", r.id, {
-            currentCommitment,
-            prevCommitment,
-            delta: currentCommitment - prevCommitment,
-            nomNum,
-            issuanceMethod,
-          });
+        // Capital call / Equalization — shares issued
+        if (issuanceMethod === "PRO_RATA_CALLED" || issuanceMethod === "Pro Rata Called Amount") {
+          computedShares = Number.isFinite(mainAmount) ? mainAmount / nomNum : null;
+        } else {
+          // Upfront
+          const currentCommitment = r.commitmentNumber ?? 0;
+          const prevCommitment = breakdown === "share-class"
+            ? (historicalData?.byClass?.[r.shareClassKey]?.commitmentAmount ?? 0)
+            : (historicalData?.byLp?.[r.id]?.commitmentAmount ?? 0);
+          const delta = currentCommitment - prevCommitment;
+          computedShares = delta > 0 ? delta / nomNum : 0;
+        }
       }
 
       perLpOut[r.id] = {
@@ -728,7 +755,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
         input_type: "amount",
         input_amount: flowTotal,
         input_percentage: null,
-        computed_total_amount: eqGrandTotal,
+        computed_total_amount: flowTotal,
         allocation_percentage_of_commitment:
           totalCommitment > 0 && computedTotalAmount !== null && Number.isFinite(computedTotalAmount)
             ? Math.max(0, computedTotalAmount / totalCommitment) * 100
@@ -793,7 +820,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return <div style={{ padding: 20 }}>Loading...</div>;
   }
 
-  return (
+ return (
     <>
       {saveErrorMsg && (
         <div style={{ marginBottom: 10, color: "#b42318", fontSize: 12 }}>
@@ -827,6 +854,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
       <div className="op2-table-outer">
         <div className="op2-table-inner">
+
           {/* TOP STRIP */}
           <div className="op2-head-row" style={{ gridTemplateColumns: gridCols }}>
             <div className="op2-head-block op2-head-block--dark" />
@@ -852,14 +880,57 @@ const OperationStep2 = forwardRef(function OperationStep2(
             )}
           </div>
 
-          {/* BODY */}
+          {/* COLUMN HEADERS ROW — all headers as siblings so tallest drives height */}
+          <div className="op2-col-headers-row" style={{ gridTemplateColumns: gridCols }}>
+
+            {/* LPs / Share Class header */}
+            <div className="op2-col-header">
+              <span className="op2-main-col-title">
+                {breakdown === "share-class" ? "Share class" : "LPs"}
+              </span>
+            </div>
+
+            {/* Equalization header */}
+            {isEqualization && (
+              <div className="op2-col-header op2-col-header--eq">
+                <label className="wf-label">Equalization</label>
+                <div className="wf-field-input wf-input-with-unit">
+                  <input
+                    type="number"
+                    className="wf-text-input-inner"
+                    placeholder="Target %"
+                    value={eqTargetInput}
+                    onChange={(e) => setEqTargetInput(e.target.value)}
+                    disabled={isSaving}
+                    inputMode="decimal"
+                  />
+                  <PercentageIcon />
+                </div>
+              </div>
+            )}
+
+            {/* Flows header */}
+            <div className="op2-col-header op2-col-header--flows" style={{ gridTemplateColumns: flowCols }}>
+              {flows.length === 0 ? null : flows.map((flow) => (
+                <div key={flow.id} className="op2-cap-header-cell">
+                  <div className="op2-flow-title">{flow.label}</div>
+                  <div className="op2-flow-subtitle">{flow.flowType}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total header */}
+            <div className="op2-col-header op2-col-header--right">
+              <span className="op2-main-col-title">{totalsLabel}</span>
+            </div>
+
+          </div>
+
+          {/* BODY — headers removed from inside each col */}
           <div className="op2-body-row" style={{ gridTemplateColumns: gridCols }}>
+
             {/* LPs / Share Class column */}
             <div className="op2-col op2-col--lps">
-              <div className="op2-col-header">
-                <span>{breakdown === "share-class" ? "Share class" : "LPs"}</span>
-                <span className="op2-sort">⇅</span>
-              </div>
               <div className="op2-rows">
                 {rows.map((r) => (
                   <div key={r.id} className="op2-row">
@@ -875,23 +946,12 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {/* Equalization column */}
             {isEqualization && (
               <div className="op2-col op2-col--eq">
-                <div className="op2-col-header op2-col-header--eq">
-                  <span>Equalization</span>
-                  <input
-                    className="op2-eq-target-input"
-                    placeholder="Target %"
-                    value={eqTargetInput}
-                    onChange={(e) => setEqTargetInput(e.target.value)}
-                    disabled={isSaving}
-                    inputMode="decimal"
-                  />
-                </div>
                 <div className="op2-rows">
                   {rows.map((r) => {
                     const v = eqByRowId[r.id];
                     return (
                       <div key={r.id} className="op2-row op2-row--right">
-                        <span className="op2-num">{v === null ? "-" : formatMoney(v)}</span>
+                        <span className="op2-num">{v === null ? "-" : formatNumber(v)}</span>
                       </div>
                     );
                   })}
@@ -909,57 +969,51 @@ const OperationStep2 = forwardRef(function OperationStep2(
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="op2-cap-header">
-                      <div className="op2-cap-header-grid" style={{ gridTemplateColumns: flowCols }}>
-                        {flows.map((flow) => (
-                          <div key={flow.id} className="op2-cap-header-cell">
-                            <div className="op2-flow-title">{flow.label}</div>
-                            <div className="op2-flow-subtitle">{flow.flowType}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="op2-cap-body">
-                      <div className="op2-cap-grid" style={{ gridTemplateColumns: flowCols }}>
-                        {flows.map((flow) => {
-                          const total = flowTotals[flow.id];
-                          return (
-                            <div key={flow.id} className="op2-flow-col">
-                              {rows.map((r) => {
+                  <div className="op2-cap-body">
+                    <div className="op2-cap-grid" style={{ gridTemplateColumns: flowCols }}>
+                      {flows.map((flow) => {
+                        const total = flowTotals[flow.id];
+                        return (
+                          <div key={flow.id} className="op2-flow-col">
+                            {rows.map((r) => {
+                                const excluded = flow.selectedLpIds !== null &&
+                                    Array.isArray(flow.selectedLpIds) &&
+                                    !flow.selectedLpIds.includes(r.id);
+
+                                if (excluded) {
+                                    return (
+                                        <div key={r.id} className="op2-flow-cell">-</div>
+                                    );
+                                }
+
                                 const pct = r.ownershipPct;
                                 const value =
-                                  total !== null && total !== undefined && Number.isFinite(total) &&
-                                  pct !== null && pct !== undefined && Number.isFinite(pct)
-                                    ? total * pct : null;
+                                    total !== null && total !== undefined && Number.isFinite(total) &&
+                                    pct !== null && pct !== undefined && Number.isFinite(pct)
+                                        ? total * pct : null;
                                 return (
-                                  <div key={r.id} className="op2-flow-cell">
-                                    {value === null ? "-" : formatMoney(value)}
-                                  </div>
+                                    <div key={r.id} className="op2-flow-cell">
+                                        {value === null ? "-" : formatNumber(value)}
+                                    </div>
                                 );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Totaux */}
+            {/* Totals column */}
             <div className="op2-col op2-col--tot">
-              <div className="op2-col-header op2-col-header--right">
-                <span>{totalsLabel}</span>
-                <span className="op2-sort">⇅</span>
-              </div>
               <div className="op2-rows">
                 {rows.map((r) => {
                   const v = totalsByRowId[r.id];
                   return (
                     <div key={r.id} className="op2-row op2-row--right">
-                      <span className="op2-num">{v === null ? "-" : formatMoney(v)}</span>
+                      <span className="op2-num">{v === null ? "-" : formatNumber(v)}</span>
                     </div>
                   );
                 })}
@@ -973,71 +1027,99 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
             {isEqualization && (
               <div className="op2-footer-cell">
-                <div className="op2-footer-total-input">
-                  <span className="op2-footer-euro">€</span>
-                  <span className="op2-footer-dash">
-                    {eqGrandTotal === null ? "-" : formatMoney(eqGrandTotal)}
-                  </span>
-                </div>
-                <div className="op2-footer-percent">
-                  = {eqGrandTotalPct === null ? "-%" : formatPct(eqGrandTotalPct)}
-                </div>
+                  <div className="op2-footer-total-input">
+                      <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(eqGrandTotal)}</span>
+                      <span><EuroCurrencyIcon /></span>
+                  </div>
+                  <div className="op2-footer-percent">
+                      <div className="op2-footer-total-input">
+                          <span className="op2-footer-dash">{eqGrandTotalPct === null ? "-" : eqGrandTotalPct.toFixed(2)}</span>
+                          <span><PercentageIcon /></span>
+                      </div>
+                  </div>
               </div>
             )}
 
             <div className="op2-footer-cell op2-footer-cell--cap">
-              {flows.length === 0 ? (
+            {flows.length === 0 ? (
                 <>
-                  <div className="op2-footer-total-input op2-footer-total-input--wide">
-                    <span className="op2-footer-euro">€</span>
-                    <input className="op2-footer-input" disabled />
-                  </div>
-                  <div className="op2-footer-percent">= -%</div>
-                </>
-              ) : (
-                <div className="op2-cap-footer-grid" style={{ gridTemplateColumns: flowCols }}>
-                  {flows.map((flow) => (
-                    <div key={flow.id} className="op2-flow-footer-col">
-                      <div className="op2-footer-total-input">
-                        <span className="op2-footer-euro">€</span>
-                        <input
-                          className="op2-footer-input"
-                          value={flowTotalInputs[flow.id] ?? ""}
-                          onChange={(e) => onChangeFlowTotal(flow.id, e.target.value)}
-                          inputMode="decimal"
-                          placeholder=""
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="op2-footer-percent">= {formatPct(flowPercents[flow.id])}</div>
+                    <div className="op2-footer-total-input op2-footer-total-input--wide">
+                        <input className="op2-footer-input" disabled />
+                        <span><EuroCurrencyIcon /></span>
                     </div>
-                  ))}
+                    <div className="op2-footer-percent">
+                        <div className="op2-footer-total-input">
+                            <span className="op2-footer-dash">-</span>
+                            <span><PercentageIcon /></span>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className="op2-cap-footer-grid" style={{ gridTemplateColumns: flowCols }}>
+                {flows.map((flow) => (
+                    <div key={flow.id} className="op2-flow-footer-col">
+                        <div className="op2-footer-total-input">
+                            <input
+                                className="op2-footer-input"
+                                value={flowTotalInputs[flow.id] ?? ""}
+                                onChange={(e) => onChangeFlowTotal(flow.id, e.target.value)}
+                                inputMode="decimal"
+                                placeholder=""
+                                disabled={isSaving}
+                            />
+                            <span> <EuroCurrencyIcon /></span>
+                        </div>
+                        <div className="op2-footer-percent">
+                            <div className="op2-footer-total-input">
+                                <input
+                                    className="op2-footer-input"
+                                    value={flowPercentInputs[flow.id] ?? (flowPercents[flow.id] !== null ? String(flowPercents[flow.id]?.toFixed(2) ?? "") : "")}
+                                    onChange={(e) => {
+                                        setFlowPercentInputs((prev) => ({ ...prev, [flow.id]: e.target.value }));
+                                        onChangeFlowPercent(flow.id, e.target.value);
+                                    }}
+                                    inputMode="decimal"
+                                    placeholder="ex. 10.00"
+                                    disabled={isSaving}
+                                />
+                                <span> <PercentageIcon /></span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
                 </div>
               )}
             </div>
 
             <div className="op2-footer-cell">
               <div className="op2-footer-total-input">
-                <span className="op2-footer-euro">€</span>
-                <span className="op2-footer-dash">{grandTotal === null ? "-" : formatMoney(grandTotal)}</span>
+                  <span className="op2-footer-dash">{grandTotal === null ? "-" : formatNumber(grandTotal)}</span>
+                  <span><EuroCurrencyIcon /></span>
               </div>
-              <div className="op2-footer-percent">= {formatPct(grandPercent)}</div>
+              <div className="op2-footer-percent">
+                  <div className="op2-footer-total-input">
+                      <span className="op2-footer-dash">{grandPercent === null ? "-" : formatPercent(grandPercent)}</span>
+                      <span><PercentageIcon /></span>
+                  </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
       {showAddFlow && (
-        <AddFlowModal 
-          onClose={closeFlow} 
-          onSave={handleSaveFlow} 
-          isSaving={isSaving} 
-          flowTypes={filteredFlowTypes}      
-          isLoading={isLoadingTypes}
+        <AddFlowModal
+            onClose={closeFlow}
+            onSave={handleSaveFlow}
+            isSaving={isSaving}
+            flowTypes={filteredFlowTypes}
+            isLoading={isLoadingTypes}
+            lpRows={rows}
         />
       )}
     </>
   );
-});
+})
 
 export default OperationStep2;

@@ -73,7 +73,7 @@ export default function DrawerDetails({
         switch (type) {
             case 'pct':      return formatPercent(value * 100);
             case 'multiple': return `${value.toFixed(2)}x`;
-            case 'years':    return `${value} years`;
+            case 'years':    return `${value.toFixed(2)} years`;
             case 'number':   return formatNumber(value);
             case 'na':       return 'n.a';
             default:         return value;
@@ -108,7 +108,6 @@ export default function DrawerDetails({
                 <div className="scenario-synthesis-header-bottom-pad"></div>
             </div>
 
-            {/* position:relative so the spinner can absolute-fill it */}
             <div className="scenario-synthesis-drawer-table-wrapper" style={{ position: 'relative' }}>
                 {loading && <TableSpinner />}
 
@@ -131,10 +130,11 @@ export default function DrawerDetails({
                                         <SortableHeaderRenderer
                                             label={scenario.title}
                                             columnKey={`scenario_${scenario.id}`}
-                                            currentSortKey={sortKey}
-                                            toggleSort={toggleSort}
+                                            currentSortKey={null}
+                                            toggleSort={() => {}}
                                             center={false}
                                             showCurrency={true}
+                                            showSortIcon={false}
                                         />
                                     </th>
                                 ))}

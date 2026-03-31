@@ -7,7 +7,25 @@ function getAccessToken() {
 
 const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
 
-async function request(endpoint, options = {}) {
+async function refreshAccessToken() {
+  const refresh = localStorage.getItem('refresh');
+  if (!refresh) return false;
+
+  const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh }),
+  });
+
+  if (!response.ok) return false;
+
+  const data = await response.json();
+  localStorage.setItem('access', data.access);
+  if (data.refresh) localStorage.setItem('refresh', data.refresh);
+  return true;
+}
+
+async function request(endpoint, options = {}, retry = true) {
   const token = getAccessToken();
   const isFormData = options.body instanceof FormData;
 
@@ -20,10 +38,9 @@ async function request(endpoint, options = {}) {
     },
   });
 
-  if (response.status === 401) {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    window.location.href = "/login";
+  if (response.status === 401 && retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return request(endpoint, options, false); // one retry
     throw new Error("Unauthorized");
   }
 
@@ -31,7 +48,9 @@ async function request(endpoint, options = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.error || "Request failed");
+    const error = new Error(errorData.detail || errorData.error || "Request failed");
+    error.response = { data: errorData, status: response.status };
+    throw error;
   }
 
   return response.json();

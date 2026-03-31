@@ -125,7 +125,8 @@ function KPIDashboard() {
     if (!casData?.basic_kpis) return [];
     const k = casData.basic_kpis;
     const irr = casData.irr;
-    const fmt = (v) => v != null ? (v / 1_000_000).toFixed(2) : 'N/A';
+    
+    const fmt = (v) => v != null ? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
     const fmtX = (v) => v != null ? `${v.toFixed(2)}x` : 'N/A';
     const fmtPct = (v) => v != null ? `${(v).toFixed(2)}%` : 'N/A';
 

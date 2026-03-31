@@ -13,7 +13,7 @@ const ProtectedRoute = () => {
 
   if (loading) {
     console.log("[ProtectedRoute] Still loading session...");
-    return <div>Loading session...</div>;
+    return <div></div>;
   }
 
   if (!user) {

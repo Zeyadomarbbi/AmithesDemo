@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { CloseIcon } from '/src/components/Icons/InteractiveIcons'; 
 import { useTargetMode } from '../../../../../../../../hooks/Scenarios/useTargetMode';
+import Toast from '../../../../../../../../components/Toast/Toast'
 import './TargetSelectionModal.css';
 
 const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fundId, scenarioId, unlockedPortfolios = [] }) => {
     const [activeTarget, setActiveTarget] = useState({ entity: null, metric: null, value: '' });
     const { executeTargetMode, loading, error } = useTargetMode(fundId, scenarioId);
     const [localError, setLocalError] = useState(null);
-
+    const [dismissedError, setDismissedError] = useState(false);
+    const displayError = !dismissedError && (localError || error);
     if (!isOpen) return null;
 
     const columns = ['Fund', ...shareClasses];
@@ -19,6 +21,7 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
 
     const handleInputChange = (entity, metricId, value) => {
         setLocalError(null);
+        setDismissedError(false);
         const sanitizedValue = value.replace(/[^0-9.-]/g, '');
         setActiveTarget(
             sanitizedValue === ''
@@ -76,7 +79,7 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
         }
     };
 
-    const displayError = localError || error;
+
     const hasActiveTarget = activeTarget.value !== '';
 
     return (
@@ -93,19 +96,6 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                 </div>
 
                 <div className="trgt-selection-mode-body">
-                    {/* Error Banner */}
-                    {displayError && (
-                        <div className="trgt-selection-mode-error-banner">
-                            <span>⚠ {displayError}</span>
-                            <button 
-                                className="trgt-selection-mode-error-dismiss" 
-                                onClick={() => setLocalError(null)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    )}
-
                     <table className="trgt-selection-mode-table">
                         <thead>
                             <tr>
@@ -194,6 +184,14 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
                         {loading ? 'Calculating...' : 'Next'}
                     </button>
                 </div>
+                {displayError && (
+                    <Toast
+                        type="error"
+                        title="Error"
+                        message={displayError}
+                        onClose={() => { setLocalError(null); setDismissedError(true); }}
+                    />
+                    )}
             </div>
         </div>
     );
