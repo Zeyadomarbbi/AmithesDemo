@@ -3,7 +3,7 @@
  * Note: These require the 'api' instance from useApi() to be passed in by the caller.
  */
 
-import { fetchPortfolioValueCreationKpiMap } from "../../Dashboard/components/KPIDashboard/PortfolioKPIs/portfolioCard/portfolioCardnChartCalculations";
+import { fetchPortfolioValueCreationKpiMap } from "../../Dashboard/components/KPIDashboard/PortfolioKPIs/PortfolioCard/portfolioCardnChartCalculations";
 
 export async function fetchFundPortfolioKpi(api, fundId) {
   if (!fundId) {
