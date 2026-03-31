@@ -193,6 +193,46 @@
   background-color: #E5E7EB;
 }
 
+/* --- Interactive State Sync --- */
+
+/* 1. Input & Static Box Sync */
+.wf-field-input,
+.wf-static-input-box {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wf-field-input:hover,
+.wf-static-input-box:hover {
+  border-color: #375A89;
+}
+
+.wf-field-input:focus-within {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  background: #FFFFFF;
+}
+
+/* 2. Checkbox Sync */
+.wf-checkbox-custom {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.wf-checkbox-custom:hover {
+  border-color: #375A89;
+}
+
+.wf-checkbox-custom:focus-visible {
+  outline: none;
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* 3. Static Box Focus (if focusable) */
+.wf-static-input-box:focus-within {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
 /* Mobile Adjustments */
 @media (max-width: 768px) {
   .wf-step-body {

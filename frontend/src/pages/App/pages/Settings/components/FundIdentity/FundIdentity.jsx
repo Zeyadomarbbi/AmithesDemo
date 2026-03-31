@@ -169,7 +169,7 @@ const FundIdentity = () => {
             <SimpleDropdown
                 options={currencies.map((c) => ({
                     id: c.id,
-                    name: c.currency_name || c.name || c.currency_code || c.code || "",
+                    name: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
                 }))}
                 value={formData.currency_id}
                 onChange={(val) => handleChange("currency_id")({ target: { value: val } })}

@@ -528,6 +528,39 @@
   box-shadow: none !important;
 }
 
+.share-class-field-input--with-icon,
+.share-drawer-textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.share-class-field-input--with-icon:hover,
+.share-drawer-textarea:hover {
+  border-color: #375A89;
+}
+
+.share-class-field-input--with-icon:focus-within,
+.share-drawer-textarea:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  background: #FFFFFF;
+}
+
+/* 2. Toggle Group & Upload Box Sync */
+.share-toggle-group,
+.share-upload-box {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.share-toggle-group:hover,
+.share-upload-box:hover {
+  border-color: #375A89;
+}
+
+/* 3. Button Sync */
+.share-drawer-footer-btn {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
 /* --- Mobile Response --- */
 @media (max-width: 768px) {
   .share-drawer {
