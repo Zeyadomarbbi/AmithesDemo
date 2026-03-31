@@ -4,7 +4,7 @@ import { useOutletContext } from "react-router-dom";
 /* Components & Icons */
 import { PlusIcon, TransferIcon, FilterColumnsIcon, CheckMarkIcon, EditIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import { ChevronDownIcon, RightArrowIcon } from "../../../../../../components/Icons/DirectionIcons.jsx";
-import SearchBox from "../../../../../../components/SearchBox/SearchBox.jsx";
+import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import AddPeriodModal from "./components/AddClosingPeriod/AddPeriodModal.jsx";
 import AddTransferModal from "./components/AddTransferModal/AddTransferModal.jsx";
 import LPsDashboard from "./components/LPsDashboard/LPsDashboard.jsx";
@@ -318,9 +318,8 @@ export default function LPsRegister() {
         {/* Row 1 */}
         <div className="lp-toolbar-row">
           <div className="lp-toolbar-left">
-            <SearchBox 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
+            <SearchBar 
+              onSearch={setSearchTerm} 
               placeholder="Search by LP..." 
             />
           </div>
@@ -380,9 +379,8 @@ export default function LPsRegister() {
               {colPickerOpen && (
                 <div className="quarter-dropdown">
                   <div className="quarter-search-wrapper">
-                    <SearchBox
-                      value={colSearchTerm}
-                      onChange={(e) => setColSearchTerm(e.target.value)}
+                    <SearchBar
+                      onSearch={setColSearchTerm}
                       placeholder="Filter closings..."
                     />
                   </div>

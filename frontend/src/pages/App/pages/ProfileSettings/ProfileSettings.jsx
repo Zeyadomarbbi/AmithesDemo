@@ -32,29 +32,33 @@ function ProfileSettings() {
   }
 
   return (
-    <div className="profile-settings-page">
+    <div className="profile-settings-page">
+      <div className="profile-settings-page-container">
+        {/* 1. Header Row */}
+        <div className="profile-settings-page-header">
+          <h1 className="profile-settings-page-title">Settings</h1>
+        </div>
 
-      <div className="profile-settings-header">
-        <h1 className="profile-settings-title">Settings</h1>
-      </div>
+        {/* 2. Tabs Row */}
+        <div className="profile-settings-page-tabs">
+          {TABS.map(tab => (
+            <button
+              key={tab.path}
+              className={`profile-settings-page-tab ${activeMap[tab.path] ? 'active' : ''}`}
+              onClick={() => navigate(tab.path)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      <div className="profile-settings-tabs">
-        {TABS.map(tab => (
-          <button
-            key={tab.path}
-            className={`profile-settings-tab-item ${activeMap[tab.path] ? 'active' : ''}`}
-            onClick={() => navigate(tab.path)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="profile-settings-content">
-        <Outlet context={{ user, countries }} />
-      </div>
-    </div>
-  );
+        {/* 3. Content Area */}
+        <div className="profile-settings-page-content-area">
+          <Outlet context={{ user, countries }} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default ProfileSettings;

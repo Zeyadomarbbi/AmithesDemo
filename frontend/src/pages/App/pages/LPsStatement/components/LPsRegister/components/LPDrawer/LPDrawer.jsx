@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { CloseIcon, PlusIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { ChevronDoubleLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
 import { LocationIcon } from "../../../../../../../../components/Icons/MiscIcons.jsx";
 import TranchCard from "./components/TranchCard.jsx";
 import Toast from "../../../../../../components/Toast/Prompt.jsx";
-
-/* Styles */
 import "./LPDrawer.css";
 
 const EMPTY_FORM = {
@@ -299,16 +298,13 @@ export default function LPDrawer({
               </div>
               <div className="lp-drawer-field">
                 <label className="lp-drawer-field-label">Country<span className="lp-drawer-required">*</span></label>
-                <SearchableSelect
-                  options={countries ?? []}
-                  value={form.countryId}
-                  onChange={(val) => setForm(prev => ({ ...prev, countryId: val }))}
-                  placeholder="Select Country"
-                  labelKey="name"
-                  valueKey="id"
-                  disabled={isSubmitting || countriesLoading}
-                  triggerClassName="lp-drawer-field-input"
-                />
+                  <SimpleDropdown
+                      options={countries ?? []}
+                      value={form.countryId}
+                      onChange={(val) => setForm(prev => ({ ...prev, countryId: val }))}
+                      placeholder="Select Country"
+                      disabled={isSubmitting || countriesLoading}
+                  />
               </div>
             </div>
           </section>

@@ -1,48 +1,59 @@
 /* Main Page Container */
-.scenarios-page-container {
+.scenarios-page {
   display: flex;
   flex-direction: column;
-  width: 100%; /* Fills the 1232px area created by the padding above */
-  
-  /* --- EXACT FIGMA GAP --- */
-  gap: 22px; 
+  gap: 24px;
+  width: 100%;
+  background-color: #ffffff;
 }
 
-/* =========================================
-   FRAME 1: Header
-   ========================================= */
-.scenarios-frame-1 {
+.scenarios-page-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* HEADER */
+.scenarios-page-header {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0px;
+  justify-content: space-between;
   width: 100%;
-  /* Height determines layout flow, set to auto to fit text line-height */
-  height: auto; 
-  flex: none;
-  order: 0;
-  flex-grow: 0;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
-.scenarios-title {
-  /* Font family/font-display */
-  font-family: 'Crimson Pro', serif; 
-  
-  /* Medium */
-  font-weight: 500;
+.scenarios-page-title {
+  font-family: "Crimson Pro", serif;
   font-style: normal;
-  
-  /* Font size/display-sm */
+  font-weight: 500;
   font-size: 30px;
-  
-  /* Line height: 100% */
-  line-height: 100%; 
-  
-  /* Letter spacing: 0% */
-  letter-spacing: 0;
-  
-  /* Color */
-  color: #1C1917;
-  
+  line-height: 33px;
+  color: #1c1917;
   margin: 0;
+  white-space: nowrap;
+}
+
+/* CONTENT AREA */
+.scenarios-page-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px; /* Keeps your original Figma spacing between controls and lists */
+}
+
+/* RESPONSIVE HEADER */
+@media (max-width: 600px) {
+  .scenarios-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .scenarios-page-title {
+    font-size: 24px;
+    white-space: normal;
+  }
 }

@@ -8,7 +8,6 @@
 .lp-page {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
   width: 100%;
   background-color: #ffffff;
 }
@@ -18,20 +17,30 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  gap: 24px;
 }
 
 /* HEADER */
 .lp-page-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 24px;
+  box-sizing: border-box;
   flex-shrink: 0;
 }
 
 .lp-page-title {
   font-family: "Crimson Pro", serif;
+  font-style: normal;
   font-weight: 500;
   font-size: 30px;
-  line-height: 100%;
+  line-height: 33px;
   color: #1c1917;
-  padding-bottom: 24px;
+  margin: 0;
+  white-space: nowrap;
 }
 
 /* TABS */
@@ -41,8 +50,7 @@
   align-items: center;
   gap: 16px; 
   width: 100%;
-  border-bottom: 1px solid var(--lp-border-light);
-  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
 }
 
 .lp-page-tab {
@@ -54,19 +62,21 @@
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  color: var(--lp-text-blue);
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px; 
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color 0.2s;
 }
 
 .lp-page-tab:hover {
-  color: var(--lp-text-blue);
+  color: #375a89;
 }
 
 .lp-page-tab--active {
-  color: var(--lp-text-blue);
-  border-bottom: 2px solid var(--lp-tabs-underline);
+  color: #375a89;
+  border-bottom: 2px solid #f7a93b;
 }
 
 /* CONTENT AREA */
@@ -349,5 +359,17 @@
 
   .side-plus-btn {
     align-self: flex-end;
+  }
+}
+
+@media (max-width: 600px) {
+  .lp-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .lp-page-title {
+    font-size: 24px;
+    white-space: normal;
   }
 }

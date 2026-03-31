@@ -158,26 +158,28 @@ export default function LPsStatementPage() {
   return (
     <div className="lp-page">
       <div className="lp-page-container">
+        {/* 1. Header Row */}
         <div className="lp-page-header">
           <h1 className="lp-page-title">LPs Statement</h1>
-
-          <div className="lp-page-tabs-container">
-            <div className="lp-page-tabs">
-              {TABS.map((tab) => (
-                <NavLink
-                  key={tab.path}
-                  to={tab.path}
-                  className={({ isActive }) =>
-                    `lp-page-tab ${isActive ? "lp-page-tab--active" : ""}`
-                  }
-                >
-                  {tab.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
+          {/* If you add header actions (like a button or dropdown) later, they go here */}
         </div>
 
+        {/* 2. Tabs Row */}
+        <div className="lp-page-tabs">
+          {TABS.map((tab) => (
+            <NavLink
+              key={tab.path}
+              to={tab.path}
+              className={({ isActive }) =>
+                `lp-page-tab ${isActive ? "lp-page-tab--active" : ""}`
+              }
+            >
+              {tab.label}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* 3. Content Area */}
         <div className="lp-page-content-area">
           <Outlet
             context={{

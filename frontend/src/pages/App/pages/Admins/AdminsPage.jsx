@@ -41,26 +41,30 @@ function AdminsPage() {
     });
 
   return (
-    <div className="admins-container">
-      <AdminsHeader onSearch={setSearchQuery} refreshData={fetchUsers} />
+    <div className="admins-page">
+      <div className="admins-page-container">
+        <div className="admins-page-content-area">
+          <AdminsHeader onSearch={setSearchQuery} refreshData={fetchUsers} />
 
-      {isLoading ? (
-        <PageSpinner label="Loading authenticated users..." />
-      ) : error ? (
-        <PageError message={error.message || error || "Failed to load users."} />
-      ) : filteredAdmins.length === 0 ? (
-        <PageNoData 
-          message={
-            searchQuery 
-              ? `No users matching "${searchQuery}"` 
-              : "No users found."
-          } 
-        />
-      ) : (
-        <AdminsTable data={filteredAdmins} refreshData={fetchUsers} />
-      )}
-    </div>
-  );
+          {isLoading ? (
+            <PageSpinner label="Loading authenticated users..." />
+          ) : error ? (
+            <PageError message={error.message || error || "Failed to load users."} />
+          ) : filteredAdmins.length === 0 ? (
+            <PageNoData 
+              message={
+                searchQuery 
+                  ? `No users matching "${searchQuery}"` 
+                  : "No users found."
+              } 
+            />
+          ) : (
+            <AdminsTable data={filteredAdmins} refreshData={fetchUsers} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default AdminsPage;

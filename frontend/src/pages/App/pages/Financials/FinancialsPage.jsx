@@ -1,36 +1,41 @@
 import React from "react";
 import { Outlet, NavLink, useParams } from "react-router-dom";
-
-import "./FinancialsLayout.css";
+import "./FinancialsPage.css";
 
 const FinancialsPage = () => {
   const { fundId } = useParams();
 
   return (
     <div className="financials-page">
-      <main className="financials-content">
-        <h1 className="financials-title">Financials</h1>
+      <div className="financials-page-container">
+        {/* 1. Header Row */}
+        <div className="financials-page-header">
+          <h1 className="financials-page-title">Financials</h1>
+        </div>
 
-        <div className="financials-tabs">
+        {/* 2. Tabs Row */}
+        <div className="financials-page-tabs">
           <NavLink
             to="pnl"
             end
-            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+            className={({ isActive }) => `financials-page-tab ${isActive ? "active" : ""}`}
           >
             P&amp;L
           </NavLink>
 
           <NavLink
             to="limits"
-            className={({ isActive }) => `tab ${isActive ? "active" : ""}`}
+            className={({ isActive }) => `financials-page-tab ${isActive ? "active" : ""}`}
           >
             Limits
           </NavLink>
         </div>
 
-        {/* Child route renders here (PnLTab or LimitsTab) */}
-        <Outlet context={{ fundId }} />
-      </main>
+        {/* 3. Content Area */}
+        <div className="financials-page-content-area">
+          <Outlet context={{ fundId }} />
+        </div>
+      </div>
     </div>
   );
 };

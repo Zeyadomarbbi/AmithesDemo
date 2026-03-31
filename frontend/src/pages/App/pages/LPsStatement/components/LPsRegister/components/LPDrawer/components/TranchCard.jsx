@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import SearchableSelect from "../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
 import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
@@ -135,31 +135,29 @@ export default function TranchCard({
       <div className="lp-drawer-grid-2">
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Type of share*</label>
-          <SearchableSelect
-            options={dbShareClasses ?? []}
-            value={tranch.shareClassId}
-            onChange={updateField("shareClassId")}
-            placeholder={classesLoading ? "Loading..." : "Select Share Class"}
-            labelKey="share_class_name"
-            valueKey="share_class_id"
-            disabled={isSubmitting || classesLoading}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={dbShareClasses ?? []}
+                value={tranch.shareClassId}
+                onChange={updateField("shareClassId")}
+                placeholder={classesLoading ? "Loading..." : "Select Share Class"}
+                labelKey="share_class_name"
+                valueKey="share_class_id"
+                disabled={isSubmitting || classesLoading}
+            />
         </div>
 
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Currency*</label>
-          <SearchableSelect
-            options={currencies ?? []}
-            value={tranch.currencyId}
-            onChange={updateField("currencyId")}
-            placeholder={currenciesLoading ? "Loading..." : "Select Currency"}
-            labelKey="name"
-            valueKey="id"
-            secondaryLabelKey="code"
-            disabled={isSubmitting || currenciesLoading}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={(currencies ?? []).map((c) => ({
+                    id: c.id,
+                    name: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
+                }))}
+                value={tranch.currencyId}
+                onChange={updateField("currencyId")}
+                placeholder={currenciesLoading ? "Loading..." : "Select Currency"}
+                disabled={isSubmitting || currenciesLoading}
+            />
         </div>
       </div>
 
@@ -184,16 +182,13 @@ export default function TranchCard({
 
         <div className="lp-drawer-field">
           <label className="lp-drawer-field-label">Closing*</label>
-          <SearchableSelect
-            options={periods ?? []}
-            value={tranch.closingId}
-            onChange={updateField("closingId")}
-            placeholder="Select Closing"
-            labelKey="name"
-            valueKey="id"
-            disabled={isSubmitting}
-            triggerClassName="lp-drawer-field-input"
-          />
+            <SimpleDropdown
+                options={periods ?? []}
+                value={tranch.closingId}
+                onChange={updateField("closingId")}
+                placeholder="Select Closing"
+                disabled={isSubmitting}
+            />
         </div>
       </div>
 
