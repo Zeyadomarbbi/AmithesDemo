@@ -4,7 +4,6 @@
   inset: 0;
   background: rgba(17, 24, 39, 0.45);
   z-index: 9999;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,11 +15,9 @@
   width: 520px;
   max-width: calc(100% - 32px);
   border-radius: 14px;
-
   box-shadow:
     0 25px 50px rgba(0, 0, 0, 0.25),
     0 10px 20px rgba(0, 0, 0, 0.15);
-
   display: flex;
   flex-direction: column;
   animation: modalFadeIn 0.18s ease-out;
@@ -41,7 +38,6 @@
   border-radius: 10px;
   background: #fef3c7;
   color: #f59e0b;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,16 +96,19 @@
   border: 1px solid #d1d5db;
   font-size: 13px;
   background: #ffffff;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: text;
+  transition: border 0.2s;
 }
 
+.investment-field input:hover { border-color: #375a89; }
 .investment-field input:focus,
 .investment-select:hover {
   border-color: #f59e0b;
   outline: none;
+  cursor: pointer;
 }
 
 /* ===== Footer ===== */
@@ -128,7 +127,9 @@
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
+  transition: background 0.15s;
 }
+.investment-cancel-btn:hover { background: #e5e7eb; }
 
 .investment-save-btn {
   background: #f59e0b;
@@ -139,7 +140,9 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s;
 }
+.investment-save-btn:hover { background: #d97706; }
 
 /* ===== Animation ===== */
 @keyframes modalFadeIn {
@@ -191,6 +194,7 @@
   font-size: 14px;
   color: #475569;
   cursor: pointer;
+  transition: background 0.15s;
 }
 .ghost-btn:hover { background: #f8fafc; }
 
@@ -207,6 +211,7 @@
   font-weight: 500;
   cursor: pointer;
   height: 40px;
+  transition: filter 0.15s;
 }
 .primary-btn:hover { filter: brightness(0.95); }
 
@@ -220,8 +225,6 @@
 
 /* =====================================================
    SHARED SCROLL CONTAINER
-   All four tables live inside this single wrapper.
-   One scrollbar governs all of them → columns align.
    ===================================================== */
 .portfolio-tables-scroll-container {
   width: 100%;
@@ -236,11 +239,95 @@
 .portfolio-tables-scroll-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
 .portfolio-tables-scroll-container { scrollbar-width: auto; }
 
-/* ===== Sections — each has its own horizontal scroll ===== */
+/* ===== Sections ===== */
 .portfolio-section .portfolio-table-card {
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
+}
+
+.portfolio-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.portfolio-columns-picker {
+  flex-shrink: 0;
+}
+
+.portfolio-columns-trigger {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.portfolio-columns-trigger:hover,
+.portfolio-columns-trigger.active {
+  background: transparent;
+  border-color: transparent;
+}
+
+.portfolio-columns-trigger svg {
+  display: block;
+}
+
+.portfolio-columns-trigger:focus-visible {
+  outline: 2px solid rgba(55, 90, 137, 0.18);
+  outline-offset: 4px;
+}
+
+.portfolio-columns-menu {
+  width: 250px;
+  max-height: 320px;
+  padding: 8px;
+  right: 0;
+  left: auto;
+  border-radius: 8px;
+}
+
+.portfolio-columns-list {
+  max-height: 280px;
+}
+
+.portfolio-columns-option:hover,
+.portfolio-columns-option.checked,
+.portfolio-columns-option.selected {
+  background: #f8fafc;
+}
+
+.portfolio-columns-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.portfolio-columns-checkbox {
+  margin-right: 0;
+  border-color: #d1d5db;
+}
+
+.portfolio-columns-option.checked .portfolio-columns-checkbox {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.portfolio-columns-option.checked .portfolio-columns-checkbox::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.portfolio-columns-label {
+  font-weight: 500;
 }
 
 .portfolio-section .portfolio-table-scroll {
@@ -269,7 +356,7 @@
 .portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb; }
 .portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
 
-/* ===== All tables share the same fixed layout & min-width ===== */
+/* ===== All tables ===== */
 .portfolio-table {
   width: 100%;
   min-width: 1570px !important;
@@ -277,7 +364,6 @@
   border-collapse: collapse;
 }
 
-/* ===== Table headers ===== */
 .portfolio-table,
 .portfolio-table thead,
 .portfolio-table thead tr,
@@ -322,7 +408,7 @@
   margin-bottom: 0;
 }
 
-/* ===== Portfolio Summary Typography ===== */
+/* ===== Typography ===== */
 .portfolio-section-header h2 {
   font-family: "Inter";
   font-weight: 600;
@@ -354,6 +440,19 @@
   color: #1c1917;
 }
 
+/* ===== Styled (€) currency label in column headers ===== */
+.portfolioHeaderCurrency {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  color: #7B7D7E;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
 .name-main {
   font-family: "Inter";
   font-weight: 500;
@@ -363,7 +462,6 @@
   color: #1c1917;
 }
 
-/* ===== Blue sector/industry name (matches Figma) ===== */
 .name-sub {
   font-family: "Inter";
   font-weight: 400;
@@ -373,10 +471,16 @@
   color: #375a89 !important;
 }
 
-/* Extra specificity to prevent any global override */
 .name-cell .name-sub {
   color: #375a89 !important;
 }
+
+/* ===== Clickable name cell ===== */
+.name-cell {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.name-cell:hover { background: #f0f5ff; }
 
 .portfolio-table tbody td {
   font-family: "Inter";
@@ -435,7 +539,7 @@
   color: #ffffff !important;
 }
 
-/* ===== Total section — same table, no extra wrapper needed ===== */
+/* ===== Total section ===== */
 .portfolio-total-section thead tr th {
   font-family: "Inter";
   font-weight: 500;
@@ -470,12 +574,13 @@
 }
 
 /* ===== Misc ===== */
-.filter-btn { padding: 0; background: transparent; }
+.filter-btn { padding: 0; background: transparent; cursor: pointer; }
 
 .icon-circle-btn {
   width: auto; height: auto; border-radius: 0;
   background: transparent; border: none; padding: 0;
   box-shadow: none; display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
 }
 .icon-circle-btn:hover { background: transparent; }
 

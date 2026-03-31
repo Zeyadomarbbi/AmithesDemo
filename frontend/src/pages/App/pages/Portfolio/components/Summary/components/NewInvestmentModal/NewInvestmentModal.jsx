@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
-import "./NewInvestmentModal.css";
+import { useCountries } from "../../../../../../hooks/Reference/useCountries";
+import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies";
 import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
+import "./NewInvestmentModal.css";
 
-const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "create", countries = [], currencies = [] }) => {
+const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "create" }) => {
   const [name, setName] = useState(initialValues?.name || "");
   const [sector, setSector] = useState(initialValues?.sector || "");
   const [countryId, setCountryId] = useState(initialValues?.countryId || "");
@@ -14,6 +16,9 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
       : ""
   );
   const [currencyId, setCurrencyId] = useState(initialValues?.currencyId || "");
+
+  const { countries = [] } = useCountries();
+  const { currencies = [] } = useCurrencies();
 
   const ownershipNumber = Number(String(ownership).replace(/,/g, "").trim());
   const isOwnershipValid =
@@ -66,7 +71,7 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
       currencies.find((c) => String(c.code) === String(resolvedCurrencyId)) ||
       currencies.find((c) => String(c.id) === String(resolvedCurrencyId));
 
-    await onSave({
+    const result = await onSave({
       name,
       sector,
       ownership: ownershipNumber,
@@ -78,7 +83,9 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
       currencySymbol: selectedCurrency?.currency_symbol || selectedCurrency?.symbol || "",
     });
 
-    onClose();
+    if (result !== false) {
+      onClose();
+    }
   };
 
   return (
@@ -156,10 +163,10 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
               <div className="portfolio-new-investment-input-wrapper">
                 <input
                   className="portfolio-new-investment-input"
-                  placeholder="Please enter the ownership (0 - 100)..."
+                  placeholder="Please enter the ownership (1 - 100)..."
                   value={ownership}
                   type="number"
-                  min="0"
+                  min="1"
                   max="100"
                   step="0.01"
                   onChange={(e) => setOwnership(e.target.value)}

@@ -18,7 +18,7 @@ const buildRowsSignature = (rows = [], quarters = []) =>
       const tf = quarters
         .map((q) => {
           const v = row?.timeframes?.[q.id] || {};
-          return `${q.id}:${toNumber(v.cost)}:${toNumber(v.fv)}`;
+          return `${q.id}:${toNumber(v.cost)}:${toNumber(v.fv)}:${toNumber(v.dividends)}:${toNumber(v.interests)}:${toNumber(v.divestment)}`;
         })
         .join(",");
       return `${base}|${tf}`;
@@ -167,7 +167,8 @@ export const useCompareRows = (
         acc[q.id] = {
           cost: costAsOfDate(flows, cutoff),
           fv: fvAsOfDate(fairValues, cutoff),
-          dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend", "interest"]),
+          dividends: sumFlowsByTypeAsOfDate(flows, cutoff, ["dividend"]),
+          interests: sumFlowsByTypeAsOfDate(flows, cutoff, ["interest"]),
           divestment: sumFlowsByTypeAsOfDate(flows, cutoff, ["divestment"]),
         };
         return acc;
@@ -207,8 +208,9 @@ export const buildTotalRow = (rows = [], activeQuarters = []) => {
     const cost = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.cost), 0);
     const fv = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.fv), 0);
     const dividends = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.dividends), 0);
+    const interests = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.interests), 0);
     const divestment = rows.reduce((sum, row) => sum + toNumber(row.timeframes?.[q.id]?.divestment), 0);
-    total.timeframes[q.id] = { cost, fv, dividends, divestment };
+    total.timeframes[q.id] = { cost, fv, dividends, interests, divestment };
   });
 
   return total;
@@ -287,6 +289,7 @@ export const getCompareChartMetricOptions = () => [
   { key: "change_fv", label: "Change in Fair Value" },
   { key: "divestment", label: "Divestment" },
   { key: "dividends", label: "Dividends" },
+  { key: "interests", label: "Interests" },
 ];
 
 export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => {
@@ -329,6 +332,10 @@ export const getCompareValueByColumn = (row, columnKey, activeQuarters = []) => 
 
   if (columnKey === "dividends") {
     return toNumber(row?.timeframes?.[newestId]?.dividends);
+  }
+
+  if (columnKey === "interests") {
+    return toNumber(row?.timeframes?.[newestId]?.interests);
   }
 
   if (columnKey === "change_cost") {

@@ -1,294 +1,334 @@
-import React, { useState, useRef, useEffect } from "react"; 
-import "./InvestmentDetails.css";
+import React, { useState, useRef, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate";
-import DatePicker from "../../../../../../../../components/DateComponents/DatePicker";
+import DateInputWithPicker from "../../../../../../../../components/DateComponents/DateInput";
 import { MoreActionsIcon, DeleteIcon, DuplicateIcon, AddFileIcon, AddCommentIcon } from "../../../../../../../../components/Icons/InteractiveIcons";
 import { ChevronDownIcon } from "../../../../../../../../components/Icons/DirectionIcons";
-import { SortIcon, PlusIcon } from "../../../../icons";
+import { PercentageIcon } from "../../../../../../../../components/Icons/NumericalIcons";
+import { PlusIcon } from "../../../../icons";
+import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
+import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import "./InvestmentDetails.css";
 
-const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment"];
+const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment", "Partial divestment"];
 
 const BADGE_STYLES = {
-  "Investment":        { background: "#fef3c7", color: "#b45309" },
-  "Dividend":          { background: "#dcfce7", color: "#15803d" },
-  "Dividends":         { background: "#dcfce7", color: "#15803d" },
-  "Interest":          { background: "#e0f2fe", color: "#0369a1" },
-  "Interests":         { background: "#e0f2fe", color: "#0369a1" },
-  "Divestment":        { background: "#fee2e2", color: "#b91c1c" },
-  "Other":             { background: "#ede9fe", color: "#6d28d9" },
-  "Partial divestment":{ background: "#ffe4e6", color: "#be123c" },
+  "Investment":         { background: "#fef3c7", color: "#b45309" },
+  "Dividend":           { background: "#dcfce7", color: "#15803d" },
+  "Dividends":          { background: "#dcfce7", color: "#15803d" },
+  "Interest":           { background: "#e0f2fe", color: "#0369a1" },
+  "Interests":          { background: "#e0f2fe", color: "#0369a1" },
+  "Divestment":         { background: "#fee2e2", color: "#b91c1c" },
+  "Other":              { background: "#ede9fe", color: "#6d28d9" },
+  "Partial divestment": { background: "#ffe4e6", color: "#be123c" },
 };
+
+const isEmptyType = (value) =>
+  !value || value === "" || value === "click";
+
+const AmountEuroLabel = () => (
+  <>Amount <span className="invHeaderCurrency">(€)</span></>
+);
 
 function TypeSelect({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  
   useEffect(() => {
     function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const style = BADGE_STYLES[value] || { background: "#f1f5f9", color: "#334155" };
+  useEffect(() => {
+    if (!open) return;
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+    setOpen((v) => !v);
+  };
+
+  const isEmpty = isEmptyType(value);
+  const style = BADGE_STYLES[value] || {};
 
   return (
-    <div className="typeSelectWrapper" ref={ref}>
-      <button
-        className="typeSelectTrigger"
-        onClick={() => setOpen((v) => !v)}
-        type="button"
-      >
-        <span className="typeSelectBadge" style={{ background: style.background, color: style.color }}>
-          {value}
+    <div className="typeSelectWrapper">
+      <button ref={triggerRef} className="typeSelectTrigger" onClick={handleOpen} type="button">
+        <span
+          className={`typeSelectBadge${isEmpty ? " typeSelectPlaceholder" : ""}`}
+          style={isEmpty ? {} : { background: style.background, color: style.color }}
+        >
+          {isEmpty ? "Select a type" : value}
         </span>
         <span className="typeSelectChevron"><ChevronDownIcon /></span>
       </button>
-      {open && (
-        <div className="typeSelectDropdown">
-          {options.map((t) => {
-            const s = BADGE_STYLES[t] || { background: "#f1f5f9", color: "#334155" };
-            return (
-              <button
-                key={t}
-                className="typeSelectOption"
-                onClick={() => { onChange(t); setOpen(false); }}
-                type="button"
-              >
-                <span className="typeSelectBadge" style={{ background: s.background, color: s.color }}>
-                  {t}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+
+      {open && ReactDOM.createPortal(
+        <div
+          ref={dropdownRef}
+          className="typeSelectDropdown"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, minWidth: dropdownPos.width }}
+        >
+          {options.map((t) => (
+            <button
+              key={t}
+              className="typeSelectOption"
+              onClick={() => { onChange(t); setOpen(false); }}
+              type="button"
+            >
+              <span className="typeSelectBadge" style={{ background: "transparent", color: "#334155", padding: 0 }}>
+                {t}
+              </span>
+            </button>
+          ))}
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
-const formatNum = (v) => {
-  if (v === "" || v === undefined) return "";
-  const n = Number(v);
-  if (isNaN(n)) return v;
-  return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-};
-
-const formatDateForDisplay = (dateString) => {
-  if (!dateString) return "";
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return dateString;
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(2);
-  return `${day}/${month}/${year}`;
-};
-
 function KebabMenu({ onAddComment, onAddFile, onDuplicate, onDelete }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.right - 180 });
+    }
+    setOpen((v) => !v);
+  };
+
   return (
-    <div className="kebabWrapper" ref={ref}>
-      <button className="kebabBtn" onClick={() => setOpen((v) => !v)}>
+    <div className="kebabWrapper">
+      <button
+        ref={triggerRef}
+        type="button"
+        className="kebabBtn"
+        onClick={(event) => { event.stopPropagation(); handleOpen(); }}
+      >
         <MoreActionsIcon />
       </button>
-      {open && (
-        <div className="kebabDropdown">
-          <button className="kebabItem" onClick={() => { onAddComment(); setOpen(false); }}>
+      {open && ReactDOM.createPortal(
+        <div
+          ref={dropdownRef}
+          className="kebabDropdown"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button type="button" className="kebabItem" onClick={() => { onAddComment(); setOpen(false); }}>
             <AddCommentIcon /> Add comment
           </button>
-          <button className="kebabItem" onClick={() => { onAddFile(); setOpen(false); }}>
+          <button type="button" className="kebabItem" onClick={() => { onAddFile(); setOpen(false); }}>
             <AddFileIcon />
-            <span className="kebabItemRow">
-              Add file <span className="kebabItemClose"></span>
-            </span>
+            <span className="kebabItemRow">Add file <span className="kebabItemClose"></span></span>
           </button>
-          <button className="kebabItem" onClick={() => { onDuplicate(); setOpen(false); }}>
+          <button type="button" className="kebabItem" onClick={() => { onDuplicate(); setOpen(false); }}>
             <DuplicateIcon /> Duplicate
           </button>
           <div className="kebabDivider" />
-          <button className="kebabItem kebabItemDelete" onClick={() => { onDelete(); setOpen(false); }}>
+          <button type="button" className="kebabItem kebabItemDelete" onClick={() => { onDelete(); setOpen(false); }}>
             <DeleteIcon /> Delete
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
 
-export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd, flowTypes }) {
-  const types = flowTypes && flowTypes.length > 0 ? flowTypes : FLOW_TYPES;
-  const [activePickerId, setActivePickerId] = useState(null);
-  const hasPartialDivestment = flows.some(
-    (f) => String(f.type).toLowerCase() === "partial divestment"
-  );
-
-  const wrapperRef = useRef(null);
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setActivePickerId(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [wrapperRef]);
-
+export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd, flowTypes = [] }) {
+  const types = flowTypes.length > 0 ? flowTypes : FLOW_TYPES;
+  const noScroll = (e) => e.target.blur();
+  const { sorted, sortKey, toggleSort } = useTableSort(flows ?? [], null);
+  const formatNumber  = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
   const handleDuplicate = (f) => {
     onAdd({ ...f, id: null, flowId: null });
   };
 
   return (
-    <div className="invTableContainer">
-      <table className="invTable">
-        <thead>
-          <tr>
-            <th>Flow <span className="invSortIcon"><SortIcon/></span></th>
-            <th>Date <span className="invSortIcon"><SortIcon/></span></th>
-            <th className="invNum">Amount (€) <span className="invSortIcon"><SortIcon/></span></th>
-            <th className="invNum">FX Rate <span className="invSortIcon"><SortIcon/></span></th>
-            <th className="invNum">Amount LC <span className="invSortIcon"><SortIcon/></span></th>
-            <th>Type <span className="invSortIcon"><SortIcon/></span></th>
-            {hasPartialDivestment && <th className="invNum">Divestment %</th>}
-            <PermissionGate>
-              <th style={{ textAlign: 'right', paddingRight: '12px' }}>Actions</th>
-            </PermissionGate>
-          </tr>
-        </thead>
-        <tbody>
-          {flows.map((f, index) => {
-            const amountLCVal = parseFloat(String(f.amountLC).replace(/[^0-9.-]/g, "")) || 0;
-            const fxVal = parseFloat(String(f.fxRate).replace(/[^0-9.-]/g, "")) || 0;
-            const amountEuro = fxVal ? amountLCVal / fxVal : 0;
-            const isPickerOpen = activePickerId === f.id;
+    <>
+      <div className="invTableContainer">
+        <div className="invTableScroll">
+          <table className="invTable">
+            <thead>
+              <tr>
+                <th className="invThFlow">
+                  <SortableHeaderRenderer label="Flow" columnKey="id" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <th className="invThDate">
+                  <SortableHeaderRenderer label="Date" columnKey="date" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <th className="invThAmountEuro invNum">
+                  <SortableHeaderRenderer label={<AmountEuroLabel />} columnKey="amountEuro" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <th className="invThFxRate invNum">
+                  <SortableHeaderRenderer label="FX Rate" columnKey="fxRate" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <th className="invThAmountLC invNum">
+                  <SortableHeaderRenderer label="Amount LC" columnKey="amountLC" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <th className="invThType">
+                  <SortableHeaderRenderer label="Type" columnKey="type" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                </th>
+                <PermissionGate>
+                  <th className="invThActions">Actions</th>
+                </PermissionGate>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((f, index) => {
+                const amountLCVal = parseFloat(String(f.amountLC)) || 0;
+                const fxVal       = parseFloat(String(f.fxRate))   || 0;
+                const amountEuro  = fxVal ? amountLCVal / fxVal : 0;
+                const isPartialDivestment = String(f.type).toLowerCase() === "partial divestment";
 
-            return (
-              <tr key={f.id}>
-                <td style={{ color: '#64748b', fontWeight: '400' }}>#{index + 1}</td>
+                return (
+                  <tr key={f.id}>
+                    <td className="invTdFlow">#{index + 1}</td>
 
-                <td style={{ overflow: 'visible' }}>
-                  <div className="invInputWrapper" style={{ position: 'relative' }} ref={isPickerOpen ? wrapperRef : null}>
-                    <input
-                      type="text"
-                      className="invTableInput"
-                      placeholder="Select date"
-                      value={formatDateForDisplay(f.date)}
-                      onClick={() => setActivePickerId(f.id)}
-                      readOnly
-                    />
-                    {isPickerOpen && (
-                      <DatePicker
-                        isSingle={true}
-                        initialStartDate={f.date ? new Date(f.date) : new Date()}
-                        onClose={() => setActivePickerId(null)}
-                        onApply={(data) => {
-                          if (data.start) {
-                            const dateObj = data.start;
-                            const y = dateObj.getFullYear();
-                            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                            const d = String(dateObj.getDate()).padStart(2, '0');
+                    <td className="invTdDate">
+                      <div className="invInputWrapper">
+                        <DateInputWithPicker
+                          isSingle={true}
+                          initialDate={f.date ? new Date(f.date) : null}
+                          onDateChange={(date) => {
+                            const y = date.getFullYear();
+                            const m = String(date.getMonth() + 1).padStart(2, "0");
+                            const d = String(date.getDate()).padStart(2, "0");
                             onUpdate(f.id, "date", `${y}-${m}-${d}`);
-                          }
-                          setActivePickerId(null);
-                        }}
-                        style={{
-                          position: 'absolute', top: '100%', left: '0',
-                          zIndex: 1000, boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
-                          background: 'white', borderRadius: '8px', marginTop: '4px'
-                        }}
-                      />
-                    )}
-                  </div>
-                </td>
+                          }}
+                        />
+                      </div>
+                    </td>
 
-                <td>
-                  <div className="invInputWrapper">
-                    <input
-                      type="text"
-                      readOnly
-                      className="invTableInput invNum readOnlyInput"
-                      value={amountEuro ? `${formatNum(amountEuro)}` : ""}
-                    />
-                  </div>
-                </td>
+                    <td className="invTdAmountEuro">
+                      <div className="invInputWrapper">
+                        <input
+                          type="text"
+                          readOnly
+                          className="invTableInput invNum readOnlyInput"
+                          value={amountEuro ? formatNumber(amountEuro) : ""}
+                        />
+                      </div>
+                    </td>
 
-                <td style={{ width: '100px' }}>
-                  <div className="invInputWrapper">
-                    <input
-                      type="number"
-                      step="any"
-                      className="invTableInput invNum"
-                      value={f.fxRate}
-                      onChange={(e) => onUpdate(f.id, "fxRate", e.target.value)}
-                    />
-                  </div>
-                </td>
-
-                <td>
-                  <div className="invInputWrapper">
-                    <input
-                      type="number"
-                      className="invTableInput invNum"
-                      value={f.amountLC}
-                      onChange={(e) => onUpdate(f.id, "amountLC", e.target.value)}
-                    />
-                  </div>
-                </td>
-
-                <td style={{ width: '140px' }}>
-                  <TypeSelect
-                    value={f.type}
-                    options={types}
-                    onChange={(val) => onUpdate(f.id, "type", val)}
-                  />
-                </td>
-
-                {hasPartialDivestment && (
-                  <td style={{ width: '140px' }}>
-                    {String(f.type).toLowerCase() === "partial divestment" ? (
+                    {/* FX Rate — raw input */}
+                    <td className="invTdFxRate">
                       <div className="invInputWrapper">
                         <input
                           type="number"
+                          step="any"
                           className="invTableInput invNum"
-                          value={f.divestmentPercentage ?? ""}
-                          onChange={(e) => onUpdate(f.id, "divestmentPercentage", e.target.value)}
-                          min="0" max="9.9999" step="0.0001"
-                          placeholder="0 - 9.9999"
+                          value={f.fxRate === 0 || f.fxRate === "0" ? "" : f.fxRate ?? ""}
+                          placeholder="0"
+                          onChange={(e) => onUpdate(f.id, "fxRate", e.target.value)}
+                          onWheel={noScroll}
                         />
                       </div>
-                    ) : (
-                      <div className="invEmptyCell" />
-                    )}
-                  </td>
-                )}
+                    </td>
 
-                <td style={{ overflow: 'visible' }}>
-                  <PermissionGate>
-                    <div className="invActionsCell">
-                      <KebabMenu
-                        onAddComment={() => {}}
-                        onAddFile={() => {}}
-                        onDuplicate={() => handleDuplicate(f)}
-                        onDelete={() => onDelete(f.id)}
+                    {/* Amount LC — raw input */}
+                    <td className="invTdAmountLC">
+                      <div className="invInputWrapper">
+                        <input
+                          type="number"
+                          step="any"
+                          className="invTableInput invNum"
+                          value={f.amountLC === 0 || f.amountLC === "0" ? "" : f.amountLC ?? ""}
+                          placeholder="0"
+                          onChange={(e) => onUpdate(f.id, "amountLC", e.target.value)}
+                          onWheel={noScroll}
+                        />
+                      </div>
+                    </td>
+
+                    <td className="invTdType">
+                      <TypeSelect
+                        value={f.type}
+                        options={types}
+                        onChange={(val) => onUpdate(f.id, "type", val)}
                       />
-                    </div>
-                  </PermissionGate>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                      {isPartialDivestment && (
+                        <div className="invInputWrapper invPartialInput">
+                          <input
+                            type="number"
+                            step="any"
+                            className="invTableInput"
+                            value={
+                              f.divestmentPercentage === null ||
+                              f.divestmentPercentage === undefined ||
+                              f.divestmentPercentage === ""
+                                ? ""
+                                : f.divestmentPercentage
+                            }
+                            onChange={(e) => onUpdate(f.id, "divestmentPercentage", e.target.value)}
+                            min="0"
+                            max="100"
+                            placeholder="0 - 100"
+                            onWheel={noScroll}
+                          />
+                          <PercentageIcon />
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="invTdActions">
+                      <PermissionGate>
+                        <div className="invActionsCell">
+                          <KebabMenu
+                            onAddComment={() => {}}
+                            onAddFile={() => {}}
+                            onDuplicate={() => handleDuplicate(f)}
+                            onDelete={() => onDelete(f.id)}
+                          />
+                        </div>
+                      </PermissionGate>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <PermissionGate>
         <button className="invAddFlowBtn" onClick={onAdd}>
@@ -296,6 +336,6 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd,
           <span className="invAddFlowText">New Flow</span>
         </button>
       </PermissionGate>
-    </div>
+    </>
   );
 }

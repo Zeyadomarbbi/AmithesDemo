@@ -2,15 +2,15 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { xirr as xirrLib } from "@webcarrot/xirr";
 import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
-import useApi from "../../../../../../../../hooks/api/useApi";
 import { DoubleArrowLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons";
 import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
-
+import { EuroCurrencyIcon } from "../../../../../../../../components/Icons/FinancialIcons";
+import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
 import "./InvestmentDetails.css";
 
-const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment"];
+const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment", "Partial divestment"];
 
 const toNumber = (v) => {
   if (typeof v === "number") return v;
@@ -24,13 +24,14 @@ const roundForApi = (v) => {
   return Number.isFinite(n) ? Number(n.toFixed(6)) : 0;
 };
 
-const formatMoney = (n, currency = "€") => {
-  return (
-    toNumber(n).toLocaleString("fr-FR", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }) + (currency ? ` ${currency}` : "")
-  );
+const partialDivestmentFromBackend = (value) => {
+  const n = toNumber(value);
+  return Number.isFinite(n) ? n * 10 : 0;
+};
+
+const partialDivestmentToBackend = (value) => {
+  const n = toNumber(value);
+  return Number.isFinite(n) ? n / 10 : 0;
 };
 
 const formatRatio = (n) => {
@@ -38,10 +39,6 @@ const formatRatio = (n) => {
   return n.toFixed(2);
 };
 
-const formatPercent = (n) => {
-  if (!Number.isFinite(n)) return "-";
-  return `${(n * 100).toFixed(2)}%`;
-};
 
 const getApiErrorMessage = (err, fallback = "Request failed.") => {
   const data = err?.response?.data;
@@ -49,14 +46,11 @@ const getApiErrorMessage = (err, fallback = "Request failed.") => {
   if (typeof data === "string") return data;
   if (typeof data.detail === "string") return data.detail;
   if (typeof data.error === "string") return data.error;
-
   const firstEntry = Object.entries(data).find(([, value]) => {
     if (Array.isArray(value)) return value.length > 0;
     return Boolean(value);
   });
-
   if (!firstEntry) return err?.message || fallback;
-
   const [field, value] = firstEntry;
   const message = Array.isArray(value) ? value[0] : value;
   return `${field}: ${message}`;
@@ -80,55 +74,61 @@ const safeXirr = (cashflows) => {
     const hasNeg = cashflows.some((c) => c.amount < 0);
     if (!hasPos || !hasNeg) return null;
     return xirrLib(cashflows);
-  } catch (err) {
-    console.error("XIRR calculation failed:", err);
+  } catch {
     return null;
   }
 };
 
-export default function InvestmentDetailsDrawer({ investment, timeframe, fundId, onClose, onSaved, onUpdateInvestment, onDeleteInvestment, countries = [], currencies = [] }) {
-  const api = useApi();
+const noop = () => {};
+
+export default function InvestmentDetailsDrawer({
+  investment,
+  timeframe,
+  fundId,
+  portfolioDataset,
+  onClose,
+  onSaved,
+  onUpdateInvestment,
+  onDeleteInvestment,
+  countries = [],
+  currencies = [],
+  showToast = noop,
+}) {
   const [currentInvestment, setCurrentInvestment] = useState(investment);
   const [flows, setFlows] = useState([]);
   const [fairValueFxRate, setFairValueFxRate] = useState(0);
   const [fairValueAmountLC, setFairValueAmountLC] = useState(0);
   const [fairValueId, setFairValueId] = useState(null);
   const [transactionTypes, setTransactionTypes] = useState([]);
-  const [toast, setToast] = useState(null);
   const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const flowIdRef = useRef(1);
-
+  const formatNumber  = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+  const noScroll = (e) => e.target.blur();
   const getFlagUrl = useCallback((countryNameOrId) => {
     if (!countryNameOrId || !countries) return null;
-
-    // Find the country by name (case-insensitive) or by ID
-    const countryData = countries.find(c => 
+    const countryData = countries.find(c =>
       String(c.name).toLowerCase() === String(countryNameOrId).toLowerCase() ||
       Number(c.id) === Number(countryNameOrId)
     );
-
     if (!countryData?.iso2) return null;
-
-    // FlagCDN expects lowercase ISO codes
     const code = countryData.iso2.toLowerCase();
     return `https://flagcdn.com/40x30/${code}.png`;
   }, [countries]);
 
+  const headerCurrencyCode =
+    currentInvestment?.currencyCode ||
+    currentInvestment?.currency_code ||
+    "EUR";
 
-  const headerCurrency =
-    currentInvestment?.currency ||
-    [
-      currentInvestment?.currencyName || currentInvestment?.currency_name,
-      (currentInvestment?.currencyCode || currentInvestment?.currency_code)
-        ? `(${currentInvestment?.currencyCode || currentInvestment?.currency_code})`
-        : "",
-      currentInvestment?.currencySymbol || currentInvestment?.currency_symbol,
-    ].filter(Boolean).join(" ").trim() || "EUR €";
-
-  const headerCountry = currentInvestment?.country || "Germany";
+  const headerCountry =
+    currentInvestment?.country ||
+    currentInvestment?.country_name ||
+    currentInvestment?.countryName ||
+    "";
   const ownershipValue = toNumber(currentInvestment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
     ? `${ownershipValue.toFixed(2)}%` : "21.65%";
@@ -141,16 +141,14 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   const investmentId =
     currentInvestment?.id ?? currentInvestment?.investment_id ?? currentInvestment?.investmentId ?? null;
 
-  useEffect(() => {
-    setCurrentInvestment(investment);
-  }, [investment]);
+  useEffect(() => { setCurrentInvestment(investment); }, [investment]);
 
   const refreshInvestmentDetails = useCallback(async () => {
     if (!fundId || !sourceInvestmentId) return null;
-    const data = await api.get(`/api/funds/${fundId}/portfolio-investments/${sourceInvestmentId}/`);
+    const data = await portfolioDataset.fetchInvestment(sourceInvestmentId);
     setCurrentInvestment(data);
     return data;
-  }, [api, fundId, sourceInvestmentId]);
+  }, [fundId, portfolioDataset, sourceInvestmentId]);
 
   useEffect(() => {
     refreshInvestmentDetails().catch((err) => {
@@ -161,14 +159,14 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   useEffect(() => {
     const fetchTypes = async () => {
       try {
-        const data = await api.get("/api/portfolio-transaction-types/");
+        const data = await portfolioDataset.fetchTransactionTypes();
         setTransactionTypes(data);
       } catch (err) {
         console.error("Transaction types fetch failed:", err.message);
       }
     };
     fetchTypes();
-  }, [api]);
+  }, [portfolioDataset]);
 
   const normalizeTransactionType = useCallback((t) => {
     if (!t) return { id: null, name: "" };
@@ -195,12 +193,14 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
       amountLC: flow.amount_lc ?? flow.amountLC ?? 0,
       fxRate: flow.fx_rate ?? flow.fxRate ?? 0,
       type: typeName,
-      divestmentPercentage: flow.divestment_percentage ?? flow.divestmentPercentage ?? null,
+      divestmentPercentage:
+        canonicalType(typeName) === "Partial divestment"
+          ? partialDivestmentFromBackend(flow.divestment_percentage ?? flow.divestmentPercentage ?? null)
+          : (flow.divestment_percentage ?? flow.divestmentPercentage ?? null),
     };
   }, [makeLocalFlowId]);
 
   useEffect(() => {
-    if (!currentInvestment) return;
     if (!currentInvestment) return;
     const rawFlows = (currentInvestment.transaction_flows || []).filter(
       (flow) => flow.scenario_id === null || flow.scenario_id === undefined
@@ -230,16 +230,6 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
     if (type === "Investment") return -Math.abs(lc);
     return Math.abs(lc);
   };
-
-  const sumsByType = useMemo(() => {
-    const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
-    flows.forEach((f) => {
-      const t = canonicalType(f.type);
-      const lc = Math.abs(toNumber(f.amountLC));
-      if (sums[t] !== undefined) sums[t] += lc;
-    });
-    return sums;
-  }, [flows]);
 
   const sumsByTypeEuro = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
@@ -301,13 +291,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
   const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
   const moicInclEuro = investmentEuro > 0
-    ? (
-      sumsByTypeEuro.Dividend +
-      sumsByTypeEuro.Interest +
-      sumsByTypeEuro.Other +
-      sumsByTypeEuro.Divestment +
-      toNumber(fairValueAmount)
-    ) / investmentEuro
+    ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment + toNumber(fairValueAmount)) / investmentEuro
     : 0;
 
   const firstInvestmentFlow = useMemo(() => {
@@ -324,71 +308,61 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
   const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
   const moicInclLC = firstInvestmentAmountLC > 0
-    ? (
-      sumsByTypeLC.Dividend +
-      sumsByTypeLC.Interest +
-      sumsByTypeLC.Other +
-      sumsByTypeLC.Divestment +
-      toNumber(fairValueAmountLC)
-    ) / firstInvestmentAmountLC
+    ? (sumsByTypeLC.Dividend + sumsByTypeLC.Interest + sumsByTypeLC.Other + sumsByTypeLC.Divestment + toNumber(fairValueAmountLC)) / firstInvestmentAmountLC
     : 0;
   const moicExclEuro = investmentEuro > 0
-    ? (sumsByTypeEuro.Dividend + toNumber(fairValueAmount)) / investmentEuro
-    : 0;
+    ? (sumsByTypeEuro.Dividend + toNumber(fairValueAmount)) / investmentEuro : 0;
   const moicExclLC = investmentLC > 0
-    ? (sumsByTypeLC.Dividend + toNumber(fairValueAmountLC)) / investmentLC
-    : 0;
+    ? (sumsByTypeLC.Dividend + toNumber(fairValueAmountLC)) / investmentLC : 0;
 
-  const handleAddFlow = () => {
+  // New flow defaults to empty type so "Select a type" placeholder shows
+  const handleAddFlow = (initialFlow = null) => {
     setFlows((prev) => [
       ...prev,
-      { id: makeLocalFlowId(), flowId: null, date: "", amountLC: 0, fxRate: 0, type: "Investment", divestmentPercentage: null },
+      initialFlow
+        ? { ...initialFlow, id: makeLocalFlowId(), flowId: null, divestmentPercentage: initialFlow.divestmentPercentage !== undefined ? initialFlow.divestmentPercentage : null }
+        : { id: makeLocalFlowId(), flowId: null, date: "", amountLC: 0, fxRate: 0, type: "", divestmentPercentage: null },
     ]);
   };
 
   const handleUpdateFlow = (id, field, value) => {
-    setFlows((prev) => prev.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
+    setFlows((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) return f;
+        if (field === "type") {
+          const isPartial = String(value || "").trim().toLowerCase() === "partial divestment";
+          return { ...f, type: value, divestmentPercentage: isPartial ? (f.divestmentPercentage ?? "") : null };
+        }
+        return { ...f, [field]: value };
+      })
+    );
   };
 
   const handleDeleteFlow = async (id) => {
     const targetFlow = flows.find((f) => f.id === id);
     if (!targetFlow) return;
-
-    if (!targetFlow.flowId) {
-      setFlows((prev) => prev.filter((f) => f.id !== id));
-      return;
-    }
-
+    if (!targetFlow.flowId) { setFlows((prev) => prev.filter((f) => f.id !== id)); return; }
     try {
-      await api.delete(`/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${targetFlow.flowId}/`);
+      await portfolioDataset.deleteFlow(investmentId, targetFlow.flowId, { refresh: false });
       setFlows((prev) => prev.filter((f) => f.id !== id));
       await refreshInvestmentDetails();
+      showToast({ type: "success", title: "Flow deleted", message: "The flow has been deleted successfully." });
     } catch (err) {
-      setToast({
-        type: "error",
-        title: "Delete failed",
-        message: err.message || "Could not delete the flow.",
-      });
+      showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the flow." });
     }
   };
 
   const handleEditInvestment = async (payload) => {
     if (!investmentId || typeof onUpdateInvestment !== "function") {
-      setToast({ type: "error", title: "Update failed", message: "Investment update is not available." });
-      return;
+      showToast({ type: "error", title: "Update failed", message: "Investment update is not available." }); return;
     }
-
     try {
       setIsMutating(true);
       await onUpdateInvestment(investmentId, payload);
       setIsEditOpen(false);
       onClose();
     } catch (err) {
-      setToast({
-        type: "error",
-        title: "Update failed",
-        message: err.message || "Could not update the investment.",
-      });
+      showToast({ type: "error", title: "Update failed", message: err.message || "Could not update the investment." });
     } finally {
       setIsMutating(false);
     }
@@ -397,26 +371,15 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   const handleConfirmDeleteInvestment = async () => {
     if (!investmentId || typeof onDeleteInvestment !== "function") {
       setDeletePromptOpen(false);
-      setToast({ type: "error", title: "Delete failed", message: "Investment deletion is not available." });
-      return;
+      showToast({ type: "error", title: "Delete failed", message: "Investment deletion is not available." }); return;
     }
-
     try {
       setIsMutating(true);
       await onDeleteInvestment(investmentId);
       setDeletePromptOpen(false);
-      setToast({
-        type: "success",
-        title: "Investment deleted",
-        message: "The investment has been removed.",
-      });
     } catch (err) {
       setDeletePromptOpen(false);
-      setToast({
-        type: "error",
-        title: "Delete failed",
-        message: err.message || "Could not delete the investment.",
-      });
+      showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the investment." });
       setIsMutating(false);
     }
   };
@@ -424,12 +387,8 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
   const handleSave = async () => {
     try {
       if (!fundId || !investmentId) throw new Error("Missing fund or investment id");
-      if (!Number.isFinite(Number(investmentId))) {
-        setToast({ type: "error", message: "Please save the investment first." }); return;
-      }
-      if (!transactionTypes.length) {
-        setToast({ type: "error", message: "Transaction types not loaded yet." }); return;
-      }
+      if (!Number.isFinite(Number(investmentId))) { showToast({ type: "error", title: "Save failed", message: "Please save the investment first." }); return; }
+      if (!transactionTypes.length) { showToast({ type: "error", title: "Save failed", message: "Transaction types not loaded yet." }); return; }
       const normalizeType = (t) => String(t || "").trim().toLowerCase();
       const typeMap = new Map(
         transactionTypes.map(normalizeTransactionType).filter((t) => t.id && t.name).map((t) => [normalizeType(t.name), t.id])
@@ -450,41 +409,37 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
         if (isPartial) {
           if (divestmentPct === null || divestmentPct === "") throw new Error("divestment_percentage required for Partial divestment");
           const pct = toNumber(divestmentPct);
-          if (!Number.isFinite(pct) || pct < 0 || pct > 9.9999) throw new Error("divestment_percentage must be between 0 and 9.9999");
+          if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error("divestment_percentage must be between 0 and 100");
         }
-        const isUpdate = Boolean(f.flowId);
-        const endpoint = isUpdate
-          ? `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${f.flowId}/`
-          : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
         const payload = {
+          flowId: f.flowId,
           transaction_id: transactionId, date: f.date, amount_lc: amountLC,
           fx_rate: fxRate, amount: roundForApi(amountEuro),
-          divestment_percentage: isPartial ? roundForApi(divestmentPct) : null,
+          divestment_percentage: isPartial ? roundForApi(partialDivestmentToBackend(divestmentPct)) : null,
         };
-        return isUpdate ? api.put(endpoint, payload) : api.post(endpoint, payload);
+        return portfolioDataset.saveFlow(investmentId, payload, { refresh: false });
       });
       const requests = [...flowRequests];
       const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
       if (hasFairValueInput) {
-        const endpoint = fairValueId
-          ? `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/${fairValueId}/`
-          : `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`;
         const payload = {
+          fairValueId,
           date: fairValueDateLabel,
           amount_lc: roundForApi(fairValueAmountLC),
           fx_rate: roundForApi(fairValueFxRate),
           amount: roundForApi(fairValueAmount),
         };
-        requests.push(fairValueId ? api.put(endpoint, payload) : api.post(endpoint, payload));
+        requests.push(portfolioDataset.saveFairValue(investmentId, payload, { refresh: false }));
       }
-      if (!requests.length) { setToast({ type: "error", message: "No valid flows to save." }); return; }
+      if (!requests.length) { showToast({ type: "error", title: "Save failed", message: "No valid flows to save." }); return; }
       await Promise.all(requests);
       await refreshInvestmentDetails();
       if (onSaved) await onSaved();
+      showToast({ type: "success", title: "Portfolio saved", message: "Investment details have been saved successfully." });
       onClose();
     } catch (err) {
       console.error("Save failed:", err.message);
-      setToast({ type: "error", message: getApiErrorMessage(err, "Failed to save.") });
+      showToast({ type: "error", title: "Save failed", message: getApiErrorMessage(err, "Failed to save.") });
     }
   };
 
@@ -494,18 +449,15 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
         className={`invDrawerPanel${expanded ? " share-drawer--expanded" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header ── */}
         <div className="invDrawerHeader">
           <button className="invBackBtn" onClick={() => setExpanded((v) => !v)} title={expanded ? "Collapse" : "Expand"}>
             <DoubleArrowLeftIcon />
           </button>
-
           <div className="invHeaderContent">
             <div className="invTitleBlock">
               <div className="invMainTitle">{headerName}</div>
               <div className="invSubTitle">{headerSub}</div>
             </div>
-
             <div className="invMetaGroup">
               <div className="invMetaItem">
                 <span className="invMetaLabel">Ownership</span>
@@ -513,19 +465,16 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
               </div>
               <div className="invMetaItem">
                 <span className="invMetaLabel">Currency</span>
-                <span className="invMetaValue">{headerCurrency}</span>
+                <span className="invMetaValue">
+                  {headerCurrencyCode}
+                  <span className="invCurrencyIcon"><EuroCurrencyIcon /></span>
+                </span>
               </div>
               <div className="invMetaItem">
                 <span className="invMetaLabel">Country</span>
                 <span className="invMetaValue">
                   {getFlagUrl(headerCountry) && (
-                    <img
-                      src={getFlagUrl(headerCountry)}
-                      alt={headerCountry}
-                      className="country-flag-img"
-                      width={20}
-                      height={15}
-                    />
+                    <img src={getFlagUrl(headerCountry)} alt={headerCountry} className="country-flag-img" width={20} height={15} />
                   )}
                   {headerCountry}
                 </span>
@@ -537,34 +486,19 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
                 </div>
               )}
             </div>
-
             <PermissionGate>
               <div className="invHeaderActions">
-                <button
-                  className="invActionIcon"
-                  title="Edit"
-                  onClick={() => setIsEditOpen(true)}
-                  disabled={isMutating}
-                >
-                  <EditIcon />
-                </button>
-                <button
-                  className="invActionIcon"
-                  title="Delete"
-                  onClick={() => setDeletePromptOpen(true)}
-                  disabled={isMutating}
-                >
-                  <DeleteIcon />
-                </button>
+                <button className="invActionIcon" title="Edit" onClick={() => setIsEditOpen(true)} disabled={isMutating}><EditIcon /></button>
+                <button className="invActionIcon" title="Delete" onClick={() => setDeletePromptOpen(true)} disabled={isMutating}><DeleteIcon /></button>
               </div>
             </PermissionGate>
           </div>
         </div>
 
-        {/* ── Body ── */}
         <div className="invDrawerBody">
           <div className="invSectionHeader">Flows</div>
 
+          {/* Flow summary cards — display only, formatted xxx,xxx,xxx.yyy */}
           <div className="invCardsRow">
             {[
               { label: "Investment",  value: sumsByTypeEuro.Investment },
@@ -576,7 +510,7 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
               <div className="invSummaryCard" key={label}>
                 <div className="invCardTitle">{label}</div>
                 <div className="invCardValue">
-                  {value > 0 ? formatMoney(value) : `- €`}
+                  {value > 0 ? `${formatNumber(value)} €` : `- €`}
                 </div>
               </div>
             ))}
@@ -584,12 +518,16 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
 
           <div className="invFairBox">
             <div className="invFairCol" style={{ maxWidth: "160px" }}>
-              <div className="invFairLabel">Fair Value</div>
-              <div className="invFairStaticVal">{fairValueDateLabel || "-"}</div>
+              <div className="invFairLabel invFairLabelDark">Fair Value</div>
+              <div className="invFairStaticVal">
+                {fairValueDateLabel
+                  ? (() => { const [y, m, d] = fairValueDateLabel.split("-"); return `${d}/${m}/${y}`; })()
+                  : "-"}
+              </div>
             </div>
             <div className="invFairCol">
               <div className="invFairLabel">Amount</div>
-              <div className="invFairStaticVal">{formatMoney(fairValueAmount, "")}</div>
+              <div className="invFairStaticVal">{formatNumber(fairValueAmount)}</div>
             </div>
             <div className="invFairCol">
               <div className="invFairLabel">FX Rate*</div>
@@ -597,8 +535,10 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
                 className="invInputBase"
                 type="number"
                 step="any"
-                value={fairValueFxRate}
+                value={fairValueFxRate === 0 ? "" : fairValueFxRate}
+                placeholder="0"
                 onChange={(e) => setFairValueFxRate(e.target.value)}
+                onWheel={noScroll}
               />
             </div>
             <div className="invFairCol">
@@ -607,8 +547,10 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
                 className="invInputBase"
                 type="number"
                 step="any"
-                value={fairValueAmountLC}
+                value={fairValueAmountLC === 0 ? "" : fairValueAmountLC}
+                placeholder="0"
                 onChange={(e) => setFairValueAmountLC(e.target.value)}
+                onWheel={noScroll}
               />
             </div>
           </div>
@@ -658,7 +600,6 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
             <button className="invFooterBtn invBtnSave" onClick={handleSave}>Save</button>
           </div>
         </PermissionGate>
-
       </aside>
 
       {deletePromptOpen && (
@@ -680,7 +621,11 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
             name: currentInvestment?.name || "",
             sector: currentInvestment?.sector || "",
             countryId: currentInvestment?.countryId || currentInvestment?.country_id || "",
-            countryName: currentInvestment?.country || currentInvestment?.countryName || "",
+            countryName:
+              currentInvestment?.country ||
+              currentInvestment?.country_name ||
+              currentInvestment?.countryName ||
+              "",
             currencyId: currentInvestment?.currencyId || currentInvestment?.currency_id || "",
             currencyCode: currentInvestment?.currencyCode || "",
             currencyName: currentInvestment?.currencyName || "",
@@ -691,13 +636,6 @@ export default function InvestmentDetailsDrawer({ investment, timeframe, fundId,
           countries={countries}
           currencies={currencies}
         />
-      )}
-
-      {toast && (
-        <div className={`toast toast-${toast.type} toast-inv`}>
-          <span>{toast.message}</span>
-          <button className="toast-close" onClick={() => setToast(null)} aria-label="Close">×</button>
-        </div>
       )}
     </div>
   );

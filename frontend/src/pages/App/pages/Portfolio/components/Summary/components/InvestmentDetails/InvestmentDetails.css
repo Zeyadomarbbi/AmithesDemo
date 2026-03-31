@@ -12,18 +12,37 @@
 }
 
 .invDrawerPanel {
-  width: 980px;
-  max-width: 95vw;
+  width: 100%;
+  max-width: 980px;
   height: 100vh;
   background: #fff;
   box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Transition for expanding/collapsing width */
+  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Entry animation */
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.share-drawer--expanded {
-  width: calc(100% - 280px) !important;
+.scenario-pf-drawer--expanded {
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+.invBackBtn span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.invBackBtn--expanded {
+  transform: rotate(180deg);
 }
 
 @keyframes slideIn {
@@ -31,6 +50,15 @@
   to   { transform: translateX(0); }
 }
 
+/* Slide Out to Right (Optional: applies if you add a 'closing' class via JS) */
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.invDrawerPanel.closing {
+  animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 /* =========================================
    Header
    ========================================= */
@@ -74,14 +102,14 @@
 }
 .invMainTitle {
   font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.3;
+  font-weight: 600;
+  color: #1c1917;
+  line-height: 24px;
 }
 .invSubTitle {
   font-size: 13px;
   font-weight: 500;
-  color: #375a89;
+  color: #375a89 !important;
 }
 
 .invMetaGroup {
@@ -100,7 +128,7 @@
 .invMetaLabel {
   font-size: 11px;
   font-weight: 500;
-  color: #94a3b8;
+  color: #375a89 !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -112,6 +140,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ── Euro icon in currency meta — force black ── */
+.invCurrencyIcon {
+  display: inline-flex;
+  align-items: center;
+}
+.invCurrencyIcon svg path {
+  fill: #1c1917 !important;
 }
 
 .invHeaderActions {
@@ -141,6 +178,7 @@
 .invDrawerBody {
   flex: 1;
   padding: 24px 24px 32px;
+  overflow-x: clip;
   overflow-y: auto;
   background: #fff;
 }
@@ -215,7 +253,10 @@
 .invFairLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #375a89;
+  color: #375a89 !important;
+}
+.invFairLabelDark {
+  color: #1c1917 !important;
 }
 
 .invFairStaticVal {
@@ -223,11 +264,14 @@
   height: auto;
   display: flex;
   align-items: center;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
   font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
   padding: 4px 2px;
-  line-height: 1.5;
 }
 
 .invInputBase {
@@ -242,47 +286,55 @@
   outline: none;
   transition: border 0.2s;
   font-weight: 500;
+  cursor: text;
 }
+.invInputBase:hover { border-color: #375a89; }
 .invInputBase:focus { border-color: #375a89; box-shadow: none; }
 
 /* =========================================
    Table
    ========================================= */
-.invTableContainer { margin-top: 8px; margin-bottom: 8px; }
+.invTableContainer {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  overflow: visible;
+  position: relative;
+}
+
+.invTableScroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
 
 .invTable {
   width: 100%;
+  min-width: 860px;
   border-collapse: collapse !important;
   border-spacing: 0 !important;
+  table-layout: fixed;
+  overflow: visible;
 }
+
+.invTable tbody { overflow: visible; }
 
 .invTable tbody tr {
   margin: 0;
   padding: 0;
+  overflow: visible;
 }
 
-.invTable tbody tr:nth-child(odd) {
-  background: #ffffff;
-}
-
+.invTable tbody tr:nth-child(odd) { background: #ffffff; }
 .invTable tbody tr:nth-child(odd) .invTableInput {
   background: #ffffff;
   border: 1px solid #e2e8f0;
 }
+.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375a89; }
 
-.invTable tbody tr:nth-child(odd) .invTableInput:focus {
-  border: 1px solid #375a89;
-}
-
-.invTable tbody tr:nth-child(even) {
-  background: #f8f9fb;
-}
-
+.invTable tbody tr:nth-child(even) { background: #f8f9fb; }
 .invTable tbody tr:nth-child(even) .invTableInput {
   background: #f8f9fb;
   border-color: #ebebeb;
 }
-
 .invTable tbody tr:nth-child(even) .invTableInput:focus {
   background: #ffffff;
   border-color: #375a89;
@@ -302,10 +354,7 @@
 
 .invSortIcon { margin-left: 4px; vertical-align: middle; }
 
-.invTable input {
-  box-shadow: none !important;
-  outline: none !important;
-}
+.invTable input { box-shadow: none !important; outline: none !important; }
 
 .invTable tbody tr td {
   padding: 10px 10px;
@@ -315,12 +364,73 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
+/* ── Column widths ── */
+.invThFlow,       .invTdFlow       { width: 48px;  color: #64748b; font-weight: 400; white-space: nowrap; }
+.invThDate,       .invTdDate       { width: 150px; overflow: visible !important; }
+.invThAmountEuro, .invTdAmountEuro { width: 140px; min-width: 140px; }
+.invThFxRate,     .invTdFxRate     { width: 120px; min-width: 120px; }
+.invThAmountLC,   .invTdAmountLC   { width: 140px; min-width: 140px; }
+.invThType,       .invTdType       { width: 170px; min-width: 170px; vertical-align: top !important; padding-top: 10px !important; overflow: visible !important; }
+.invTdActions                      { overflow: visible !important; }
+.invThActions                      { text-align: right; padding-right: 12px; width: 60px; }
+
+/* ── Currency label in Amount header ── */
+.invHeaderCurrency {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
+  color: #7B7D7E;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
+/* ── Input wrapper ── */
 .invInputWrapper {
   position: relative;
   width: 100%;
   display: flex;
   align-items: center;
   overflow: visible !important;
+}
+
+/* ── Partial divestment stacked input ── */
+.invPartialInput {
+  margin-top: 6px;
+  position: relative;
+}
+
+.invPartialInput .invInputWrapper {
+  position: relative;
+}
+
+.invPartialInput .invTableInput {
+  height: 32px;
+  font-size: 12px;
+  padding: 0 28px 0 8px;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px;
+  background: #ffffff !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.invPartialInput .invTableInput:hover { border-color: #375a89 !important; }
+.invPartialInput .invTableInput:focus {
+  border-color: #375a89 !important;
+  background: #ffffff !important;
+}
+
+.invPartialInput svg {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  flex-shrink: 0;
 }
 
 .invTableInput {
@@ -336,11 +446,15 @@
   font-family: 'Inter', sans-serif;
   font-variant-numeric: tabular-nums;
   outline: none;
-  transition: background 0.2s;
+  transition: border 0.2s, background 0.2s;
   box-shadow: none;
+  box-sizing: border-box;
+  cursor: text;
 }
+.invTableInput:hover { border: 1px solid #cbd5e1; background: #ffffff; }
 .invTableInput:focus { border: 1px solid #375a89; box-shadow: none; outline: none; background: #ffffff; }
-.invTableInput:read-only { color: #64748b; background: transparent; }
+.invTableInput:read-only { color: #64748b; background: transparent; cursor: default; }
+.invTableInput:read-only:hover { border: 1px solid #e2e8f0; background: transparent; }
 .invNum { text-align: right; }
 
 .invSelectWrapper {
@@ -349,11 +463,7 @@
   align-items: center;
   width: 100%;
 }
-
-.invSelectWrapper .invBadgeSelect {
-  width: 100%;
-  padding-right: 28px;
-}
+.invSelectWrapper .invBadgeSelect { width: 100%; padding-right: 28px; }
 
 .invSelectChevron {
   position: absolute;
@@ -383,9 +493,9 @@
   border-radius: 6px;
   cursor: pointer;
   gap: 6px;
+  transition: border 0.2s;
 }
-
-.typeSelectTrigger:hover { border-color: #cbd5e1; }
+.typeSelectTrigger:hover { border-color: #375a89; }
 
 .typeSelectBadge {
   display: inline-flex;
@@ -395,6 +505,12 @@
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* ── Placeholder state — no type selected yet ── */
+.typeSelectPlaceholder {
+  color:#7B7D7E !important;
+  font-weight: 400 !important;
 }
 
 .typeSelectChevron {
@@ -418,6 +534,9 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .typeSelectOption {
@@ -433,9 +552,9 @@
   font-size: 12px;
   font-weight: 500;
   color: #334155;
+  transition: background 0.15s;
 }
-
-.typeSelectOption:hover { background: #f8fafc; }
+.typeSelectOption:hover { background: #f1f5f9; }
 
 .typeSelectOption .typeSelectBadge {
   background: transparent !important;
@@ -461,20 +580,19 @@
   color: #334155;
   background-image: none;
 }
-
 .invBadgeSelect option {
   background: #ffffff !important;
   color: #334155 !important;
   font-weight: 500;
 }
 
-.badge-Investment       { color: #b45309 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Investment         { color: #b45309 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 .badge-Dividend,
-.badge-Dividends        { color: #15803d !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Dividends          { color: #15803d !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 .badge-Interest,
-.badge-Interests        { color: #0369a1 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Divestment       { color: #b91c1c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Other            { color: #6d28d9 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Interests          { color: #0369a1 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Divestment         { color: #b91c1c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Other              { color: #6d28d9 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 .badge-Partial-divestment { color: #be123c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 
 /* ── Actions ── */
@@ -728,3 +846,13 @@
   border-radius: 8px;
 }
 .dp-day-cell { width: 36px; height: 36px; }
+
+.invTableInput[type="number"]::-webkit-outer-spin-button,
+.invTableInput[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.invTableInput[type="number"] {
+  -moz-appearance: textfield;
+}

@@ -1,91 +1,95 @@
-/* ===== Portfolio Page Layout ===== */
-
+/* Main Page Container */
 .portfolio-page {
   display: flex;
   flex-direction: column;
-  min-height: 100%; /* CHANGED: from height to min-height */
+  gap: 24px;
   width: 100%;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
 }
 
-.portfolio-content {
+.portfolio-page-container {
   width: 100%;
-  max-width: 100%;
-  margin-left: 0;
-  margin-right: auto;
-  box-sizing: border-box;
-
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: #ffffff;
+  flex: 1;
 }
 
-/* ===== Page Title ===== */
+/* HEADER */
+.portfolio-page-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
 
-.portfolio-title {
-  font-family: "Crimson Pro", serif;
+.portfolio-page-title {
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
   font-weight: 500;
   font-size: 30px;
-  line-height: 100%;
+  line-height: 33px;
   color: #1c1917;
-  padding-bottom: 24px;
+  margin: 0;
+  white-space: nowrap;
 }
 
-/* ===== Tabs ===== */
-
-.portfolio-tabs {
+/* TABS */
+.portfolio-page-tabs {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 16px; 
   width: 100%;
   border-bottom: 1px solid rgba(204, 205, 206, 0.5);
-  margin-bottom: 24px;
 }
 
-.portfolio-tabs-tab {
+.portfolio-page-tab {
   background: none;
   border: none;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: none !important;
   padding: 0 4px 12px; 
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
-  color: #375A89;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px; 
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color 0.2s;
 }
 
-.portfolio-tabs-tab:hover {
-  color: #375A89;
+.portfolio-page-tab:hover {
+  color: #375a89;
 }
 
-/* React Router NavLink active state */
-.portfolio-tabs-tab.active {
-  color: #375A89;
-  border-bottom: 2px solid #F7A93B;
+.portfolio-page-tab.active {
+  color: #375a89;
+  border-bottom: 2px solid #f7a93b;
 }
 
+/* CONTENT AREA */
+.portfolio-page-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 24px;
+}
 
-/* ===== Responsive ===== */
-
-@media (max-width: 900px) {
-  .portfolio-tabs {
-    flex-wrap: wrap;
-    gap: 8px;
+/* RESPONSIVE HEADER */
+@media (max-width: 600px) {
+  .portfolio-page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
-}
-
-@media (max-width: 550px) {
-  .financials-tabs {
-    gap: 6px;
-  }
-
-  .tab {
-    font-size: 13px;
-    padding: 6px 0;
+  
+  .portfolio-page-title {
+    font-size: 24px;
+    white-space: normal;
   }
 }

@@ -87,8 +87,121 @@ export const usePortfolioDataset = (fundId) => {
     await load(true);
   }, [load]);
 
+  const fetchInvestments = useCallback(async () => {
+    await refresh();
+    return cacheRef.current.get(Number(fundId))?.investments ?? [];
+  }, [fundId, refresh]);
+
+  const fetchInvestment = useCallback(async (investmentId) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    if (!Number.isFinite(normalizedFundId) || !Number.isFinite(normalizedInvestmentId)) return null;
+
+    const investment = await api.get(
+      `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/`
+    );
+    return {
+      ...investment,
+      transaction_flows: toSafeArray(investment.transaction_flows),
+      fair_value_flows: toSafeArray(investment.fair_value_flows),
+    };
+  }, [api, fundId]);
+
+  const createInvestment = useCallback(async (payload, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const created = await api.post(`/api/funds/${normalizedFundId}/portfolio-investments/`, payload);
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return created;
+  }, [api, fundId, refresh]);
+
+  const updateInvestment = useCallback(async (investmentId, payload, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    const updated = await api.put(
+      `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/`,
+      payload
+    );
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return updated;
+  }, [api, fundId, refresh]);
+
+  const deleteInvestment = useCallback(async (investmentId, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    const response = await api.delete(
+      `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/`
+    );
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return response;
+  }, [api, fundId, refresh]);
+
+  const saveFlow = useCallback(async (investmentId, flowPayload, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    const existingFlowId = flowPayload.flowId ?? flowPayload.id ?? null;
+    const endpoint = existingFlowId
+      ? `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/flows/${existingFlowId}/`
+      : `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/flows/`;
+    const response = existingFlowId
+      ? await api.put(endpoint, flowPayload)
+      : await api.post(endpoint, flowPayload);
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return response;
+  }, [api, fundId, refresh]);
+
+  const deleteFlow = useCallback(async (investmentId, flowId, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    const normalizedFlowId = Number(flowId);
+    const response = await api.delete(
+      `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/flows/${normalizedFlowId}/`
+    );
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return response;
+  }, [api, fundId, refresh]);
+
+  const saveFairValue = useCallback(async (investmentId, fairValuePayload, options = {}) => {
+    const normalizedFundId = Number(fundId);
+    const normalizedInvestmentId = Number(investmentId);
+    const existingFairValueId = fairValuePayload.fairValueId ?? fairValuePayload.id ?? null;
+    const endpoint = existingFairValueId
+      ? `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/fair-values/${existingFairValueId}/`
+      : `/api/funds/${normalizedFundId}/portfolio-investments/${normalizedInvestmentId}/fair-values/`;
+    const response = existingFairValueId
+      ? await api.put(endpoint, fairValuePayload)
+      : await api.post(endpoint, fairValuePayload);
+    if (options.refresh !== false) {
+      await refresh();
+    }
+    return response;
+  }, [api, fundId, refresh]);
+
+  const fetchTransactionTypes = useCallback(async () => {
+    const response = await api.get("/api/portfolio-transaction-types/");
+    return toSafeArray(response);
+  }, [api]);
+
   return {
     ...dataset,
     refresh,
+    fetchInvestments,
+    fetchInvestment,
+    createInvestment,
+    updateInvestment,
+    deleteInvestment,
+    saveFlow,
+    deleteFlow,
+    saveFairValue,
+    fetchTransactionTypes,
   };
 };

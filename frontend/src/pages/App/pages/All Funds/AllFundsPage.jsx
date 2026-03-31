@@ -60,7 +60,8 @@ export default function AllFundsPage() {
 
     return (
       <KPIsTable
-        funds={filteredFunds}
+        allFunds={funds}                // <-- Add this for fetching
+        displayFunds={filteredFunds}    // <-- Use this for rendering
         onFundClick={handleCardClick}
       />
     );
@@ -70,14 +71,20 @@ export default function AllFundsPage() {
     <div className="allfunds-page">
       <header className="allfunds-header">
         <h1 className="allfunds-title">All funds</h1>
-        <div className="allfunds-tabs">
-          <span className={`tab-link ${activeTab === "funds" ? "active" : ""}`} onClick={() => setActiveTab("funds")}>
-            Funds list
-          </span>
-          <span className={`tab-link ${activeTab === "kpis" ? "active" : ""}`} onClick={() => setActiveTab("kpis")}>
-            KPIs
-          </span>
-        </div>
+          <div className="allfunds-tabs-frame">
+            <button
+              className={`allfunds-tab-item ${activeTab === "funds" ? "active" : ""}`}
+              onClick={() => setActiveTab("funds")}
+            >
+              Funds list
+            </button>
+            <button
+              className={`allfunds-tab-item ${activeTab === "kpis" ? "active" : ""}`}
+              onClick={() => setActiveTab("kpis")}
+            >
+              KPIs
+            </button>
+          </div>
         <div className="tabs-underline" />
       </header>
 

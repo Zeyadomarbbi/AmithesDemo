@@ -4,27 +4,22 @@ import useApi from '../api/useApi';
 const AuthContext = createContext(null);
 
 // Utility functions for dual-storage handling
-const getAuthData = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+const getAuthData = (key) => localStorage.getItem(key);
+
 const clearAuthData = () => {
   ['access', 'refresh', 'amethis_user'].forEach(key => {
     localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
   });
 };
-const setAuthData = (data, remember) => {
-  const storage = remember ? localStorage : sessionStorage;
-  const otherStorage = remember ? sessionStorage : localStorage;
-  
-  // Clear opposite storage to prevent conflicts
-  ['access', 'refresh', 'amethis_user'].forEach(key => otherStorage.removeItem(key));
-  
-  storage.setItem('access', data.access);
-  storage.setItem('refresh', data.refresh);
-  storage.setItem('amethis_user', JSON.stringify(data.user));
+
+const setAuthData = (data) => {
+  localStorage.setItem('access', data.access);
+  localStorage.setItem('refresh', data.refresh);
+  localStorage.setItem('amethis_user', JSON.stringify(data.user));
 };
+
 const updateUserData = (user) => {
-  const storage = localStorage.getItem('access') ? localStorage : sessionStorage;
-  storage.setItem('amethis_user', JSON.stringify(user));
+  localStorage.setItem('amethis_user', JSON.stringify(user));
 };
 
 export const AuthProvider = ({ children }) => {
@@ -33,29 +28,43 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const bootstrap = async () => {
       const token = getAuthData('access');
+      const storedUser = getAuthData('amethis_user');
+
       if (!token) {
         setLoading(false);
         return;
       }
+
+      // Immediate hydration (prevents UI logout flicker)
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+
       try {
         const data = await api.get('/api/me/');
         setUser(data.user);
         updateUserData(data.user);
-      } catch {
-        setUser(null);
-        clearAuthData();
+      } catch (err) {
+        // DO NOT clear session on first failure
+        console.warn("Session check failed, keeping existing session.");
       } finally {
         setLoading(false);
       }
     };
-    checkSession();
-  }, [api]);
+
+    bootstrap();
+  }, []);
 
   const loginAction = async (email, password, rememberMe = false) => {
-    const data = await api.post('/api/login/', { email, password });
-    setAuthData(data, rememberMe);
+    const data = await api.post('/api/login/', { 
+      email, 
+      password, 
+      remember_me: rememberMe 
+    });
+
+    setAuthData(data);
     setUser(data.user);
     return data;
   };

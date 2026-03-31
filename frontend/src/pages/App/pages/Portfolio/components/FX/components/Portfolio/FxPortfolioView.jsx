@@ -1,10 +1,16 @@
 import React from "react";
-import { formatFxValue, getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
-import "../Deals/FxDealsView.css";
+import { formatFxValue, parseFxValue } from "../../FXbackwork";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
+import "../Deals/FxDealsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
 const impactKeyForTimeframe = (timeframeLabel) => `impact${normalizeLabel(timeframeLabel)}`;
+const sameMonthYear = (left, right) => {
+  const a = new Date(left);
+  const b = new Date(right);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+};
 
 const FxPortfolioView = ({ fundId, shared }) => {
   const {
@@ -27,21 +33,33 @@ const FxPortfolioView = ({ fundId, shared }) => {
   const aggregateRows = dealsInvestments.map((inv) => {
     const costRows = Array.isArray(inv.costRows) ? inv.costRows : [];
     const fvRows = Array.isArray(inv.fvRows) ? inv.fvRows : [];
-    const latestFvRow = getLatestFxRowByCutoff(fvRows, debouncedSelectedTimeframes);
-    const fxEntry = fvRows.length
-      ? fvRows.slice().sort((a, b) => new Date(a.rawDate || a.date) - new Date(b.rawDate || b.date))[0]?.fxRate || "-"
+    const historicalTimeframes = Array.isArray(inv.timeframes) ? inv.timeframes : [];
+    const displayedFvRow = fvRows.length
+      ? fvRows.slice().sort((a, b) => new Date(b.rawDate || b.date) - new Date(a.rawDate || a.date))[0]
+      : null;
+    const oldestCostRow = costRows.length
+      ? costRows.slice().sort((a, b) => new Date(a.rawDate || a.date) - new Date(b.rawDate || b.date))[0]
+      : null;
+    const fxEntry = oldestCostRow?.fxRate
+      ? oldestCostRow.fxRate
       : "-";
     const rowImpacts = timeframeColumns.reduce((acc, column) => {
-      acc[column.impactKey] = parseFxValue(latestFvRow?.[column.impactKey]);
+      const matchingHistoricalTimeframe = historicalTimeframes.find((timeframe) =>
+        sameMonthYear(timeframe.rawDate || timeframe.date, column.rawDate)
+      );
+      const sourceImpactKey = matchingHistoricalTimeframe
+        ? impactKeyForTimeframe(matchingHistoricalTimeframe.display_label)
+        : column.impactKey;
+      acc[column.impactKey] = parseFxValue(displayedFvRow?.[sourceImpactKey]);
       return acc;
     }, {});
     return {
       name: inv.title,
       costLc: Math.abs(costRows.reduce((sum, row) => sum + parseFxValue(row.flow), 0)),
-      currency: fvRows[0]?.currency || costRows[0]?.currency || "-",
+      currency: displayedFvRow?.currency || fvRows[0]?.currency || costRows[0]?.currency || "-",
       fxEntry,
       impacts: rowImpacts,
-      impactInception: parseFxValue(latestFvRow?.impactInception),
+      impactInception: parseFxValue(displayedFvRow?.impactInception),
     };
   });
 

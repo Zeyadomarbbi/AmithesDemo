@@ -2,12 +2,30 @@ import { useMemo } from 'react';
 import { API_BASE_URL } from "./apiConfig";
 
 function getAccessToken() {
-  return localStorage.getItem("access") || sessionStorage.getItem("access");
+  return localStorage.getItem("access");
 }
 
 const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
 
-async function request(endpoint, options = {}) {
+async function refreshAccessToken() {
+  const refresh = localStorage.getItem('refresh');
+  if (!refresh) return false;
+
+  const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh }),
+  });
+
+  if (!response.ok) return false;
+
+  const data = await response.json();
+  localStorage.setItem('access', data.access);
+  if (data.refresh) localStorage.setItem('refresh', data.refresh);
+  return true;
+}
+
+async function request(endpoint, options = {}, retry = true) {
   const token = getAccessToken();
   const isFormData = options.body instanceof FormData;
 
@@ -20,12 +38,9 @@ async function request(endpoint, options = {}) {
     },
   });
 
-  if (response.status === 401) {
-    ['access', 'refresh', 'amethis_user'].forEach(key => {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    });
-    window.location.href = "/login";
+  if (response.status === 401 && retry) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return request(endpoint, options, false); // one retry
     throw new Error("Unauthorized");
   }
 

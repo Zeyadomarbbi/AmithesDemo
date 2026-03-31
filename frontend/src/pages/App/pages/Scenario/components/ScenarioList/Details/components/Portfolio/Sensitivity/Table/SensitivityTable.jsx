@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import SearchableSelect from '../../../../../../../../../../../components/SearchBar/SearchableSelect.jsx';
+import SimpleDropdown from '../../../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx';
 import './SensitivityTable.css';
 
 const StyledInput = ({ value, onChange, className, type = "text" }) => (
@@ -46,7 +46,7 @@ const SensitivityTable = ({
                 <span className="sensitivity-title-text">Sensitivity table</span>
                 <div className="sensitivity-controls-group">
                     <div className="sensitivity-header-dropdown-container">
-                        <SearchableSelect
+                        <SimpleDropdown
                             options={kpiOptionsMapped}
                             value={selectedKpi}
                             onChange={(val) => setSelectedKpi(val)}
@@ -54,7 +54,6 @@ const SensitivityTable = ({
                             disabled={kpiOptions.length === 0}
                             labelKey="name"
                             valueKey="id"
-                            triggerClassName="sensitivity-header-control-dropdown"
                         />
                     </div>
                 </div>

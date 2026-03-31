@@ -1,10 +1,17 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { getLatestFxRowByCutoff, parseFxValue } from "../../FXbackwork";
+import { parseFxValue } from "../../FXbackwork";
 import { ChevronDownIcon } from "../../Icons";
 import "./FxChartsView.css";
 
 const normalizeLabel = (label) => String(label || "").replace(/\s/g, "");
+const impactKeyForTimeframe = (timeframeLabel) => `impact${normalizeLabel(timeframeLabel)}`;
+const sameMonthYear = (left, right) => {
+  const a = new Date(left);
+  const b = new Date(right);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+};
 
 const FxChartsView = ({ shared }) => {
   const {
@@ -62,19 +69,30 @@ const FxChartsView = ({ shared }) => {
   const activeTimeframes = debouncedSelectedTimeframes?.length ? debouncedSelectedTimeframes : [];
 
   const chartData = activeTimeframes.map((timeframe) => {
-    const impactKey = `impact${normalizeLabel(timeframe.display_label)}`;
+    const impactKey = impactKeyForTimeframe(timeframe.display_label);
     const totalImpact = filteredInvestments.reduce((sum, investment) => {
       const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
-      const latestFvRow = getLatestFxRowByCutoff(fvRows, [timeframe]);
-      return sum + parseFxValue(latestFvRow?.[impactKey]);
+      const historicalTimeframes = Array.isArray(investment.timeframes) ? investment.timeframes : [];
+      const displayedFvRow = fvRows.length
+        ? fvRows.slice().sort((a, b) => new Date(b.rawDate || b.date) - new Date(a.rawDate || a.date))[0]
+        : null;
+      const matchingHistoricalTimeframe = historicalTimeframes.find((item) =>
+        sameMonthYear(item.rawDate || item.date, timeframe.rawDate || timeframe.date)
+      );
+      const sourceImpactKey = matchingHistoricalTimeframe
+        ? impactKeyForTimeframe(matchingHistoricalTimeframe.display_label)
+        : impactKey;
+      return sum + parseFxValue(displayedFvRow?.[sourceImpactKey]);
     }, 0);
     return { name: timeframe.display_label, value: Number((totalImpact / 1000000).toFixed(2)) };
   });
 
   const totalInception = filteredInvestments.reduce((sum, investment) => {
     const fvRows = Array.isArray(investment.fvRows) ? investment.fvRows : [];
-    const latestFvRow = getLatestFxRowByCutoff(fvRows, activeTimeframes);
-    return sum + parseFxValue(latestFvRow?.impactInception);
+    const displayedFvRow = fvRows.length
+      ? fvRows.slice().sort((a, b) => new Date(b.rawDate || b.date) - new Date(a.rawDate || a.date))[0]
+      : null;
+    return sum + parseFxValue(displayedFvRow?.impactInception);
   }, 0);
 
   const finalChartData = [

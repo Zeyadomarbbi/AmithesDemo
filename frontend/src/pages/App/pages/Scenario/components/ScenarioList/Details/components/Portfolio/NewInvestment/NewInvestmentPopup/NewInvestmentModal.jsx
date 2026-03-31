@@ -1,41 +1,39 @@
 import React, { useState } from "react";
-import { useCountries } from "../../../../../../../../../hooks/Reference/useCountries";
-import { useCurrencies } from "../../../../../../../../../hooks/Reference/useCurrencies";
 import { usePortfolio } from "../../../../../../../../../hooks/Portfolio/usePortfolio.js";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
-import SearchableSelect from "../../../../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./NewInvestmentModal.css";
 
-const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
-  const [name, setName] = useState("");
-  const [sector, setSector] = useState("");
-  const [countryId, setCountryId] = useState("");
-  const [ownership, setOwnership] = useState("");
-  const [currencyId, setCurrencyId] = useState("");
+const NewInvestmentModal = ({
+  fundId,
+  scenarioId,
+  onClose,
+  onSuccess,
+  countries,
+  currencies,
+  mode,
+  initialValues,
+  onSave
+}) => {
+  const [name, setName] = useState(initialValues?.name || "");
+  const [sector, setSector] = useState(initialValues?.sector || "");
+  const [countryId, setCountryId] = useState(initialValues?.countryId || "");
+  const [ownership, setOwnership] = useState(initialValues?.ownership || "");
+  const [currencyId, setCurrencyId] = useState(initialValues?.currencyId || "");
   const [isCreating, setIsCreating] = useState(false);
-
   const { createInvestment } = usePortfolio(fundId);
-  const { countries = [] } = useCountries();
-  const { currencies = [] } = useCurrencies();
   const ownershipNumber = Number(String(ownership).replace(/,/g, "").trim());
   const isOwnershipValid = Number.isFinite(ownershipNumber) && ownershipNumber >= 1 && ownershipNumber <= 100;
 
   const isValid = name && sector && countryId && currencyId && isOwnershipValid;
 
-  // Format currencies to align with SearchableSelect rendering logic
-  const formattedCurrencies = currencies.map(c => ({
-    ...c,
-    customLabel: `${c.name} - ${c.code}`,
-    customSecondary: c.symbol
-  }));
-
   const handleSave = async () => {
     if (!isValid) return;
     setIsCreating(true);
     try {
-      const selectedCurrency = currencies.find((c) => 
-        String(c.currency_code) === String(currencyId) || 
+      const selectedCurrency = currencies?.find((c) =>
+        String(c.currency_code) === String(currencyId) ||
         String(c.id) === String(currencyId)
       );
 
@@ -47,11 +45,15 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
         currency_id: selectedCurrency?.id || currencyId,
       };
 
-      await createInvestment(scenarioId, payload);
-      if (onSuccess) onSuccess();
-      onClose();
+      if (mode === "edit" && onSave) {
+        await onSave(payload);
+      } else {
+        await createInvestment(scenarioId, payload);
+        if (onSuccess) onSuccess();
+        onClose();
+      }
     } catch (err) {
-      console.error("Immediate creation failed", err);
+      console.error("Operation failed", err);
     } finally {
       setIsCreating(false);
     }
@@ -70,8 +72,8 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
             </button>
           </div>
           <div className="portfolio-new-investment-header-text">
-            <h2>Create a new investment</h2>
-            <p>Scenario Projection Investment</p>
+            <h2>{mode === "edit" ? "Edit investment" : "Create a new investment"}</h2>
+            <p>{mode === "edit" ? "Update investment details" : "Scenario Projection Investment"}</p>
           </div>
         </div>
 
@@ -99,15 +101,13 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Geography*</label>
-              <SearchableSelect
+              <SimpleDropdown
                 options={countries}
                 value={countryId}
                 onChange={setCountryId}
                 placeholder="Select a country"
                 labelKey="name"
-                secondaryLabelKey="iso2"
                 valueKey="id"
-                triggerClassName="portfolio-new-investment-input"
               />
             </div>
 
@@ -130,15 +130,17 @@ const NewInvestmentModal = ({ fundId, scenarioId, onClose, onSuccess }) => {
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Local Currency*</label>
-              <SearchableSelect
-                options={formattedCurrencies}
+              <SimpleDropdown
+                options={(currencies ?? []).map((c) => ({
+                  id: c.id,
+                  name: `${c.currency_name || c.name} (${c.currency_code || c.code} — ${c.currency_symbol || c.symbol})`,
+                }))}
                 value={currencyId}
                 onChange={setCurrencyId}
-                placeholder="Select a currency"
-                labelKey="customLabel"
-                secondaryLabelKey="customSecondary"
+                placeholder={"Select Currency"}
+                labelKey="name"
                 valueKey="id"
-                triggerClassName="portfolio-new-investment-input"
+                disabled={isCreating}
               />
             </div>
           </div>

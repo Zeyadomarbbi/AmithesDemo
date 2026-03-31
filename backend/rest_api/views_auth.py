@@ -1,4 +1,5 @@
-# rest_api/views_auth.py
+from datetime import timedelta
+
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
@@ -6,7 +7,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from rest_api.serializers.core import (
     UserSerializer,
     MeSerializer,
@@ -44,8 +44,21 @@ def login_view(request):
     user = authenticate(request, username=user_obj.username, password=password)
 
     if user is not None:
+        remember = request.data.get("remember_me", False)
+
         refresh = RefreshToken.for_user(user)
+
+        if remember:
+            # long session
+            refresh.set_exp(lifetime=timedelta(days=30))
+            refresh.access_token.set_exp(lifetime=timedelta(days=1))
+        else:
+            # short session
+            refresh.set_exp(lifetime=timedelta(hours=2))
+            refresh.access_token.set_exp(lifetime=timedelta(minutes=15))
+
         UserProfile.objects.get_or_create(user=user)
+
         return Response({
             "refresh": str(refresh),
             "access":  str(refresh.access_token),
