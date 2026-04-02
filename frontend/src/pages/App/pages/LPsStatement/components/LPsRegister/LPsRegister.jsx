@@ -42,25 +42,6 @@ function buildClassColorMap(uniqueClasses) {
 function formatAmount(num) {
   return (Number(num) || 0).toLocaleString("fr-FR");
 }
-
-function formatPercent(num) {
-  return `${(Number(num) || 0).toFixed(2)}%`;
-}
-
-function getInitials(name) {
-  if (!name) return "LP";
-  return name.split(" ").filter(n => n).map(n => n[0]).join("").toUpperCase().slice(0, 2);
-}
-
-function getClassColor(name) {
-  if (!name) return "tag-gray";
-  const n = String(name).toLowerCase();
-  if (n.includes("a1")) return "tag-purple";
-  if (n.includes("a2")) return "tag-green";
-  if (n.includes("b")) return "tag-yellow";
-  return "tag-blue";
-}
-
 /**
  * Main Data Transformer
  * Filters by fundId and groups Commitments by LP + Share Class

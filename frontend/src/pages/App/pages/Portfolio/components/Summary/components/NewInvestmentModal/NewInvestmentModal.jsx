@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useCountries } from "../../../../../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies";
-import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
+import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { CloseIcon, AddNewDocIcon } from '/src/components/Icons/InteractiveIcons';
 import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import "./NewInvestmentModal.css";
@@ -142,7 +142,7 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Geography*</label>
-              <SearchableSelect
+              <SimpleDropdown
                 options={countries.map((c) => ({
                   ...c,
                   name: c.name || c.country_name || "",
@@ -179,7 +179,7 @@ const NewInvestmentModal = ({ onClose, onSave, initialValues = null, mode = "cre
 
             <div className="portfolio-new-investment-form-group">
               <label className="portfolio-new-investment-label">Local Currency*</label>
-              <SearchableSelect
+              <SimpleDropdown
                 options={formattedCurrencies}
                 value={resolvedCurrencyId}
                 onChange={(val) => setCurrencyId(val)}

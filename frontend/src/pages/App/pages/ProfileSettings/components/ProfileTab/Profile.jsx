@@ -2,40 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../../../../../hooks/Auth/AuthContext';
-import SearchableSelect from '../../../../../../components/SearchBar/SearchableSelect.jsx';
+import SimpleDropdown from '../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx';
 import DateInputWithPicker from '../../../../../../components/DateComponents/DateInput.jsx';
 import Toast from '../../../../components/Toast/Toast.jsx';
 import '../ProfileSettings.shared.css';
-
-const TIMEZONE_OPTIONS = [
-  { id: 'UTC-12:00', name: 'UTC−12:00', offset: '(UTC−12:00) Baker Island' },
-  { id: 'UTC-11:00', name: 'UTC−11:00', offset: '(UTC−11:00) Niue, Samoa' },
-  { id: 'UTC-10:00', name: 'UTC−10:00', offset: '(UTC−10:00) Hawaii' },
-  { id: 'UTC-09:00', name: 'UTC−09:00', offset: '(UTC−09:00) Alaska' },
-  { id: 'UTC-08:00', name: 'UTC−08:00', offset: '(UTC−08:00) Pacific Time (US)' },
-  { id: 'UTC-07:00', name: 'UTC−07:00', offset: '(UTC−07:00) Mountain Time (US)' },
-  { id: 'UTC-06:00', name: 'UTC−06:00', offset: '(UTC−06:00) Central Time (US)' },
-  { id: 'UTC-05:00', name: 'UTC−05:00', offset: '(UTC−05:00) Eastern Time (US)' },
-  { id: 'UTC-04:00', name: 'UTC−04:00', offset: '(UTC−04:00) Atlantic Time, Caracas' },
-  { id: 'UTC-03:00', name: 'UTC−03:00', offset: '(UTC−03:00) São Paulo, Buenos Aires' },
-  { id: 'UTC-02:00', name: 'UTC−02:00', offset: '(UTC−02:00) Mid-Atlantic' },
-  { id: 'UTC-01:00', name: 'UTC−01:00', offset: '(UTC−01:00) Azores, Cape Verde' },
-  { id: 'UTC+00:00', name: 'UTC±00:00', offset: '(UTC±00:00) London, Dublin, Lisbon' },
-  { id: 'UTC+01:00', name: 'UTC+01:00', offset: '(UTC+01:00) Paris, Berlin, Rome, Cairo' },
-  { id: 'UTC+02:00', name: 'UTC+02:00', offset: '(UTC+02:00) Athens, Johannesburg' },
-  { id: 'UTC+03:00', name: 'UTC+03:00', offset: '(UTC+03:00) Moscow, Nairobi, Riyadh' },
-  { id: 'UTC+04:00', name: 'UTC+04:00', offset: '(UTC+04:00) Dubai, Baku' },
-  { id: 'UTC+05:00', name: 'UTC+05:00', offset: '(UTC+05:00) Karachi, Tashkent' },
-  { id: 'UTC+05:30', name: 'UTC+05:30', offset: '(UTC+05:30) Mumbai, Kolkata' },
-  { id: 'UTC+06:00', name: 'UTC+06:00', offset: '(UTC+06:00) Dhaka, Almaty' },
-  { id: 'UTC+07:00', name: 'UTC+07:00', offset: '(UTC+07:00) Bangkok, Jakarta' },
-  { id: 'UTC+08:00', name: 'UTC+08:00', offset: '(UTC+08:00) Beijing, Singapore, Perth' },
-  { id: 'UTC+09:00', name: 'UTC+09:00', offset: '(UTC+09:00) Tokyo, Seoul' },
-  { id: 'UTC+09:30', name: 'UTC+09:30', offset: '(UTC+09:30) Adelaide, Darwin' },
-  { id: 'UTC+10:00', name: 'UTC+10:00', offset: '(UTC+10:00) Sydney, Melbourne' },
-  { id: 'UTC+11:00', name: 'UTC+11:00', offset: '(UTC+11:00) Solomon Islands' },
-  { id: 'UTC+12:00', name: 'UTC+12:00', offset: '(UTC+12:00) Auckland, Fiji' },
-];
 
 const toLocalDateString = (date) => {
   const y = date.getFullYear();
@@ -44,18 +14,57 @@ const toLocalDateString = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+// Generate an exhaustive list of timezones dynamically using Intl API
+const generateTimezones = () => {
+  try {
+    const timezones = Intl.supportedValuesOf('timeZone');
+    return timezones.map((tz) => {
+      // Calculate offset dynamically for the current date
+      const date = new Date();
+      const tzString = date.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+      const offsetMatch = tzString.match(/(GMT[+-]\d{1,2}(?::\d{2})?)/);
+      const rawOffset = offsetMatch ? offsetMatch[1].replace('GMT', 'UTC') : 'UTC+00:00';
+      
+      // Format offset to ensure consistent UTC±XX:XX format
+      let formattedOffset = rawOffset;
+      if (rawOffset === 'UTC') {
+        formattedOffset = 'UTC±00:00';
+      } else if (!rawOffset.includes(':')) {
+        formattedOffset = `${rawOffset}:00`;
+      }
+
+      // Prettify the display name (e.g., "America/New_York" -> "New York")
+      const cityName = tz.split('/').pop().replace(/_/g, ' ');
+
+      return {
+        id: tz,
+        name: formattedOffset,
+        offset: `(${formattedOffset}) ${cityName} - ${tz}`,
+        sortKey: parseInt(formattedOffset.replace('UTC', '').replace('±', '0').replace('+', '').replace(':', ''), 10) || 0
+      };
+    }).sort((a, b) => a.sortKey - b.sortKey);
+  } catch (e) {
+    // Fallback if Intl API fails
+    return [
+      { id: 'UTC', name: 'UTC', offset: 'Universal Time Coordinated' }
+    ];
+  }
+};
+
+const TIMEZONE_OPTIONS = generateTimezones();
+
 function ProfileTab() {
   const { user, countries = [] } = useOutletContext();
   const { updateUser, updateProfile } = useAuth();
 
   const [form, setForm] = useState({
-    first_name: user?.first_name           || '',
-    last_name:  user?.last_name            || '',
-    username:   user?.username             || '',
-    title:      user?.profile?.title       || '',
-    birthday:   user?.profile?.birthday    ? new Date(user.profile.birthday) : null,
-    country:    user?.profile?.country_id  || null,
-    timezone:   user?.profile?.timezone    || 'UTC+00:00',
+    first_name: user?.first_name          || '',
+    last_name:  user?.last_name           || '',
+    username:   user?.username            || '',
+    title:      user?.profile?.title      || '',
+    birthday:   user?.profile?.birthday   ? new Date(user.profile.birthday) : null,
+    country:    user?.profile?.country_id || null,
+    timezone:   user?.profile?.timezone   || Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to local timezone
   });
 
   const [saving, setSaving] = useState(false);
@@ -64,13 +73,13 @@ function ProfileTab() {
   useEffect(() => {
     if (user) {
       setForm({
-        first_name: user.first_name           || '',
-        last_name:  user.last_name            || '',
-        username:   user.username             || '',
-        title:      user.profile?.title       || '',
-        birthday:   user.profile?.birthday    ? new Date(user.profile.birthday) : null,
-        country:    user.profile?.country_id  || null,
-        timezone:   user.profile?.timezone    || 'UTC+00:00',
+        first_name: user.first_name          || '',
+        last_name:  user.last_name           || '',
+        username:   user.username            || '',
+        title:      user.profile?.title      || '',
+        birthday:   user.profile?.birthday   ? new Date(user.profile.birthday) : null,
+        country:    user.profile?.country_id || null,
+        timezone:   user.profile?.timezone   || Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
     }
   }, [user]);
@@ -179,15 +188,14 @@ function ProfileTab() {
           <div className="up-form-row">
             <div className="up-field">
               <label className="up-label">Country</label>
-              <SearchableSelect
+              <SimpleDropdown
                 options={formattedCountries}
                 value={form.country}
                 onChange={(val) => setForm(prev => ({ ...prev, country: val }))}
                 placeholder="Select a country"
                 labelKey="name"
                 valueKey="id"
-                secondaryLabelKey="code"
-                triggerClassName="up-input"
+                isSearchBar={true}
               />
             </div>
           </div>
@@ -195,15 +203,14 @@ function ProfileTab() {
           {/* Row 4 — Timezone (full width) */}
           <div className="up-field">
             <label className="up-label">Timezone</label>
-            <SearchableSelect
+            <SimpleDropdown
               options={TIMEZONE_OPTIONS}
               value={form.timezone}
               onChange={(val) => setForm(prev => ({ ...prev, timezone: val }))}
               placeholder="Select a timezone"
-              labelKey="name"
+              labelKey="offset" // Using offset as label so it shows the full "(UTC±XX:XX) City" in the dropdown
               valueKey="id"
-              secondaryLabelKey="offset"
-              triggerClassName="up-input"
+              isSearchBar={true}
             />
           </div>
 

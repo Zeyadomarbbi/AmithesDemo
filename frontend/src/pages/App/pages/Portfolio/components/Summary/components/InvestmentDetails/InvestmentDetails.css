@@ -85,7 +85,7 @@
   flex-shrink: 0;
   transition: all 0.2s;
 }
-.invBackBtn:hover { border-color: #cbd5e1; background: #f8fafc; }
+.invBackBtn:hover { border-color: #375A89; background: #ffffff; }
 
 .invHeaderContent {
   flex: 1;
@@ -170,8 +170,7 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.invActionIcon:hover { border-color: #cbd5e1; color: #64748b; background: #f8fafc; }
-
+.invActionIcon:hover { border-color: #375A89; color: #375A89; background: #ffffff; }
 /* =========================================
    Body & Scroll
    ========================================= */
@@ -289,7 +288,7 @@
   cursor: text;
 }
 .invInputBase:hover { border-color: #375a89; }
-.invInputBase:focus { border-color: #375a89; box-shadow: none; }
+.invInputBase:focus { border-color: #375A89; box-shadow: 0 0 0 1px #375A89; }
 
 /* =========================================
    Table
@@ -328,17 +327,15 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
 }
-.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375a89; }
+.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; }
 
 .invTable tbody tr:nth-child(even) { background: #f8f9fb; }
 .invTable tbody tr:nth-child(even) .invTableInput {
   background: #f8f9fb;
   border-color: #ebebeb;
 }
-.invTable tbody tr:nth-child(even) .invTableInput:focus {
-  background: #ffffff;
-  border-color: #375a89;
-}
+.invTable tbody tr:nth-child(even) .invTableInput:focus { background: #ffffff; border-color: #375A89; box-shadow: 0 0 0 1px #375A89; }
+
 
 .invTable th {
   text-align: left;
@@ -418,11 +415,8 @@
   box-sizing: border-box;
 }
 
-.invPartialInput .invTableInput:hover { border-color: #375a89 !important; }
-.invPartialInput .invTableInput:focus {
-  border-color: #375a89 !important;
-  background: #ffffff !important;
-}
+.invTableInput:hover { border: 1px solid #375A89; background: #ffffff; }
+.invPartialInput .invTableInput:focus { border-color: #375A89 !important; box-shadow: 0 0 0 1px #375A89 !important; background: #ffffff !important; }
 
 .invPartialInput svg {
   position: absolute;
@@ -452,7 +446,7 @@
   cursor: text;
 }
 .invTableInput:hover { border: 1px solid #cbd5e1; background: #ffffff; }
-.invTableInput:focus { border: 1px solid #375a89; box-shadow: none; outline: none; background: #ffffff; }
+.invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; outline: none; background: #ffffff; }
 .invTableInput:read-only { color: #64748b; background: transparent; cursor: default; }
 .invTableInput:read-only:hover { border: 1px solid #e2e8f0; background: transparent; }
 .invNum { text-align: right; }

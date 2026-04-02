@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx";
 import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { CloseIcon, PlusIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { ChevronDoubleLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons.jsx";
@@ -238,6 +237,11 @@ export default function LPDrawer({
             >
               <ChevronDoubleLeftIcon />
             </button>
+            <div className="lp-drawer-title-group">
+              <h2 className="lp-drawer-title">{isEdit ? lp.name : "Adding a new LP"}</h2>
+              {isEdit && <div className="lp-drawer-sub">Editing Limited Partner Details</div>}
+            </div>
+
             <button 
               type="button" 
               className="lp-drawer-close-btn" 
@@ -245,11 +249,6 @@ export default function LPDrawer({
             >
               <CloseIcon />
             </button>
-          </div>
-          
-          <div className="lp-drawer-title-group">
-            <h2 className="lp-drawer-title">{isEdit ? lp.name : "Adding a new LP"}</h2>
-            {isEdit && <div className="lp-drawer-sub">Editing Limited Partner Details</div>}
           </div>
         </header>
 

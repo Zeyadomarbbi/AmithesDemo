@@ -23,7 +23,7 @@
 
 .notif-card:hover {
   border-color: #375A89;
-  box-shadow: 0 0 0 3px rgba(55, 90, 137, 0.08);
+  box-shadow: 0 0 0 1px #375A89;
 }
 
 .notif-card-text {

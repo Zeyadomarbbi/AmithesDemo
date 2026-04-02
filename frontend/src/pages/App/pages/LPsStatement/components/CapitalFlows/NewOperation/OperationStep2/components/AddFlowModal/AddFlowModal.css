@@ -94,10 +94,13 @@
   border: 1px solid #d9dce1;
   font-size: 14px;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .af-input:focus {
-  border-color: gray;
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
 }
 
 .af-select {
@@ -148,7 +151,9 @@
   background: #f4a122;
   color: #ffffff;
   font-weight: 600;
+  transition: background 0.2s ease;
 }
+
 /* Dropdown */
 .af-select-wrap {
   position: relative;
@@ -164,7 +169,8 @@
 }
 
 .af-select.is-open {
-  outline: 2px solid rgba(59, 130, 246, 0.25);
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }
 
 .af-select-menu {
@@ -203,4 +209,24 @@
 
 .af-select-option.is-selected {
   background: #eef2ff;
+}
+
+.af-input:hover {
+  border-color: #375A89;
+}
+
+.af-select:hover {
+  border-color: #375A89;
+}
+
+.af-close:hover {
+  background: #F3F4F6;
+}
+
+.af-btn--primary:hover {
+  background: #e2962d;
+}
+
+.af-btn--secondary:hover {
+  background: #F3F4F6;
 }

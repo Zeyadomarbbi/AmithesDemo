@@ -12,6 +12,7 @@ function SimpleDropdown({
     labelKey = "name", 
     valueKey = "id",
     isSingle = true,
+    isSearchBar = true,
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -83,9 +84,11 @@ function SimpleDropdown({
 
     const dropdown = (
         <div ref={dropdownRef} className="sd-dropdown" style={dropdownStyle}>
-            <div className="sd-search-wrapper">
-                <SearchBar placeholder="Search..." onSearch={setSearchTerm} />
-            </div>
+            {isSearchBar && (
+                <div className="sd-search-wrapper">
+                    <SearchBar placeholder="Search..." onSearch={setSearchTerm} />
+                </div>
+            )}
             <div className="sd-list">
                 {filtered.length > 0 ? (
                     filtered.map((o) => {

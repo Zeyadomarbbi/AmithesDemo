@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { CloseIcon, CheckMarkIcon } from "../../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { ChevronDownIcon } from "../../../../../../../../../../components/Icons/DirectionIcons.jsx";
-import SearchableSelect from "../../../../../../../../../../components/SearchBar/SearchableSelect";
+import SimpleDropdown from "../../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./AddFlowModal.css";
 import '/src/components/QuarterSelection/QuarterSelector.css';
 
@@ -109,7 +109,7 @@ export default function AddFlowModal({
 
                     <div className="af-field">
                         <label className="af-label">Type of flow*</label>
-                        <SearchableSelect
+                        <SimpleDropdown
                             options={options}
                             value={flowTypeId}
                             onChange={(val) => {

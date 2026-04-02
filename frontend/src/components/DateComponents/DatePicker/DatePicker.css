@@ -77,14 +77,31 @@
   background: #FFFFFF;
   border: 1px solid #D0D5DD;
   border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
   font-size: 14px;
-  color: #101828;
+  line-height: 20px;
+  color: #1C1917;
   text-align: center;
 }
+
 .dp-input-wrapper.active .dp-input {
-  border-color: #F7A93B;
-  box-shadow: 0 0 0 2px rgba(247, 169, 59, 0.1);
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  
 }
+
+.dp-input:hover {
+  border-color: #375A89;
+}
+
+.dp-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
 .dp-dash { color: #667085; }
 
 .dp-presets {
@@ -274,15 +291,14 @@
 }
 
 .input-trigger:hover {
-  background: #F9FAFB;
-  border-color: #B2DDFF;
+  background: #FFFFFF;
+  border-color: #375A89;
 }
 
 .input-trigger.active {
-  border-color: #F7A93B;
-  box-shadow: 0 0 0 3px rgba(247, 169, 59, 0.1);
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }
-
 .selected-date-text {
   font-family: 'Inter', sans-serif;
   font-size: 14px;

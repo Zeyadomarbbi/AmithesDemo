@@ -104,6 +104,7 @@
   gap: 6px;
   width: 100%;
   box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group label {
@@ -125,6 +126,7 @@
   box-sizing: border-box;
   appearance: none;
   color: #7b7d7e;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group .modal-searchable-trigger {
@@ -145,8 +147,8 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: rgba(204, 205, 206, 0.8);
-  box-shadow: none;
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }
 
 /* ================= Grid ================= */
@@ -231,15 +233,15 @@
 }
 
 .invTableInput:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: #ffffff;
+  border-color: #375A89;
 }
 
 .invTableInput:focus {
   background: #fff;
-  border-color: #2563eb;
+  border-color: #375A89;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 1px #375A89;
 }
 
 .readOnlyInput {
@@ -256,14 +258,26 @@
     z-index: 9999 !important;
 }
 
-.invTableInput:focus {
-    outline: none !important;
-}
 .react-datepicker-popper {
   z-index: 9999 !important;
 }
 
-.invTableInput:focus {
-  outline: none !important;
-  border-color: #cbd5e1 !important;
+.form-group input:hover,
+.form-group select:hover {
+  border-color: #375A89;
+}
+
+.form-group .modal-searchable-trigger:hover {
+  border-color: #375A89;
+}
+
+.form-group .modal-searchable-trigger:focus,
+.form-group .modal-searchable-trigger.active {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+.modal-close:hover {
+  background: #F3F4F6;
 }

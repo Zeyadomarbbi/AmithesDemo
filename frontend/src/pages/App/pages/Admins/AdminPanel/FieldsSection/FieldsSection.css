@@ -1,4 +1,5 @@
-.panel-fields-container {
+/* FieldsSection.css */
+.af-panel-fields-container {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -10,7 +11,7 @@
   overflow-y: auto;
 }
 
-.fields-row-frame {
+.af-fields-row-frame {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -18,19 +19,19 @@
   width: 100%;
 }
 
-.text-field-wrapper {
+.af-text-field-wrapper {
   display: flex;
   flex-direction: column;
   flex: 1;
   gap: 6px;
 }
 
-.text-field-wrapper.full-width {
+.af-text-field-wrapper.af-full-width {
   width: 100%;
   flex: none;
 }
 
-.input-with-label {
+.af-input-with-label {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -38,7 +39,7 @@
   width: 100%;
 }
 
-.field-label {
+.af-field-label {
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 14px;
@@ -46,7 +47,7 @@
   color: #375A89;
 }
 
-.input-box {
+.af-input-box {
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -58,15 +59,16 @@
   background: #FFFFFF;
   border: 1px solid rgba(204, 205, 206, 0.5);
   border-radius: 4px;
-  position: relative; /* Necessary for absolute select positioning */
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.select-input {
+.af-select-input {
   border: none;
   outline: none;
   width: 100%;
   background: transparent;
-  appearance: none; /* Removes default arrow */
+  appearance: none;
   -webkit-appearance: none;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -76,20 +78,19 @@
   z-index: 1;
 }
 
-.input-box.dropdown::before {
-  content: attr(data-value); /* You can use state to display value if preferred */
+.af-input-box.af-dropdown::before {
+  content: attr(data-value);
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
   color: #1C1917;
 }
 
-/* Styling for the select box UI wrapper */
-.input-box.dropdown {
+.af-input-box.af-dropdown {
   cursor: pointer;
 }
 
-.text-input, .select-input-display {
+.af-text-input, .af-select-input-display {
   border: none;
   outline: none;
   width: 100%;
@@ -97,14 +98,14 @@
   font-weight: 400;
   font-size: 14px;
   color: #1C1917;
+  background: transparent;
 }
 
-/* Optional: Add a hover effect to the dropdown */
-.input-box.dropdown:hover {
+.af-input-box.af-dropdown:hover {
   border-color: #375A89;
 }
 
-.text-input {
+.af-text-input {
   border: none;
   outline: none;
   width: 100%;
@@ -114,15 +115,14 @@
   color: #1C1917;
 }
 
-.placeholder-text {
+.af-placeholder-text {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   font-size: 14px;
   color: #1C1917;
 }
 
-/* === BADGES === */
-.badge {
+.af-badge {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -130,38 +130,34 @@
   text-align: center;
 }
 
-/* Active = Green */
-.badge-green {
+.af-badge-green {
   background: #DAF8E3;
   color: #1A6433;
 }
 
-/* Pending = Blue */
-.badge-blue {
+.af-badge-blue {
   background: #D3F2FF;
   color: #4C6977;
 }
 
-/* Inactive = Grey */
-.badge-grey {
+.af-badge-grey {
   background: #E5E7EB;
   color: #374151;
 }
 
-.chevron-icon {
+.af-chevron-icon {
   display: flex;
   align-items: center;
   color: #375A89;
 }
 
-/* Destructive Button */
-.destructive-action-row {
+.af-destructive-action-row {
   display: flex;
   width: 100%;
   margin-top: 8px;
 }
 
-.destructive-btn {
+.af-destructive-btn {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -178,4 +174,18 @@
   font-weight: 500;
   font-size: 14px;
   color: #E11D48;
+  transition: background 0.2s ease;
+}
+
+.af-destructive-btn:hover {
+  background: #ffe4e6;
+}
+
+.af-input-box:hover {
+  border-color: #375A89;
+}
+
+.af-input-box:focus-within {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }

@@ -79,6 +79,7 @@
 .lp-add-closing-period-modal-input-wrapper {
   position: relative;
   width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Remove default browser arrow */
@@ -168,4 +169,22 @@
 
 .lp-add-closing-period-modal-btn-danger:hover {
   background: #fee2e2;
+}
+
+.lp-add-closing-period-modal-input:hover {
+  border-color: #375A89;
+}
+
+.lp-add-closing-period-modal-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+.lp-add-closing-period-modal-close-btn:hover {
+  background: #F3F4F6;
+}
+
+.lp-add-closing-period-modal-btn-primary:hover {
+  background: #e2962d;
 }
