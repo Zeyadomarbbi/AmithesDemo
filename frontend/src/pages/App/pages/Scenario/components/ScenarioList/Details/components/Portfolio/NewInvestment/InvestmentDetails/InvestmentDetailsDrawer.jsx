@@ -4,7 +4,6 @@ import { PermissionGate } from "../../../../../../../../../../../hooks/Auth/Perm
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import { DoubleArrowLeftIcon } from '/src/components/Icons/DirectionIcons';
 import { EditIcon, DeleteIcon } from '/src/components/Icons/InteractiveIcons';
-import { EuroCurrencyIcon } from '/src/components/Icons/FinancialIcons';
 import { usePortfolioFlows } from "../../../../../../../../../hooks/Portfolio/usePortfolioFlows";
 import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../../../../components/useFormatter.js";
 import Toast from '../../../../../../../../../components/Toast/Toast.jsx';
@@ -106,7 +105,13 @@ export default function InvestmentDetailsDrawer({
   const formatPercent = usePercentageFormatter();
   const noScroll = (e) => e.target.blur();
   // Metadata
-  const headerCurrency = investment?.currency_code || investment?.currency || "-";
+  const headerCurrency = useMemo(() => {
+    const id = investment?.currencyId || investment?.currency_id;
+    const match = currencies?.find((c) => Number(c.id) === Number(id));
+    const code = match?.code || investment?.currency_code || investment?.currency || "EUR";
+    const symbol = match?.symbol;
+    return symbol ? `${code} (${symbol})` : code;
+  }, [investment, currencies]);
   const headerCountry  = investment?.country_name  || investment?.country  || "-";
   const ownershipValue = toNumber(investment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
@@ -375,7 +380,6 @@ export default function InvestmentDetailsDrawer({
                 <span className="invMetaLabel">Currency</span>
                 <span className="invMetaValue">
                   {headerCurrency}
-                  <span className="invCurrencyIcon"><EuroCurrencyIcon /></span>
                 </span>
               </div>
               <div className="invMetaItem">

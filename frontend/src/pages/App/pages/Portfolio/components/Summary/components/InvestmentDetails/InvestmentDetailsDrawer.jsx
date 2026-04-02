@@ -119,10 +119,13 @@ export default function InvestmentDetailsDrawer({
     return `https://flagcdn.com/40x30/${code}.png`;
   }, [countries]);
 
-  const headerCurrencyCode =
-    currentInvestment?.currencyCode ||
-    currentInvestment?.currency_code ||
-    "EUR";
+  const headerCurrency = useMemo(() => {
+    const id = currentInvestment?.currencyId || currentInvestment?.currency_id;
+    const match = currencies.find((c) => Number(c.id) === Number(id));
+    const code = match?.code || currentInvestment?.currencyCode || currentInvestment?.currency_code || "-";
+    const symbol = match?.symbol;
+    return symbol ? `${code} (${symbol})` : code;
+  }, [currentInvestment, currencies]);
 
   const headerCountry =
     currentInvestment?.country ||
@@ -131,9 +134,9 @@ export default function InvestmentDetailsDrawer({
     "";
   const ownershipValue = toNumber(currentInvestment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
-    ? `${ownershipValue.toFixed(2)}%` : "21.65%";
-  const headerName = currentInvestment?.name || "Alyra";
-  const headerSub = currentInvestment?.sector || currentInvestment?.sub || "BioTech";
+    ? `${ownershipValue.toFixed(2)}%` : "-";
+  const headerName = currentInvestment?.name || "-";
+  const headerSub = currentInvestment?.sector || currentInvestment?.sub || "-";
   const headerTimeframe = timeframe?.display_label || null;
   const fairValueDateLabel = timeframe?.rawDate || timeframe?.date || "";
   const sourceInvestmentId =
@@ -466,8 +469,7 @@ export default function InvestmentDetailsDrawer({
               <div className="invMetaItem">
                 <span className="invMetaLabel">Currency</span>
                 <span className="invMetaValue">
-                  {headerCurrencyCode}
-                  <span className="invCurrencyIcon"><EuroCurrencyIcon /></span>
+                  {headerCurrency}
                 </span>
               </div>
               <div className="invMetaItem">
