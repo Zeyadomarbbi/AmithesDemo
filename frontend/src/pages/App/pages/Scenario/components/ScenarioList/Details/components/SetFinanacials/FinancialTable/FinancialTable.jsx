@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
 import { downloadFinancialsAsExcel } from "../utils/downloadFinancialsAsExcel.js";
 import { EditLineIcon } from '/src/components/Icons/InteractiveIcons';
-import { SortableHeaderRenderer, useTableSort } from '../../../../../../../../../../components/Sort/TableSort.jsx';
+import { SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort.jsx';
 import './FinancialTable.css';
 
 const parseValue = (value) => {
     if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    // Remove all non-numeric characters except decimal point and minus sign
     const cleanValue = String(value).replace(/[^\d.-]/g, '');
     if (cleanValue === '' || cleanValue === '-') return 0;
     return parseFloat(cleanValue) || 0;
@@ -17,6 +16,8 @@ const parseValue = (value) => {
 export default function FinancialTable({ years, rows = [], localChanges = {}, onCellChange, triggerDownload }) {
     const formatNumber = useNumberFormatter();
     const [financialRows, setFinancialRows] = useState([]);
+    // State to track which cell is currently being edited
+    const [editingCell, setEditingCell] = useState(null); // { rowIndex, year }
 
     useEffect(() => {
         if (!rows || rows.length === 0) {
@@ -66,7 +67,7 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
     useEffect(() => {
         if (!triggerDownload) return;
         downloadFinancialsAsExcel({ years, financialRows, calculateNetProfitTotal, getYearValue });
-    }, [triggerDownload]); // only fires when triggerDownload changes
+    }, [triggerDownload, years, financialRows]);
 
     const calculateRowTotal = (row) => {
         let sum = 0;
@@ -141,7 +142,6 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
         }
     };
 
-
     return (
         <div className="fin-table-container">
             <table className="fin-table">
@@ -209,6 +209,7 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                                 <td className="cell-label">{row.label}</td>
                                 {years.map((y) => {
                                     const rawValue = getYearValue(row, y.year);
+                                    const isEditing = editingCell?.rowIndex === index && editingCell?.year === y.year;
                                     
                                     let isReadOnly = false;
                                     const READONLY_SPECIAL_FIELDS = ['REALIZED_GAIN', 'UNREALIZED_GAIN', 'MANAGEMENT_FEES', 'DD_FEES'];
@@ -234,14 +235,27 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                                                 <span className="read-only-val disabled-cell">
                                                     {formatNumber(rawValue)}
                                                 </span>
-                                            ) : (
+                                            ) : isEditing ? (
                                                 <input 
+                                                    autoFocus
                                                     key={`${index}-${y.year}`} 
                                                     className="proj-input" 
                                                     placeholder="ex : 100" 
                                                     value={rawValue} 
                                                     onChange={(e) => handleProjectedChange(e, index, y.year)}
+                                                    onBlur={() => setEditingCell(null)}
+                                                    onKeyDown={(e) => e.key === 'Enter' && setEditingCell(null)}
                                                 />
+                                            ) : (
+                                                <div 
+                                                    className="editable-cell-display"
+                                                    onClick={() => setEditingCell({ rowIndex: index, year: y.year })}
+                                                >
+                                                    <span className="formatted-val">
+                                                        {formatNumber(rawValue)}
+                                                    </span>
+                                                    <EditLineIcon />
+                                                </div>
                                             )}
                                         </td>
                                     );
@@ -254,4 +268,4 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
             </table>
         </div>
     );
-};
+}

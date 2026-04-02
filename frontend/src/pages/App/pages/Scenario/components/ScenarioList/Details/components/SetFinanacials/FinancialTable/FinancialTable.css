@@ -192,7 +192,7 @@
   color: #9CA3AF;
   cursor: default;
   border: 1px solid transparent; /* Hides border when disabled for clean look */
-  text-align: right;
+  text-align: center;
 }
 
 /* =========================================
@@ -223,8 +223,25 @@
 .proj-input:hover:not(.input-disabled) {
   border-color: #375A89;
 }
-
+.col-year, 
+.cell-data-readonly,
 .cell-total-val {
     text-align: center;
 }
 
+.editable-cell-display {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Keeps content centered in the column */
+    gap: 12px;                /* Creates the 4px space between value and icon */
+    cursor: pointer;
+    width: 100%;
+}
+
+.row-total .cell-total-val {
+  text-align: center;
+}
+
+.col-year.projected .sort-header-group {
+  color: #375A89;
+}
