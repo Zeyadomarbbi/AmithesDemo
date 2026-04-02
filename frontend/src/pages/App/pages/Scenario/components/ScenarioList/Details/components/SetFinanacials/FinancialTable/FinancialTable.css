@@ -1,7 +1,7 @@
 /* =========================================
    1. CONTAINER & TABLE RESET
    ========================================= */
-.table-container {
+.fin-table-container {
   width: 100%;
   overflow-x: auto;
   background: #fff;
@@ -62,6 +62,7 @@
 /* PnL Column: Left Aligned */
 .th-wrapper.pnl-wrapper {
   justify-content: flex-start;
+  padding-left: 12px;
   gap: 6px;
 }
 
@@ -128,6 +129,7 @@
 /* First Column (Labels) */
 .cell-label {
   text-align: left;
+  vertical-align: middle;
   color: #374151;
   font-weight: 500;
 }
@@ -145,7 +147,8 @@
 .cell-projected,
 .cell-total-val,
 .cell-total-final {
-  text-align: right;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .cell-realized {
@@ -167,7 +170,7 @@
   border-radius: 4px;
   font-size: 13px;
   color: #111827;
-  text-align: right; /* Aligns input text with the column header */
+  text-align: left; /* Aligns input text with the column header */
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   background-color: #fff;
@@ -175,7 +178,8 @@
 }
 
 .proj-input:focus {
-  box-shadow: 0 0 0 1px rgba(55, 90, 137, 0.1);
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }
 
 .proj-input::placeholder {
@@ -215,3 +219,12 @@
     padding-top: 16px;
     padding-bottom: 16px;
 }
+
+.proj-input:hover:not(.input-disabled) {
+  border-color: #375A89;
+}
+
+.cell-total-val {
+    text-align: center;
+}
+

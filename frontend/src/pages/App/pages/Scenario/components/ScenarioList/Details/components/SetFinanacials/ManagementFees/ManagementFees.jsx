@@ -56,13 +56,10 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
 
     return (
         <div className="mf-table-container">
-            <button className="mf-close-action" onClick={onClose}>
-                <CloseIcon />
-            </button>
-
             <div className="mf-action-header">
+            <div style={{ display: 'flex', gap: '12px' }}>
                 <button className="mf-btn-base mf-btn-view" onClick={() => setIsViewModalOpen(true)}>
-                    View tranches
+                View tranches
                 </button>
                 <PermissionGate>
                 <button className="mf-btn-base mf-btn-add" onClick={() => setIsAddModalOpen(true)}>
@@ -71,7 +68,10 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                 </button>
                 </PermissionGate>
             </div>
-
+            <button className="mf-close-action" onClick={onClose}>
+                <CloseIcon />
+            </button>
+            </div>
             <table className="mf-table">
                 <thead>
                     <tr>

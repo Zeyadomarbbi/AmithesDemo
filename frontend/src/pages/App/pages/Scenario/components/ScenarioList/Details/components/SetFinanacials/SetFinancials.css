@@ -85,6 +85,7 @@
 
 .sf-action-btn.sf-btn-download {
   background: #FAFAF9;
+  transition: background 0.2s ease;
 }
 
 .sf-fin-sub-toolbar {
@@ -154,11 +155,14 @@
   flex-direction: column;
   padding: 40px;
   box-sizing: border-box;
+  z-index: 200;
 }
 
 /* modal variant */
 .sf-overlay.modal {
   background: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
 }
 
 .sf-modal-content {
@@ -225,4 +229,28 @@
 .sf-btn-save:disabled {
   background-color: #D0D5DD;
   cursor: not-allowed;
+}
+
+.sf-overlay.modal .scenario-dd-fees-container {
+  max-height: 65vh;
+  border-radius: 8px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sf-overlay.modal .scenario-dd-fees-table-wrapper {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 16px;
+}
+
+.sf-view-badge:not(.active):hover {
+  background: #F3F4F6;
+  color: #375A89;
+}
+
+.sf-action-btn.sf-btn-download:hover {
+  background: #F3F4F6;
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import './FinancialTable.css';
 import { useNumberFormatter } from '../../../../../../../../../../components/useFormatter';
 import { downloadFinancialsAsExcel } from "../utils/downloadFinancialsAsExcel.js";
-import { SortIcon } from '/src/components/Icons/InteractiveIcons';
+import { EditLineIcon } from '/src/components/Icons/InteractiveIcons';
+import { SortableHeaderRenderer, useTableSort } from '../../../../../../../../../../components/Sort/TableSort.jsx';
+import './FinancialTable.css';
 
 const parseValue = (value) => {
     if (value === null || value === undefined || value === '') return 0;
@@ -142,33 +143,43 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
 
 
     return (
-        <div className="table-container">
+        <div className="fin-table-container">
             <table className="fin-table">
                 <thead>
                     <tr>
                         <th className="th-label col-pnl">
                             <div className="th-wrapper pnl-wrapper">
-                                <span>PnL</span>
+                                <SortableHeaderRenderer 
+                                    label="PnL" 
+                                    center={false} 
+                                    showCurrency={false} 
+                                    showSortIcon={false} 
+                                    toggleSort={() => {}} 
+                                />
                             </div>
                         </th>
                         {years.map((y) => (
                             <th key={y.year} className={`col-year ${y.type}`}>
                                 <div className="th-wrapper year-wrapper">
-                                    <div className="th-group">
-                                        <span className="year">{y.year}</span>
-                                        <span className="currency-indicator">(€)</span>
-                                        <SortIcon className="sort-icon" />
-                                    </div>
+                                    <SortableHeaderRenderer 
+                                        label={y.year} 
+                                        center={true} 
+                                        showCurrency={true} 
+                                        showSortIcon={false} 
+                                        toggleSort={() => {}} 
+                                    />
                                 </div>
                             </th>
                         ))}
                         <th className="col-total">
                             <div className="th-wrapper total-wrapper">
-                                <div className="th-group">
-                                    <span>Total cumulated</span>
-                                    <span className="currency-indicator">(€)</span>
-                                    <SortIcon className="sort-icon" />
-                                </div>
+                                <SortableHeaderRenderer 
+                                    label="Total cumulated" 
+                                    center={true} 
+                                    showCurrency={true} 
+                                    showSortIcon={false} 
+                                    toggleSort={() => {}} 
+                                />
                             </div>
                         </th>
                     </tr>

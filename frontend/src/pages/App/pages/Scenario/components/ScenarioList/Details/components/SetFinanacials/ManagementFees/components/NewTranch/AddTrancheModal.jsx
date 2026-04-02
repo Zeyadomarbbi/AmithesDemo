@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useManFeeTranches } from '../../../../../../../../../../hooks/Scenarios/useScenarioManFeeTranches';
 import { useShareClasses } from '../../../../../../../../../../hooks/useShareClass';
 import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
-import { ChevronDownIcon } from '/src/components/Icons/DirectionIcons';
 import DateInputWithPicker from '../../../../../../../../../../../../components/DateComponents/DateInput';
+import SimpleDropdown from '../../../../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown';
 import Toast from '../../../../../../../../../../components/Toast/Toast';
 import './AddTrancheModal.css';
 
@@ -118,24 +118,15 @@ const AddTrancheModal = ({ fundId, scenarioId, isOpen, onClose}) => {
 
                     <div className="man-fee-tranches-form-group">
                         <label>Share Class*</label>
-                        <div className="man-fee-tranches-select-wrapper">
-                            <select 
-                                name="share_class_id" 
-                                value={formData.share_class_id}
-                                onChange={handleInputChange}
-                                className="man-fee-tranches-select"
-                            >
-                                <option value="">Select a class</option>
-                                {shareClasses?.map(sc => (
-                                    <option key={sc.share_class_id} value={sc.share_class_id}>
-                                        {sc.share_class_name}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="man-fee-tranches-select-icon">
-                                <ChevronDownIcon />
-                            </div>
-                        </div>
+                        <SimpleDropdown
+                            options={shareClasses || []}
+                            value={formData.share_class_id}
+                            onChange={(val) => setFormData(prev => ({ ...prev, share_class_id: val }))}
+                            placeholder="Select a class"
+                            labelKey="share_class_name"
+                            valueKey="share_class_id"
+                            isSearchBar={true}
+                        />
                     </div>
 
                     <div className="man-fee-tranches-form-group">

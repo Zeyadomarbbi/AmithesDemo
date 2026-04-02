@@ -21,60 +21,60 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
         onSave(scenarioData);
     };
 
-  return (
-    <div className="modal-overlay-add-scenario" onClick={onClose}>
-      
-      <div className="modal-content-add-scenario" onClick={e => e.stopPropagation()}>
-        
-        {/* --- HEADER --- */}
-        <div className="modal-header-add-scenario">
-          <h2 className="modal-title-add-scenario">Add A New Scenario</h2>
-          <div className="close-btn-wrapper" onClick={onClose}>
-            <CloseIcon />
-          </div>
-        </div>
+  return (
+    <div className="modal-add-scenario-overlay" onClick={onClose}>
+      
+      <div className="modal-add-scenario-content" onClick={e => e.stopPropagation()}>
+        
+        {/* --- HEADER --- */}
+        <div className="modal-add-scenario-header">
+          <h2 className="modal-add-scenario-title">Add A New Scenario</h2>
+          <div className="modal-add-scenario-close-btn-wrapper" onClick={onClose}>
+            <CloseIcon />
+          </div>
+        </div>
 
-        {/* --- BODY: Inputs --- */}
-        <div className="modal-body-add-scenario">
-          <div className="input-group-add-scenario">
-            <label className="input-label">Name *</label>
-            <input 
+        {/* --- BODY: Inputs --- */}
+        <div className="modal-add-scenario-body">
+          <div className="modal-add-scenario-input-group">
+            <label className="modal-add-scenario-input-label">Name *</label>
+            <input 
                 type="text" 
-                className="input-field" 
+                className="modal-add-scenario-input-field" 
                 placeholder="placeholder"
                 value={name}
                 onChange={(e) => setName(e.target.value)} 
             />
-          </div>
-          
-          <div className="input-group">
-            <label className="input-label">Description *</label>
-            <textarea 
-                className="textarea-field" 
+          </div>
+          
+          <div className="modal-add-scenario-input-group">
+            <label className="modal-add-scenario-input-label">Description *</label>
+            <textarea 
+                className="modal-add-scenario-textarea-field" 
                 placeholder="placeholder" 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
             />
-          </div>
-        </div>
+          </div>
+        </div>
 
-        {/* --- FOOTER: Buttons --- */}
-        <div className="modal-footer-add-scenario">
-          <button className="btn-cancel-add-scenario" onClick={onClose}>
-            Cancel
-          </button>
-          <button 
-                className="btn-save-add-scenario" 
+        {/* --- FOOTER: Buttons --- */}
+        <div className="modal-add-scenario-footer">
+          <button className="modal-add-scenario-btn-cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+                className="modal-add-scenario-btn-save" 
                 onClick={handleSave}
                 disabled={!name.trim() || !description.trim()} // Disable until fields are populated
             >
-            Save
-          </button>
-        </div>
+            Save
+          </button>
+        </div>
 
-      </div>
-    </div>
-  );
+      </div>
+    </div>
+  );
 }
 
 export default AddNewScenarioModal;

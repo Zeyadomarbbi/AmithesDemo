@@ -38,7 +38,7 @@ export const useManFeeTranches = (fundId, scenarioId) => {
     const addTranche = async (newTrancheData) => {
         try {
             const data = await api.post(
-                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches//`,
+                `/api/funds/${fundId}/scenario_list/${scenarioId}/man-fee-tranches/`,
                 { ...newTrancheData, scenario_id: scenarioId }
             );
             setTranches(prev => [...prev, data]);
