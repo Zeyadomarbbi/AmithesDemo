@@ -216,11 +216,14 @@ export default function LPsRegister() {
   }, [summaryData.summaryRows, searchTerm, activeClass]);
 
   const tableColumns = useMemo(() => {
-    return (fundClosings || []).map((fc) => ({
-      id:   fc.lps_fund_closing_period_id,
-      name: fc.closing_name || `Closing ${fc.date}`,
-      date: fc.date,
-    }));
+    return (fundClosings || [])
+      .slice()
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map((fc) => ({
+        id:   fc.lps_fund_closing_period_id,
+        name: fc.closing_name || `Closing ${fc.date}`,
+        date: fc.date,
+      }));
   }, [fundClosings]);
 
   // NEW: Identify which closings have active commitments
@@ -403,7 +406,11 @@ export default function LPsRegister() {
                               <span className="item-label-bold">{col.name}</span>
                               <div className="item-details-group">
                                 <span className="item-arrow-icon"><RightArrowIcon /></span>
-                                <span className="item-date">{col.date || "-"}</span>
+                                <span className="item-date">
+                                {col.date
+                                    ? col.date.split('-').reverse().join('/')
+                                    : ''}
+                                </span>
                               </div>
                             </div>
                             

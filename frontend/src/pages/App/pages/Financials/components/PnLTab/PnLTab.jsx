@@ -139,10 +139,7 @@ function PnLTabContent() {
   const headerPeriods = useMemo(() => {
     if (!sortedQuarters?.length || selectedTimeframeIds.length === 0) return [];
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
-    const filtered = sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
-    return filtered.sort((a, b) =>
-      selectedTimeframeIds.indexOf(Number(a.id)) - selectedTimeframeIds.indexOf(Number(b.id))
-    );
+    return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
   }, [sortedQuarters, selectedTimeframeIds]);
 
   const loadPnL = useCallback(async () => {
@@ -392,7 +389,6 @@ function PnLTabContent() {
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={true}
-                showCurrency={true}
               />
             ) : (
               <span className="period-label">{label} <span>(€)</span></span>

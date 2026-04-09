@@ -97,7 +97,11 @@ function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onD
                                             <span className="item-label-bold">{item.display_label}</span>
                                             <div className="item-details-group">
                                                 <span className="item-arrow-icon"><RightArrowIcon /></span>
-                                                <span className="item-date">{item.date}</span>
+                                                <span className="item-date">
+                                                {item.date
+                                                    ? item.date.split('-').reverse().join('/')
+                                                    : ''}
+                                                </span>
                                             </div>
                                         </div>
 

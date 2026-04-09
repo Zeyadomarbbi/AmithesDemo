@@ -341,9 +341,9 @@ const OperationStep3 = forwardRef(function OperationStep3(
   const baseOpCols = useMemo(() => {
     if (distMode) return [];
     return [
-      { key: "mainAmount", label: "Amount", showCurrency: true, rawKey: "opMainAmount_raw" },
-      { key: "calledPct", label: "% Called", showCurrency: false, rawKey: "opCalledPct_raw" },
-      { key: "sharesIssued", label: "Shares issued", showCurrency: false, rawKey: "opSharesIssued_raw" },
+      { key: "mainAmount", label: "Amount", rawKey: "opMainAmount_raw" },
+      { key: "calledPct", label: "% Called", rawKey: "opCalledPct_raw" },
+      { key: "sharesIssued", label: "Shares issued", rawKey: "opSharesIssued_raw" },
     ];
   }, [distMode]);
 
@@ -390,13 +390,13 @@ const OperationStep3 = forwardRef(function OperationStep3(
                   <th className="op3-head op3-head-lp op3-sticky-0">
                     <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} />
                   </th>
-                  <th className="op3-head"><SortableHeaderRenderer label="Distributed before" columnKey="beforeA_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distributed before" columnKey="beforeA_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="% Distributed before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
-                  <th className="op3-head"><SortableHeaderRenderer label="Distribution" columnKey="opAmount_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distribution" columnKey="opAmount_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="% Distribution" columnKey="opPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="Shares redeemed" columnKey="opSharesRedeemed_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
-                  <th className="op3-head"><SortableHeaderRenderer label="Distributed after" columnKey="afterA_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                  <th className="op3-head"><SortableHeaderRenderer label="Distributed after" columnKey="afterA_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="% Distributed after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                   <th className="op3-head"><SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 </tr>
@@ -458,18 +458,18 @@ const OperationStep3 = forwardRef(function OperationStep3(
                 <th className="op3-head op3-head-lp op3-sticky-0">
                   <SortableHeaderRenderer label="LPs" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} />
                 </th>
-                <th className="op3-head"><SortableHeaderRenderer label="Called before" columnKey="beforeCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Called before" columnKey="beforeCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort}  /></th>
                 <th className="op3-head"><SortableHeaderRenderer label="% Called before" columnKey="beforePct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 <th className="op3-head"><SortableHeaderRenderer label="Shares before" columnKey="beforeShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 {opCols.map((c) => (
                   <th key={c.key} className="op3-head">
-                    <SortableHeaderRenderer label={c.label} columnKey={c.rawKey} currentSortKey={sortKey} toggleSort={toggleSort} showCurrency={c.showCurrency} />
+                    <SortableHeaderRenderer label={c.label} columnKey={c.rawKey} currentSortKey={sortKey} toggleSort={toggleSort} />
                   </th>
                 ))}
-                <th className="op3-head"><SortableHeaderRenderer label="Called after" columnKey="afterCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Called after" columnKey="afterCalled_raw" currentSortKey={sortKey} toggleSort={toggleSort}  /></th>
                 <th className="op3-head"><SortableHeaderRenderer label="% Called after" columnKey="afterPct_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
                 <th className="op3-head"><SortableHeaderRenderer label="Shares after" columnKey="afterShares_raw" currentSortKey={sortKey} toggleSort={toggleSort} /></th>
-                <th className="op3-head"><SortableHeaderRenderer label="Undrawn" columnKey="undrawn_raw" currentSortKey={sortKey} toggleSort={toggleSort} showCurrency /></th>
+                <th className="op3-head"><SortableHeaderRenderer label="Undrawn" columnKey="undrawn_raw" currentSortKey={sortKey} toggleSort={toggleSort}  /></th>
               </tr>
             </thead>
             <tbody>

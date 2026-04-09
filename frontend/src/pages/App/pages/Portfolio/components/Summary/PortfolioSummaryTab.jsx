@@ -536,7 +536,7 @@ function PortfolioSummaryTabContent() {
       label: "Geography",
       width: "140px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Geography" columnKey="country" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label="Geography" columnKey="country" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => (
         <div className="geography-cell">
@@ -555,7 +555,7 @@ function PortfolioSummaryTabContent() {
       label: "Ownership",
       width: "120px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Ownership" columnKey="ownership" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label="Ownership" columnKey="ownership" currentSortKey={sortKey} toggleSort={toggleSort} center={false}  />
       ),
       renderCell: (row) => `${format2(row.ownership)}%`,
       renderSubtotal: () => <td />,
@@ -567,7 +567,7 @@ function PortfolioSummaryTabContent() {
       label: "Cost",
       width: "130px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Cost" />} columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label={<CurrencyLabel text="Cost" />} columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false}  />
       ),
       renderCell: (row) => format2(row.cost),
       renderSubtotal: (subtotal) => <td>{format2(subtotal.cost)}</td>,
@@ -579,7 +579,7 @@ function PortfolioSummaryTabContent() {
       label: "Dividend/Interests",
       width: "190px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Dividends / Interests" />} columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label={<CurrencyLabel text="Dividends / Interests" />} columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => format2(calcDividendsTotal(row)),
       renderSubtotal: (subtotal) => <td>{format2(subtotal.dividends)}</td>,
@@ -591,7 +591,7 @@ function PortfolioSummaryTabContent() {
       label: "MOIC",
       width: "180px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="MOIC" />} columnKey="moicIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label={<CurrencyLabel text="MOIC" />} columnKey="moicIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => format2(calcMoicIncl(row)),
       renderSubtotal: (subtotal) => <td>{format2(subtotal.moicIncl)}</td>,
@@ -603,7 +603,7 @@ function PortfolioSummaryTabContent() {
       label: "Gross IRR",
       width: "150px",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Gross IRR" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label="Gross IRR" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => formatPercent(row.irr),
       renderSubtotal: (subtotal) => <td>{formatPercent(subtotal.irr)}</td>,
@@ -616,7 +616,7 @@ function PortfolioSummaryTabContent() {
       width: "160px",
       className: "col-highlight",
       renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Fair Value" />} columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label={<CurrencyLabel text="Fair Value" />} columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => format2(calcValue(row)),
       renderSubtotal: (subtotal) => <td className="col-highlight">{format2(subtotal.value)}</td>,
@@ -629,7 +629,7 @@ function PortfolioSummaryTabContent() {
       width: "160px",
       className: "col-highlight",
       renderHeader: (sortKey, toggleSort, gainLabel) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text={gainLabel} />} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+        <SortableHeaderRenderer label={<CurrencyLabel text={gainLabel} />} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
       ),
       renderCell: (row) => format2(calcGain(row)),
       renderSubtotal: (subtotal) => <td className="col-highlight">{format2(subtotal.gain)}</td>,
@@ -730,7 +730,7 @@ function PortfolioSummaryTabContent() {
 
   const tableHeaders = (gainLabel, sortKey, toggleSort) => (
     <tr>
-      <th><SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} /></th>
+      <th><SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} /></th>
       {visibleColumns.map((column) => (
         <th key={column.key} className={column.className || ""}>
           {column.renderHeader(sortKey, toggleSort, gainLabel)}

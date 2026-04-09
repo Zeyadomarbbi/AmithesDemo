@@ -46,7 +46,6 @@ const PortfolioCompareTable = ({
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={false}
-                showCurrency={false}
               />
             </th>
             {activeQuarters.filter((q) => showColumn(`cost:${q.id}`)).map((q) => (
@@ -57,7 +56,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
@@ -69,7 +67,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             )}
@@ -81,7 +78,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
@@ -93,7 +89,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             )}
@@ -105,7 +100,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
@@ -117,7 +111,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}

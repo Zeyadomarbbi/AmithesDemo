@@ -32,7 +32,6 @@ const LPsDashboard = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={false}
-                  showCurrency={false}
                 />
               </th>
               <th>
@@ -42,7 +41,6 @@ const LPsDashboard = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={false}
-                  showCurrency={false}
                 />
               </th>
               <th>
@@ -52,7 +50,6 @@ const LPsDashboard = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
               <th>
@@ -62,7 +59,6 @@ const LPsDashboard = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={false}
                 />
               </th>
               {displayColumns.map((col) => (
@@ -73,7 +69,6 @@ const LPsDashboard = ({
                     currentSortKey={sortKey}
                     toggleSort={toggleSort}
                     center={true}
-                    showCurrency={true}
                   />
                   {col.date && (
                     <div className="lp-col-date-hint">{formatDate(col.date)}</div>

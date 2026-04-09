@@ -152,7 +152,6 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                                 <SortableHeaderRenderer 
                                     label="PnL" 
                                     center={false} 
-                                    showCurrency={false} 
                                     showSortIcon={false} 
                                     toggleSort={() => {}} 
                                 />
@@ -164,7 +163,6 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                                     <SortableHeaderRenderer 
                                         label={y.year} 
                                         center={true} 
-                                        showCurrency={true} 
                                         showSortIcon={false} 
                                         toggleSort={() => {}} 
                                     />
@@ -176,7 +174,6 @@ export default function FinancialTable({ years, rows = [], localChanges = {}, on
                                 <SortableHeaderRenderer 
                                     label="Total cumulated" 
                                     center={true} 
-                                    showCurrency={true} 
                                     showSortIcon={false} 
                                     toggleSort={() => {}} 
                                 />

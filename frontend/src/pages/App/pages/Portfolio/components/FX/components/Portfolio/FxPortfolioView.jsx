@@ -79,25 +79,25 @@ const FxPortfolioView = ({ fundId, shared }) => {
           <thead>
             <tr>
               <th>
-                <SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                <SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
               </th>
               <th className="col-number">
-                <SortableHeaderRenderer label="Cost LC" columnKey="costLc" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                <SortableHeaderRenderer label="Cost LC" columnKey="costLc" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
               </th>
               <th>
-                <SortableHeaderRenderer label="Currency" columnKey="currency" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                <SortableHeaderRenderer label="Currency" columnKey="currency" currentSortKey={sortKey} toggleSort={toggleSort} center={false}/>
               </th>
               <th className="col-number">
-                <SortableHeaderRenderer label="FX Entry" columnKey="fxEntry" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                <SortableHeaderRenderer label="FX Entry" columnKey="fxEntry" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
               </th>
               {timeframeColumns.map((column) => (
                 <th key={column.id} className="col-number">
-                  <SortableHeaderRenderer label={`Impact ${column.label} (e)`} columnKey={column.impactKey} currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label={`Impact ${column.label} (e)`} columnKey={column.impactKey} currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                   <span className="header-currency-hint">({symbol})</span>
                 </th>
               ))}
               <th className="col-number">
-                <SortableHeaderRenderer label="Impact inception (e)" columnKey="impactInception" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                <SortableHeaderRenderer label="Impact inception (e)" columnKey="impactInception" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 <span className="header-currency-hint">({symbol})</span>
               </th>
             </tr>

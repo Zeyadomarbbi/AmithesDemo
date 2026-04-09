@@ -62,28 +62,28 @@ const ViewTranchesModal = ({ isOpen, onClose, fundId, scenarioId }) => {
                                             <SortableHeaderRenderer 
                                                 label="Name" columnKey="tranche_name"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                                center={false} showCurrency={false} showSortIcon={true}
+                                                center={false} showSortIcon={true}
                                             />
                                         </th>
                                         <th>
                                             <SortableHeaderRenderer 
                                                 label="Amount" columnKey="amount"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                                center={true} showCurrency={true} showSortIcon={true}
+                                                center={true} showSortIcon={true}
                                             />
                                         </th>
                                         <th>
                                             <SortableHeaderRenderer 
                                                 label="Class" columnKey="share_class_name"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                                center={true} showCurrency={false} showSortIcon={true}
+                                                center={true} showSortIcon={true}
                                             />
                                         </th>
                                         <th style={{ width: '140px' }}>
                                             <SortableHeaderRenderer 
                                                 label="Date" columnKey="start_date"
                                                 currentSortKey={sortKey} currentSortDir={sortDir} toggleSort={toggleSort}
-                                                center={true} showCurrency={false} showSortIcon={true}
+                                                center={true} showSortIcon={true}
                                             />
                                         </th>
                                         <PermissionGate>

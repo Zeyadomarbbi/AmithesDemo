@@ -43,7 +43,6 @@ function AdminsTable({ data, refreshData }) {
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={c.center}
-                showCurrency={false}
               />
             </div>
           ))}

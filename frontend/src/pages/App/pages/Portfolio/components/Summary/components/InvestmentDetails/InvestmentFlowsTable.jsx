@@ -191,22 +191,22 @@ export default function InvestmentFlowsTable({ flows, onUpdate, onDelete, onAdd,
             <thead>
               <tr>
                 <th className="invThFlow">
-                  <SortableHeaderRenderer label="Flow" columnKey="id" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="Flow" columnKey="id" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <th className="invThDate">
-                  <SortableHeaderRenderer label="Date" columnKey="date" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="Date" columnKey="date" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <th className="invThAmountEuro invNum">
-                  <SortableHeaderRenderer label={<AmountEuroLabel />} columnKey="amountEuro" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label={<AmountEuroLabel />} columnKey="amountEuro" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <th className="invThFxRate invNum">
-                  <SortableHeaderRenderer label="FX Rate" columnKey="fxRate" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="FX Rate" columnKey="fxRate" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <th className="invThAmountLC invNum">
-                  <SortableHeaderRenderer label="Amount LC" columnKey="amountLC" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="Amount LC" columnKey="amountLC" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <th className="invThType">
-                  <SortableHeaderRenderer label="Type" columnKey="type" currentSortKey={sortKey} toggleSort={toggleSort} center={false} showCurrency={false} />
+                  <SortableHeaderRenderer label="Type" columnKey="type" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
                 </th>
                 <PermissionGate>
                   <th className="invThActions">Actions</th>

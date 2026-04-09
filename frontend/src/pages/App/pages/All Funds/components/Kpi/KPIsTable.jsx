@@ -134,7 +134,6 @@ export default function KPIsTable({ allFunds = [], displayFunds = [], onFundClic
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={c.center}
-                  showCurrency={false}
                 />
               </th>
             ))}

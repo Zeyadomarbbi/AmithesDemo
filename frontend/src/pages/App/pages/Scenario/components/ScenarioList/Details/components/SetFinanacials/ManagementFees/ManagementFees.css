@@ -101,7 +101,7 @@
 .col-year, 
 .cell-data-readonly, 
 .cell-total-val {
-  text-align: right;
+  text-align: center;
 }
 
 .th-wrapper {

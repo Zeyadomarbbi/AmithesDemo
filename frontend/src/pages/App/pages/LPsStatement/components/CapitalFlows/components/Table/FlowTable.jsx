@@ -490,7 +490,6 @@ export default function FlowTable({
                         currentSortKey={sortKey}
                         toggleSort={() => toggleSort(col.key)}
                         center={!isNameOrDate}
-                        showCurrency={!isNameOrDate && col.type !== "percent"}
                         showSortIcon={true}
                       />
                     </th>
