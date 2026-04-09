@@ -8,51 +8,51 @@ const AddNewTimeframeModal = ({
     isOpen, 
     onClose, 
     onSave, 
-    onDelete, // New prop for deletion
-    editData = null, // New prop to detect edit mode
+    onDelete,
+    editData = null,
     existingDates = [] 
 }) => {
     const [endDate, setEndDate] = useState(new Date());
     const [name, setName] = useState('');
     const [isManualName, setIsManualName] = useState(false);
+    const [originalName, setOriginalName] = useState('');
+    const [originalDate, setOriginalDate] = useState(null);
 
     const isEditMode = !!editData;
 
-    // Initialize/Reset Logic
+    const parseRawDate = (rawDate) => {
+        if (!rawDate) return new Date();
+        if (rawDate instanceof Date) return rawDate;
+        if (typeof rawDate === 'string') {
+            const parsed = rawDate.includes('T')
+                ? new Date(rawDate)
+                : new Date(rawDate.replace(/-/g, '/'));
+            return isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+        return new Date();
+    };
+
     useEffect(() => {
         if (isOpen) {
             if (editData) {
-                setName(editData.display_label || editData.name || '');
-                
-                // Extract date string
-                const rawDate = editData.date || editData.endDate;
-                
-                if (rawDate) {
-                    let parsed;
-                    if (rawDate instanceof Date) {
-                        parsed = rawDate;
-                    } else if (typeof rawDate === 'string') {
-                        // Ensure ISO format or force local time by replacing dashes if necessary
-                        // '2024-03-31' -> '2024/03/31' prevents UTC shift issues in some browsers
-                        parsed = rawDate.includes('T') 
-                            ? new Date(rawDate) 
-                            : new Date(rawDate.replace(/-/g, '/')); 
-                    }
+                const resolvedName = editData.display_label || editData.name || '';
+                const resolvedDate = parseRawDate(editData.date || editData.endDate);
 
-                    setEndDate(!parsed || isNaN(parsed.getTime()) ? new Date() : parsed);
-                } else {
-                    setEndDate(new Date());
-                }
+                setName(resolvedName);
+                setOriginalName(resolvedName);
+                setEndDate(resolvedDate);
+                setOriginalDate(resolvedDate);
                 setIsManualName(true);
             } else {
-                // Default for new: March 31st of next year
                 setEndDate(new Date(new Date().getFullYear() + 1, 2, 31));
                 setName('');
+                setOriginalName('');
+                setOriginalDate(null);
                 setIsManualName(false);
             }
         }
     }, [isOpen, editData?.id, editData?.date, editData?.endDate]);
-    // Auto-generate name logic (Add mode only)
+
     useEffect(() => {
         if (!isEditMode && endDate && !isManualName) {
             const year = endDate.getFullYear();
@@ -63,6 +63,10 @@ const AddNewTimeframeModal = ({
     }, [endDate, isManualName, isEditMode]);
 
     if (!isOpen) return null;
+
+    const hasChanged = isEditMode
+        ? (name !== originalName || endDate?.toDateString() !== originalDate?.toDateString())
+        : true;
 
     const handleNameChange = (e) => {
         const value = e.target.value;
@@ -80,13 +84,14 @@ const AddNewTimeframeModal = ({
         const yearShort = String(endDate.getFullYear()).slice(-2);
         const formattedCurrentDate = `${monthStr}/${dayStr}/${yearShort}`;
 
-        // Validation: Only check duplicates if the date has actually changed
         const originalFormattedDate = editData ? 
             (() => {
                 const rawDate = editData.date;
-                const d = rawDate
-                    ? new Date(rawDate.replace(/-/g, '/'))
-                    : new Date();
+                const d = rawDate instanceof Date
+                    ? rawDate
+                    : rawDate
+                        ? new Date(rawDate.replace(/-/g, '/'))
+                        : new Date();
                 return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
             })() : null;
 
@@ -100,7 +105,6 @@ const AddNewTimeframeModal = ({
         const day = String(endDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
-        // Return ID if editing so the parent knows which record to update
         onSave({ 
             id: editData?.id, 
             name, 
@@ -168,7 +172,7 @@ const AddNewTimeframeModal = ({
                         <button 
                             className="antfm-btn antfm-btn-save" 
                             onClick={handleSave}
-                            disabled={!name.trim()}
+                            disabled={!name.trim() || !hasChanged}
                         >
                             {isEditMode ? 'Update' : 'Save'}
                         </button>

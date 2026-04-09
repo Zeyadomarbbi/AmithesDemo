@@ -120,7 +120,7 @@ class Timeframe(models.Model):
         on_delete=models.CASCADE
     )
 
-    name = models.CharField(max_length=20, null=False)
+    name = models.CharField(max_length=40, null=False)
     date = models.DateField(null=False)
     quarter = models.IntegerField()
     year = models.IntegerField()
