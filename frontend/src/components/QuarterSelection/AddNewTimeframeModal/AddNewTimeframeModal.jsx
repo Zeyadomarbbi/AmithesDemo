@@ -22,20 +22,36 @@ const AddNewTimeframeModal = ({
     useEffect(() => {
         if (isOpen) {
             if (editData) {
-                // Edit Mode: Populate existing data
-                setName(editData.display_label || editData.name);
-                // Ensure date parsing (handle YYYY-MM-DD strings)
-                setEndDate(new Date(editData.date || editData.endDate));
+                setName(editData.display_label || editData.name || '');
+                
+                // Extract date string
+                const rawDate = editData.date || editData.endDate;
+                
+                if (rawDate) {
+                    let parsed;
+                    if (rawDate instanceof Date) {
+                        parsed = rawDate;
+                    } else if (typeof rawDate === 'string') {
+                        // Ensure ISO format or force local time by replacing dashes if necessary
+                        // '2024-03-31' -> '2024/03/31' prevents UTC shift issues in some browsers
+                        parsed = rawDate.includes('T') 
+                            ? new Date(rawDate) 
+                            : new Date(rawDate.replace(/-/g, '/')); 
+                    }
+
+                    setEndDate(!parsed || isNaN(parsed.getTime()) ? new Date() : parsed);
+                } else {
+                    setEndDate(new Date());
+                }
                 setIsManualName(true);
             } else {
-                // Add Mode: Reset to defaults
+                // Default for new: March 31st of next year
                 setEndDate(new Date(new Date().getFullYear() + 1, 2, 31));
                 setName('');
                 setIsManualName(false);
             }
         }
-    }, [isOpen, editData]);
-
+    }, [isOpen, editData?.id, editData?.date, editData?.endDate]);
     // Auto-generate name logic (Add mode only)
     useEffect(() => {
         if (!isEditMode && endDate && !isManualName) {
@@ -67,7 +83,10 @@ const AddNewTimeframeModal = ({
         // Validation: Only check duplicates if the date has actually changed
         const originalFormattedDate = editData ? 
             (() => {
-                const d = new Date(editData.date);
+                const rawDate = editData.date;
+                const d = rawDate
+                    ? new Date(rawDate.replace(/-/g, '/'))
+                    : new Date();
                 return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
             })() : null;
 
