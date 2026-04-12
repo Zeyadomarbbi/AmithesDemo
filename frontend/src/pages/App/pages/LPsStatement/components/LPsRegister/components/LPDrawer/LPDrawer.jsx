@@ -118,8 +118,13 @@ export default function LPDrawer({
   // INTERCEPT: Final Save (Create LP, Edit LP, Save Tranches)
   // -----------------------------------------------------
   const confirmFinalSave = () => {
-    if (!form.lpName) {
-      alert("Please fill in the required fields (LP Name).");
+    const hasInvalidTranches = tranches.some(
+      t => !t.shareClassId || !t.currencyId || !t.commitment || !t.closingId
+    );
+    const hasNoSavedTranche = !tranches.some(t => t.collapsed);
+
+    if (!form.lpName || !form.iban || !form.bankName || !form.swift || hasNoSavedTranche || hasInvalidTranches) {
+      alert("Please fill in all required fields and save at least one commitment.");
       return;
     }
     
@@ -278,7 +283,7 @@ export default function LPDrawer({
             </div>
             <div className="lp-drawer-grid-3">
               <div className="lp-drawer-field">
-                <label className="lp-drawer-field-label">City<span className="lp-drawer-required">*</span></label>
+                <label className="lp-drawer-field-label">City</label>
                 <input 
                   className="lp-drawer-field-input" 
                   value={form.city} 
@@ -287,7 +292,7 @@ export default function LPDrawer({
                 />
               </div>
               <div className="lp-drawer-field">
-                <label className="lp-drawer-field-label">Zip code<span className="lp-drawer-required">*</span></label>
+                <label className="lp-drawer-field-label">Zip code</label>
                 <input 
                   className="lp-drawer-field-input" 
                   value={form.zip} 
@@ -392,9 +397,9 @@ export default function LPDrawer({
             className="lp-drawer-btn-primary-wide" 
             type="button" 
             onClick={confirmFinalSave} 
-            disabled={isSubmitting || !form.lpName}
+            disabled={isSubmitting || !form.lpName || !form.iban || !form.bankName || !form.swift || !tranches.some(t => t.collapsed)}
           >
-            {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Create LP"}
+            {isSubmitting ? "Saving..." : isEdit ? "Save" : "Create LP"}
           </button>
         </footer>
       </aside>

@@ -5,6 +5,16 @@
   z-index: 30;
 }
 
+.quarter-selector-container:hover .quarter-selector-button {
+  border-color: #375A89;
+}
+
+.quarter-selector-container:focus-within .quarter-selector-button {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
 /* --- TRIGGER BUTTON --- */
 .quarter-selector-button {
   display: flex;

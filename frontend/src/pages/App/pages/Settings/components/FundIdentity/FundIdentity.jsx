@@ -6,6 +6,7 @@ import { usePhases } from "../../../../hooks/Reference/useFundPhase.js";
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput.jsx";
 import Toast from '../../../../components/Toast/Toast.jsx';
 import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
+import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
 import "./FundIdentity.css";
 
 const FundIdentity = () => {
@@ -18,7 +19,7 @@ const FundIdentity = () => {
 
   const [formData, setFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  console.log("FundIdentity Rendered with serverData:", serverData);
+  
   useEffect(() => {
     if (serverData) {
       setFormData({
@@ -33,6 +34,35 @@ const FundIdentity = () => {
       });
     }
   }, [serverData]);
+
+  const changeTracker = useMemo(() => {
+    if (!serverData) return { hasChanges: false, count: 0 };
+
+    const changes = [];
+    const check = (current, initial, key) => {
+      // Normalize values for comparison (strings vs numbers/nulls)
+      const normalizedCurrent = current === "" ? null : current;
+      const normalizedInitial = initial === "" ? null : initial;
+      
+      if (normalizedCurrent != normalizedInitial) {
+        changes.push(key);
+      }
+    };
+
+    check(formData.legal_name, serverData.name, "name");
+    check(formData.short_name, serverData.shortName, "short");
+    check(formData.formation_date, serverData.formationDate, "date");
+    check(formData.currency_id, serverData.currencyId, "currency");
+    check(formData.fund_strategy, serverData.strategy, "strategy");
+    check(formData.legal_form, serverData.legalForm, "form");
+    check(formData.management_company, serverData.manCo, "manco");
+    check(formData.phase_name, serverData.phaseName, "phase");
+
+    return {
+      hasChanges: changes.length > 0,
+      count: changes.length
+    };
+  }, [formData, serverData]);
 
   // Logic to determine if the mandatory fields are populated
   const isFormValid = useMemo(() => {
@@ -115,8 +145,9 @@ const FundIdentity = () => {
     }
   };
 
-  if (isFundLoading) return <div className="fund-identity-loader">Loading Fund Identity...</div>;
-  if (error) return <div className="fund-identity-error">Error: {error}</div>;
+  const canSave = !isSaving && isFormValid && changeTracker.hasChanges;
+  if (isFundLoading || phasesLoading || currenciesLoading) return <PageSpinner label="Loading fund identity..." />;
+  if (error) return <PageError message={error} />;
 
   return (
     <div className="fund-identity-wrapper">
@@ -239,9 +270,14 @@ const FundIdentity = () => {
           <button 
             className="fund-identity-btn-save" 
             onClick={handleSave}
-            disabled={isSaving || !isFormValid}
+            disabled={!canSave}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving 
+              ? "Saving..." 
+              : changeTracker.hasChanges 
+                ? `Save (${changeTracker.count})` 
+                : "Save"
+            }
           </button>
           {toast && (
             <Toast

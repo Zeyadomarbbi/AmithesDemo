@@ -158,10 +158,6 @@ function KPIDashboard() {
   const isDebouncing = timeframeId !== debouncedTimeframeId;
   const isGlobalLoading = isTimeframesLoading || casLoading || isPortfolioCardLoading || isDebouncing;
 
-  if (!timeframeId) {
-    return <div className="no-selection-message">Please select a timeframe to view data.</div>;
-  }
-
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: '400px' }}>
       {isGlobalLoading && <GlobalSpinner />}

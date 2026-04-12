@@ -509,7 +509,11 @@ export default function FlowTable({
                     return (
                       <td
                         key={col.key}
-                        style={!isNameOrDate ? { textAlign: 'center' } : {}}
+                        style={{
+                          ...(!isNameOrDate ? { textAlign: 'center' } : {}),
+                          // Optional: specifically highlight the label in operations view
+                          ...(isClickable && col.key === "label" ? { color: 'var(--primary-color)', fontWeight: 500 } : {})
+                        }}
                       >
                         {formatCell(r, col)}
                       </td>

@@ -37,9 +37,16 @@ function LoginPage() {
       }, 1000);
     } catch (err) {
       console.error("Login failed:", err);
+      
+      // FIX: Ensure err.message is used, or a fallback string. 
+      // Do not pass 'err' itself to triggerToast.
+      const message = typeof err === 'string' 
+        ? err 
+        : (err.message || "Invalid credentials. Please try again.");
+
       triggerToast(
         "Login Failed", 
-        err.message || "Invalid credentials. Please try again.", 
+        message, 
         "error"
       );
     } finally {

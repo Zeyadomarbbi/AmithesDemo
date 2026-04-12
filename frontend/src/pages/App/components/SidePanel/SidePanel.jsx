@@ -1,7 +1,6 @@
 // SidePanel.jsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import AmethisLogo from '../../../../assets/amethis-logo.svg';
 import { useAuth } from '../../../../hooks/Auth/AuthContext';
 import { useFundData } from '../../hooks/Core/FundContext'; 
 import { useActiveFund } from '../../hooks/useActiveFund';
@@ -10,6 +9,7 @@ import SearchBar from '../../../../components/SearchBar/SearchBar';
 import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon } from '/src/components/Icons/MiscIcons';
 import { ChevronDownIconWhite, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
 import { LogoutIcon, AccountIcon } from '/src/components/Icons/InteractiveIcons';
+import { AmethisLOGO } from '/src/components/Icons/MiscIcons';
 
 import './SidePanel.css';
 
@@ -99,7 +99,8 @@ function SidePanel() {
       )}   
       <div className="frame-1">
         <div className="logo-container">
-          <img src={AmethisLogo} alt="Amethis Logo" className="logo-img" />
+          <AmethisLOGO />
+          <span className="logo-title">AMETHIS</span>
         </div>
 
         <div className="frame-1-2">

@@ -79,40 +79,27 @@ const AddNewTimeframeModal = ({
     };
 
     const handleSave = () => {
-        const monthStr = String(endDate.getMonth() + 1).padStart(2, '0');
-        const dayStr = String(endDate.getDate()).padStart(2, '0');
-        const yearShort = String(endDate.getFullYear()).slice(-2);
-        const formattedCurrentDate = `${monthStr}/${dayStr}/${yearShort}`;
-
-        const originalFormattedDate = editData ? 
-            (() => {
-                const rawDate = editData.date;
-                const d = rawDate instanceof Date
-                    ? rawDate
-                    : rawDate
-                        ? new Date(rawDate.replace(/-/g, '/'))
-                        : new Date();
-                return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
-            })() : null;
-
-        if (formattedCurrentDate !== originalFormattedDate && existingDates.includes(formattedCurrentDate)) {
-            alert(`The date ${formattedCurrentDate} already exists.`);
-            return;
-        }
-
         const year = endDate.getFullYear();
         const month = String(endDate.getMonth() + 1).padStart(2, '0');
         const day = String(endDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
-        onSave({ 
-            id: editData?.id, 
-            name, 
-            endDate: dateString 
-        });
+        const originalDateString = editData?.date
+            ? (() => {
+                const d = parseRawDate(editData.date);
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            })()
+            : null;
+
+        if (dateString !== originalDateString && existingDates.includes(dateString)) {
+            alert(`The date ${dateString} already exists.`);
+            return;
+        }
+
+        onSave({ id: editData?.id, name, endDate: dateString });
         onClose();
     };
-
+    
     const handleDelete = () => {
         onDelete(editData.id);
         onClose();

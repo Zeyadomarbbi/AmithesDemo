@@ -1,6 +1,8 @@
 /* =========================================
    GLOBAL & RESETS
    ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&display=swap');
+
 html, body {
   margin: 0;
   padding: 0;
@@ -23,7 +25,6 @@ html, body {
 .side-panel {
   /* Dimensions */
   width: 100%;
-  max-width: 280px;
   min-height: 100vh;
   
   /* Layout */
@@ -53,7 +54,6 @@ html, body {
    ========================================= */
 .frame-1 {
   width: 100%;
-  max-width: 248px;
   display: flex;
   flex-direction: column;
   gap: 1.4375rem;
@@ -64,22 +64,24 @@ html, body {
 
 /* --- 1.1 Logo --- */
 .logo-container {
-  width: 100%;
-  min-height: 32px;
   display: flex;
   align-items: center;
-  padding: 0.5rem 0; /* Adds breathing room */
+  gap: 10px;
 }
 
-.logo-img { 
-  height: auto;
-  width: 100%;
-  max-width: 248px; /* Adjust based on your logo's natural width */
-  max-height: 32px;
-  display: block;
-  object-fit: contain;
+.logo-container svg {
+  height: 32px;
+  width: auto;
 }
 
+.logo-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #FFFFFF;
+  font-size: 32px;
+  line-height: 1;
+}
 /* --- 1.2 Frame 1_2 (Selector + Tabs + Line) --- */
 .frame-1-2 {
   display: flex;
@@ -653,12 +655,6 @@ html, body {
    MOBILE ADJUSTMENTS
    ========================================= */
 @media (max-width: 768px) {
-  .side-panel {
-    max-width: 100%;
-    border-right: none;
-    min-height: auto;
-  }
-  
   .frame-2-waves {
     height: 240px;
   }

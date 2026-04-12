@@ -15,33 +15,58 @@ const NewShareClassDrawer = ({ isOpen, onClose, onSave, initialData }) => {
   const [issuanceMethod, setIssuanceMethod] = useState("pro-rata");
   const [distributionMethod, setDistributionMethod] = useState("dividend");
   const [description, setDescription] = useState("");
-  
-  const [isExpanded, setIsExpanded] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
+
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      if (initialData) {
-        setName(initialData.share_class_name || "");
-        setIsin(initialData.isin_code || "");
-        setShareValue(initialData.nominal_value !== undefined && initialData.nominal_value !== null ? String(initialData.nominal_value) : "");
-        setIssuanceMethod(initialData.issuance_method === "UPFRONT" ? "upfront" : "pro-rata");
-        setDistributionMethod(initialData.distribution_method === "REDEMPTION_OF_SHARES" ? "redemption" : "dividend");
-        setDescription(initialData.ppm_description || "");
-        setUploadedFile(initialData.document_name ? { name: initialData.document_name, size: initialData.document_size } : null);
-      } else {
-        setName("");
-        setIsin("");
-        setShareValue("");
-        setIssuanceMethod("pro-rata");
-        setDistributionMethod("dividend");
-        setDescription("");
-        setUploadedFile(null);
-      }
+      setName(initialData?.share_class_name || "");
+      setIsin(initialData?.isin_code || "");
+      setShareValue(initialData?.nominal_value != null ? String(initialData.nominal_value) : "");
+      setIssuanceMethod(initialData?.issuance_method === "UPFRONT" ? "upfront" : "pro-rata");
+      setDistributionMethod(initialData?.distribution_method === "REDEMPTION_OF_SHARES" ? "redemption" : "dividend");
+      setDescription(initialData?.ppm_description || "");
+      setUploadedFile(initialData?.document_name ? { name: initialData.document_name, size: initialData.document_size } : null);
       setIsSaving(false);
     }
   }, [isOpen, initialData]);
+  
+  const changeTracker = useMemo(() => {
+    const changes = [];
+
+    // Compare helper
+    const check = (current, initial, key) => {
+      if (current !== initial) changes.push(key);
+    };
+
+    if (initialData) {
+      check(name, initialData.share_class_name || "", "name");
+      check(isin, initialData.isin_code || "", "isin");
+      check(shareValue, initialData.nominal_value != null ? String(initialData.nominal_value) : "", "value");
+      check(description, initialData.ppm_description || "", "desc");
+      
+      const initIssuance = initialData.issuance_method === "UPFRONT" ? "upfront" : "pro-rata";
+      check(issuanceMethod, initIssuance, "issuance");
+      
+      const initDist = initialData.distribution_method === "REDEMPTION_OF_SHARES" ? "redemption" : "dividend";
+      check(distributionMethod, initDist, "dist");
+
+      // File change: either a new File object was added, or an existing one was removed
+      const isNewFileUpload = uploadedFile instanceof File;
+      const isFileRemoved = !uploadedFile && initialData.document_name;
+      if (isNewFileUpload || isFileRemoved) changes.push("file");
+    } else {
+      // For New Mode: If name is not empty, count it as a change to enable Save
+      if (name.trim()) changes.push("new");
+    }
+
+    return {
+      hasChanges: changes.length > 0,
+      count: changes.length
+    };
+  }, [name, isin, shareValue, issuanceMethod, distributionMethod, description, uploadedFile, initialData]);
 
   const isFormValid = useMemo(() => {
     return (
@@ -94,7 +119,7 @@ const NewShareClassDrawer = ({ isOpen, onClose, onSave, initialData }) => {
   };
 
   if (!isOpen) return null;
-
+  const canSave = !isSaving && isFormValid && changeTracker.hasChanges;
   return (
     <div className="share-drawer-overlay">
       <div className={`share-drawer ${isExpanded ? "share-drawer--expanded" : ""}`}>
@@ -264,9 +289,14 @@ const NewShareClassDrawer = ({ isOpen, onClose, onSave, initialData }) => {
             type="button"
             className="share-drawer-footer-btn share-drawer-footer-btn--save"
             onClick={handleSaveAction}
-            disabled={isSaving || !isFormValid}
+            disabled={!canSave}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving 
+              ? "Saving..." 
+              : initialData 
+                ? `Save (${changeTracker.count})` 
+                : "Save"
+            }
           </button>
         </div>
       </div>

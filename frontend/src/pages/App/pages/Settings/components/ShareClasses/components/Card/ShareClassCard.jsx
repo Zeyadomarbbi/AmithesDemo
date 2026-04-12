@@ -1,6 +1,6 @@
 // frontend/src/pages/App/pages/Settings/components/ShareClasses/components/Card/ShareClassCard.jsx
 import React, { useState, useRef, useEffect } from "react";
-import { FileIcon, MoreActionsIcon, DeleteIcon } from '../../../../../../../../components/Icons/InteractiveIcons';
+import { FileIcon, MoreActionsIcon, DeleteIcon, EditIcon } from '../../../../../../../../components/Icons/InteractiveIcons';
 import Prompt from '../../../../../../components/Toast/Prompt.jsx';
 import "./ShareClassCard.css";
 
@@ -64,7 +64,7 @@ const ShareClassCard = ({ shareClass, onEdit, onDelete }) => {
   };
 
   return (
-    <div className="share-card" onClick={onEdit} style={{ cursor: 'pointer' }}>
+    <div className="share-card" style={{ cursor: 'default' }}>
       <div className="share-card-header">
         <div className="share-card-title">{shareClass.share_class_name}</div>
         <div className="share-card-menu-container" ref={menuRef}>
@@ -79,6 +79,13 @@ const ShareClassCard = ({ shareClass, onEdit, onDelete }) => {
           
           {isMenuOpen && (
             <div className="share-card-dropdown">
+              <button 
+                className="share-card-dropdown-item" 
+                onClick={(e) => { e.stopPropagation(); setIsMenuOpen(false); onEdit(); }}
+              >
+                <EditIcon />
+                <span>Edit</span>
+              </button>
               <button 
                 className="share-card-dropdown-item share-card-dropdown-delete" 
                 onClick={handleDeleteClick}

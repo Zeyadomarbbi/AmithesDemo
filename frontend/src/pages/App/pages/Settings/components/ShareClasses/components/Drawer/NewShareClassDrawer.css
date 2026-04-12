@@ -11,7 +11,7 @@
 }
 
 .share-drawer-overlay {
-  position: fixed;
+  position: absolute; /* was fixed */
   inset: 0;
   background: rgba(15, 23, 42, 0.1);
   display: flex;
@@ -53,8 +53,7 @@
 
 /* 3. Expanded State */
 .share-drawer--expanded {
-  /* Full width minus the Side Panel (280px) */
-  width: calc(100% - 280px) !important;
+  width: 100% !important;
 }
 
 /* 4. Children (Header, Body, Footer) */

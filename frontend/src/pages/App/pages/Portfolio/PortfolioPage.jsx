@@ -3,6 +3,7 @@ import { Outlet, NavLink, useParams } from 'react-router-dom';
 import { TimeframeProvider } from '../../hooks/Core/TimeframeContext';
 import { useCountries } from "../../hooks/Reference/useCountries";
 import { useCurrencies } from "../../hooks/Reference/useCurrencies";
+import { usePortfolio} from "../../hooks/Portfolio/usePortfolio";
 import { usePortfolioDataset } from "./usePortfolioDataset";
 
 import "./styles/portfolio.tokens.css";
