@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.db import transaction, connection
 
 from ..models.transactions import *
 from ..serializers.fund_serializers import *
@@ -138,6 +139,8 @@ class FundManFeeRuleBulkView(APIView):
                     serializer.save(fund_id=fund_id)
                     created_rules.append(serializer.data)
 
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT fn_rebuild_lps_sc_man_fee_base(%s)", [fund_id])
         return Response(
             {"created": created_rules, "updated": updated_rules}, 
             status=status.HTTP_200_OK

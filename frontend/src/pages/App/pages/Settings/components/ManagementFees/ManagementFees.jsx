@@ -114,9 +114,10 @@ const ManagementFees = () => {
 
   const handleSave = async () => {
     try {
-      // Process Phase 1
+      const payloads = [];
+
       if (shareClasses) {
-        for (const sc of shareClasses) {
+        shareClasses.forEach(sc => {
           const rate = phase1Data.rates[sc.share_class_id];
           const existingId = phase1Ids[sc.share_class_id];
 
@@ -128,17 +129,12 @@ const ManagementFees = () => {
               date_until: formatDate(phase1Data.dateUntil),
               rate: parseFloat(rate)
             };
-
-            if (existingId) {
-              await updateRule(fundId, existingId, payload);
-            } else {
-              await createRule(fundId, payload);
-            }
+            if (existingId) payload.fee_rule_id = existingId;
+            payloads.push(payload);
           }
-        }
+        });
       }
 
-      // Process Phase 2
       const hasP2Rate = phase2Data.rate !== undefined && phase2Data.rate !== "";
       const hasP2Desc = ppmDescription && ppmDescription.trim() !== "";
 
@@ -151,15 +147,16 @@ const ManagementFees = () => {
           rate: hasP2Rate ? parseFloat(phase2Data.rate) : 0, 
           ppm_description: ppmDescription || null,
         };
-
-        if (phase2Id) {
-          await updateRule(fundId, phase2Id, payload);
-        } else {
-          await createRule(fundId, payload);
-        }
+        if (phase2Id) payload.fee_rule_id = phase2Id;
+        payloads.push(payload);
       }
-      
+
+      if (payloads.length > 0) {
+        await bulkSaveRules(fundId, payloads);
+      }
+
       await new Promise(r => setTimeout(r, 200));
+      
       setInitialState({
         p1From: formatDate(phase1Data.dateFrom),
         p1Until: formatDate(phase1Data.dateUntil),
