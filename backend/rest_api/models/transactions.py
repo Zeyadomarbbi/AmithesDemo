@@ -195,7 +195,7 @@ class FundManFeeRules(models.Model):
 
     date_from = models.DateField()
     date_until = models.DateField(null=True, blank=True)
-
+    ppm_description = models.TextField(null=True, blank=True)
     rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
