@@ -4,8 +4,9 @@ import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGat
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import { DoubleArrowLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons";
 import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
-import { EuroCurrencyIcon } from "../../../../../../../../components/Icons/FinancialIcons";
 import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import { usePortfolioFlows } from "../../../../../../hooks/Portfolio/usePortfolioFlows.js";
+
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
 import "./InvestmentDetails.css";

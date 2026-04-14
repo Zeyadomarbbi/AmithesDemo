@@ -92,6 +92,22 @@ class PortfolioInvestmentView(APIView):
         investment.save(update_fields=["is_deleted", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def patch(self, request, fund_id, investment_id, **kwargs):
+        investment = get_object_or_404(
+            PortfolioInvestment,
+            investment_id=investment_id,
+            fund_id=fund_id,
+            is_deleted=False,
+        )
+        serializer = PortfolioInvestmentSerializer(
+            investment,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 class PortfolioTransactionFlowView(APIView):
     def get(self, request, fund_id, investment_id, pk=None):
         # 1. Single Flow Fetch
@@ -192,6 +208,7 @@ class PortfolioTransactionFlowView(APIView):
         instance.is_deleted = True
         instance.save(update_fields=["is_deleted", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class PortfolioFairValueFlowView(APIView):
     def get(self, request, fund_id, investment_id, pk=None):

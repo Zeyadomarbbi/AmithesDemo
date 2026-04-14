@@ -16,16 +16,27 @@ export const usePortfolio = (fundId) => {
       const endpoint = scenarioId
         ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/`
         : `/api/funds/${fundId}/portfolio-investments/`;
+        
       const raw = toSafeArray(await api.get(endpoint));
+      const normalized = raw.map((inv) => {
+        let tFlows = toSafeArray(inv.transaction_flows);
+        let fvFlows = toSafeArray(inv.fair_value_flows);
 
-      const normalized = raw.map((inv) => ({
-        ...inv,
-        transaction_flows: toSafeArray(inv.transaction_flows),
-        fair_value_flows: toSafeArray(inv.fair_value_flows),
-      }));
+        if (scenarioId === null) {
+          tFlows = tFlows.filter(flow => flow.scenario_id === null);
+          fvFlows = fvFlows; 
+        }
+
+        return {
+          ...inv,
+          transaction_flows: tFlows,
+          fair_value_flows: fvFlows,
+        };
+      });
 
       const flowsMap = {};
       const fairValuesMap = {};
+      
       normalized.forEach((inv) => {
         const id = Number(inv?.investment_id ?? inv?.id ?? inv?.investmentId);
         if (!Number.isFinite(id)) return;
@@ -42,7 +53,6 @@ export const usePortfolio = (fundId) => {
       setLoading(false);
     }
   }, [fundId, api]);
-
   // --- rest of the hook unchanged ---
 
   const createInvestment = async (scenarioId = null, payload) => {
@@ -64,6 +74,8 @@ export const usePortfolio = (fundId) => {
       ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/`
       : `/api/funds/${fundId}/portfolio-investments/${investmentId}/`;
     try {
+      console.log("Updating investment with payload:", payload);
+      console.log("Endpoint for update:", endpoint);
       const data = await api.patch(endpoint, payload);
       fetchInvestments(scenarioId);
       return data;

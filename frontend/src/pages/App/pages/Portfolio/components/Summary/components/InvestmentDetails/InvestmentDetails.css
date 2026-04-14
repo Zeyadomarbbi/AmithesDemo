@@ -2,36 +2,45 @@
    Global & Layout
    ========================================= */
 .invDrawerOverlay {
-  position: fixed;
+  position: absolute; /* was fixed */
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  z-index: 9999;
+  background: rgba(15, 23, 42, 0.1);
   display: flex;
   justify-content: flex-end;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  z-index: 40;
 }
 
 .invDrawerPanel {
-  width: 100%;
-  max-width: 980px;
-  height: 100vh;
-  background: #fff;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+  /* --- Layout --- */
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* REMOVED 'align-items: flex-start' so children stretch to full width automatically */
+  padding: 0;
+  gap: 0; /* Gap handled by children padding */
   
-  /* Transition for expanding/collapsing width */
-  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-              width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* --- Dimensions (Responsive) --- */
+  height: 100%;
   
-  /* Entry animation */
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Default: ~1/3rd of the screen */
+  width: 35vw; 
+  
+  /* Guardrail: Don't get too small on laptops */
+  min-width: 400px; 
+  max-width: 100%;
+  
+  /* --- Visuals --- */
+  background: #FFFFFF;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  
+  /* --- Animation & Transition --- */
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  z-index: 50; 
 }
 
-.scenario-pf-drawer--expanded {
-  width: 100vw !important;
-  max-width: 100vw !important;
-}
 
 .invBackBtn span {
   display: flex;

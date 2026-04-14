@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from 'react-router-dom';
 
 import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
+import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
 import { ChevronDownIcon } from "../../icons.jsx";
 import { CheckMarkIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
@@ -61,6 +62,7 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     );
   }, [fundInvestments, selectedInvestmentIds]);
 
+  
   const totalRow = useMemo(() => buildTotalRow(visibleRows, activeQuarters), [visibleRows, activeQuarters]);
   const tableColumnOptions = useMemo(() => getCompareTableColumnOptions(activeQuarters), [activeQuarters]);
   const compareOptions = useMemo(() => getCompareChartMetricOptions(), []);

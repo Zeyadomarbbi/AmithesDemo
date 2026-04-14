@@ -76,24 +76,8 @@
   padding: 8px;
   display: flex;
   flex-direction: column;
-  white-space: nowrap;
 }
 
-.sd-search-wrapper {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.sd-search-input {
-  width: 100%;
-  border: none;
-  outline: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  padding: 4px 8px;
-  background: transparent;
-  color: #1C1917;
-}
 
 /* --- LIST ITEMS --- */
 .sd-list {

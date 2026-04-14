@@ -1,24 +1,42 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import SearchBar from '../SearchBar';
+import { CheckMarkIcon } from '../../Icons/InteractiveIcons';
 import './SimpleDropdown.css';
 
-function SimpleDropdown({ 
-    options, 
-    value, 
-    onChange, 
-    placeholder, 
-    disabled, 
-    labelKey = "name", 
+const ALL_VALUE = "__ALL__";
+
+function SimpleDropdown({
+    options,
+    value,
+    onChange,
+    placeholder,
+    disabled,
+    labelKey = "name",
     valueKey = "id",
     isSingle = true,
     isSearchBar = true,
+    searchLabel = "Search..."
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [dropdownStyle, setDropdownStyle] = useState({});
     const triggerRef = useRef(null);
     const dropdownRef = useRef(null);
+
+    const validSelection = isSingle
+        ? value
+        : (Array.isArray(value) ? value : []);
+
+    const allOptionValues = useMemo(
+        () => options.map(o => String(o[valueKey])),
+        [options, valueKey]
+    );
+
+    const isAllSelected =
+        !isSingle &&
+        allOptionValues.length > 0 &&
+        allOptionValues.every(v => validSelection.some(s => String(s) === v));
 
     useEffect(() => {
         const handler = (e) => {
@@ -44,12 +62,17 @@ function SimpleDropdown({
             const spaceAbove = rect.top;
             const spaceRight = window.innerWidth - rect.right;
             const spaceLeft = rect.left;
+
             const openUpward = spaceBelow < 320 && spaceAbove > spaceBelow;
             const openLeftward = spaceRight < 280 && spaceLeft > spaceRight;
-            const maxAvailableHeight = openUpward ? spaceAbove - 16 : spaceBelow - 16;
+
+            const maxAvailableHeight = openUpward
+                ? spaceAbove - 16
+                : spaceBelow - 16;
+
             setDropdownStyle({
                 position: "fixed",
-                maxHeight: maxAvailableHeight, 
+                maxHeight: maxAvailableHeight,
                 zIndex: 99999,
                 ...(openUpward
                     ? { bottom: window.innerHeight - rect.top + 4 }
@@ -66,44 +89,115 @@ function SimpleDropdown({
         updatePosition();
         window.addEventListener("scroll", updatePosition, true);
         window.addEventListener("resize", updatePosition);
-        
+
         return () => {
             window.removeEventListener("scroll", updatePosition, true);
             window.removeEventListener("resize", updatePosition);
         };
     }, [isOpen]);
 
-    const selected = options.find((o) => String(o[valueKey]) === String(value));
-    const label = selected ? selected[labelKey] : placeholder || "Select";
+    let label = placeholder || "Select";
+
+    if (isSingle) {
+        const selected = options.find(o => String(o[valueKey]) === String(value));
+        if (selected) label = selected[labelKey];
+    } else {
+        if (isAllSelected) {
+            label = "All Fields";
+        } else if (validSelection.length === 1) {
+            const selected = options.find(
+                o => String(o[valueKey]) === String(validSelection[0])
+            );
+            if (selected) label = selected[labelKey];
+        } else if (validSelection.length > 1) {
+            label = `Selected (${validSelection.length})`;
+        }
+    }
 
     const filtered = useMemo(() => {
-        return options.filter((o) =>
-            String(o[labelKey] || "").toLowerCase().includes(searchTerm.toLowerCase())
+        return options.filter(o =>
+            String(o[labelKey] || "")
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())
         );
     }, [options, searchTerm, labelKey]);
 
     const dropdown = (
         <div ref={dropdownRef} className="sd-dropdown" style={dropdownStyle}>
             {isSearchBar && (
-                <div className="sd-search-wrapper">
-                    <SearchBar placeholder="Search..." onSearch={setSearchTerm} />
-                </div>
+                <SearchBar
+                    placeholder={searchLabel}
+                    onSearch={setSearchTerm}
+                    containerClassName="sd-search"
+                />
             )}
+
             <div className="sd-list">
+
+                {!isSingle && (
+                    <div
+                        key={ALL_VALUE}
+                        className={`sd-item ${isAllSelected ? "active" : ""}`}
+                        onClick={() => {
+                            if (isAllSelected) {
+                                onChange([]);
+                            } else {
+                                onChange(options.map(o => o[valueKey]));
+                            }
+                            setSearchTerm("");
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <div className={`sd-checkbox qs-checkbox ${isAllSelected ? 'checked' : ''}`}>
+                            {isAllSelected && <CheckMarkIcon />}
+                        </div>
+                        <span className="sd-item-label">All Fields</span>
+                    </div>
+                )}
+
                 {filtered.length > 0 ? (
                     filtered.map((o) => {
-                        const isActive = String(o[valueKey]) === String(value);
+                        const itemVal = String(o[valueKey]);
+
+                        const isActive = isSingle
+                            ? itemVal === String(value)
+                            : validSelection.some(v => String(v) === itemVal);
+
                         return (
                             <div
                                 key={o[valueKey]}
                                 className={`sd-item ${isActive ? "active" : ""}`}
                                 onClick={() => {
-                                    onChange(o[valueKey]);
-                                    if (isSingle) setIsOpen(false);
+                                    if (isSingle) {
+                                        onChange(o[valueKey]);
+                                        setIsOpen(false);
+                                    } else {
+                                        const isSelected = validSelection.some(
+                                            v => String(v) === itemVal
+                                        );
+
+                                        if (isSelected) {
+                                            onChange(
+                                                validSelection.filter(
+                                                    v => String(v) !== itemVal
+                                                )
+                                            );
+                                        } else {
+                                            onChange([...validSelection, o[valueKey]]);
+                                        }
+                                    }
                                     setSearchTerm("");
                                 }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
-                                <span className="sd-item-label">{o[labelKey]}</span>
+                                {!isSingle && (
+                                    <div className={`sd-checkbox qs-checkbox ${isActive ? 'checked' : ''}`}>
+                                        {isActive && <CheckMarkIcon />}
+                                    </div>
+                                )}
+                                <span className="sd-item-label">
+                                    {o[labelKey]}
+                                </span>
                             </div>
                         );
                     })
@@ -118,14 +212,15 @@ function SimpleDropdown({
         <div className="sd-container" ref={triggerRef}>
             <div
                 className={`sd-button ${isOpen ? "active" : ""} ${disabled ? "loading" : ""}`}
-                onClick={() => !disabled && setIsOpen((p) => !p)}
+                onClick={() => !disabled && setIsOpen(p => !p)}
             >
                 <div className="sd-text-group">
                     <span className="sd-label">{label}</span>
                 </div>
+
                 <div className={`sd-icon ${isOpen ? "open" : ""}`}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 6l4 4 4-4" stroke="#375A89" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4 6l4 4 4-4" stroke="#375A89" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </div>
             </div>
