@@ -1,33 +1,35 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { xirr as xirrLib } from "@webcarrot/xirr";
-
 import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
 import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/TimeframeContext";
 import NewInvestmentModal from "./components/NewInvestmentModal/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
 import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
 import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
+import { usePortfolioFlows } from "../../../../hooks/Portfolio/usePortfolioFlows";
+
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
-import "./PortfolioSummaryTab.css";
+import { useTableSort } from "../../../../../../components/Sort/TableSort";
+import { DownloadIcon, PlusIconWhite } from "../../../../../../components/Icons/InteractiveIcons";
+import { PageSpinner, PageNoData, PageError } from "/src/components/LoadingScreens/LoadingScreens";
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from "../../../../../../components/useFormatter";
 
 import {
-  DownloadIcon,
-  PlusIconWhite,
-  ChevronDownIcon,
-} from "../../icons";
-import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
+  PortfolioTable,
+  useColumnOptions,
+  DEFAULT_VISIBLE_COLUMN_KEYS,
+  calcValue,
+  calcDividendsTotal,
+  calcGain,
+  calcMoicIncl,
+} from "./components/PortfolioTable/PortfolioTable";
+
+import "./PortfolioSummaryTab.css";
 
 const toNumber = (v) =>
   Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
-
-const format2 = (v) => {
-  const n = toNumber(v);
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const formatPercent = (v) => `${format2(toNumber(v) * 100)}%`;
 
 const formatCurrencyDisplay = (name, code, symbol) => {
   const safeName = String(name || "").trim();
@@ -46,7 +48,7 @@ const ownershipToDbValue = (ownershipPercent) => {
 
 const ownershipFromDbValue = (storedOwnership) => {
   const n = toNumber(storedOwnership);
-  return Number(n.toFixed(2));
+  return Number(n.toFixed(4));
 };
 
 const partialDivestmentFromBackend = (value) => {
@@ -77,38 +79,15 @@ const safeXirr = (cashflows) => {
   }
 };
 
-const CurrencyLabel = ({ text }) => (
-  <>{text} <span className="portfolioHeaderCurrency">(EUR)</span></>
-);
-
-const FilterColumnsIcon = () => (
-  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <g filter="url(#portfolioColumnsFilter)">
-      <path d="M2 9C2 4.58172 5.58172 1 10 1H26C30.4183 1 34 4.58172 34 9V25C34 29.4183 30.4183 33 26 33H10C5.58172 33 2 29.4183 2 25V9Z" fill="white"/>
-      <path d="M10 1.5H26C30.1421 1.5 33.5 4.85786 33.5 9V25C33.5 29.1421 30.1421 32.5 26 32.5H10C5.85786 32.5 2.5 29.1421 2.5 25V9C2.5 4.85786 5.85786 1.5 10 1.5Z" stroke="rgba(204,205,206,0.5)"/>
-      <g clipPath="url(#portfolioColumnsClip)">
-        <path fillRule="evenodd" clipRule="evenodd" d="M11.334 13.0007C11.334 12.6325 11.6325 12.334 12.0007 12.334H24.0007C24.3688 12.334 24.6673 12.6325 24.6673 13.0007C24.6673 13.3688 24.3688 13.6673 24.0007 13.6673H12.0007C11.6325 13.6673 11.334 13.3688 11.334 13.0007ZM13.334 17.0007C13.334 16.6325 13.6325 16.334 14.0007 16.334H22.0007C22.3688 16.334 22.6673 16.6325 22.6673 17.0007C22.6673 17.3688 22.3688 17.6673 22.0007 17.6673H14.0007C13.6325 17.6673 13.334 17.3688 13.334 17.0007ZM15.334 21.0007C15.334 20.6325 15.6325 20.334 16.0007 20.334H20.0007C20.3688 20.334 20.6673 20.6325 20.6673 21.0007C20.6673 21.3688 20.3688 21.6673 20.0007 21.6673H16.0007C15.6325 21.6673 15.334 21.3688 15.334 21.0007Z" fill="#375A89"/>
-      </g>
-    </g>
-    <defs>
-      <filter id="portfolioColumnsFilter" x="0" y="0" width="36" height="36" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-        <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-        <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-        <feOffset dy="1"/>
-        <feGaussianBlur stdDeviation="1"/>
-        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.01 0"/>
-        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_16929_38813"/>
-        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_16929_38813" result="shape"/>
-      </filter>
-      <clipPath id="portfolioColumnsClip">
-        <rect width="16" height="16" fill="white" transform="translate(10 9)"/>
-      </clipPath>
-    </defs>
-  </svg>
-);
-
 function PortfolioSummaryTabContent() {
-  const { fundId, portfolioDataset, countries, currencies } = useOutletContext();
+  const formatNumber = useNumberFormatter();
+  const formatPercentage = usePercentageFormatter();
+
+  const { fundId, portfolio, countries, currencies } = useOutletContext();
+  const { investments, loading } = portfolio;
+  console.log("PortfolioSummaryTab render", { investments, loading });
+  const portfolioFlows = usePortfolioFlows(fundId, null);
+
   const numericFundId = Number(fundId);
   const { toast, showToast, closeToast } = useToast();
 
@@ -117,18 +96,8 @@ function PortfolioSummaryTabContent() {
 
   const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState(null);
-  const [visibleColumnKeys, setVisibleColumnKeys] = useState([
-    "country",
-    "ownership",
-    "cost",
-    "dividends",
-    "moic",
-    "irr",
-    "fairValue",
-    "gain",
-  ]);
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState(DEFAULT_VISIBLE_COLUMN_KEYS);
   const [openColumnsMenu, setOpenColumnsMenu] = useState(null);
-  const columnsMenuRef = useRef(null);
 
   const selectedQuarterObj = quarters.find((q) => Number(q.id) === Number(selectedQuarter));
   const latestQuarterObj = quarters.length ? quarters[quarters.length - 1] : null;
@@ -149,9 +118,23 @@ function PortfolioSummaryTabContent() {
       Number(c.id) === Number(countryNameOrId)
     );
     if (!countryData?.iso2) return null;
-    const code = countryData.iso2.toLowerCase();
-    return `https://flagcdn.com/40x30/${code}.png`;
+    return `https://flagcdn.com/40x30/${countryData.iso2.toLowerCase()}.png`;
   }, [countries]);
+
+  const columnOptions = useColumnOptions(getFlagUrl);
+
+  const visibleColumns = useMemo(
+    () => columnOptions.filter((col) => visibleColumnKeys.includes(col.key)),
+    [columnOptions, visibleColumnKeys]
+  );
+
+  const toggleColumnVisibility = (columnKey) => {
+    setVisibleColumnKeys((prev) =>
+      prev.includes(columnKey)
+        ? prev.filter((k) => k !== columnKey)
+        : [...prev, columnKey]
+    );
+  };
 
   const normalizeRow = (row) => ({
     id: row.investment_id ?? row.id ?? row.investmentId ?? row.portfolio_investment_id,
@@ -201,12 +184,8 @@ function PortfolioSummaryTabContent() {
         ).trim().toLowerCase();
         const isPartial = typeName.includes("partial") && typeName.includes("divest");
         const isDivestment = typeName.includes("divest") && !typeName.includes("partial");
-        if (isDivestment) {
-          hasFullDivestment = true;
-          totalExitPct = 100;
-        } else if (isPartial) {
-          totalExitPct += partialDivestmentFromBackend(f.divestment_percentage);
-        }
+        if (isDivestment) { hasFullDivestment = true; totalExitPct = 100; }
+        else if (isPartial) { totalExitPct += partialDivestmentFromBackend(f.divestment_percentage); }
       });
 
       if (hasFullDivestment || totalExitPct >= 100) return { status: "realized", include: true };
@@ -227,7 +206,9 @@ function PortfolioSummaryTabContent() {
     const cashflows = [];
 
     flowsWithDate.forEach((f) => {
-      const typeName = canonicalType(f.transaction_name ?? f.transaction_type_name ?? f.transaction_type?.name ?? f.transaction_type ?? f.type ?? "");
+      const typeName = canonicalType(
+        f.transaction_name ?? f.transaction_type_name ?? f.transaction_type?.name ?? f.transaction_type ?? f.type ?? ""
+      );
       const amountLc = toNumber(f.amount_lc ?? f.amountLC ?? f.amount);
       const fxRate = toNumber(f.fx_rate ?? f.fxRate);
       const amountEur = fxRate ? amountLc / fxRate : toNumber(f.amount ?? 0);
@@ -246,12 +227,16 @@ function PortfolioSummaryTabContent() {
     const matchingFair = fairValues.find((fv) => String(fv?.date) === String(date));
     const fairAmountLc = matchingFair ? toNumber(matchingFair.amount_lc ?? matchingFair.amountLC) : 0;
     const fairFx = matchingFair ? toNumber(matchingFair.fx_rate ?? matchingFair.fxRate) : 0;
-    const fairAmountEur = matchingFair ? toNumber(matchingFair.amount ?? (fairFx ? fairAmountLc / fairFx : 0)) : 0;
+    const fairAmountEur = matchingFair
+      ? toNumber(matchingFair.amount ?? (fairFx ? fairAmountLc / fairFx : 0))
+      : 0;
 
     if (fairAmountEur) cashflows.push({ date: new Date(date), amount: fairAmountEur });
 
     const irr = safeXirr(
-      cashflows.filter((c) => Number.isFinite(c.amount) && c.amount !== 0).sort((a, b) => a.date - b.date)
+      cashflows
+        .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
+        .sort((a, b) => a.date - b.date)
     );
 
     const valueEur = fairAmountEur;
@@ -265,7 +250,7 @@ function PortfolioSummaryTabContent() {
   const loadSummaryData = useCallback(() => {
     if (!numericFundId) return;
     try {
-      const rows = (Array.isArray(portfolioDataset?.investments) ? portfolioDataset.investments : []).map(normalizeRow);
+      const rows = (Array.isArray(portfolio?.investments) ? portfolio.investments : []).map(normalizeRow);
       const nextUnrealized = [];
       const nextRealized = [];
       const nextUnallocated = [];
@@ -277,19 +262,9 @@ function PortfolioSummaryTabContent() {
         const { status, include } = statusComputed;
 
         if (!include) return;
-        if (status === "unallocated") {
-          nextUnallocated.push(enriched);
-          return;
-        }
-        if (status === "realized") {
-          nextRealized.push(enriched);
-          return;
-        }
-        if (status === "partial") {
-          nextUnrealized.push(enriched);
-          nextRealized.push(enriched);
-          return;
-        }
+        if (status === "unallocated") { nextUnallocated.push(enriched); return; }
+        if (status === "realized") { nextRealized.push(enriched); return; }
+        if (status === "partial") { nextUnrealized.push(enriched); nextRealized.push(enriched); return; }
         nextUnrealized.push(enriched);
       });
 
@@ -300,7 +275,7 @@ function PortfolioSummaryTabContent() {
       console.error("Failed to load portfolio summary:", err);
       showToast({ type: "error", title: "Load failed", message: "Failed to load portfolio summary." });
     }
-  }, [numericFundId, metricsCutoffDate, portfolioDataset, computeStatusFromFlows, computeMetricsFromFlows, showToast]);
+  }, [numericFundId, metricsCutoffDate, portfolio?.investments, computeStatusFromFlows, computeMetricsFromFlows, showToast]);
 
   useEffect(() => { loadSummaryData(); }, [loadSummaryData]);
 
@@ -309,21 +284,6 @@ function PortfolioSummaryTabContent() {
     const hasSelected = quarters.some((q) => Number(q.id) === Number(selectedQuarter));
     if (!hasSelected) setSelectedQuarter(Number(quarters[quarters.length - 1].id));
   }, [quarters, selectedQuarter]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target)) {
-        setOpenColumnsMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const calcValue = (row) => toNumber(row.fairValue !== null && row.fairValue !== undefined ? row.fairValue : row.exitValue);
-  const calcDividendsTotal = (row) => toNumber(row.dividends) + toNumber(row.interests);
-  const calcGain = (row) => calcValue(row) + calcDividendsTotal(row) - toNumber(row.cost);
-  const calcMoicIncl = (row) => row.moicIncl !== undefined ? toNumber(row.moicIncl) : 0;
 
   const buildPortfolioCashflows = useCallback((rows) => {
     const cutoff = new Date(metricsCutoffDate);
@@ -342,14 +302,12 @@ function PortfolioSummaryTabContent() {
           const fxRate = toNumber(f.fx_rate ?? f.fxRate);
           const amountEur = fxRate ? amountLc / fxRate : toNumber(f.amount ?? 0);
           const absAmountEur = Math.abs(amountEur);
-
           if (!Number.isFinite(absAmountEur) || absAmountEur === 0) return;
           if (typeName === "Investment") {
             cashflows.push({ date: new Date(f.date), amount: -absAmountEur });
             return;
           }
-          if (typeName === "Dividend" || typeName === "Interest" || typeName === "Other" ||
-              typeName === "Divestment" || typeName === "Partial divestment") {
+          if (["Dividend", "Interest", "Other", "Divestment", "Partial divestment"].includes(typeName)) {
             cashflows.push({ date: new Date(f.date), amount: absAmountEur });
           }
         });
@@ -382,51 +340,41 @@ function PortfolioSummaryTabContent() {
     return { cost, dividends, value, gain, moicExcl, moicIncl, irr };
   }, [buildPortfolioCashflows]);
 
+  const unrealizedSubtotal = useMemo(() => buildSummary(unrealizedRows), [unrealizedRows, buildSummary]);
+  const realizedSubtotal = useMemo(() => buildSummary(realizedRows), [realizedRows, buildSummary]);
+  const unallocatedSubtotal = useMemo(() => buildSummary(unallocatedRows), [unallocatedRows, buildSummary]);
+
+  const totalRows = useMemo(() => {
+    const map = new Map();
+    [unrealizedRows, realizedRows, unallocatedRows].flat().forEach((r) => {
+      if (r?.id && !map.has(r.id)) map.set(r.id, r);
+    });
+    return Array.from(map.values());
+  }, [unrealizedRows, realizedRows, unallocatedRows]);
+
+  const total = useMemo(() => buildSummary(totalRows), [totalRows, buildSummary]);
+
   const handleAddInvestment = async ({ name, sector, countryId, currencyId, ownership }) => {
-    if (!name || !String(name).trim()) { showToast({ type: "error", title: "Create failed", message: "Please enter an investment name." }); return false; }
+    if (!name || !String(name).trim()) {
+      showToast({ type: "error", title: "Create failed", message: "Please enter an investment name." });
+      return false;
+    }
     const ownershipValue = Number(String(ownership).replace(/,/g, "").trim());
     if (!Number.isFinite(ownershipValue) || ownershipValue < 0 || ownershipValue > 100) {
-      showToast({ type: "error", title: "Create failed", message: "Ownership must be between 0 and 100." }); return false;
+      showToast({ type: "error", title: "Create failed", message: "Ownership must be between 0 and 100." });
+      return false;
     }
     try {
-      const createdInvestment = await portfolioDataset.createInvestment({
+      const createdInvestment = await portfolio.createInvestment(null, {
         name, sector,
         ownership: ownershipToDbValue(ownershipValue),
         country_id: Number(countryId),
         currency_id: Number(currencyId),
       });
 
-      const createdInvestmentId = Number(
-        createdInvestment?.investment_id ??
-        createdInvestment?.id ??
-        createdInvestment?.investmentId ??
-        createdInvestment?.portfolio_investment_id
-      );
-
-      let investmentToOpen = createdInvestment;
-      if (Number.isFinite(createdInvestmentId) && typeof portfolioDataset?.fetchInvestment === "function") {
-        try {
-          investmentToOpen = await portfolioDataset.fetchInvestment(createdInvestmentId);
-        } catch (detailsErr) {
-          console.error("Failed to load created investment details:", detailsErr.message);
-        }
-      }
-
-      let normalizedInvestment = normalizeRow(investmentToOpen);
-      if (!Number.isFinite(Number(normalizedInvestment?.id)) && typeof portfolioDataset?.fetchInvestments === "function") {
-        try {
-          const refreshedInvestments = await portfolioDataset.fetchInvestments();
-          const matchingInvestment = (Array.isArray(refreshedInvestments) ? refreshedInvestments : []).find((investmentRow) => (
-            String(investmentRow?.name || "").trim().toLowerCase() === String(name).trim().toLowerCase() &&
-            String(investmentRow?.sector || "").trim().toLowerCase() === String(sector).trim().toLowerCase()
-          ));
-          if (matchingInvestment) normalizedInvestment = normalizeRow(matchingInvestment);
-        } catch (listErr) {
-          console.error("Failed to locate created investment in portfolio list:", listErr.message);
-        }
-      }
-
+      const normalizedInvestment = normalizeRow(createdInvestment);
       setIsNewInvestmentOpen(false);
+      
       if (Number.isFinite(Number(normalizedInvestment?.id))) {
         setSelectedInvestment(normalizedInvestment);
       }
@@ -451,26 +399,25 @@ function PortfolioSummaryTabContent() {
     if (!Number.isFinite(ownershipValue) || ownershipValue < 0 || ownershipValue > 100) {
       throw new Error("Ownership must be between 0 and 100.");
     }
-    const response = await portfolioDataset.updateInvestment(investmentId, {
-      name,
-      sector,
+    
+    const response = await portfolio.updateInvestment(null, investmentId, {
+      name, sector,
       ownership: ownershipToDbValue(ownershipValue),
       country_id: Number(countryId),
       currency_id: Number(currencyId),
     });
-    const refreshedInvestment = typeof portfolioDataset?.fetchInvestment === "function"
-      ? normalizeRow(await portfolioDataset.fetchInvestment(investmentId))
-      : normalizeRow(response);
+    
+    const refreshedInvestment = normalizeRow(response);
     setSelectedInvestment(refreshedInvestment);
     showToast({ type: "success", title: "Investment updated", message: `"${name}" has been updated successfully.` });
     return refreshedInvestment;
   };
 
   const handleDeleteInvestment = async (investmentId) => {
-    await portfolioDataset.deleteInvestment(investmentId);
-    setUnrealizedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
-    setRealizedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
-    setUnallocatedRows((prev) => prev.filter((row) => Number(row.id) !== Number(investmentId)));
+    await portfolio.deleteInvestment(null, investmentId);
+    setUnrealizedRows((prev) => prev.filter((r) => Number(r.id) !== Number(investmentId)));
+    setRealizedRows((prev) => prev.filter((r) => Number(r.id) !== Number(investmentId)));
+    setUnallocatedRows((prev) => prev.filter((r) => Number(r.id) !== Number(investmentId)));
     setSelectedInvestment(null);
     showToast({ type: "success", title: "Investment deleted", message: "The investment has been deleted." });
   };
@@ -481,26 +428,12 @@ function PortfolioSummaryTabContent() {
       return;
     }
     try {
-      const freshInvestment = await portfolioDataset.fetchInvestment(row.id);
-      setSelectedInvestment(normalizeRow(freshInvestment));
+      const freshInvestmentRaw = (portfolio?.investments || []).find((i) => Number(i.id ?? i.investment_id) === Number(row.id));
+      setSelectedInvestment(normalizeRow(freshInvestmentRaw || row));
     } catch (err) {
       showToast({ type: "error", title: "Open failed", message: err.message || "Failed to load investment details." });
     }
   };
-
-  const unrealizedSubtotal = useMemo(() => buildSummary(unrealizedRows), [unrealizedRows]);
-  const realizedSubtotal = useMemo(() => buildSummary(realizedRows), [realizedRows]);
-  const unallocatedSubtotal = useMemo(() => buildSummary(unallocatedRows), [unallocatedRows]);
-
-  const totalRows = useMemo(() => {
-    const map = new Map();
-    [unrealizedRows, realizedRows, unallocatedRows].flat().forEach((r) => {
-      if (r?.id && !map.has(r.id)) map.set(r.id, r);
-    });
-    return Array.from(map.values());
-  }, [unrealizedRows, realizedRows, unallocatedRows]);
-
-  const total = useMemo(() => buildSummary(totalRows), [totalRows]);
 
   const handleDownloadExcel = () => {
     const sectionHeaders = ["Name", "Geography", "Ownership", "Cost", "Dividends / Interests", "MOIC", "Gross IRR", "Fair Value", "Gain"];
@@ -509,15 +442,15 @@ function PortfolioSummaryTabContent() {
       ...rows.map((r) => [
         r.name,
         r.country,
-        `${format2(r.ownership)}%`,
-        toNumber(r.cost),
-        toNumber(calcDividendsTotal(r)),
-        toNumber(calcMoicIncl(r)),
-        toNumber(r.irr),
-        toNumber(calcValue(r)),
-        toNumber(calcGain(r)),
+        `${formatPercentage(r.ownership)}%`,
+        formatNumber(r.cost),
+        formatNumber(calcDividendsTotal(r)),
+        formatNumber(calcMoicIncl(r)),
+        formatNumber(r.irr),
+        formatNumber(calcValue(r)),
+        formatNumber(calcGain(r)),
       ]),
-      ["Sub Total", "", "", toNumber(subtotal.cost), toNumber(subtotal.dividends), toNumber(subtotal.moicIncl), toNumber(subtotal.irr), toNumber(subtotal.value), toNumber(subtotal.gain)],
+      ["Sub Total", "", "", formatNumber(subtotal.cost), formatNumber(subtotal.dividends), formatNumber(subtotal.moicIncl), formatNumber(subtotal.irr), formatNumber(subtotal.value), formatNumber(subtotal.gain)],
     ];
     exportWorkbook(`portfolio-summary-fund-${numericFundId}.xlsx`, [
       { name: "Unrealized", rows: buildSectionRows(unrealizedRows, unrealizedSubtotal) },
@@ -530,214 +463,17 @@ function PortfolioSummaryTabContent() {
   const { sorted: sortedRealized, sortKey: sortKeyR, toggleSort: toggleSortR } = useTableSort(realizedRows, "name");
   const { sorted: sortedUnallocated, sortKey: sortKeyA, toggleSort: toggleSortA } = useTableSort(unallocatedRows, "name");
 
-  const columnOptions = useMemo(() => ([
-    {
-      key: "country",
-      label: "Geography",
-      width: "140px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Geography" columnKey="country" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => (
-        <div className="geography-cell">
-          {getFlagUrl(row.country) && (
-            <img src={getFlagUrl(row.country)} alt={row.country} className="country-flag-img" width={20} height={15} />
-          )}
-          <span>{row.country}</span>
-        </div>
-      ),
-      renderSubtotal: () => <td />,
-      renderTotalHeader: () => <th />,
-      renderTotalCell: () => <td />,
-    },
-    {
-      key: "ownership",
-      label: "Ownership",
-      width: "120px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Ownership" columnKey="ownership" currentSortKey={sortKey} toggleSort={toggleSort} center={false}  />
-      ),
-      renderCell: (row) => `${format2(row.ownership)}%`,
-      renderSubtotal: () => <td />,
-      renderTotalHeader: () => <th />,
-      renderTotalCell: () => <td />,
-    },
-    {
-      key: "cost",
-      label: "Cost",
-      width: "130px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Cost" />} columnKey="cost" currentSortKey={sortKey} toggleSort={toggleSort} center={false}  />
-      ),
-      renderCell: (row) => format2(row.cost),
-      renderSubtotal: (subtotal) => <td>{format2(subtotal.cost)}</td>,
-      renderTotalHeader: () => <th><CurrencyLabel text="Total Cost" /></th>,
-      renderTotalCell: (summary) => <td>{format2(summary.cost)}</td>,
-    },
-    {
-      key: "dividends",
-      label: "Dividend/Interests",
-      width: "190px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Dividends / Interests" />} columnKey="dividends" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => format2(calcDividendsTotal(row)),
-      renderSubtotal: (subtotal) => <td>{format2(subtotal.dividends)}</td>,
-      renderTotalHeader: () => <th><CurrencyLabel text="Total Dividends / Interests" /></th>,
-      renderTotalCell: (summary) => <td>{format2(summary.dividends)}</td>,
-    },
-    {
-      key: "moic",
-      label: "MOIC",
-      width: "180px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="MOIC" />} columnKey="moicIncl" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => format2(calcMoicIncl(row)),
-      renderSubtotal: (subtotal) => <td>{format2(subtotal.moicIncl)}</td>,
-      renderTotalHeader: () => <th><CurrencyLabel text="Total MOIC" /></th>,
-      renderTotalCell: (summary) => <td>{format2(summary.moicIncl)}</td>,
-    },
-    {
-      key: "irr",
-      label: "Gross IRR",
-      width: "150px",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label="Gross IRR" columnKey="irr" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => formatPercent(row.irr),
-      renderSubtotal: (subtotal) => <td>{formatPercent(subtotal.irr)}</td>,
-      renderTotalHeader: () => <th><CurrencyLabel text="Total Gross IRR" /></th>,
-      renderTotalCell: (summary) => <td>{formatPercent(summary.irr)}</td>,
-    },
-    {
-      key: "fairValue",
-      label: "Fair Value",
-      width: "160px",
-      className: "col-highlight",
-      renderHeader: (sortKey, toggleSort) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text="Fair Value" />} columnKey="fairValue" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => format2(calcValue(row)),
-      renderSubtotal: (subtotal) => <td className="col-highlight">{format2(subtotal.value)}</td>,
-      renderTotalHeader: () => <th className="col-highlight"><CurrencyLabel text="Total Fair Value" /></th>,
-      renderTotalCell: (summary) => <td className="col-highlight">{format2(summary.value)}</td>,
-    },
-    {
-      key: "gain",
-      label: "Unrealized gain",
-      width: "160px",
-      className: "col-highlight",
-      renderHeader: (sortKey, toggleSort, gainLabel) => (
-        <SortableHeaderRenderer label={<CurrencyLabel text={gainLabel} />} columnKey="unrealizedGain" currentSortKey={sortKey} toggleSort={toggleSort} center={false} />
-      ),
-      renderCell: (row) => format2(calcGain(row)),
-      renderSubtotal: (subtotal) => <td className="col-highlight">{format2(subtotal.gain)}</td>,
-      renderTotalHeader: () => <th className="col-highlight"><CurrencyLabel text="Total Gain" /></th>,
-      renderTotalCell: (summary) => <td className="col-highlight">{format2(summary.gain)}</td>,
-    },
-  ]), [calcDividendsTotal, calcGain, calcMoicIncl, calcValue, getFlagUrl]);
-
-  const visibleColumns = useMemo(
-    () => columnOptions.filter((column) => visibleColumnKeys.includes(column.key)),
-    [columnOptions, visibleColumnKeys]
-  );
-
-  const toggleColumnVisibility = (columnKey) => {
-    setVisibleColumnKeys((prev) =>
-      prev.includes(columnKey)
-        ? prev.filter((key) => key !== columnKey)
-        : [...prev, columnKey]
-    );
+  const sharedTableProps = {
+    visibleColumns,
+    columnOptions,
+    visibleColumnKeys,
+    onToggleColumn: toggleColumnVisibility,
+    openMenuKey: openColumnsMenu,
+    onOpenMenuKey: setOpenColumnsMenu,
+    onRowClick: handleOpenInvestmentDetails,
   };
 
-  const renderColumnPicker = (menuKey) => (
-    <div className="quarter-selector-container portfolio-columns-picker" ref={openColumnsMenu === menuKey ? columnsMenuRef : null}>
-      <button
-        type="button"
-        className={`quarter-selector-button portfolio-columns-trigger${openColumnsMenu === menuKey ? " active" : ""}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpenColumnsMenu((prev) => (prev === menuKey ? null : menuKey));
-        }}
-        aria-label="Select visible columns"
-        title="Select visible columns"
-      >
-        <FilterColumnsIcon />
-      </button>
-      {openColumnsMenu === menuKey && (
-        <div className="quarter-dropdown portfolio-columns-menu" onClick={(event) => event.stopPropagation()}>
-          <div className="quarter-list portfolio-columns-list">
-          {columnOptions.map((column) => {
-            const checked = visibleColumnKeys.includes(column.key);
-            return (
-              <label key={column.key} className={`quarter-item portfolio-columns-option${checked ? " selected checked" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleColumnVisibility(column.key)}
-                />
-                <div className={`qs-checkbox portfolio-columns-checkbox ${checked ? "checked" : ""}`} aria-hidden="true" />
-                <div className="quarter-item-content">
-                  <span className="item-label-bold portfolio-columns-label">{column.label}</span>
-                </div>
-              </label>
-            );
-          })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderColGroup = () => (
-    <colgroup>
-      <col style={{ width: "220px" }} />
-      {visibleColumns.map((column) => (
-        <col key={column.key} style={{ width: column.width, minWidth: column.width }} />
-      ))}
-    </colgroup>
-  );
-
-  const renderTableBody = (rows) => (
-    <>
-      {rows.map((r) => (
-        <tr key={r.id}>
-          <td className="name-cell" onClick={() => handleOpenInvestmentDetails(r)}>
-            <div className="name-main">{r.name}</div>
-            <div className="name-sub">{r.sector}</div>
-          </td>
-          {visibleColumns.map((column) => (
-            <td key={`${r.id}-${column.key}`} className={column.className || ""}>
-              {column.renderCell(r)}
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
-  );
-
-  const renderSubtotalRow = (subtotal) => (
-    <tr className="portfolio-subtotal-row">
-      <td className="subtotal-name-cell">Sub Total</td>
-      {visibleColumns.map((column) => (
-        <React.Fragment key={`subtotal-${column.key}`}>
-          {column.renderSubtotal(subtotal)}
-        </React.Fragment>
-      ))}
-    </tr>
-  );
-
-  const tableHeaders = (gainLabel, sortKey, toggleSort) => (
-    <tr>
-      <th><SortableHeaderRenderer label="Name" columnKey="name" currentSortKey={sortKey} toggleSort={toggleSort} center={false} /></th>
-      {visibleColumns.map((column) => (
-        <th key={column.key} className={column.className || ""}>
-          {column.renderHeader(sortKey, toggleSort, gainLabel)}
-        </th>
-      ))}
-    </tr>
-  );
+  const isPortfolioEmpty = !investments || investments.length === 0;
 
   return (
     <>
@@ -761,81 +497,61 @@ function PortfolioSummaryTabContent() {
         </div>
       </div>
 
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Unrealized portfolio<span className="portfolio-count">{unrealizedRows.length}</span></h2>
-            {renderColumnPicker("unrealized")}
-          </div>
-          <div className="portfolio-table-scroll">
-            <table className="portfolio-table">
-              {renderColGroup()}
-              <thead>{tableHeaders("Unrealized Gain", sortKeyU, toggleSortU)}</thead>
-              <tbody>{renderTableBody(sortedUnrealized)}{renderSubtotalRow(unrealizedSubtotal)}</tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      {loading ? (
+        <PageSpinner label="Loading portfolio..." />
+      ) : isPortfolioEmpty ? (
+        <PageNoData message="No investments found for this fund." />
+      ) : (
+        <>
+          <PortfolioTable
+            {...sharedTableProps}
+            title="Unrealized portfolio"
+            count={unrealizedRows.length}
+            rows={sortedUnrealized}
+            subtotal={unrealizedSubtotal}
+            sortKey={sortKeyU}
+            toggleSort={toggleSortU}
+            gainLabel="Unrealized Gain"
+            menuKey="unrealized"
+          />
 
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Realized portfolio<span className="portfolio-count">{realizedRows.length}</span></h2>
-            {renderColumnPicker("realized")}
-          </div>
-          <div className="portfolio-table-scroll">
-            <table className="portfolio-table">
-              {renderColGroup()}
-              <thead>{tableHeaders("Realized Gain", sortKeyR, toggleSortR)}</thead>
-              <tbody>{renderTableBody(sortedRealized)}{renderSubtotalRow(realizedSubtotal)}</tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+          <PortfolioTable
+            {...sharedTableProps}
+            title="Realized portfolio"
+            count={realizedRows.length}
+            rows={sortedRealized}
+            subtotal={realizedSubtotal}
+            sortKey={sortKeyR}
+            toggleSort={toggleSortR}
+            gainLabel="Realized Gain"
+            menuKey="realized"
+          />
 
-      <section className="portfolio-section">
-        <div className="portfolio-table-card">
-          <div className="portfolio-section-header">
-            <h2>Unallocated portfolio<span className="portfolio-count">{unallocatedRows.length}</span></h2>
-            {renderColumnPicker("unallocated")}
-          </div>
-          <div className="portfolio-table-scroll">
-            <table className="portfolio-table">
-              {renderColGroup()}
-              <thead>{tableHeaders("Unallocated Gain", sortKeyA, toggleSortA)}</thead>
-              <tbody>{renderTableBody(sortedUnallocated)}{renderSubtotalRow(unallocatedSubtotal)}</tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+          <PortfolioTable
+            {...sharedTableProps}
+            title="Unallocated portfolio"
+            count={unallocatedRows.length}
+            rows={sortedUnallocated}
+            subtotal={unallocatedSubtotal}
+            sortKey={sortKeyA}
+            toggleSort={toggleSortA}
+            gainLabel="Unallocated Gain"
+            menuKey="unallocated"
+          />
 
-      <section className="portfolio-total-section">
-        <div className="portfolio-table-scroll">
-          <table className="portfolio-table total-table">
-            {renderColGroup()}
-            <thead>
-              <tr>
-                <th></th>
-                {visibleColumns.map((column) => (
-                  <React.Fragment key={`total-header-${column.key}`}>
-                    {column.renderTotalHeader()}
-                  </React.Fragment>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="portfolio-subtotal-row total-row">
-                <td className="subtotal-name-cell">Total</td>
-                {visibleColumns.map((column) => (
-                  <React.Fragment key={`total-cell-${column.key}`}>
-                    {column.renderTotalCell(total)}
-                  </React.Fragment>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <PortfolioTable
+            {...sharedTableProps}
+            showTotalRow={true}
+            summary={total}
+            rows={[]}
+            subtotal={{}}
+            sortKey={null}
+            toggleSort={() => {}}
+            gainLabel=""
+            menuKey="total"
+          />
+        </>
+      )}
 
       {isNewInvestmentOpen && (
         <NewInvestmentModal
@@ -851,11 +567,15 @@ function PortfolioSummaryTabContent() {
           investment={selectedInvestment}
           timeframe={effectiveTimeframe}
           fundId={numericFundId}
-          portfolioDataset={portfolioDataset}
+          portfolio={portfolio}
           countries={countries}
           currencies={currencies}
           onClose={() => setSelectedInvestment(null)}
-          onSaved={async () => { if (typeof portfolioDataset?.refresh === "function") await portfolioDataset.refresh(); }}
+          onSaved={async () => {
+            if (typeof portfolio?.fetchInvestments === "function") {
+              await portfolio.fetchInvestments(null);
+            }
+          }}
           onUpdateInvestment={handleUpdateInvestment}
           onDeleteInvestment={handleDeleteInvestment}
           showToast={showToast}
