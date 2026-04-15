@@ -1,15 +1,12 @@
 import React from "react";
-import SearchBar from "../../../../../../../components/SearchBar/SearchBar.jsx";
+import SimpleDropdown from "../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine, Legend,
 } from "recharts";
-import { ChevronDownIcon } from "../../../icons.jsx";
 
-const PortfolioCompareChart = ({ chartData, options = [], selectedKey, setSelectedKey }) => {
-  const selectedOption = options.find((opt) => opt.key === selectedKey) || null;
-  const selectedLabel = selectedOption?.label || "Select Column";
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
+const COLORS = ["#818CF8", "#34D399"];
+
+const PortfolioCompareChart = ({ chartData, options = [], selectedKey, setSelectedKey, activeQuarters = [] }) => {
   const containerRef = React.useRef(null);
   const [chartWidth, setChartWidth] = React.useState(900);
 
@@ -23,70 +20,93 @@ const PortfolioCompareChart = ({ chartData, options = [], selectedKey, setSelect
     return () => observer.disconnect();
   }, []);
 
-  React.useEffect(() => {
-    if (!isDropdownOpen && searchTerm) setSearchTerm("");
-  }, [isDropdownOpen, searchTerm]);
+  const dropdownOptions = React.useMemo(
+    () => options.map((o) => ({ id: o.key, name: o.label })),
+    [options]
+  );
 
-  const filteredOptions = React.useMemo(() => {
-    const q = String(searchTerm || "").trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((option) => String(option?.label || "").toLowerCase().includes(q));
-  }, [options, searchTerm]);
+  const selectedOption = options.find((o) => o.key === selectedKey);
+  const selectedLabel = selectedOption?.label || "Select Metric";
+
+  // Map the metric key to the timeframe field
+  const metricToField = {
+    cost:       "cost",
+    fair_value: "fv",
+    divestment: "divestment",
+    dividends:  "dividends",
+    interests:  "interests",
+    change_fv:  null, // computed below
+    change_cost: null,
+  };
+
+  // Build grouped chart data: one entry per investment, one bar key per quarter
+  const groupedData = React.useMemo(() => {
+    if (!chartData?.length || !activeQuarters?.length) return [];
+
+    return chartData.map((row) => {
+      const entry = { name: row.name };
+
+      if (selectedKey === "change_fv" || selectedKey === "change_cost") {
+        const field = selectedKey === "change_fv" ? "fv" : "cost";
+        const newest = activeQuarters[0];
+        const oldest = activeQuarters[activeQuarters.length - 1];
+        if (activeQuarters.length >= 2) {
+          const newestVal = row.timeframes?.[newest.id]?.[field] ?? 0;
+          const oldestVal = row.timeframes?.[oldest.id]?.[field] ?? 0;
+          entry[`q_${newest.id}`] = Number(((newestVal - oldestVal) / 1_000_000).toFixed(2));
+        }
+      } else {
+        const field = metricToField[selectedKey];
+        if (field) {
+          activeQuarters.forEach((q) => {
+            entry[`q_${q.id}`] = Number(((row.timeframes?.[q.id]?.[field] ?? 0) / 1_000_000).toFixed(2));
+          });
+        }
+      }
+
+      return entry;
+    });
+  }, [chartData, activeQuarters, selectedKey]);
+
+  const isChangeMetric = selectedKey === "change_fv" || selectedKey === "change_cost";
+  const barsToRender = isChangeMetric
+    ? [activeQuarters[0]].filter(Boolean)
+    : activeQuarters;
 
   return (
     <section className="compare-chart-section">
       <div className="compare-chart-card">
         <div className="compare-chart-header">
           <span className="compare-chart-title">Compare Investments (m€)</span>
-
-          <div className="quarter-selector-container" style={{ minWidth: 220 }}>
-            <div
-              className={`quarter-selector-button ${isDropdownOpen ? "active" : ""}`}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              style={{ height: 36 }}
-            >
-              <div className="quarter-text-group">
-                <span className="quarter-part">{selectedLabel}</span>
-              </div>
-              <div className={`quarter-icon ${isDropdownOpen ? "open" : ""}`}>
-                <ChevronDownIcon />
-              </div>
+            <div style={{ width: 220, flexShrink: 0 }}>
+              <SimpleDropdown
+                options={dropdownOptions}
+                value={selectedKey}
+                onChange={setSelectedKey}
+                placeholder="Select Metric"
+                isSingle={true}
+                isSearchBar={true}
+                searchLabel="Search metric..."
+              />
             </div>
-
-            {isDropdownOpen && (
-              <div className="quarter-dropdown" style={{ minWidth: "100%" }}>
-                <div className="quarter-search-wrapper">
-                  <SearchBar
-                    key={isDropdownOpen ? "open" : "closed"}
-                    placeholder="Search column..."
-                    onSearch={setSearchTerm}
-                    containerClassName="search-bar compare-dropdown-search"
-                    className="compare-dropdown-search-input"
-                  />
-                </div>
-                <div className="quarter-list">
-                  {filteredOptions.map((option) => (
-                    <div
-                      key={option.key}
-                      className={`quarter-item ${selectedKey === option.key ? "selected" : ""}`}
-                      onClick={() => { setSelectedKey(option.key); setIsDropdownOpen(false); }}
-                    >
-                      <span className="item-label-bold">{option.label}</span>
-                    </div>
-                  ))}
-                  {!filteredOptions.length && (
-                    <div className="quarter-no-results">No matches found</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="compare-chart-container" ref={containerRef}>
-          <BarChart width={chartWidth} height={300} data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+          <BarChart
+            width={chartWidth}
+            height={300}
+            data={groupedData}
+            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} dy={10} interval={0} />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#9CA3AF", fontSize: 12 }}
+              dy={10}
+              interval={0}
+            />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} />
             <Tooltip
               cursor={{ fill: "#F9FAFB" }}
@@ -94,11 +114,17 @@ const PortfolioCompareChart = ({ chartData, options = [], selectedKey, setSelect
               formatter={(value) => [`${value} m€`, selectedLabel]}
             />
             <ReferenceLine y={0} stroke="#E5E7EB" />
-            <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={40}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.value >= 0 ? "#818CF8" : "#EF4444"} />
-              ))}
-            </Bar>
+            {activeQuarters.length > 1 && <Legend />}
+            {barsToRender.map((q, i) => (
+              <Bar
+                key={q.id}
+                dataKey={`q_${q.id}`}
+                name={q.display_label}
+                radius={[4, 4, 4, 4]}
+                barSize={activeQuarters.length > 1 ? 24 : 40}
+                fill={COLORS[i % COLORS.length]}
+              />
+            ))}
           </BarChart>
         </div>
       </div>

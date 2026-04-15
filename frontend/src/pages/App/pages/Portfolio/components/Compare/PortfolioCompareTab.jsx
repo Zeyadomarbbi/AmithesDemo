@@ -20,16 +20,18 @@ import PortfolioCompareChart from "./components/PortfolioCompareChart";
 import "./PortfolioCompareTab.css";
 
 const PortfolioCompareTab = ({ onSelectInvestment }) => {
-  const { fundId, portfolioDataset } = useOutletContext();
+  // Switched portfolioDataset to portfolio to match the new usePortfolio hook implementation
+  const { fundId, portfolio } = useOutletContext();
   const { selectedTimeframeIds, activeQuarters, handleToggleTimeframe } = useCompareTimeframes(fundId, 2);
 
   const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState([]);
 
-  const { rows: compareRows } = useCompareRows(fundId, activeQuarters, [], portfolioDataset);
+  // Passing portfolio instead of portfolioDataset
+  const { rows: compareRows } = useCompareRows(fundId, activeQuarters, [], portfolio);
   const fundInvestments = compareRows;
-
+  console.log("Fund Investments:", fundInvestments);
   useEffect(() => {
     if (!fundInvestments.length) return;
     setSelectedInvestmentIds((prev) => {
@@ -74,7 +76,6 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     }));
   }, [activeQuarters, effectiveCompareColumn, visibleRows]);
 
-  // Normalize options shape for SimpleDropdown: needs { id, name }
   const investmentOptions = useMemo(() =>
     fundInvestments.map((inv) => ({ id: inv.id, name: inv.name })),
     [fundInvestments]
@@ -129,10 +130,11 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
       />
 
       <PortfolioCompareChart
-        chartData={chartData}
+        chartData={visibleRows}
         options={compareOptions}
         selectedKey={effectiveCompareColumn}
         setSelectedKey={setSelectedCompareColumn}
+        activeQuarters={activeQuarters}
       />
     </section>
   );
