@@ -9,7 +9,7 @@ import { useNumberFormatter, usePercentageFormatter } from "../../../../../../..
 import Toast from '../../../../../../../../../components/Toast/Toast.jsx';
 import Prompt from '../../../../../../../../../components/Toast/Prompt.jsx';
 import NewInvestmentModal from "../NewInvestmentPopup/NewInvestmentModal.jsx";
-import "/src/pages/App/pages/Portfolio/components/Summary/components/InvestmentDetails/InvestmentDetails.css";
+import "/src/pages/App/pages/Portfolio/components/Summary/components/InvestmentDetails/InvestmentDetails.css"
 
 const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment"];
 

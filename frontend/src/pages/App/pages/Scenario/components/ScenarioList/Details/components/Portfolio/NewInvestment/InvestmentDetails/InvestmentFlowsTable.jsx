@@ -6,7 +6,6 @@ import { ChevronDownIcon } from "/src/components/Icons/DirectionIcons";
 import { PercentageIcon } from "/src/components/Icons/NumericalIcons";
 import { SortableHeaderRenderer, useTableSort } from "../../../../../../../../../../..//components/Sort/TableSort";
 import { useNumberFormatter } from '../../../../../../../../../../../components/useFormatter';
-import "./InvestmentDetails.css";
 import "/src/pages/App/pages/Portfolio/components/Summary/components/InvestmentDetails/InvestmentDetails.css"
 
 const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment", "Partial divestment"];
