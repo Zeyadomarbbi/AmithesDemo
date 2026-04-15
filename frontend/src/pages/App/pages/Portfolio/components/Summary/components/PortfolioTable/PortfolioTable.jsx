@@ -1,8 +1,7 @@
 // PortfolioTable.jsx
-import React, { useMemo, useState } from "react";
-import { useNumberFormatter, usePercentageFormatter, useMoicFormatter  } from "../../../../../../../../components/useFormatter";
+import React, { useMemo } from "react";
+import { useNumberFormatter, usePercentageFormatter, useMoicFormatter } from "../../../../../../../../components/useFormatter";
 import { SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
-// Adjust the path to where SimpleDropdown is located
 import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown"; 
 import "./PortfolioTable.css";
 
@@ -185,7 +184,7 @@ export function useColumnOptions(getFlagUrl) {
             columnKey="gain"
             currentSortKey={sortKey}
             toggleSort={toggleSort}
-            center={true}   // change this
+            center={true}
           />
         );
       },
@@ -198,18 +197,25 @@ export function useColumnOptions(getFlagUrl) {
 }
 
 function PortfolioSubTable({ 
+  sectionKey,
   section, 
   columnOptions, 
   onRowClick, 
+  sectionVisibleKeys,
+  setSectionVisibleKeys,
   isSummary = false,
   summaryData = null 
 }) {
-  const [visibleColumnKeys, setVisibleColumnKeys] = useState(DEFAULT_VISIBLE_COLUMN_KEYS);
+  const activeKeys = sectionVisibleKeys?.[sectionKey] || [];
 
   const visibleColumns = useMemo(() => 
-    columnOptions.filter(col => visibleColumnKeys.includes(col.key)),
-    [columnOptions, visibleColumnKeys]
+    columnOptions.filter(col => activeKeys.includes(col.key)),
+    [columnOptions, activeKeys]
   );
+
+  const handleDropdownChange = (newKeys) => {
+    setSectionVisibleKeys(prev => ({ ...prev, [sectionKey]: newKeys }));
+  };
 
   return (
     <div className="portfolio-table-card">
@@ -222,8 +228,8 @@ function PortfolioSubTable({
         <div className="portfolio-columns-picker">
           <SimpleDropdown 
             options={columnOptions}
-            value={visibleColumnKeys}
-            onChange={setVisibleColumnKeys}
+            value={activeKeys}
+            onChange={handleDropdownChange}
             labelKey="label"
             valueKey="key"
             isSingle={false}
@@ -308,6 +314,8 @@ export function PortfolioTable({
   sections,
   summary,
   columnOptions,
+  sectionVisibleKeys,
+  setSectionVisibleKeys,
   onRowClick,
 }) {
   return (
@@ -315,17 +323,23 @@ export function PortfolioTable({
       {sections.map((section) => (
         <PortfolioSubTable 
           key={section.key}
+          sectionKey={section.key}
           section={section}
           columnOptions={columnOptions}
+          sectionVisibleKeys={sectionVisibleKeys}
+          setSectionVisibleKeys={setSectionVisibleKeys}
           onRowClick={onRowClick}
         />
       ))}
 
       {summary && (
         <PortfolioSubTable 
+          sectionKey="summary"
           isSummary
           summaryData={summary}
           columnOptions={columnOptions}
+          sectionVisibleKeys={sectionVisibleKeys}
+          setSectionVisibleKeys={setSectionVisibleKeys}
         />
       )}
     </section>

@@ -5,14 +5,14 @@ import { TimeframeProvider, useTimeframeContext } from "../../../../hooks/Core/T
 import NewInvestmentModal from "./components/NewInvestmentModal/NewInvestmentModal";
 import InvestmentDetailsDrawer from "./components/InvestmentDetails/InvestmentDetailsDrawer";
 import { PermissionGate } from "../../../../../../hooks/Auth/PermissionGate";
-import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
+import { exportPortfolioSummary } from "../../../../../../components/Export/exportPortfolio";
 
 import { useToast } from "../../../../components/Toast/useToast";
 import { useTableSort } from "../../../../../../components/Sort/TableSort";
 import { DownloadIcon, PlusIconWhite } from "../../../../../../components/Icons/InteractiveIcons";
 import { PageSpinner, PageNoData } from "/src/components/LoadingScreens/LoadingScreens";
 import { useNumberFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter";
-import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics  } from "./PortfolioHelpers";
+import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics } from "./PortfolioHelpers";
 import {
   PortfolioTable,
   useColumnOptions,
@@ -44,8 +44,13 @@ function PortfolioSummaryTabContent() {
 
   const [isNewInvestmentOpen, setIsNewInvestmentOpen] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState(null);
-  const [visibleColumnKeys, setVisibleColumnKeys] = useState(DEFAULT_VISIBLE_COLUMN_KEYS);
-  const [openColumnsMenu, setOpenColumnsMenu] = useState(null);
+
+  const [sectionVisibleKeys, setSectionVisibleKeys] = useState({
+    unrealized: DEFAULT_VISIBLE_COLUMN_KEYS,
+    realized: DEFAULT_VISIBLE_COLUMN_KEYS,
+    unallocated: DEFAULT_VISIBLE_COLUMN_KEYS,
+    summary: DEFAULT_VISIBLE_COLUMN_KEYS
+  });
 
   const selectedQuarterObj = quarters.find((q) => Number(q.id) === Number(selectedQuarter));
   const latestQuarterObj = quarters.length ? quarters[quarters.length - 1] : null;
@@ -66,19 +71,6 @@ function PortfolioSummaryTabContent() {
   }, [countries]);
 
   const columnOptions = useColumnOptions(getFlagUrl);
-
-  const visibleColumns = useMemo(
-    () => columnOptions.filter((col) => visibleColumnKeys.includes(col.key)),
-    [columnOptions, visibleColumnKeys]
-  );
-
-  const toggleColumnVisibility = (columnKey) => {
-    setVisibleColumnKeys((prev) =>
-      prev.includes(columnKey)
-        ? prev.filter((k) => k !== columnKey)
-        : [...prev, columnKey]
-    );
-  };
 
   useEffect(() => {
     if (!quarters.length) return;
@@ -180,40 +172,6 @@ function PortfolioSummaryTabContent() {
     }
   };
 
-  const handleDownloadExcel = () => {
-    const sectionHeaders = ["Name", "Geography", "Ownership", "Cost", "Dividends / Interests", "MOIC", "Gross IRR", "Value", "Gain"];
-    const buildSectionRows = (rows, subtotal) => [
-      sectionHeaders,
-      ...rows.map((r) => [
-        r.name,
-        r.geography,
-        `${formatPercentage(r.ownership)}%`,
-        formatNumber(r.cost),
-        formatNumber(r.dividends),
-        formatNumber(r.moicIncl),
-        formatPercentage(r.irr * 100),
-        formatNumber(r.status === "realized" ? r.exitValue : r.fairValue),
-        formatNumber(r.gain),
-      ]),
-      ["Sub Total", "", "", formatNumber(subtotal.cost), formatNumber(subtotal.dividends), formatNumber(subtotal.moicIncl), formatPercentage(subtotal.irr * 100), formatNumber(subtotal.value), formatNumber(subtotal.gain)],
-    ];
-    exportWorkbook(`portfolio-summary-fund-${numericFundId}.xlsx`, [
-      { name: "Unrealized", rows: buildSectionRows(sortedUnrealized, unrealizedSubtotal) },
-      { name: "Realized", rows: buildSectionRows(sortedRealized, realizedSubtotal) },
-      { name: "Unallocated", rows: buildSectionRows(sortedUnallocated, unallocatedSubtotal) },
-    ]);
-  };
-
-  const sharedTableProps = {
-    visibleColumns,
-    columnOptions,
-    visibleColumnKeys,
-    onToggleColumn: toggleColumnVisibility,
-    openMenuKey: openColumnsMenu,
-    onOpenMenuKey: setOpenColumnsMenu,
-    onRowClick: handleOpenInvestmentDetails,
-  };
-
   const tableSections = [
     {
       key: "unrealized",
@@ -223,7 +181,6 @@ function PortfolioSummaryTabContent() {
       sortKey: sortKeyU,
       toggleSort: toggleSortU,
       gainLabel: "Unrealized Gain",
-      menuKey: "unrealized",
     },
     {
       key: "realized",
@@ -233,7 +190,6 @@ function PortfolioSummaryTabContent() {
       sortKey: sortKeyR,
       toggleSort: toggleSortR,
       gainLabel: "Realized Gain",
-      menuKey: "realized",
     },
     {
       key: "unallocated",
@@ -243,9 +199,20 @@ function PortfolioSummaryTabContent() {
       sortKey: sortKeyA,
       toggleSort: toggleSortA,
       gainLabel: "Unallocated Gain",
-      menuKey: "unallocated",
     }
   ];
+
+  const handleDownloadExcel = () => {
+    const filename = `portfolio-summary-fund-${numericFundId}.xlsx`;
+    exportPortfolioSummary(filename, tableSections, totalSummary, sectionVisibleKeys);
+  };
+
+  const sharedTableProps = {
+    columnOptions,
+    sectionVisibleKeys,
+    setSectionVisibleKeys,
+    onRowClick: handleOpenInvestmentDetails,
+  };
 
   const isPortfolioEmpty = !investments || investments.length === 0;
 
@@ -260,13 +227,13 @@ function PortfolioSummaryTabContent() {
           />
         </div>
         <div className="toolbar-right">
-          <button className="ghost-btn" onClick={handleDownloadExcel}>
-            <DownloadIcon /><span>Download</span>
+          <button className="export-action-trigger" onClick={handleDownloadExcel}>
+            <DownloadIcon /><span className="export-title">Download</span>
           </button>
           <PermissionGate>
-            <button className="primary-btn" onClick={() => setIsNewInvestmentOpen(true)}>
-              <PlusIconWhite /><span>New investment</span>
-            </button>
+          <button className="investment-create-action" onClick={() => setIsNewInvestmentOpen(true)}>
+            <PlusIconWhite /><span className="investment-title">New Investment</span>
+          </button>
           </PermissionGate>
         </div>
       </div>
