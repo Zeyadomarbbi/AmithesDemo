@@ -124,7 +124,10 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     const fairValues = (investment.fair_value_flows || []).filter(
       (fv) => new Date(fv.date) <= cutoff
     );
-
+    const investmentFlows = flows.filter(f => String(f.transaction_name).toLowerCase() === "investment");
+    const firstInvestmentDate = investmentFlows.length > 0 
+      ? investmentFlows.reduce((min, f) => new Date(f.date) < new Date(min) ? f.date : min, investmentFlows[0].date)
+      : null;
     let totalDivestmentPercent = 0;
     flows.forEach((f) => {
       const type = String(f.transaction_name || "").toLowerCase();
@@ -195,6 +198,7 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
       id: `${investment.investment_id}-${status}`,
       originalId: investment.investment_id,
       name: investment.name,
+      firstInvestmentDate,
       sector: investment.sector,
       geography: investment.country_name,
       country: investment.country_name,

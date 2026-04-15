@@ -1,11 +1,13 @@
 // PortfolioTable.jsx
 import React, { useMemo } from "react";
-import { useNumberFormatter, usePercentageFormatter, useMoicFormatter } from "../../../../../../../../components/useFormatter";
+import { useNumberFormatter, usePercentageFormatter, useMoicFormatter, useDateFormatter } from "../../../../../../../../components/useFormatter";
 import { SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
+import { FilterColumnsIcon } from "../../../../../../../../components/Icons/InteractiveIcons";
 import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown"; 
 import "./PortfolioTable.css";
 
 export const DEFAULT_VISIBLE_COLUMN_KEYS = [
+  "sector",
   "country",
   "cost",
   "dividends",
@@ -21,6 +23,23 @@ export function useColumnOptions(getFlagUrl) {
   const formatPercentage = usePercentageFormatter();
   const formatMoic = useMoicFormatter();
   return useMemo(() => ([
+    {
+      key: "sector",
+      label: "Sector",
+      renderHeader: (sortKey, toggleSort) => (
+        <SortableHeaderRenderer
+          label="Sector"
+          columnKey="sector"
+          currentSortKey={sortKey}
+          toggleSort={toggleSort}
+          center={true}
+        />
+      ),
+      renderCell: (row) => row.sector,
+      renderSubtotal: () => <td />,
+      renderTotalHeader: () => <th />,
+      renderTotalCell: () => <td />,
+    },
     {
       key: "country",
       label: "Geography",
@@ -207,7 +226,7 @@ function PortfolioSubTable({
   summaryData = null 
 }) {
   const activeKeys = sectionVisibleKeys?.[sectionKey] || [];
-
+  const formatDate = useDateFormatter();
   const visibleColumns = useMemo(() => 
     columnOptions.filter(col => activeKeys.includes(col.key)),
     [columnOptions, activeKeys]
@@ -234,8 +253,9 @@ function PortfolioSubTable({
             valueKey="key"
             isSingle={false}
             isSearchBar={true}
-            placeholder="Select Columns"
             searchLabel="Filter columns"
+            variant="icon"
+            icon={<FilterColumnsIcon />}
           />
         </div>
       </div>
@@ -243,7 +263,6 @@ function PortfolioSubTable({
       <div className="portfolio-table-scroll">
         <table className="portfolio-table unified-portfolio-table">
           <colgroup>
-            <col style={{ minWidth: "200px" }} />
             {visibleColumns.map(col => <col key={col.key} />)}
           </colgroup>
           
@@ -274,10 +293,12 @@ function PortfolioSubTable({
             {!isSummary ? (
               <>
                 {section.rows.map(r => (
-                  <tr key={r.id}>
-                    <td className="name-cell" onClick={() => onRowClick(r)}>
-                      <div className="name-main">{r.name}</div>
-                      <div className="name-sub">{r.sector}</div>
+                  <tr key={r.id} className="pf-row-clickable" onClick={() => onRowClick(r)}>
+                    <td className="pf-name-cell">
+                      <div className="pf-name-main">{r.name}</div>
+                      <div className="pf-name-sub">
+                        {r.firstInvestmentDate ? formatDate(r.firstInvestmentDate) : "No Date"}
+                      </div>
                     </td>
                     {visibleColumns.map(col => (
                       <td key={col.key}>{col.renderCell(r, section)}</td>

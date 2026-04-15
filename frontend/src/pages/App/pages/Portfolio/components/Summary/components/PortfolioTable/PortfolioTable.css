@@ -166,25 +166,35 @@
 /* =====================================================
    NAME CELL
 ===================================================== */
-.name-cell {
+.pf-name-cell {
   cursor: pointer;
   padding: 6px 12px;
   text-align: left;
 }
 
-.name-cell:hover {
+.pf-name-cell:hover {
   background: #f0f5ff;
 }
 
-.name-main {
+.pf-name-main {
   font-weight: 500;
   font-size: 14px;
   color: #1c1917;
 }
 
-.name-sub {
+.pf-name-sub {
+  /* Nomlong prénom */
+
+  /* Text-SM/Normal */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
   font-size: 14px;
-  color: #375a89;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #375A89;
 }
 
 /* =====================================================

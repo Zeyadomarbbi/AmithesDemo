@@ -11,7 +11,6 @@ import { useToast } from "../../../../components/Toast/useToast";
 import { useTableSort } from "../../../../../../components/Sort/TableSort";
 import { DownloadIcon, PlusIconWhite } from "../../../../../../components/Icons/InteractiveIcons";
 import { PageSpinner, PageNoData } from "/src/components/LoadingScreens/LoadingScreens";
-import { useNumberFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter";
 import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics } from "./PortfolioHelpers";
 import {
   PortfolioTable,
@@ -30,12 +29,8 @@ const ownershipToDbValue = (ownershipPercent) => {
 };
 
 function PortfolioSummaryTabContent() {
-  const formatNumber = useNumberFormatter();
-  const formatPercentage = usePercentageFormatter();
-
   const { fundId, portfolio, countries, currencies } = useOutletContext();
   const { investments, loading } = portfolio;
-  console.log("Investments in PortfolioSummaryTabContent:", investments);
   const numericFundId = Number(fundId);
   const { toast, showToast, closeToast } = useToast();
 

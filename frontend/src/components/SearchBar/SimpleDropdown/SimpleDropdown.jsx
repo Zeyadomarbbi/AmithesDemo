@@ -1,3 +1,4 @@
+// SimpleDropdown.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import SearchBar from '../SearchBar';
@@ -16,7 +17,9 @@ function SimpleDropdown({
     valueKey = "id",
     isSingle = true,
     isSearchBar = true,
-    searchLabel = "Search..."
+    searchLabel = "Search...",
+    variant = "default",
+    icon = null
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -133,7 +136,6 @@ function SimpleDropdown({
             )}
 
             <div className="sd-list">
-
                 {!isSingle && (
                     <div
                         key={ALL_VALUE}
@@ -211,18 +213,23 @@ function SimpleDropdown({
     return (
         <div className="sd-container" ref={triggerRef}>
             <div
-                className={`sd-button ${isOpen ? "active" : ""} ${disabled ? "loading" : ""}`}
+                className={`sd-button ${variant === 'icon' ? 'sd-button-icon' : ''} ${isOpen ? "active" : ""} ${disabled ? "loading" : ""}`}
                 onClick={() => !disabled && setIsOpen(p => !p)}
             >
-                <div className="sd-text-group">
-                    <span className="sd-label">{label}</span>
-                </div>
-
-                <div className={`sd-icon ${isOpen ? "open" : ""}`}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 6l4 4 4-4" stroke="#375A89" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </div>
+                {variant === 'icon' ? (
+                    icon
+                ) : (
+                    <>
+                        <div className="sd-text-group">
+                            <span className="sd-label">{label}</span>
+                        </div>
+                        <div className={`sd-icon ${isOpen ? "open" : ""}`}>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 6l4 4 4-4" stroke="#375A89" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
+                    </>
+                )}
             </div>
 
             {isOpen && createPortal(dropdown, document.body)}
