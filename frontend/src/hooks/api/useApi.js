@@ -43,17 +43,25 @@ async function request(endpoint, options = {}, retry = true) {
     },
   });
 
-  if (response.status === 401 && retry && !isAuthRoute) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) return request(endpoint, options, false);
-    throw new Error("Unauthorized");
+  if (response.status === 401 && !isAuthRoute) {
+    if (retry) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) return request(endpoint, options, false);
+    }
+    
+    // If we reach here, refresh failed or retry is exhausted
+    localStorage.clear(); 
+    window.location.href = "/login"; // Force redirect to break the loop
+    return new Promise(() => {}); // Return a pending promise to stop execution
   }
   
   if (response.status === 204) return null;
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const error = new Error(errorData.detail || errorData.error || "Request failed");
+    // Ensure the error message is always a string
+    const errorMessage = errorData.detail || errorData.error || "Request failed";
+    const error = new Error(errorMessage);
     error.response = { data: errorData, status: response.status };
     throw error;
   }

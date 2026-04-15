@@ -152,6 +152,10 @@ body,
   outline: none;
 }
 
+.header-left-slot .pill-btn:hover {
+  box-shadow: 0 0 0 1px #375A89;
+}
+
 /* =========================================================
    PNL DYNAMIC GRID SHARED
    — all rows use the same column definition via CSS vars

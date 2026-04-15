@@ -2,62 +2,45 @@
    Global & Layout
    ========================================= */
 .invDrawerOverlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  z-index: 9999;
+  background: rgba(15, 23, 42, 0.1);
   display: flex;
   justify-content: flex-end;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  z-index: 40;
 }
 
 .invDrawerPanel {
-  width: 100%;
-  max-width: 980px;
-  height: 100vh;
-  background: #fff;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  
-  /* Transition for expanding/collapsing width */
-  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-              width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
-  /* Entry animation */
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.scenario-pf-drawer--expanded {
-  width: 100vw !important;
-  max-width: 100vw !important;
+  padding: 0;
+  gap: 0;
+  height: 100%;
+  width: 50vw; 
+  max-width: 100%;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 50; 
 }
 
 .invBackBtn span {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
+}
+
+.invDrawerPanel.share-drawer--expanded {
+  width: 100%;
 }
 
 .invBackBtn--expanded {
   transform: rotate(180deg);
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
-}
-
-/* Slide Out to Right (Optional: applies if you add a 'closing' class via JS) */
-@keyframes slideOut {
-  from { transform: translateX(0); }
-  to   { transform: translateX(100%); }
-}
-
-.invDrawerPanel.closing {
-  animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 /* =========================================
    Header
@@ -85,7 +68,7 @@
   flex-shrink: 0;
   transition: all 0.2s;
 }
-.invBackBtn:hover { border-color: #cbd5e1; background: #f8fafc; }
+.invBackBtn:hover { border-color: #375A89; background: #ffffff; }
 
 .invHeaderContent {
   flex: 1;
@@ -101,15 +84,21 @@
   min-width: 100px;
 }
 .invMainTitle {
-  font-size: 16px;
+  font-family: 'Inter';
+  font-style: normal;
   font-weight: 600;
-  color: #1c1917;
+  font-size: 16px;
   line-height: 24px;
+  color: #1C1917;
 }
 .invSubTitle {
-  font-size: 13px;
-  font-weight: 500;
-  color: #375a89 !important;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
 }
 
 .invMetaGroup {
@@ -126,29 +115,26 @@
 }
 
 .invMetaLabel {
-  font-size: 11px;
+  font-family: 'Inter';
+  font-style: normal;
   font-weight: 500;
-  color: #375a89 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
 }
 
 .invMetaValue {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1e293b;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* ── Euro icon in currency meta — force black ── */
-.invCurrencyIcon {
-  display: inline-flex;
-  align-items: center;
-}
-.invCurrencyIcon svg path {
-  fill: #1c1917 !important;
 }
 
 .invHeaderActions {
@@ -170,7 +156,7 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.invActionIcon:hover { border-color: #cbd5e1; color: #64748b; background: #f8fafc; }
+.invActionIcon:hover { border-color: #375A89; color: #375A89; background: #ffffff; }
 
 /* =========================================
    Body & Scroll
@@ -184,10 +170,15 @@
 }
 
 .invSectionHeader {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
   font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #1C1917;
+  padding-bottom: 16px;
 }
 
 /* =========================================
@@ -195,9 +186,11 @@
    ========================================= */
 .invCardsRow {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-auto-flow: column;            /* force single row */
+  grid-auto-columns: 1fr;            /* equal width */
+  gap: 8px;                          /* fixed gap */
+  width: 100%;
+  padding-bottom: 16px;
 }
 
 .invSummaryCard {
@@ -207,30 +200,44 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 76px;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  min-height: fit-content; 
+  max-height: max-content;
+  box-sizing: border-box;
 }
 
 .invCardTitle {
-  font-size: 13px;
+  font-family: 'Inter';
   font-weight: 500;
-  color: #375a89;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: #375A89;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .invCardValue {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.3px;
-  line-height: 1.2;
+  font-family: 'Inter';
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  color: #1C1917;
+    overflow: hidden;
+  word-break: break-word;
 }
 
 /* =========================================
    Fair Value Box
    ========================================= */
 .invFairBox {
-  background: #eef4ff;
+  background: #EFF6FF;
+  color: #EFF6FF;
   border: 1px solid #dbeafe;
   border-radius: 10px;
   padding: 16px 20px;
@@ -246,50 +253,107 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
-  min-width: 100px;
-  padding: 0;
+  min-width: 0;
+  align-items: center;
 }
 
-.invFairLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: #375a89 !important;
-}
-.invFairLabelDark {
-  color: #1c1917 !important;
-}
-
-.invFairStaticVal {
-  min-height: 40px;
-  height: auto;
+.invFairLabelTitle {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
   display: flex;
   align-items: center;
+  letter-spacing: 0.01em;
+  color: #1C1917; 
+}
+
+.invFairLabelTitleSub {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
+  display: flex;
+  align-items: center;
   letter-spacing: 0.01em;
-  color: #375a89;
-  padding: 4px 2px;
+  color: #375A89;
+}
+
+.invFairLabel {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89 !important;
+}
+
+.invFairStaticVal {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  white-space: normal;
+  word-break: break-word;
+    overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .invInputBase {
   height: 40px;
-  border: 1px solid #cdd9f0;
-  border-radius: 8px;
+  display: block;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  justify-content: center;
+  text-align: center;
   padding: 0 12px;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
+  font-weight: 500;
   color: #1e293b;
-  background: #fff;
+  background: #FFFFFF;
   width: 100%;
   outline: none;
-  transition: border 0.2s;
-  font-weight: 500;
+  box-sizing: border-box;
   cursor: text;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.invInputBase:hover { border-color: #375a89; }
-.invInputBase:focus { border-color: #375a89; box-shadow: none; }
+
+.invInputBase:hover {
+  border-color: #375A89;
+}
+
+.invInputBase:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  background: #FFFFFF;
+}
+
+.invInputBase::placeholder {
+  color: #7B7D7E;
+}
+
+.invInputBase[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.invInputBase[type="number"]::-webkit-outer-spin-button,
+.invInputBase[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 /* =========================================
    Table
@@ -328,17 +392,15 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
 }
-.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375a89; }
+.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; }
 
 .invTable tbody tr:nth-child(even) { background: #f8f9fb; }
 .invTable tbody tr:nth-child(even) .invTableInput {
   background: #f8f9fb;
   border-color: #ebebeb;
 }
-.invTable tbody tr:nth-child(even) .invTableInput:focus {
-  background: #ffffff;
-  border-color: #375a89;
-}
+.invTable tbody tr:nth-child(even) .invTableInput:focus { background: #ffffff; border-color: #375A89; box-shadow: 0 0 0 1px #375A89; }
+
 
 .invTable th {
   text-align: left;
@@ -351,8 +413,6 @@
   border-bottom: none;
   background: transparent;
 }
-
-.invSortIcon { margin-left: 4px; vertical-align: middle; }
 
 .invTable input { box-shadow: none !important; outline: none !important; }
 
@@ -418,11 +478,8 @@
   box-sizing: border-box;
 }
 
-.invPartialInput .invTableInput:hover { border-color: #375a89 !important; }
-.invPartialInput .invTableInput:focus {
-  border-color: #375a89 !important;
-  background: #ffffff !important;
-}
+.invTableInput:hover { border: 1px solid #375A89; background: #ffffff; }
+.invPartialInput .invTableInput:focus { border-color: #375A89 !important; box-shadow: 0 0 0 1px #375A89 !important; background: #ffffff !important; }
 
 .invPartialInput svg {
   position: absolute;
@@ -452,27 +509,10 @@
   cursor: text;
 }
 .invTableInput:hover { border: 1px solid #cbd5e1; background: #ffffff; }
-.invTableInput:focus { border: 1px solid #375a89; box-shadow: none; outline: none; background: #ffffff; }
+.invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; outline: none; background: #ffffff; }
 .invTableInput:read-only { color: #64748b; background: transparent; cursor: default; }
 .invTableInput:read-only:hover { border: 1px solid #e2e8f0; background: transparent; }
 .invNum { text-align: right; }
-
-.invSelectWrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 100%;
-}
-.invSelectWrapper .invBadgeSelect { width: 100%; padding-right: 28px; }
-
-.invSelectChevron {
-  position: absolute;
-  right: 8px;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* ── Custom Type Select ── */
 .typeSelectWrapper {
@@ -521,22 +561,13 @@
 }
 
 .typeSelectDropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 100%;
+  max-height: 260px;
+  max-width: fit-content;
+  overflow-y: auto;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-  z-index: 9999;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 260px;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .typeSelectOption {
@@ -561,39 +592,6 @@
   color: #334155 !important;
   padding: 0;
 }
-
-/* ── Type Badge Select ── */
-.invBadgeSelect {
-  appearance: none;
-  -webkit-appearance: none;
-  height: 32px;
-  border-radius: 6px;
-  padding: 0 28px 0 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  width: auto;
-  min-width: 80px;
-  max-width: 140px;
-  background: #ffffff;
-  color: #334155;
-  background-image: none;
-}
-.invBadgeSelect option {
-  background: #ffffff !important;
-  color: #334155 !important;
-  font-weight: 500;
-}
-
-.badge-Investment         { color: #b45309 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Dividend,
-.badge-Dividends          { color: #15803d !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Interest,
-.badge-Interests          { color: #0369a1 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Divestment         { color: #b91c1c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Other              { color: #6d28d9 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
-.badge-Partial-divestment { color: #be123c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
 
 /* ── Actions ── */
 .invActionsCell {
@@ -637,20 +635,10 @@
 .invAddFlowBtn:hover { background: rgba(55, 90, 137, 0.18); }
 .invAddFlowIcon { width: 16px; height: 16px; display: inline-flex; align-items: center; }
 .invAddFlowText { line-height: 1; }
-.invEmptyCell { height: 40px; }
 
 /* =========================================
    Performance Section
    ========================================= */
-.inv-performance { margin-top: 28px; }
-
-.inv-performance-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 14px;
-}
-
 .inv-performance-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -665,6 +653,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: max-content;
 }
 
 .perf-card span {
@@ -679,6 +668,11 @@
   font-weight: 700;
   color: #0f172a;
   line-height: 1.1;
+}
+
+.perf-card .invCardTitle {
+  white-space: normal;
+  overflow: visible;
 }
 
 @media (max-width: 1100px) {
@@ -721,37 +715,11 @@
 
 .invBtnSave { background: #f59e0b; color: #ffffff; }
 .invBtnSave:hover { background: #d97706; }
-
-/* =========================================
-   Toast
-   ========================================= */
-.toast {
-  position: fixed;
-  right: 24px;
-  top: 24px;
-  z-index: 99999;
-  background: #1f2937;
-  color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
-  max-width: 420px;
+.invBtnSave:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
-.toast-error { background: #b91c1c; }
-.toast-close {
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-.toast-inv { top: 20px; right: 20px; }
-
 /* =========================================
    Kebab Menu
    ========================================= */
@@ -834,25 +802,25 @@
   padding: 0 2px;
 }
 
-/* =========================================
-   DatePicker popup
-   ========================================= */
-.dp-container {
-  width: 320px !important;
-  min-width: 320px !important;
-  z-index: 9999 !important;
-  background-color: white;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  border-radius: 8px;
-}
-.dp-day-cell { width: 36px; height: 36px; }
-
-.invTableInput[type="number"]::-webkit-outer-spin-button,
-.invTableInput[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.invFairBox.invFairBox--flows {
+  display: grid;
+  grid-template-columns: 50px minmax(150px, 1.2fr) minmax(140px, 1fr) minmax(120px, 1fr) minmax(140px, 1fr) minmax(170px, 1.2fr) 40px;
+  align-items: center;
+  row-gap: 16px;
+  column-gap: 16px;
+  background: #ffffff;
+  color: inherit;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
 }
 
-.invTableInput[type="number"] {
-  -moz-appearance: textfield;
+.invFairBox--flows .invFairCol {
+  flex: none;
+  min-width: 0;
+  width: 100%;
+  align-items: stretch;
+}
+
+.invFairBox--flows .invFairCol[style*="align-items: flex-end"] {
+  align-items: flex-end !important;
 }

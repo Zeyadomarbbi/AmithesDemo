@@ -1,11 +1,13 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { xirr as xirrLib } from "@webcarrot/xirr";
 import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGate";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import { DoubleArrowLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons";
 import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
-import { EuroCurrencyIcon } from "../../../../../../../../components/Icons/FinancialIcons";
-import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter, useMoicFormatter } from "../../../../../../../../components/useFormatter.js";
+import { usePortfolioFlows } from "../../../../../../hooks/Portfolio/usePortfolioFlows.js";
+import { usePortfolioTransactionTypes } from "../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
+import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics, calcIrrSafely } from "../../PortfolioHelpers";
+
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
 import "./InvestmentDetails.css";
@@ -24,21 +26,8 @@ const roundForApi = (v) => {
   return Number.isFinite(n) ? Number(n.toFixed(6)) : 0;
 };
 
-const partialDivestmentFromBackend = (value) => {
-  const n = toNumber(value);
-  return Number.isFinite(n) ? n * 10 : 0;
-};
-
-const partialDivestmentToBackend = (value) => {
-  const n = toNumber(value);
-  return Number.isFinite(n) ? n / 10 : 0;
-};
-
-const formatRatio = (n) => {
-  if (!Number.isFinite(n)) return "-";
-  return n.toFixed(2);
-};
-
+const toBackendPercent = (v) => toNumber(v);
+const fromBackendPercent = (v) => toNumber(v);
 
 const getApiErrorMessage = (err, fallback = "Request failed.") => {
   const data = err?.response?.data;
@@ -67,25 +56,12 @@ const canonicalType = (type) => {
   return "Other";
 };
 
-const safeXirr = (cashflows) => {
-  try {
-    if (!cashflows || cashflows.length < 2) return null;
-    const hasPos = cashflows.some((c) => c.amount > 0);
-    const hasNeg = cashflows.some((c) => c.amount < 0);
-    if (!hasPos || !hasNeg) return null;
-    return xirrLib(cashflows);
-  } catch {
-    return null;
-  }
-};
-
 const noop = () => {};
 
 export default function InvestmentDetailsDrawer({
   investment,
   timeframe,
   fundId,
-  portfolioDataset,
   onClose,
   onSaved,
   onUpdateInvestment,
@@ -99,15 +75,20 @@ export default function InvestmentDetailsDrawer({
   const [fairValueFxRate, setFairValueFxRate] = useState(0);
   const [fairValueAmountLC, setFairValueAmountLC] = useState(0);
   const [fairValueId, setFairValueId] = useState(null);
-  const [transactionTypes, setTransactionTypes] = useState([]);
   const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const flowIdRef = useRef(1);
+  
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
+  const formatDate    = useDateFormatter();
+  const formatMoic    = useMoicFormatter();
+  
   const noScroll = (e) => e.target.blur();
+
   const getFlagUrl = useCallback((countryNameOrId) => {
     if (!countryNameOrId || !countries) return null;
     const countryData = countries.find(c =>
@@ -119,54 +100,35 @@ export default function InvestmentDetailsDrawer({
     return `https://flagcdn.com/40x30/${code}.png`;
   }, [countries]);
 
-  const headerCurrencyCode =
-    currentInvestment?.currencyCode ||
-    currentInvestment?.currency_code ||
-    "EUR";
+  const sourceInvestmentId = investment?.id ?? investment?.investment_id ?? investment?.investmentId ?? null;
+  const investmentId = currentInvestment?.id ?? currentInvestment?.investment_id ?? currentInvestment?.investmentId ?? null;
+  const [isFairValueEditing, setIsFairValueEditing] = useState(false);
+  const { transactionTypes } = usePortfolioTransactionTypes();
+  const { createFlow, updateFlow, deleteFlow: apiDeleteFlow, saveFairValue: apiSaveFairValue } = usePortfolioFlows(fundId, sourceInvestmentId);
+
+  const headerCurrency = useMemo(() => {
+    const id = currentInvestment?.currencyId || currentInvestment?.currency_id;
+    const match = currencies.find((c) => Number(c.id) === Number(id));
+    const code = match?.code || currentInvestment?.currencyCode || currentInvestment?.currency_code || "-";
+    const symbol = match?.symbol;
+    return symbol ? `${code} (${symbol})` : code;
+  }, [currentInvestment, currencies]);
 
   const headerCountry =
     currentInvestment?.country ||
     currentInvestment?.country_name ||
     currentInvestment?.countryName ||
     "";
+    
   const ownershipValue = toNumber(currentInvestment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
-    ? `${ownershipValue.toFixed(2)}%` : "21.65%";
-  const headerName = currentInvestment?.name || "Alyra";
-  const headerSub = currentInvestment?.sector || currentInvestment?.sub || "BioTech";
+    ? formatPercent(ownershipValue) : "-";
+  const headerName = currentInvestment?.name || "-";
+  const headerSub = currentInvestment?.sector || currentInvestment?.sub || "-";
   const headerTimeframe = timeframe?.display_label || null;
   const fairValueDateLabel = timeframe?.rawDate || timeframe?.date || "";
-  const sourceInvestmentId =
-    investment?.id ?? investment?.investment_id ?? investment?.investmentId ?? null;
-  const investmentId =
-    currentInvestment?.id ?? currentInvestment?.investment_id ?? currentInvestment?.investmentId ?? null;
 
   useEffect(() => { setCurrentInvestment(investment); }, [investment]);
-
-  const refreshInvestmentDetails = useCallback(async () => {
-    if (!fundId || !sourceInvestmentId) return null;
-    const data = await portfolioDataset.fetchInvestment(sourceInvestmentId);
-    setCurrentInvestment(data);
-    return data;
-  }, [fundId, portfolioDataset, sourceInvestmentId]);
-
-  useEffect(() => {
-    refreshInvestmentDetails().catch((err) => {
-      console.error("Failed to reload investment details:", err.message);
-    });
-  }, [refreshInvestmentDetails]);
-
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const data = await portfolioDataset.fetchTransactionTypes();
-        setTransactionTypes(data);
-      } catch (err) {
-        console.error("Transaction types fetch failed:", err.message);
-      }
-    };
-    fetchTypes();
-  }, [portfolioDataset]);
 
   const normalizeTransactionType = useCallback((t) => {
     if (!t) return { id: null, name: "" };
@@ -195,8 +157,8 @@ export default function InvestmentDetailsDrawer({
       type: typeName,
       divestmentPercentage:
         canonicalType(typeName) === "Partial divestment"
-          ? partialDivestmentFromBackend(flow.divestment_percentage ?? flow.divestmentPercentage ?? null)
-          : (flow.divestment_percentage ?? flow.divestmentPercentage ?? null),
+          ? fromBackendPercent(flow.divestment_percentage)
+          : toNumber(flow.divestment_percentage)
     };
   }, [makeLocalFlowId]);
 
@@ -207,116 +169,165 @@ export default function InvestmentDetailsDrawer({
     );
     setFlows(rawFlows.map(mapFlowFromApi));
     if (!fairValueDateLabel) {
-      setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0); return;
-    }
-    const rawFairValues = currentInvestment.fair_value_flows || [];
-    const match = rawFairValues.find((fv) => String(fv.date) === String(fairValueDateLabel));
-    if (match) {
-      setFairValueId(match.fair_value_id ?? match.id ?? null);
-      setFairValueFxRate(match.fx_rate ?? match.fxRate ?? 0);
-      setFairValueAmountLC(match.amount_lc ?? match.amountLC ?? 0);
-    } else {
       setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0);
+    } else {
+      const rawFairValues = currentInvestment.fair_value_flows || [];
+      const match = rawFairValues.find((fv) => String(fv.date) === String(fairValueDateLabel));
+      if (match) {
+        setFairValueId(match.fair_value_id ?? match.id ?? null);
+        setFairValueFxRate(match.fx_rate ?? match.fxRate ?? 0);
+        setFairValueAmountLC(match.amount_lc ?? match.amountLC ?? 0);
+      } else {
+        setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0);
+      }
     }
+    setIsDirty(false);
   }, [currentInvestment, fairValueDateLabel, mapFlowFromApi]);
 
   const fairValueAmount = useMemo(() => {
     return toNumber(fairValueAmountLC) / toNumber(fairValueFxRate);
   }, [fairValueFxRate, fairValueAmountLC]);
 
-  const normalizeAmountLC = (flow) => {
-    const lc = toNumber(flow.amountLC);
-    const type = canonicalType(flow.type);
-    if (type === "Investment") return -Math.abs(lc);
-    return Math.abs(lc);
-  };
-
   const sumsByTypeEuro = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+
     flows.forEach((f) => {
-      const t = canonicalType(f.type);
+      const canonical = canonicalType(f.type);
+      const bucket = canonical === "Partial divestment" ? "Divestment" : canonical;
+
       const lc = Math.abs(toNumber(f.amountLC));
       const fx = toNumber(f.fxRate);
       const eur = fx ? lc / fx : 0;
-      if (sums[t] !== undefined) sums[t] += eur;
+
+      if (sums[bucket] !== undefined) {
+        sums[bucket] += eur;
+      }
     });
+
     return sums;
   }, [flows]);
 
   const sumsByTypeLC = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+
     flows.forEach((f) => {
-      const t = canonicalType(f.type);
+      const canonical = canonicalType(f.type);
+      const bucket = canonical === "Partial divestment" ? "Divestment" : canonical;
+
       const lc = Math.abs(toNumber(f.amountLC));
-      if (sums[t] !== undefined) sums[t] += lc;
+
+      if (sums[bucket] !== undefined) {
+        sums[bucket] += lc;
+      }
     });
+
     return sums;
   }, [flows]);
 
-  const irrEuro = useMemo(() => {
-    const cashflows = flows
-      .filter((f) => f.date && toNumber(f.fxRate) > 0)
-      .map((f) => {
-        const lc = normalizeAmountLC(f);
-        const fx = toNumber(f.fxRate);
-        return { date: new Date(f.date), amount: fx ? lc / fx : 0 };
-      })
-      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
-      .sort((a, b) => a.date - b.date);
-    if (fairValueDateLabel) {
-      const fvDate = new Date(fairValueDateLabel);
-      if (!Number.isNaN(fvDate.getTime())) {
-        const fvAmount = toNumber(fairValueAmount);
-        if (Number.isFinite(fvAmount) && fvAmount !== 0) cashflows.push({ date: fvDate, amount: fvAmount });
+  const classified = useMemo(() => {
+    if (!currentInvestment || !fairValueDateLabel) return [];
+
+    return classifyInvestmentsByTimeframe(
+      [currentInvestment],
+      fairValueDateLabel
+    );
+  }, [currentInvestment, fairValueDateLabel]);
+
+  const calculatedRows = useMemo(() => {
+    if (!classified.length || !fairValueDateLabel) return [];
+
+    return calculatePortfolioMetrics(
+      classified,
+      fairValueDateLabel
+    );
+  }, [classified, fairValueDateLabel]);
+
+  const totals = useMemo(() => {
+    if (!calculatedRows.length) return null;
+
+    return calculateSubtotalMetrics(calculatedRows);
+  }, [calculatedRows]);
+
+  const fullCashflows = useMemo(() => {
+    if (!currentInvestment || !fairValueDateLabel) return [];
+
+    const cutoff = new Date(fairValueDateLabel);
+
+    const flows = (currentInvestment.transaction_flows || [])
+      .filter(f => !f.is_deleted && new Date(f.date) <= cutoff);
+
+    const cf = [];
+
+    flows.forEach(f => {
+      const type = String(f.transaction_name).toLowerCase();
+      const amount = toNumber(f.amount);
+
+      if (type === "investment") {
+        cf.push({ date: new Date(f.date), amount: -amount });
+      } else {
+        cf.push({ date: new Date(f.date), amount });
       }
+    });
+
+    const latestFV = (currentInvestment.fair_value_flows || [])
+      .filter(fv => new Date(fv.date) <= cutoff)
+      .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+
+    if (latestFV) {
+      cf.push({
+        date: new Date(latestFV.date),
+        amount: toNumber(latestFV.amount)
+      });
     }
-    return safeXirr(cashflows);
-  }, [flows, fairValueDateLabel, fairValueAmount]);
 
-  const irrLC = useMemo(() => {
-    const cashflows = flows
-      .filter((f) => f.date)
-      .map((f) => ({ date: new Date(f.date), amount: normalizeAmountLC(f) }))
-      .filter((c) => Number.isFinite(c.amount) && c.amount !== 0)
-      .sort((a, b) => a.date - b.date);
-    if (fairValueDateLabel) {
-      const fvDate = new Date(fairValueDateLabel);
-      if (!Number.isNaN(fvDate.getTime())) {
-        const fvAmount = toNumber(fairValueAmountLC);
-        if (Number.isFinite(fvAmount) && fvAmount !== 0) cashflows.push({ date: fvDate, amount: fvAmount });
-      }
-    }
-    return safeXirr(cashflows);
-  }, [flows, fairValueDateLabel, fairValueAmountLC]);
+    return cf;
+  }, [currentInvestment, fairValueDateLabel]);
 
-  const investmentEuro = Math.abs(sumsByTypeEuro.Investment || 0);
-  const moicInclEuro = investmentEuro > 0
-    ? (sumsByTypeEuro.Dividend + sumsByTypeEuro.Interest + sumsByTypeEuro.Other + sumsByTypeEuro.Divestment + toNumber(fairValueAmount)) / investmentEuro
-    : 0;
+  const fullCashflowsLC = useMemo(() => { 
+    if (!currentInvestment || !fairValueDateLabel) return []; 
 
-  const firstInvestmentFlow = useMemo(() => {
-    const investmentFlows = flows.filter((f) => canonicalType(f.type) === "Investment");
-    if (!investmentFlows.length) return null;
-    return [...investmentFlows].sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(a.date) - new Date(b.date);
-    })[0];
-  }, [flows]);
+    const cutoff = new Date(fairValueDateLabel); 
 
-  const investmentLC = Math.abs(sumsByTypeLC.Investment || 0);
-  const firstInvestmentAmountLC = Math.abs(toNumber(firstInvestmentFlow?.amountLC));
-  const moicInclLC = firstInvestmentAmountLC > 0
-    ? (sumsByTypeLC.Dividend + sumsByTypeLC.Interest + sumsByTypeLC.Other + sumsByTypeLC.Divestment + toNumber(fairValueAmountLC)) / firstInvestmentAmountLC
-    : 0;
-  const moicExclEuro = investmentEuro > 0
-    ? (sumsByTypeEuro.Dividend + toNumber(fairValueAmount)) / investmentEuro : 0;
-  const moicExclLC = investmentLC > 0
-    ? (sumsByTypeLC.Dividend + toNumber(fairValueAmountLC)) / investmentLC : 0;
+    const flows = (currentInvestment.transaction_flows || []) 
+      .filter(f => !f.is_deleted && new Date(f.date) <= cutoff); 
 
-  // New flow defaults to empty type so "Select a type" placeholder shows
+    const cf = []; 
+
+    flows.forEach(f => { 
+      const type = String(f.transaction_name).toLowerCase(); 
+      const amountLC = toNumber(f.amount_lc ?? f.amountLC); 
+
+      if (type === "investment") { 
+        cf.push({ date: new Date(f.date), amount: -amountLC }); 
+      } else { 
+        cf.push({ date: new Date(f.date), amount: amountLC }); 
+      } 
+    }); 
+
+    const latestFV = (currentInvestment.fair_value_flows || []) 
+      .filter(fv => new Date(fv.date) <= cutoff) 
+      .sort((a,b) => new Date(b.date) - new Date(a.date))[0]; 
+
+    if (latestFV) { 
+      cf.push({ 
+        date: new Date(latestFV.date), 
+        amount: toNumber(latestFV.amount_lc ?? latestFV.amountLC) 
+      }); 
+    } 
+
+    return cf; 
+  }, [currentInvestment, fairValueDateLabel]);
+
+  const irrEuro = calcIrrSafely(fullCashflows)*100;
+  const irrLC   = calcIrrSafely(fullCashflowsLC)*100;
+  const moicInclEuro = totals?.moicIncl ?? 0;
+  const moicInclLC = totals?.moicInclLC ?? 0;
+
+  const moicExclEuro = totals?.moicExcl ?? 0;
+  const moicExclLC = totals?.moicExclLC ?? 0;
+
   const handleAddFlow = (initialFlow = null) => {
+    setIsDirty(true);
     setFlows((prev) => [
       ...prev,
       initialFlow
@@ -326,12 +337,23 @@ export default function InvestmentDetailsDrawer({
   };
 
   const handleUpdateFlow = (id, field, value) => {
+    setIsDirty(true);
     setFlows((prev) =>
       prev.map((f) => {
         if (f.id !== id) return f;
         if (field === "type") {
+          const isDivestment = String(value || "").trim().toLowerCase() === "divestment";
           const isPartial = String(value || "").trim().toLowerCase() === "partial divestment";
-          return { ...f, type: value, divestmentPercentage: isPartial ? (f.divestmentPercentage ?? "") : null };
+
+          return {
+            ...f,
+            type: value,
+            divestmentPercentage: isDivestment
+              ? 100
+              : isPartial
+                ? (f.divestmentPercentage ?? "")
+                : null
+          };
         }
         return { ...f, [field]: value };
       })
@@ -341,11 +363,15 @@ export default function InvestmentDetailsDrawer({
   const handleDeleteFlow = async (id) => {
     const targetFlow = flows.find((f) => f.id === id);
     if (!targetFlow) return;
-    if (!targetFlow.flowId) { setFlows((prev) => prev.filter((f) => f.id !== id)); return; }
+    if (!targetFlow.flowId) { 
+      setFlows((prev) => prev.filter((f) => f.id !== id)); 
+      setIsDirty(true);
+      return; 
+    }
     try {
-      await portfolioDataset.deleteFlow(investmentId, targetFlow.flowId, { refresh: false });
+      await apiDeleteFlow(null, targetFlow.flowId);
       setFlows((prev) => prev.filter((f) => f.id !== id));
-      await refreshInvestmentDetails();
+      if (onSaved) await onSaved();
       showToast({ type: "success", title: "Flow deleted", message: "The flow has been deleted successfully." });
     } catch (err) {
       showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the flow." });
@@ -393,6 +419,8 @@ export default function InvestmentDetailsDrawer({
       const typeMap = new Map(
         transactionTypes.map(normalizeTransactionType).filter((t) => t.id && t.name).map((t) => [normalizeType(t.name), t.id])
       );
+      console.log("FLOW RAW STATE:", flows);
+      
       const validFlows = flows.filter((f) => {
         const fx = toNumber(f.fxRate);
         const lc = toNumber(f.amountLC);
@@ -411,16 +439,26 @@ export default function InvestmentDetailsDrawer({
           const pct = toNumber(divestmentPct);
           if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error("divestment_percentage must be between 0 and 100");
         }
+        const isDivestment = canonicalType(f.type) === "Divestment";
         const payload = {
-          flowId: f.flowId,
           transaction_id: transactionId, date: f.date, amount_lc: amountLC,
           fx_rate: fxRate, amount: roundForApi(amountEuro),
-          divestment_percentage: isPartial ? roundForApi(partialDivestmentToBackend(divestmentPct)) : null,
+          divestment_percentage: isPartial
+            ? roundForApi(divestmentPct)
+            : isDivestment
+              ? 100
+              : null,
         };
-        return portfolioDataset.saveFlow(investmentId, payload, { refresh: false });
+        
+        if (f.flowId) {
+          return updateFlow(null, f.flowId, payload);
+        } else {
+          return createFlow(null, payload);
+        }
       });
       const requests = [...flowRequests];
       const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
+      
       if (hasFairValueInput) {
         const payload = {
           fairValueId,
@@ -429,12 +467,15 @@ export default function InvestmentDetailsDrawer({
           fx_rate: roundForApi(fairValueFxRate),
           amount: roundForApi(fairValueAmount),
         };
-        requests.push(portfolioDataset.saveFairValue(investmentId, payload, { refresh: false }));
+        requests.push(apiSaveFairValue(null, payload));
       }
+      
       if (!requests.length) { showToast({ type: "error", title: "Save failed", message: "No valid flows to save." }); return; }
+      
       await Promise.all(requests);
-      await refreshInvestmentDetails();
       if (onSaved) await onSaved();
+      
+      setIsDirty(false);
       showToast({ type: "success", title: "Portfolio saved", message: "Investment details have been saved successfully." });
       onClose();
     } catch (err) {
@@ -450,7 +491,11 @@ export default function InvestmentDetailsDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="invDrawerHeader">
-          <button className="invBackBtn" onClick={() => setExpanded((v) => !v)} title={expanded ? "Collapse" : "Expand"}>
+          <button
+            className={`invBackBtn ${expanded ? "invBackBtn--expanded" : ""}`}
+            onClick={() => setExpanded((v) => !v)}
+            title={expanded ? "Collapse" : "Expand"}
+          >
             <DoubleArrowLeftIcon />
           </button>
           <div className="invHeaderContent">
@@ -466,8 +511,7 @@ export default function InvestmentDetailsDrawer({
               <div className="invMetaItem">
                 <span className="invMetaLabel">Currency</span>
                 <span className="invMetaValue">
-                  {headerCurrencyCode}
-                  <span className="invCurrencyIcon"><EuroCurrencyIcon /></span>
+                  {headerCurrency}
                 </span>
               </div>
               <div className="invMetaItem">
@@ -498,7 +542,6 @@ export default function InvestmentDetailsDrawer({
         <div className="invDrawerBody">
           <div className="invSectionHeader">Flows</div>
 
-          {/* Flow summary cards — display only, formatted xxx,xxx,xxx.yyy */}
           <div className="invCardsRow">
             {[
               { label: "Investment",  value: sumsByTypeEuro.Investment },
@@ -510,19 +553,27 @@ export default function InvestmentDetailsDrawer({
               <div className="invSummaryCard" key={label}>
                 <div className="invCardTitle">{label}</div>
                 <div className="invCardValue">
-                  {value > 0 ? `${formatNumber(value)} €` : `- €`}
+                  {value > 0 ? `${formatNumber(value)}` : `-`}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="invFairBox">
-            <div className="invFairCol" style={{ maxWidth: "160px" }}>
-              <div className="invFairLabel invFairLabelDark">Fair Value</div>
-              <div className="invFairStaticVal">
-                {fairValueDateLabel
-                  ? (() => { const [y, m, d] = fairValueDateLabel.split("-"); return `${d}/${m}/${y}`; })()
-                  : "-"}
+          <div className="invFairBox" style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="invRowActionBtn"
+              style={{ position: "absolute", top: "12px", right: "12px" }}
+              onClick={() => setIsFairValueEditing(!isFairValueEditing)}
+              title="Toggle Edit"
+            >
+              {isFairValueEditing ? <CloseIcon /> : <EditIcon />}
+            </button>
+
+            <div className="invFairCol">
+              <div className="invFairLabelTitle">Fair Value</div>
+              <div className="invFairLabelTitleSub">
+                {fairValueDateLabel ? formatDate(fairValueDateLabel) : "-"}
               </div>
             </div>
             <div className="invFairCol">
@@ -531,27 +582,41 @@ export default function InvestmentDetailsDrawer({
             </div>
             <div className="invFairCol">
               <div className="invFairLabel">FX Rate*</div>
-              <input
-                className="invInputBase"
-                type="number"
-                step="any"
-                value={fairValueFxRate === 0 ? "" : fairValueFxRate}
-                placeholder="0"
-                onChange={(e) => setFairValueFxRate(e.target.value)}
-                onWheel={noScroll}
-              />
+              {isFairValueEditing ? (
+                <input
+                  className="invInputBase"
+                  type="number"
+                  step="any"
+                  value={fairValueFxRate === 0 ? "" : fairValueFxRate}
+                  placeholder="0"
+                  onChange={(e) => {
+                    setFairValueFxRate(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  onWheel={noScroll}
+                />
+              ) : (
+                <div className="invFairStaticVal">{formatNumber(fairValueFxRate)}</div>
+              )}
             </div>
             <div className="invFairCol">
-              <div className="invFairLabel">Amount LC *</div>
-              <input
-                className="invInputBase"
-                type="number"
-                step="any"
-                value={fairValueAmountLC === 0 ? "" : fairValueAmountLC}
-                placeholder="0"
-                onChange={(e) => setFairValueAmountLC(e.target.value)}
-                onWheel={noScroll}
-              />
+              <div className="invFairLabel">Amount LC*</div>
+              {isFairValueEditing ? (
+                <input
+                  className="invInputBase"
+                  type="number"
+                  step="any"
+                  value={fairValueAmountLC === 0 ? "" : fairValueAmountLC}
+                  placeholder="0"
+                  onChange={(e) => {
+                    setFairValueAmountLC(e.target.value);
+                    setIsDirty(true);
+                  }}
+                  onWheel={noScroll}
+                />
+              ) : (
+                <div className="invFairStaticVal">{formatNumber(fairValueAmountLC)}</div>
+              )}
             </div>
           </div>
 
@@ -564,32 +629,21 @@ export default function InvestmentDetailsDrawer({
           />
 
           <section className="inv-performance">
-            <h4 className="inv-performance-title">Performance</h4>
+            <h4 className="invSectionHeader">Performance</h4>
             <div className="inv-performance-grid">
-              <div className="perf-card">
-                <span>Gross IRR €</span>
-                <strong>{irrEuro !== null ? formatPercent(irrEuro) : "-"}</strong>
-              </div>
-              <div className="perf-card">
-                <span>Gross IRR LC</span>
-                <strong>{irrLC !== null ? formatPercent(irrLC) : "-"}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC € (incl. dividends)</span>
-                <strong>{`${formatRatio(moicInclEuro)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC LC (incl. dividends)</span>
-                <strong>{`${formatRatio(moicInclLC)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC € (excl. dividends)</span>
-                <strong>{`${formatRatio(moicExclEuro)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC LC (excl. dividends)</span>
-                <strong>{`${formatRatio(moicExclLC)}x`}</strong>
-              </div>
+              {[
+                { label: "Gross IRR €", value: irrEuro !== null ? formatPercent(irrEuro) : "-" },
+                { label: "Gross IRR LC", value: irrLC !== null ? formatPercent(irrLC) : "-" },
+                { label: "MOIC € (incl.)", value: formatMoic(moicInclEuro) },
+                { label: "MOIC LC (incl.)", value: formatMoic(moicInclLC) },
+                { label: "MOIC € (excl.)", value: formatMoic(moicExclEuro) },
+                { label: "MOIC LC (excl.)", value: formatMoic(moicExclLC) },
+              ].map(({ label, value }) => (
+                <div className="perf-card" key={label}>
+                  <div className="invCardTitle" title={label}>{label}</div>
+                  <div className="invCardValue">{value}</div>
+                </div>
+              ))}
             </div>
           </section>
         </div>
@@ -597,7 +651,13 @@ export default function InvestmentDetailsDrawer({
         <PermissionGate>
           <div className="invDrawerFooter">
             <button className="invFooterBtn invBtnCancel" onClick={onClose}>Cancel</button>
-            <button className="invFooterBtn invBtnSave" onClick={handleSave}>Save</button>
+            <button 
+              className="invFooterBtn invBtnSave" 
+              onClick={handleSave} 
+              disabled={!isDirty || isMutating}
+            >
+              Save
+            </button>
           </div>
         </PermissionGate>
       </aside>

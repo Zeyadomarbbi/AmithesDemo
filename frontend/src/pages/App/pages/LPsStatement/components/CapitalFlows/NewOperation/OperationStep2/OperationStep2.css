@@ -498,6 +498,7 @@
   font-size: 13px;
   color: #1c1917;
   background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .op2-rows--eq .op2-row--eq {
@@ -521,3 +522,48 @@
   width: 100%;
 }
 
+.op2-eq-target-input:hover {
+  border-color: #375A89;
+}
+
+.op2-eq-target-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #f7a93b;
+  outline: none;
+}
+
+.op2-footer-total-input:has(.op2-footer-input:not([disabled])):hover {
+  box-shadow: 0 0 0 1px #f7a93b;
+  border-radius: 4px;
+}
+
+.op2-footer-total-input:has(.op2-footer-input:focus) {
+  box-shadow: 0 0 0 1px #f7a93b;
+  border-radius: 4px;
+}
+
+.op2-footer-input:focus {
+  outline: none;
+}
+
+.op2-disabled-input {
+  background-color: #F3F4F6; /* Light grey background */
+  color: #9CA3AF; /* Muted text color */
+  user-select: none; /* Optional: prevents the user from highlighting the text */
+  border-color: rgba(204, 205, 206, 0.3); /* Lighter border if you have one */
+}
+
+/* Dim the icons inside the disabled input */
+.op2-disabled-input svg {
+  opacity: 0.5;
+}
+
+/* Kill any existing hover/focus effects that might be on the base class */
+.op2-disabled-input:hover,
+.op2-disabled-input:focus,
+.op2-disabled-input:focus-within {
+  background-color: #F3F4F6 !important;
+  border-color: rgba(204, 205, 206, 0.3) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

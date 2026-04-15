@@ -59,7 +59,7 @@
   flex-shrink: 0;
 }
 .create-synth-close-btn:hover {
-  background: #F0F0F0;
+  background: #F3F4F6;
 }
 
 /* --- BODY --- */
@@ -98,6 +98,8 @@
   font-size: 14px;
   color: #1C1917;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
 }
 
 .create-synth-textarea-field {
@@ -113,6 +115,7 @@
   color: #1C1917;
   outline: none;
   resize: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* --- SCENARIO LIST DISPLAY --- */
@@ -199,4 +202,23 @@
 .create-synth-btn-save:disabled {
   background: rgba(247, 169, 59, 0.5);
   cursor: not-allowed;
+}
+
+.create-synth-input-field:hover,
+.create-synth-textarea-field:hover {
+  border-color: #375A89;
+}
+
+.create-synth-input-field:focus,
+.create-synth-textarea-field:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+.create-synth-btn-cancel:hover {
+  background: #F3F4F6;
+}
+
+.create-synth-btn-save:hover:not(:disabled) {
+  background: #e2962d;
 }

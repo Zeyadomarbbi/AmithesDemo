@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useUsers } from '../../../../hooks/Core/useUsers'; 
 import Prompt from '../../../../components/Toast/Prompt';
 import Toast from '../../../../components/Toast/Toast';
+import SimpleDropdown from '../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown';
 import './FieldsSection.css';
 
 function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSuccess }) {
@@ -11,8 +12,7 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
   const [showDeletePrompt, setShowDeletePrompt] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const handleRoleChange = (e) => {
-    const value = e.target.value;
+  const handleRoleChange = (value) => {
     if (value === 'superadmin') {
       onChange('is_superuser', true);
       onChange('is_staff', true);
@@ -54,7 +54,7 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
   };
 
   return (
-    <div className="panel-fields-container">
+    <div className="af-panel-fields-container">
 
       {toast && (
         <Toast
@@ -78,24 +78,24 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
       )}
 
       {!isEditMode && (
-        <div className="fields-row-frame">
-          <div className="text-field-wrapper">
-            <label className="field-label">Username*</label>
-            <div className="input-box">
+        <div className="af-fields-row-frame">
+          <div className="af-text-field-wrapper">
+            <label className="af-field-label">Username*</label>
+            <div className="af-input-box">
               <input
                 type="text"
-                className="text-input"
+                className="af-text-input"
                 value={formData.username || ''}
                 onChange={(e) => onChange('username', e.target.value)}
               />
             </div>
           </div>
-          <div className="text-field-wrapper">
-            <label className="field-label">Password*</label>
-            <div className="input-box">
+          <div className="af-text-field-wrapper">
+            <label className="af-field-label">Password*</label>
+            <div className="af-input-box">
               <input
                 type="password"
-                className="text-input"
+                className="af-text-input"
                 value={formData.password || ''}
                 onChange={(e) => onChange('password', e.target.value)}
               />
@@ -104,27 +104,27 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
         </div>
       )}
 
-      <div className="fields-row-frame">
-        <div className="text-field-wrapper">
-          <div className="input-with-label">
-            <label className="field-label">First Name*</label>
-            <div className="input-box">
+      <div className="af-fields-row-frame">
+        <div className="af-text-field-wrapper">
+          <div className="af-input-with-label">
+            <label className="af-field-label">First Name*</label>
+            <div className="af-input-box">
               <input
                 type="text"
-                className="text-input"
+                className="af-text-input"
                 value={formData.first_name || ''}
                 onChange={(e) => onChange('first_name', e.target.value)}
               />
             </div>
           </div>
         </div>
-        <div className="text-field-wrapper">
-          <div className="input-with-label">
-            <label className="field-label">Last Name*</label>
-            <div className="input-box">
+        <div className="af-text-field-wrapper">
+          <div className="af-input-with-label">
+            <label className="af-field-label">Last Name*</label>
+            <div className="af-input-box">
               <input
                 type="text"
-                className="text-input"
+                className="af-text-input"
                 value={formData.last_name || ''}
                 onChange={(e) => onChange('last_name', e.target.value)}
               />
@@ -133,14 +133,14 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
         </div>
       </div>
 
-      <div className="fields-row-frame">
-        <div className="text-field-wrapper">
-          <div className="input-with-label">
-            <label className="field-label">Email*</label>
-            <div className="input-box">
+      <div className="af-fields-row-frame">
+        <div className="af-text-field-wrapper">
+          <div className="af-input-with-label">
+            <label className="af-field-label">Email*</label>
+            <div className="af-input-box">
               <input
                 type="email"
-                className="text-input"
+                className="af-text-input"
                 value={formData.email || ''}
                 onChange={(e) => onChange('email', e.target.value)}
               />
@@ -148,56 +148,44 @@ function FieldsSection({ formData, onChange, userId, onClose, isEditMode, onSucc
           </div>
         </div>
 
-        <div className="text-field-wrapper">
-          <div className="input-with-label">
-            <label className="field-label">Status*</label>
-            <div className="input-box dropdown">
-              <select
-                className="select-input"
-                value={formData.is_active ? 'true' : 'false'}
-                onChange={(e) => onChange('is_active', e.target.value === 'true')}
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-              <div className="chevron-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
+        <div className="af-text-field-wrapper">
+          <div className="af-input-with-label">
+            <label className="af-field-label">Status*</label>
+            <SimpleDropdown
+              options={[
+                { id: 'true', name: 'Active' },
+                { id: 'false', name: 'Inactive' }
+              ]}
+              value={formData.is_active ? 'true' : 'false'}
+              onChange={(val) => onChange('is_active', val === 'true')}
+              isSearchBar={false}
+            />
           </div>
         </div>
       </div>
 
-      <div className="fields-row-frame">
-        <div className="text-field-wrapper full-width">
-          <div className="input-with-label">
-            <label className="field-label">Role</label>
-            <div className="input-box dropdown">
-              <select
-                className="select-input"
-                value={getRoleValue()}
-                onChange={handleRoleChange}
-              >
-                <option value="superadmin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="viewer">Viewer</option>
-              </select>
-              <div className="chevron-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#375A89" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
+      <div className="af-fields-row-frame">
+        <div className="af-text-field-wrapper af-full-width">
+          <div className="af-input-with-label">
+            <label className="af-field-label">Role</label>
+            <SimpleDropdown
+              options={[
+                { id: 'superadmin', name: 'Super Admin' },
+                { id: 'admin', name: 'Admin' },
+                { id: 'viewer', name: 'Viewer' }
+              ]}
+              value={getRoleValue()}
+              onChange={handleRoleChange}
+              isSearchBar={false}
+            />
           </div>
         </div>
       </div>
 
       {isEditMode && (
-        <div className="destructive-action-row">
+        <div className="af-destructive-action-row">
           <button
-            className="destructive-btn"
+            className="af-destructive-btn"
             onClick={() => setShowDeletePrompt(true)}
             disabled={isDeleting}
           >

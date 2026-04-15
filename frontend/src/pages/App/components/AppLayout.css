@@ -5,65 +5,47 @@
   overflow: hidden;
 }
 
-.side-panel {
+.sidebar-wrapper {
+  position: relative;
   flex-shrink: 0;
-  width: 280px;
+  height: 100vh;
+  min-width: min-content;
+  width: 15vw;
+}
+
+.sidebar-wrapper .side-panel {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.sidebar-resize-handle:hover {
+  background: rgba(55, 90, 137, 0.3);
 }
 
 .right-column {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow-y: auto;
   min-width: 0;
+  overflow-y: auto;
+  position: relative;
 }
 
 .main-content {
   flex: 1;
   overflow-y: auto;
   background: #FFFFFF;
-}
-
-/* Mobile: Shrink sidebar, keep both visible */
-@media (max-width: 768px) {
-  .side-panel {
-    width: 80px; /* Collapsed width showing only icons */
-    min-width: 80px;
-  }
-  
-  /* Hide text labels in sidebar on mobile if needed */
-  .side-panel .nav-item span,
-  .side-panel .footer-item span,
-  .side-panel .fund-name,
-  .side-panel .fund-setup-row,
-  .side-panel .user-details {
-    display: none;
-  }
-}
-
-@media (max-width: 576px) {
-  .side-panel {
-    width: 60px;
-    min-width: 60px;
-    padding: 1rem 0.5rem;
-  }
-}
-
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Firefox */
-input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.mode-viewer .main-content input:not([type="search"]):not(.search-input),
-.mode-viewer .main-content select,
-.mode-viewer .main-content textarea {
-  pointer-events: none !important;
-  opacity: 0.7;
 }

@@ -12,10 +12,10 @@
   flex-wrap: wrap;
 }
 
-.compare-dropdown-search {
-  max-width: none;
-  min-width: 0;
-  width: 100%;
+.compare-selectors-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 

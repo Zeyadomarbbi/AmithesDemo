@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { CloseIcon, CheckMarkIcon } from "../../../../../../../../../../components/Icons/InteractiveIcons.jsx";
 import { ChevronDownIcon } from "../../../../../../../../../../components/Icons/DirectionIcons.jsx";
-import SearchableSelect from "../../../../../../../../../../components/SearchBar/SearchableSelect";
+import SimpleDropdown from "../../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./AddFlowModal.css";
 import '/src/components/QuarterSelection/QuarterSelector.css';
 
@@ -21,13 +21,25 @@ export default function AddFlowModal({
     const [lpDropdownOpen, setLpDropdownOpen] = useState(false);
     const [lpSearch, setLpSearch] = useState("");
     const lpDropdownRef = useRef(null);
-
     const toggleLp = (id) => {
-        setSelectedLpIds((prev) => {
-            const isActive = prev.includes(id);
-            const next = isActive ? prev.filter((x) => x !== id) : [...prev, id];
-            return next;
-        });
+        if (isAllMode) {
+            // Turning off All Mode by unselecting one item
+            setIsAllMode(false);
+            const allIds = lpRows.map((lp) => lp.id);
+            setSelectedLpIds(allIds.filter((x) => x !== id));
+        } else {
+            const nextSelection = selectedLpIds.includes(id)
+                ? selectedLpIds.filter((x) => x !== id)
+                : [...selectedLpIds, id];
+
+            // If the user just checked the last remaining box, switch to isAllMode
+            if (nextSelection.length === lpRows.length) {
+                setIsAllMode(true);
+                setSelectedLpIds([]); // Clear individual array as "All" covers it
+            } else {
+                setSelectedLpIds(nextSelection);
+            }
+        }
     };
 
     const options = useMemo(() => {
@@ -109,7 +121,7 @@ export default function AddFlowModal({
 
                     <div className="af-field">
                         <label className="af-label">Type of flow*</label>
-                        <SearchableSelect
+                        <SimpleDropdown
                             options={options}
                             value={flowTypeId}
                             onChange={(val) => {
@@ -155,8 +167,15 @@ export default function AddFlowModal({
                                         <div
                                             className={`quarter-item ${isAllMode ? "selected" : ""}`}
                                             onClick={() => {
-                                                setIsAllMode((prev) => !prev);
-                                                setSelectedLpIds([]);
+                                                if (!isAllMode) {
+                                                    setIsAllMode(true);
+                                                    setSelectedLpIds([]); 
+                                                } else {
+                                                    // Optional: If clicking "All" while it's already on, 
+                                                    // maybe switch to "None" by just turning it off.
+                                                    setIsAllMode(false);
+                                                    setSelectedLpIds(lpRows.map(lp => lp.id));
+                                                }
                                             }}
                                         >
                                             <div className="quarter-item-content">
@@ -170,11 +189,12 @@ export default function AddFlowModal({
                                         {filteredLpRows.length > 0 ? (
                                             filteredLpRows.map((lp) => {
                                                 const isActive = isAllMode || selectedLpIds.includes(lp.id);
+
                                                 return (
                                                     <div
                                                         key={lp.id}
-                                                        className={`quarter-item ${isActive ? "selected" : ""} ${isAllMode ? "disabled" : ""}`}
-                                                        onClick={() => { if (!isAllMode) toggleLp(lp.id); }}
+                                                        className={`quarter-item ${isActive ? "selected" : ""}`}
+                                                        onClick={() => toggleLp(lp.id)}
                                                     >
                                                         <div className="quarter-item-content">
                                                             <div className={`qs-checkbox ${isActive ? "checked" : ""}`}>

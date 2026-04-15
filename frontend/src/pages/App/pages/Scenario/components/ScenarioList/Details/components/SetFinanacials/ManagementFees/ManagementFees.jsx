@@ -3,6 +3,7 @@ import { useMasterManFees } from '../../../../../../../../hooks/Scenarios/useSce
 import { PlusIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import AddTranchModal from './components/NewTranch/AddTrancheModal.jsx';
 import ViewTranchModal from './components/ViewTranch/ViewTranchModal.jsx';
+import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort.jsx';
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
 import { PermissionGate } from '../../../../../../../../../../hooks/Auth/PermissionGate.jsx';
 import './ManagementFees.css';
@@ -56,13 +57,10 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
 
     return (
         <div className="mf-table-container">
-            <button className="mf-close-action" onClick={onClose}>
-                <CloseIcon />
-            </button>
-
             <div className="mf-action-header">
+            <div style={{ display: 'flex', gap: '12px' }}>
                 <button className="mf-btn-base mf-btn-view" onClick={() => setIsViewModalOpen(true)}>
-                    View tranches
+                View tranches
                 </button>
                 <PermissionGate>
                 <button className="mf-btn-base mf-btn-add" onClick={() => setIsAddModalOpen(true)}>
@@ -71,20 +69,38 @@ const ManagementFees = ({ fundId, scenarioId, onClose }) => {
                 </button>
                 </PermissionGate>
             </div>
-
+            <button className="mf-close-action" onClick={onClose}>
+                <CloseIcon />
+            </button>
+            </div>
             <table className="mf-table">
                 <thead>
                     <tr>
                         <th className="th-label col-mf">
                             <div className="th-wrapper mf-wrapper">
-                                <span>Management fees</span>
+                                <SortableHeaderRenderer
+                                    label="Management fees"
+                                    columnKey="mf-label"
+                                    currentSortKey={null}
+                                    toggleSort={() => {}}
+                                    center={false}
+                                    showCurrency={false}
+                                    showSortIcon={false}
+                                />
                             </div>
                         </th>
                         {years.map((year) => (
                             <th key={year} className="col-year">
                                 <div className="th-wrapper year-wrapper">
-                                    <span className="year-label">{year}</span>
-                                    <span className="currency-indicator">(€)</span>
+                                    <SortableHeaderRenderer
+                                        label={String(year)}
+                                        columnKey={`year-${year}`}
+                                        currentSortKey={null}
+                                        toggleSort={() => {}}
+                                        center={true}
+                                        showCurrency={false}
+                                        showSortIcon={false}
+                                    />
                                 </div>
                             </th>
                         ))}

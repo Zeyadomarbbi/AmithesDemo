@@ -1,155 +1,3 @@
-/* ===== Overlay ===== */
-.investment-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.45);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ===== Modal Card ===== */
-.investment-modal {
-  background: #ffffff;
-  width: 520px;
-  max-width: calc(100% - 32px);
-  border-radius: 14px;
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.25),
-    0 10px 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  animation: modalFadeIn 0.18s ease-out;
-}
-
-/* ===== Header ===== */
-.investment-modal-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.investment-modal-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #fef3c7;
-  color: #f59e0b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.investment-modal-title-block h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.investment-modal-title-block p {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.investment-modal-close {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-/* ===== Body ===== */
-.investment-modal-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.investment-row {
-  display: flex;
-  gap: 12px;
-}
-
-.investment-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.investment-field label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.investment-field input,
-.investment-select {
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 13px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: text;
-  transition: border 0.2s;
-}
-
-.investment-field input:hover { border-color: #375a89; }
-.investment-field input:focus,
-.investment-select:hover {
-  border-color: #f59e0b;
-  outline: none;
-  cursor: pointer;
-}
-
-/* ===== Footer ===== */
-.investment-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.investment-cancel-btn {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.investment-cancel-btn:hover { background: #e5e7eb; }
-
-.investment-save-btn {
-  background: #f59e0b;
-  color: #ffffff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.investment-save-btn:hover { background: #d97706; }
-
-/* ===== Animation ===== */
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
 /* ===== Toolbar ===== */
 .portfolio-toolbar {
   display: flex;
@@ -183,29 +31,45 @@
   white-space: nowrap;
 }
 
-.ghost-btn {
-  display: inline-flex;
+.export-action-trigger {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  font-size: 14px;
-  color: #475569;
+  padding: 10px 16px;
+  background: #FAFAF9;
+  border: 0px solid #e5e7eb;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s;
 }
-.ghost-btn:hover { background: #f8fafc; }
 
-.primary-btn {
+.export-action-trigger:hover {
+  background: #f1f1f0;
+}
+
+.export-title {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #7B7D7E;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
+.investment-create-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 2px solid transparent;
-  background: #f59e0b;
+  background: #F7A93B;
   color: #ffffff;
   font-size: 14px;
   font-weight: 500;
@@ -213,364 +77,26 @@
   height: 40px;
   transition: filter 0.15s;
 }
-.primary-btn:hover { filter: brightness(0.95); }
+.investment-create-action:hover { filter: brightness(0.95); }
 
-/* ===== Subtotal / Total name cell ===== */
-.subtotal-name-cell {
-  font-weight: 600;
-  color: #ffffff;
-  padding-left: 16px;
-  white-space: nowrap;
-}
-
-/* =====================================================
-   SHARED SCROLL CONTAINER
-   ===================================================== */
-.portfolio-tables-scroll-container {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-gutter: stable;
-  padding-bottom: 4px;
-}
-
-.portfolio-tables-scroll-container::-webkit-scrollbar { height: 8px; }
-.portfolio-tables-scroll-container::-webkit-scrollbar-track { background: #e5e7eb; }
-.portfolio-tables-scroll-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
-.portfolio-tables-scroll-container { scrollbar-width: auto; }
-
-/* ===== Sections ===== */
-.portfolio-section .portfolio-table-card {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.portfolio-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.portfolio-columns-picker {
-  flex-shrink: 0;
-}
-
-.portfolio-columns-trigger {
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.portfolio-columns-trigger:hover,
-.portfolio-columns-trigger.active {
-  background: transparent;
-  border-color: transparent;
-}
-
-.portfolio-columns-trigger svg {
-  display: block;
-}
-
-.portfolio-columns-trigger:focus-visible {
-  outline: 2px solid rgba(55, 90, 137, 0.18);
-  outline-offset: 4px;
-}
-
-.portfolio-columns-menu {
-  width: 250px;
-  max-height: 320px;
-  padding: 8px;
-  right: 0;
-  left: auto;
-  border-radius: 8px;
-}
-
-.portfolio-columns-list {
-  max-height: 280px;
-}
-
-.portfolio-columns-option:hover,
-.portfolio-columns-option.checked,
-.portfolio-columns-option.selected {
-  background: #f8fafc;
-}
-
-.portfolio-columns-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.portfolio-columns-checkbox {
-  margin-right: 0;
-  border-color: #d1d5db;
-}
-
-.portfolio-columns-option.checked .portfolio-columns-checkbox {
-  background: #f59e0b;
-  border-color: #f59e0b;
-}
-
-.portfolio-columns-option.checked .portfolio-columns-checkbox::after {
-  content: "";
-  width: 5px;
-  height: 9px;
-  border-right: 2px solid #ffffff;
-  border-bottom: 2px solid #ffffff;
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-
-.portfolio-columns-label {
-  font-weight: 500;
-}
-
-.portfolio-section .portfolio-table-scroll {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-gutter: stable;
-  display: block;
-  scrollbar-width: auto !important;
-}
-
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb; }
-.portfolio-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
-
-.portfolio-total-section .portfolio-table-scroll {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-gutter: stable;
-  display: block;
-  scrollbar-width: auto !important;
-}
-
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar { height: 8px !important; }
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-track { background: #e5e7eb; }
-.portfolio-total-section .portfolio-table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
-
-/* ===== All tables ===== */
-.portfolio-table {
-  width: 100%;
-  min-width: 1570px !important;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-
-.portfolio-table,
-.portfolio-table thead,
-.portfolio-table thead tr,
-.portfolio-table thead th {
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-}
-
-.portfolio-table-card,
-.portfolio-section,
-.portfolio-section-header {
-  border-top: 0 !important;
-  box-shadow: none !important;
-}
-
-.portfolio-table-card::before,
-.portfolio-table-card::after,
-.portfolio-section::before,
-.portfolio-section::after {
-  content: none !important;
-  display: none !important;
-}
-
-.portfolio-table thead th {
-  background: #ffffff !important;
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  white-space: nowrap;
-  text-align: left;
-  vertical-align: middle;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ===== Section header ===== */
-.portfolio-section-header {
-  border-bottom: 0px solid #e5e7eb;
-  padding-bottom: 12px;
-  margin-bottom: 0;
-}
-
-/* ===== Typography ===== */
-.portfolio-section-header h2 {
-  font-family: "Inter";
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 24px;
-  display: flex;
-  align-items: center;
-  color: #1c1917;
-  margin: 0;
-  gap: 8px;
-}
-
-.portfolio-count {
-  font-family: "Inter";
-  font-weight: 500;
-  font-size: 16px;
-  line-height: 24px;
-  display: flex;
-  align-items: center;
-  color: #375a89;
-}
-
-.portfolio-table thead th {
-  font-family: "Inter";
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 16px;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-}
-
-/* ===== Styled (€) currency label in column headers ===== */
-.portfolioHeaderCurrency {
+.investment-title {
+  /* Text-SM/Medium */
   font-family: 'Inter';
   font-style: normal;
   font-weight: 500;
-  font-size: 12px;
-  line-height: 16px;
-  color: #7B7D7E;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #FFFFFF;
+
+
+  /* Inside auto layout */
   flex: none;
   order: 1;
   flex-grow: 0;
-}
 
-.name-main {
-  font-family: "Inter";
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-}
-
-.name-sub {
-  font-family: "Inter";
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #375a89 !important;
-}
-
-.name-cell .name-sub {
-  color: #375a89 !important;
-}
-
-/* ===== Clickable name cell ===== */
-.name-cell {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.name-cell:hover { background: #f0f5ff; }
-
-.portfolio-table tbody td {
-  font-family: "Inter";
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ===== Geography cell with flag ===== */
-.geography-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.country-flag-img {
-  width: 20px;
-  height: 20px;
-  object-fit: cover;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-  vertical-align: middle;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  background: none !important;
-  padding: 0 !important;
-}
-
-/* ===== Subtotal row ===== */
-.portfolio-subtotal-row,
-.portfolio-subtotal-row.total-row {
-  background: #375a89;
-}
-
-.portfolio-subtotal-row .subtotal-name-cell {
-  font-family: "Inter";
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-  color: #ffffff;
-}
-
-.portfolio-subtotal-row td,
-.portfolio-table tbody .portfolio-subtotal-row td,
-.portfolio-table tbody .portfolio-subtotal-row td.col-highlight {
-  color: #ffffff !important;
-}
-
-/* ===== Total section ===== */
-.portfolio-total-section thead tr th {
-  font-family: "Inter";
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 16px;
-  letter-spacing: 0.01em;
-  color: #1c1917;
-  padding: 8px 8px 4px;
-  background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.portfolio-total-section thead tr th:first-child,
-.portfolio-total-section thead tr th:nth-child(2) {
-  border-bottom: none;
-}
-
-.portfolio-total-section .portfolio-subtotal-row td {
-  color: #ffffff !important;
-  font-family: "Inter";
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.01em;
-}
-
-.portfolio-total-section .subtotal-name-cell {
-  padding-left: 16px;
 }
 
 /* ===== Misc ===== */

@@ -42,7 +42,7 @@ export function useTableSort(data, initialSortKey = "name") {
   return { sorted, sortKey, sortDir, toggleSort };
 }
 
-export function SortableHeaderRenderer({ label, columnKey, currentSortKey, toggleSort, center = true, showCurrency = true, showSortIcon = true }) {
+export function SortableHeaderRenderer({ label, columnKey, currentSortKey, toggleSort, center = true, showCurrency = false, showSortIcon = true }) {
     const isActive = currentSortKey === columnKey;
 
     return (

@@ -219,7 +219,7 @@
 }
 
 .scenario-dd-fees-input:hover {
-  border-color: #D1D5DB;
+  border-color: #375A89;
 }
 
 
@@ -289,4 +289,9 @@
 .scenario-dd-fees-btn-save:disabled {
   background-color: #D0D5DD;
   cursor: not-allowed;
+}
+
+.scenario-dd-fees-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
 }

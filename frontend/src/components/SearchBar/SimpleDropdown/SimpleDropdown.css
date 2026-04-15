@@ -22,12 +22,13 @@
   transition: all 0.2s ease;
   box-sizing: border-box;
   user-select: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sd-button:hover,
 .sd-button.active {
-  background-color: #F8FAFC;
-  border-color: rgba(204, 205, 206, 0.5);
+  border-color: #375A89;
+  background: #FFFFFF;
 }
 
 .sd-button.loading {
@@ -75,24 +76,8 @@
   padding: 8px;
   display: flex;
   flex-direction: column;
-  white-space: nowrap;
 }
 
-.sd-search-wrapper {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.sd-search-input {
-  width: 100%;
-  border: none;
-  outline: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  padding: 4px 8px;
-  background: transparent;
-  color: #1C1917;
-}
 
 /* --- LIST ITEMS --- */
 .sd-list {
@@ -133,4 +118,11 @@
   text-align: center;
   color: #9ca3af;
   font-size: 12px;
+}
+
+.sd-button:focus,
+.sd-button.active {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
 }

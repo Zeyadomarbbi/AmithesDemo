@@ -233,7 +233,7 @@ const WaterfallStructure = () => {
             onClick={handleSave}
             disabled={isSaving}
           >
-            {isSaving ? "Saving..." : "Save Changes"}
+            {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

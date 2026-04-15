@@ -21,7 +21,11 @@ urlpatterns = [
         FundManFeeRuleView.as_view(), 
         name="fund-man-fee-list-create"
     ),
-    # Detail, Update, and Delete (fee_rule_id is provided)
+    path(
+        "funds/<int:fund_id>/man-fees-rules/bulk/", 
+        FundManFeeRuleBulkView.as_view(), 
+        name="fund-man-fee-bulk"
+    ),
     path(
         "funds/<int:fund_id>/man-fees-rules/<int:fee_rule_id>/", 
         FundManFeeRuleView.as_view(), 

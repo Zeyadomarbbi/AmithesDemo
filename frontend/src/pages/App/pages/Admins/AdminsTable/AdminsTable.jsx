@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MoreHorizontalIcon } from '/src/components/Icons/MiscIcons';
-import AdminPanel from '../AdminPanel/AdminPanel'; 
 import { useTableSort, SortableHeaderRenderer } from '../../../../../components/Sort/TableSort'; // Adjust path
+import AdminPanel from '../AdminPanel/AdminPanel'; 
 import './AdminsTable.css';
 
 function AdminsTable({ data, refreshData }) {
@@ -43,7 +43,6 @@ function AdminsTable({ data, refreshData }) {
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={c.center}
-                showCurrency={false}
               />
             </div>
           ))}

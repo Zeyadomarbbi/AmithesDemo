@@ -130,6 +130,7 @@
   font-size: 14px;
   box-sizing: border-box;
   background-color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Fix for width jumps: Ensure select has a defined width and box-sizing */
@@ -246,4 +247,28 @@
 
 .portfolio-new-investment-input-wrapper .portfolio-new-investment-input {
   padding-right: 40px;
+}
+
+.portfolio-new-investment-input:hover,
+.portfolio-new-investment-select:hover {
+  border-color: #375A89;
+}
+
+.portfolio-new-investment-input:focus,
+.portfolio-new-investment-select:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+.portfolio-new-investment-close:hover {
+  background: #F3F4F6;
+}
+
+.portfolio-new-investment-btn-cancel:hover {
+  background: #F3F4F6;
+}
+
+.portfolio-new-investment-btn-save:hover:not(:disabled) {
+  background: #e2962d;
 }

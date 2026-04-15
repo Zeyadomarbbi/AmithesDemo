@@ -130,56 +130,56 @@ function InvestedPortfolio({ fundId, scenarioId, activeMode, investedData, onCha
                                 <SortableHeaderRenderer 
                                     label="Deal Name" columnKey="name"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={false} showCurrency={false}
+                                    center={false} {false}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="Duration" columnKey="input_duration"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={false}
+                                    center={true} {false}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="Cost" columnKey="cost"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={true}
+                                    center={true} {true}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="Exit Value" columnKey="exit_value"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={true}
+                                    center={true} {true}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="Dividends/Interests" columnKey="dividends_interests"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={true}
+                                    center={true} {true}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="IRR" columnKey="irr"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={false}
+                                    center={true} {false}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="MOIC" columnKey="input_moic"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={false}
+                                    center={true} {false}
                                 />
                             </th>
                             <th className="scenario-pf-center">
                                 <SortableHeaderRenderer 
                                     label="Exit Date" columnKey="exit_date"
                                     currentSortKey={sortKey}  toggleSort={toggleSort}
-                                    center={true} showCurrency={false}
+                                    center={true} {false}
                                 />
                             </th>
                             {(activeMode === 'target' || activeMode === 'sensitivity') && <th className="scenario-pf-center">Actions</th>}

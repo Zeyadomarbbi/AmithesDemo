@@ -41,7 +41,6 @@ export default function CapitalAccountTable({ columns, data, navDetails, isLoadi
                                 currentSortKey={sortKey}
                                 toggleSort={toggleSort}
                                 center={false}
-                                showCurrency={false}
                             />
                         </th>
                         {columns.map((col) => (
@@ -52,7 +51,6 @@ export default function CapitalAccountTable({ columns, data, navDetails, isLoadi
                                     currentSortKey={sortKey}
                                     toggleSort={toggleSort}
                                     center={true}
-                                    showCurrency={true}
                                 />
                             </th>
                         ))}

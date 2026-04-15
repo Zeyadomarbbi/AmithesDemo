@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.db import transaction, connection
 
 from ..models.transactions import *
 from ..serializers.fund_serializers import *
@@ -109,3 +110,38 @@ class FundManFeeRuleView(APIView):
         rule = get_object_or_404(FundManFeeRules, pk=fee_rule_id, fund_id=fund_id)
         rule.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class FundManFeeRuleBulkView(APIView):
+    def put(self, request, fund_id):
+        if not isinstance(request.data, list):
+            return Response(
+                {"detail": "Payload must be an array of rule objects."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        updated_rules = []
+        created_rules = []
+
+        # Atomic block guarantees trigger sequence, resolving the deadlock
+        with transaction.atomic():
+            for item in request.data:
+                rule_id = item.get("fee_rule_id")
+                
+                if rule_id:
+                    rule = get_object_or_404(FundManFeeRules, pk=rule_id, fund_id=fund_id)
+                    serializer = FundManFeeRuleSerializer(rule, data=item, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(fund_id=fund_id)
+                    updated_rules.append(serializer.data)
+                else:
+                    serializer = FundManFeeRuleSerializer(data=item)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(fund_id=fund_id)
+                    created_rules.append(serializer.data)
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT fn_rebuild_lps_sc_man_fee_base(%s)", [fund_id])
+        return Response(
+            {"created": created_rules, "updated": updated_rules}, 
+            status=status.HTTP_200_OK
+        )

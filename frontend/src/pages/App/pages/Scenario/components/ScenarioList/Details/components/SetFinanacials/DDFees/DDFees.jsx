@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useScenarioDDFees } from '../../../../../../../../hooks/Scenarios/useScenarioDDFees'; 
+import { useNumberFormatter, usePercentageFormatter } from '/src/components/useFormatter.js'
+import { PercentageIcon } from '/src/components/Icons/NumericalIcons';
 import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import Toast from '../../../../../../../../components/Toast/Toast'; 
 import './DDFees.css';
 
 const DDFees = ({ fundId, scenarioId, onClose }) => {
   const { ddFees, annualTotals, updateFeeRate, loading } = useScenarioDDFees(fundId, scenarioId);
+  const formatNumber = useNumberFormatter();
+  const formatPercentage = usePercentageFormatter();
   const [localRows, setLocalRows] = useState([]);
   const [scenarioDDFeesIsSaving, setScenarioDDFeesIsSaving] = useState(false);
   const [scenarioDDFeesToast, setScenarioDDFeesToast] = useState(null);
+
   console.log("ddFees", ddFees)
+
   useEffect(() => {
     if (ddFees && ddFees.length > 0) {
       setLocalRows(ddFees);
@@ -76,15 +82,6 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
     return dateStr.split('-')[0];
   };
 
-  const formatMoney = (amount) => {
-    if (!amount) return '-';
-    return parseFloat(amount).toLocaleString('en-US', {
-        useGrouping: true, 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).replace(/,/g, ' '); 
-  };
-
     return (
     <div className="scenario-dd-fees-container">
       <div className="scenario-dd-fees-header-wrapper">
@@ -128,12 +125,18 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                     {row.is_entry_sunk ? (
                         <span className="scenario-dd-fees-status-text-sunk">In portfolio</span>
                     ) : (
-                        <input 
-                            className="scenario-dd-fees-input" 
-                            type="number"
-                            value={row.entry_fee_pct} 
-                            onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'entry_fee_pct')}
-                        />
+                        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                            <input 
+                                className="scenario-dd-fees-input" 
+                                type="number"
+                                value={row.entry_fee_pct} 
+                                onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'entry_fee_pct')}
+                                style={{ paddingRight: '24px' }}
+                            />
+                            <div style={{ position: 'absolute', right: '8px', display: 'flex', pointerEvents: 'none', color: '#6b7280' }}>
+                                <PercentageIcon />
+                            </div>
+                        </div>
                     )}
                     </td>
 
@@ -141,13 +144,19 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                     {row.is_exit_sunk ? (
                         <span className="scenario-dd-fees-status-text-sunk">Exited</span>
                     ) : (
-                        <input 
-                            className="scenario-dd-fees-input" 
-                            type="number"
-                            step="0.01"
-                            value={row.exit_fee_pct}
-                            onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'exit_fee_pct')}
-                        />
+                        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                            <input 
+                                className="scenario-dd-fees-input" 
+                                type="number"
+                                step="0.01"
+                                value={row.exit_fee_pct}
+                                onChange={(e) => handleLocalChange(e, row.dd_fee_id, 'exit_fee_pct')}
+                                style={{ paddingRight: '24px' }}
+                            />
+                            <div style={{ position: 'absolute', right: '8px', display: 'flex', pointerEvents: 'none', color: '#6b7280' }}>
+                                <PercentageIcon />
+                            </div>
+                        </div>
                     )}
                     </td>
 
@@ -155,7 +164,7 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                         {row.is_entry_sunk ? (
                             <span className="scenario-dd-fees-status-text-sunk-small">In portfolio</span>
                         ) : (
-                            <span className="scenario-dd-fees-val-text">{formatMoney(calculatePreview(row, 'entry'))}</span>
+                            <span className="scenario-dd-fees-val-text">{formatNumber(calculatePreview(row, 'entry'))}</span>
                         )}
                     </td>
 
@@ -163,7 +172,7 @@ const DDFees = ({ fundId, scenarioId, onClose }) => {
                         {row.is_exit_sunk ? (
                             <span className="scenario-dd-fees-status-text-sunk-small">Exited</span>
                         ) : (
-                            <span className="scenario-dd-fees-val-text">{formatMoney(calculatePreview(row, 'exit'))}</span>
+                            <span className="scenario-dd-fees-val-text">{formatNumber(calculatePreview(row, 'exit'))}</span>
                         )}
                     </td>
                 </tr>

@@ -5,7 +5,7 @@ import { UploadIcon, DownloadIcon, PlusIcon } from '/src/components/Icons/Intera
 import { usePnLApi } from "../../../../hooks/Financials/usePnLApi";
 import { usePnLUpload } from "../../../../hooks/Financials/usePnLUpload";
 import { PageSpinner, PageError, PageNoData } from "../../../../../../components/LoadingScreens/LoadingScreens.jsx";
-import { exportWorkbook } from "../../../../../../components/Export/exportExcel";
+import { exportPnL } from "../../../../../../components/Export/exportPnL";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort.jsx";
 
 import TimeframeSelector from "/src/components/QuarterSelection/TimeframeSelector.jsx";
@@ -139,10 +139,7 @@ function PnLTabContent() {
   const headerPeriods = useMemo(() => {
     if (!sortedQuarters?.length || selectedTimeframeIds.length === 0) return [];
     const selectedSet = new Set(selectedTimeframeIds.map(Number));
-    const filtered = sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
-    return filtered.sort((a, b) =>
-      selectedTimeframeIds.indexOf(Number(a.id)) - selectedTimeframeIds.indexOf(Number(b.id))
-    );
+    return sortedQuarters.filter((q) => selectedSet.has(Number(q.id)));
   }, [sortedQuarters, selectedTimeframeIds]);
 
   const loadPnL = useCallback(async () => {
@@ -264,25 +261,14 @@ function PnLTabContent() {
   }, [deleteLineItem]);
 
   const handleDownload = () => {
-    const periodHeaders = headerPeriods.map((p) => getPeriodLabel(p));
-    const buildSectionRows = (lines, values, totals, sectionName) => [
-      ["Line Item", ...periodHeaders],
-      ...(lines || []).map((line, idx) => {
-        const byPeriod = values?.[idx]?.byPeriod || {};
-        return [line?.label || line?.name || "", ...headerPeriods.map((p) => Number(byPeriod[String(p.id)] || 0))];
-      }),
-      [`Total ${sectionName}`, ...headerPeriods.map((p) => Number(totals?.[p.id] || 0))],
-    ];
-    const netRows = [
-      ["Metric", ...periodHeaders],
-      ["Net Profit / Net loss", ...headerPeriods.map((p) => Number(netByPeriod?.[p.id] || 0))],
-    ];
-    exportWorkbook(`pnl-fund-${effectiveFundId}.xlsx`, [
-      { name: "Income",  rows: buildSectionRows(incomeLines,  incomeValues,  totalIncomeByPeriod,   "Income") },
-      { name: "Expense", rows: buildSectionRows(expenseLines, expenseValues, totalExpensesByPeriod, "Expense") },
-      { name: "Tax",     rows: buildSectionRows(taxLines,     taxValues,     totalTaxByPeriod,      "Tax") },
-      { name: "Net",     rows: netRows },
-    ]);
+    exportPnL({
+      filename: `pnl-fund-${effectiveFundId}.xlsx`,
+      headerPeriods,
+      incomeLines,  incomeValues,  totalIncomeByPeriod,
+      expenseLines, expenseValues, totalExpensesByPeriod,
+      taxLines,     taxValues,     totalTaxByPeriod,
+      netByPeriod,
+    });
   };
 
   const [savingAll, setSavingAll] = useState(false);
@@ -392,7 +378,6 @@ function PnLTabContent() {
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={true}
-                showCurrency={true}
               />
             ) : (
               <span className="period-label">{label} <span>(€)</span></span>

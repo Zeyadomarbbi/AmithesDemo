@@ -9,7 +9,7 @@ const TargetSelectionModal = ({ isOpen, onClose, onNext, shareClasses = [], fund
     const { executeTargetMode, loading, error } = useTargetMode(fundId, scenarioId);
     const [localError, setLocalError] = useState(null);
     const [dismissedError, setDismissedError] = useState(false);
-    const displayError = !dismissedError && (localError || error);
+    const displayError = !dismissedError && localError;
     if (!isOpen) return null;
 
     const columns = ['Fund', ...shareClasses];

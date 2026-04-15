@@ -1,7 +1,7 @@
 // src/pages/App/pages/LPsStatement/components/CapitalFlows/NewOperation/OperationStep1.jsx
 import React, { useMemo } from "react";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
-import SearchableSelect from "../../../../../../../../components/SearchBar/SearchableSelect.jsx"
+import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx"
 import "./OperationStep1.css";
 
 function shouldHideOperationType(name = "") {
@@ -43,7 +43,7 @@ export default function OperationStep1({
 
       <div className="op1-field">
         <label className="op1-label">Operation type*</label>
-          <SearchableSelect
+          <SimpleDropdown
             options={filteredOperationTypes}
             value={String(operationType)}
             onChange={(val) => setOperationType(String(val))}

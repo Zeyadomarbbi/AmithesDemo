@@ -1,5 +1,5 @@
 /* --- OVERLAY --- */
-.modal-overlay-add-scenario {
+.modal-add-scenario-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
@@ -10,7 +10,7 @@
 }
 
 /* --- MODAL CONTENT --- */
-.modal-content-add-scenario {
+.modal-add-scenario-content {
   /* Responsive Width */
   width: 95%;
   max-width: 360px;
@@ -28,14 +28,14 @@
 }
 
 /* --- HEADER (Title + Close Button) --- */
-.modal-header-add-scenario {
+.modal-add-scenario-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start; /* Aligns top if title wraps */
   width: 100%;
 }
 
-.modal-title-add-scenario {
+.modal-add-scenario-title {
   font-family: 'Inter', sans-serif; 
   font-weight: 600; 
   font-size: 16px; 
@@ -44,7 +44,7 @@
   margin: 0;
 }
 
-.close-btn-wrapper {
+.modal-add-scenario-close-btn-wrapper {
   width: 28px; height: 28px;
   background: #FAFAF9; 
   border-radius: 50%;
@@ -52,24 +52,24 @@
   cursor: pointer;
   flex-shrink: 0; /* Prevents button from squishing */
 }
-.close-btn-wrapper:hover { background: #F0F0F0; }
+.modal-add-scenario-close-btn-wrapper:hover { background: #F0F0F0; }
 
 /* --- BODY (Inputs) --- */
-.modal-body-add-scenario {
+.modal-add-scenario-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
 }
 
-.input-group-add-scenario {
+.modal-add-scenario-input-group {
   display: flex; 
   flex-direction: column; 
   gap: 6px;
   width: 100%;
 }
 
-.input-label {
+.modal-add-scenario-input-label {
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
@@ -78,7 +78,7 @@
   margin: 0;
 }
 
-.input-field {
+.modal-add-scenario-input-field {
   width: 100%;
   height: 40px;
   box-sizing: border-box;
@@ -90,9 +90,10 @@
   font-size: 14px; 
   color: #1C1917; 
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.textarea-field {
+.modal-add-scenario-textarea-field {
   width: 100%;
   height: 64px;
   box-sizing: border-box;
@@ -105,17 +106,18 @@
   color: #1C1917; 
   outline: none; 
   resize: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* --- FOOTER (Buttons) --- */
-.modal-footer-add-scenario {
+.modal-add-scenario-footer {
   display: flex;
   flex-direction: row;
   gap: 12px;
   width: 100%;
 }
 
-.btn-cancel-add-scenario, .btn-save-add-scenario {
+.modal-add-scenario-btn-cancel, .modal-add-scenario-btn-save {
   flex: 1; /* Makes buttons equal width and fills space */
   height: 40px;
   border-radius: 4px; 
@@ -129,19 +131,38 @@
   align-items: center;
 }
 
-.btn-save-add-scenario:disabled {
+.modal-add-scenario-btn-save:disabled {
     background-color: #E5E7EB; /* Light grey */
     color: #9CA3AF;            /* Muted text */
     cursor: not-allowed;
     border-color: #E5E7EB;
 }
 
-.btn-cancel-add-scenario {
+.modal-add-scenario-btn-cancel {
   background: #FAFAF9; 
   color: #7B7D7E;
 }
 
-.btn-save-add-scenario {
+.modal-add-scenario-btn-save {
   background: #F7A93B; 
   color: #FFFFFF;
+}
+
+.modal-add-scenario-input-field:hover,
+.modal-add-scenario-textarea-field:hover {
+  border-color: #375A89;
+}
+
+.modal-add-scenario-input-field:focus,
+.modal-add-scenario-textarea-field:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+.modal-add-scenario-btn-cancel:hover {
+  background: #F3F4F6;
+}
+
+.modal-add-scenario-btn-save:hover:not(:disabled) {
+  background: #e2962d;
 }

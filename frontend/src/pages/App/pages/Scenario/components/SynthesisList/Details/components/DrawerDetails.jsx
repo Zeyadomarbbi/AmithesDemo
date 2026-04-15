@@ -122,7 +122,6 @@ export default function DrawerDetails({
                                         currentSortKey={sortKey}
                                         toggleSort={toggleSort}
                                         center={false}
-                                        showCurrency={false}
                                     />
                                 </th>
                                 {scenarioColumns.map((scenario) => (
@@ -133,7 +132,6 @@ export default function DrawerDetails({
                                             currentSortKey={null}
                                             toggleSort={() => {}}
                                             center={false}
-                                            showCurrency={true}
                                             showSortIcon={false}
                                         />
                                     </th>

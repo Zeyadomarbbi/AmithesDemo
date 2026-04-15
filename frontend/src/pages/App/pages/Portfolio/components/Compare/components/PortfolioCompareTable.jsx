@@ -19,10 +19,10 @@ const PortfolioCompareTable = ({
     return visibleRows.map((row) => {
       const flat = { id: row.id, name: row.name, sector: row.sector };
       activeQuarters.forEach((q) => {
-        flat[`cost_${q.id}`] = row.timeframes?.[q.id]?.cost ?? 0;
-        flat[`fv_${q.id}`] = row.timeframes?.[q.id]?.fv ?? 0;
+        flat[`cost_${q.id}`]       = row.timeframes?.[q.id]?.cost       ?? 0;
+        flat[`fv_${q.id}`]         = row.timeframes?.[q.id]?.fv         ?? 0;
         flat[`divestment_${q.id}`] = row.timeframes?.[q.id]?.divestment ?? 0;
-        flat[`dividends_${q.id}`] = row.timeframes?.[q.id]?.dividends ?? 0;
+        flat[`dividends_${q.id}`]  = row.timeframes?.[q.id]?.dividends  ?? 0;
       });
       return flat;
     });
@@ -30,9 +30,9 @@ const PortfolioCompareTable = ({
 
   const { sorted, sortKey, toggleSort } = useTableSort(flatRows, "name");
 
-  const sortedWithOriginal = sorted.map((flat) =>
-    visibleRows.find((r) => String(r.id) === String(flat.id))
-  ).filter(Boolean);
+  const sortedWithOriginal = sorted
+    .map((flat) => visibleRows.find((r) => String(r.id) === String(flat.id)))
+    .filter(Boolean);
 
   return (
     <div className="fx-deals-table-card">
@@ -46,10 +46,10 @@ const PortfolioCompareTable = ({
                 currentSortKey={sortKey}
                 toggleSort={toggleSort}
                 center={false}
-                showCurrency={false}
               />
             </th>
-            {activeQuarters.filter((q) => showColumn(`cost:${q.id}`)).map((q) => (
+
+            {showColumn("cost") && activeQuarters.map((q) => (
               <th key={`cost-${q.id}`} className="col-number">
                 <SortableHeaderRenderer
                   label={`Cost ${q.display_label}`}
@@ -57,7 +57,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
@@ -69,11 +68,11 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             )}
-            {activeQuarters.filter((q) => showColumn(`fv:${q.id}`)).map((q) => (
+
+            {showColumn("fv") && activeQuarters.map((q) => (
               <th key={`fv-${q.id}`} className="col-number">
                 <SortableHeaderRenderer
                   label={`FV ${q.display_label}`}
@@ -81,7 +80,6 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
@@ -93,11 +91,11 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             )}
-            {activeQuarters.filter((q) => showColumn(`divestment:${q.id}`)).map((q) => (
+
+            {showColumn("divestment") && activeQuarters.map((q) => (
               <th key={`divestment-${q.id}`} className="col-number">
                 <SortableHeaderRenderer
                   label={`Divestment ${q.display_label}`}
@@ -105,11 +103,11 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
-            {activeQuarters.filter((q) => showColumn(`dividends:${q.id}`)).map((q) => (
+
+            {showColumn("dividends") && activeQuarters.map((q) => (
               <th key={`dividends-${q.id}`} className="col-number">
                 <SortableHeaderRenderer
                   label={`Dividends ${q.display_label}`}
@@ -117,49 +115,49 @@ const PortfolioCompareTable = ({
                   currentSortKey={sortKey}
                   toggleSort={toggleSort}
                   center={true}
-                  showCurrency={true}
                 />
               </th>
             ))}
           </tr>
         </thead>
+
         <tbody>
           {sortedWithOriginal.map((row) => (
-            <tr 
-              key={row.id} 
-              onClick={() => onSelectInvestment?.(row)} 
+            <tr
+              key={row.id}
+              onClick={() => onSelectInvestment?.(row)}
               className={onSelectInvestment ? "clickable-row" : ""}
             >
               <td className="col-name">
                 <div className="name-main">{row.name}</div>
                 <div className="name-sub">{row.sector}</div>
               </td>
-              {activeQuarters.filter((q) => showColumn(`cost:${q.id}`)).map((q) => (
+
+              {showColumn("cost") && activeQuarters.map((q) => (
                 <td key={`cost-${row.id}-${q.id}`} className="col-number">
                   {formatNumber(row.timeframes?.[q.id]?.cost)}
                 </td>
               ))}
               {showColumn("change_cost") && (
-                <td className="col-number col-diff">
-                  {getDiff(row, "cost")}
-                </td>
+                <td className="col-number col-diff">{getDiff(row, "cost")}</td>
               )}
-              {activeQuarters.filter((q) => showColumn(`fv:${q.id}`)).map((q) => (
+
+              {showColumn("fv") && activeQuarters.map((q) => (
                 <td key={`fv-${row.id}-${q.id}`} className="col-number">
                   {formatNumber(row.timeframes?.[q.id]?.fv)}
                 </td>
               ))}
               {showColumn("change_fv") && (
-                <td className="col-number col-diff">
-                  {getDiff(row, "fv")}
-                </td>
+                <td className="col-number col-diff">{getDiff(row, "fv")}</td>
               )}
-              {activeQuarters.filter((q) => showColumn(`divestment:${q.id}`)).map((q) => (
+
+              {showColumn("divestment") && activeQuarters.map((q) => (
                 <td key={`divestment-${row.id}-${q.id}`} className="col-number">
                   {formatNumber(row.timeframes?.[q.id]?.divestment)}
                 </td>
               ))}
-              {activeQuarters.filter((q) => showColumn(`dividends:${q.id}`)).map((q) => (
+
+              {showColumn("dividends") && activeQuarters.map((q) => (
                 <td key={`dividends-${row.id}-${q.id}`} className="col-number">
                   {formatNumber(row.timeframes?.[q.id]?.dividends)}
                 </td>
@@ -169,32 +167,32 @@ const PortfolioCompareTable = ({
 
           <tr className="fx-total-row">
             <td className="fx-total-label">Total</td>
-            {activeQuarters.filter((q) => showColumn(`cost:${q.id}`)).map((q) => (
+
+            {showColumn("cost") && activeQuarters.map((q) => (
               <td key={`tot-cost-${q.id}`} className="col-number">
                 {formatNumber(totalRow.timeframes?.[q.id]?.cost)}
               </td>
             ))}
             {showColumn("change_cost") && (
-              <td className="col-number col-total-diff">
-                {getDiff(totalRow, "cost")}
-              </td>
+              <td className="col-number col-total-diff">{getDiff(totalRow, "cost")}</td>
             )}
-            {activeQuarters.filter((q) => showColumn(`fv:${q.id}`)).map((q) => (
+
+            {showColumn("fv") && activeQuarters.map((q) => (
               <td key={`tot-fv-${q.id}`} className="col-number">
                 {formatNumber(totalRow.timeframes?.[q.id]?.fv)}
               </td>
             ))}
             {showColumn("change_fv") && (
-              <td className="col-number col-total-diff">
-                {getDiff(totalRow, "fv")}
-              </td>
+              <td className="col-number col-total-diff">{getDiff(totalRow, "fv")}</td>
             )}
-            {activeQuarters.filter((q) => showColumn(`divestment:${q.id}`)).map((q) => (
+
+            {showColumn("divestment") && activeQuarters.map((q) => (
               <td key={`tot-divestment-${q.id}`} className="col-number">
                 {formatNumber(totalRow.timeframes?.[q.id]?.divestment)}
               </td>
             ))}
-            {activeQuarters.filter((q) => showColumn(`dividends:${q.id}`)).map((q) => (
+
+            {showColumn("dividends") && activeQuarters.map((q) => (
               <td key={`tot-dividends-${q.id}`} className="col-number">
                 {formatNumber(totalRow.timeframes?.[q.id]?.dividends)}
               </td>

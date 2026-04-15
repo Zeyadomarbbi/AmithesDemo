@@ -1,5 +1,7 @@
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 
+import { WarningIcon, ErrorIcon } from "../Icons/MiscIcons";
+
 export function PageSpinner({ label = "Loading..." }) {
   return (
     <>
@@ -54,10 +56,9 @@ export function PageError({ message }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 18,
         color: '#ef4444',
       }}>
-        !
+        <ErrorIcon style={{ width: 20, height: 20 }} />
       </div>
       <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
         Failed to load data
@@ -90,10 +91,9 @@ export function PageNoData({ message = "No data available" }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 18,
         color: '#f59e0b',
       }}>
-        ▲
+        <WarningIcon style={{ width: 20, height: 20 }} />
       </div>
       <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
         No data found

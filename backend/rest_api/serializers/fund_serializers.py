@@ -152,7 +152,7 @@ class FundManFeeRuleSerializer(serializers.ModelSerializer):
         model = FundManFeeRules
         fields = [
             "fee_rule_id", "fund", "phase", "phase_name", 
-            "share_class", "share_class_name", "date_from", 
+            "share_class", "share_class_name", "date_from", "ppm_description",
             "date_until", "rate", "created_at", "created_by", "updated_at",
         ]
         read_only_fields = ["fee_rule_id", "fund", "created_at", "created_by", "updated_at"]

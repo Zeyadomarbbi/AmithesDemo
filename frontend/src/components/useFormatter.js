@@ -4,7 +4,6 @@ export const useNumberFormatter = () => {
   const formatNumber = useCallback((value) => {
     const num = parseFloat(value || 0);
     
-    // Check for NaN if the input string is not a valid number
     if (isNaN(num)) return '0.00';
 
     return num.toLocaleString('en-US', { 
@@ -20,16 +19,15 @@ export const usePercentageFormatter = () => {
   const formatPercentage = useCallback((value) => {
     const num = parseFloat(value || 0);
 
-    if (isNaN(num)) return '0.00%';
+    if (isNaN(num)) return '0.0000%';
 
-    return `${num.toFixed(2)}%`;
+    return `${num.toFixed(4)}%`;
   }, []);
 
   return formatPercentage;
 };
 
 export const useDateFormatter = () => {
-  /** DD/MM/YYYY */
   const formatDate = useCallback((dateStr) => {
     if (!dateStr) return '-';
 
@@ -41,4 +39,16 @@ export const useDateFormatter = () => {
   }, []);
 
   return formatDate;
+};
+
+export const useMoicFormatter = () => {
+  const formatMoic = useCallback((value) => {
+    const num = parseFloat(value || 0);
+
+    if (isNaN(num)) return '0.00x';
+
+    return `${num.toFixed(2)}x`;
+  }, []);
+
+  return formatMoic;
 };

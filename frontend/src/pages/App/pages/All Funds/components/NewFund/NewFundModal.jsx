@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useCurrencies } from "../../../../hooks/Reference/useCurrencies"; 
 import DateInputWithPicker from "../../../../../../components/DateComponents/DateInput";
-import SearchableSelect from "../../../../../../components/SearchBar/SearchableSelect.jsx";
 import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { CloseIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import "./NewFundModal.css";

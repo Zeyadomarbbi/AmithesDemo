@@ -58,7 +58,20 @@ export function useFundManagementFeeRules() {
         }
     };
 
-    return { fetchRules, createRule, updateRule, deleteRule, isLoading, error };
+    const bulkSaveRules = async (fundId, payloads) => {
+        setIsLoading(true);
+        try {
+            const data = await api.put(`/api/funds/${fundId}/man-fees-rules/bulk/`, payloads);
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return { fetchRules, createRule, updateRule, deleteRule, bulkSaveRules, isLoading, error };
 }
 
 export function useManagementFeePhases() {

@@ -120,7 +120,7 @@ class Timeframe(models.Model):
         on_delete=models.CASCADE
     )
 
-    name = models.CharField(max_length=20, null=False)
+    name = models.CharField(max_length=40, null=False)
     date = models.DateField(null=False)
     quarter = models.IntegerField()
     year = models.IntegerField()
@@ -148,8 +148,8 @@ class LimitedPartner(models.Model):
     )
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255, null=True, blank=True)
-    city = models.CharField(max_length=100)
-    zip_code = models.CharField(max_length=20)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    zip_code = models.CharField(max_length=20, null=True, blank=True)
     iban = models.CharField(max_length=34)
     bank_name = models.CharField(max_length=255)
     swift = models.CharField(max_length=11)

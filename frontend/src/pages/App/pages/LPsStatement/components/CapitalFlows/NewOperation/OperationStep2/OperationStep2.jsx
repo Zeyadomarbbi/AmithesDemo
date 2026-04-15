@@ -60,7 +60,6 @@ function parseMoney(value) {
   return any ? sum : null;
 }
 
-
 function getFlowRowAmount(flow, row, total, breakdown) {
   if (total === null || !Number.isFinite(total)) return null;
 
@@ -127,7 +126,10 @@ const OperationStep2 = forwardRef(function OperationStep2(
 ) {
   const formatNumber = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
+  
   const [isEditingEq, setIsEditingEq] = useState(false);
+  const [isEditingEqName, setIsEditingEqName] = useState(false);
+  const [eqFlowName, setEqFlowName] = useState("Equalization");
   const [showAddFlow, setShowAddFlow] = useState(false);
   const [flowPercentInputs, setFlowPercentInputs] = useState({});
   const outlet = useOutletContext() || {};
@@ -140,11 +142,11 @@ const OperationStep2 = forwardRef(function OperationStep2(
     return "capital_call";
   }, [operationType]);
 
-
   const isDistribution = opKind === "distribution";
   const totalsLabel = isDistribution ? "Distributed Amount (€)" : "Call Amount (€)";
   const { flowTypes, fetchFlowTypes, isLoading: isLoadingTypes } = useFlowTypes();
   const { flows: fetchedFlows, fetchFlows, isLoading: isLoadingCFFlowDetails } = useCapitalFlowFlowDetails(fundId, operationId);
+  
   const CAPITAL_CALL_NAMES = new Set([
     "investment",
     "due diligence fees",
@@ -204,6 +206,9 @@ const OperationStep2 = forwardRef(function OperationStep2(
              String(f.flow_name ?? "").toLowerCase() === "equalization";
       
       if (isEq) {
+        if (f.flow_name && f.flow_name.trim() !== "") {
+          setEqFlowName(f.flow_name);
+        }
         if (f.input_percentage !== null && f.input_percentage !== undefined) {
           const pctValue = parseFloat(f.input_percentage);
           loadedEqTargetInput = String(
@@ -224,8 +229,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
       });
       loadedTotals[fid] = isEq ? null : amount;
       loadedInputs[fid] = isEq ? "" : amount.toString();
-      console.log("[load flow]", f.flow_name, "flow_type_id:", f.flow_type_id);
-
     });
 
     if (typeof setDraft === "function") {
@@ -249,8 +252,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
     const alreadyHasEq = (draft?.flows ?? []).some(f => f.isSyntheticEqualization);
     
-    console.log("EQ inject check:", { eqFlowTypeId, alreadyHasEq, draftFlows: draft?.flows });
-
     if (alreadyHasEq || !eqFlowTypeId) return;
 
     setDraft(prev => ({
@@ -274,7 +275,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const safeDraft = draft || EMPTY_DRAFT;
   const breakdown = safeDraft.breakdown ?? "lps";
-  console.log("OperationStep2 render", { safeDraft, flows: safeDraft.flows, flowTotalInputs: safeDraft.flowTotalInputs, flowTotals: safeDraft.flowTotals });
+  
   const flows = (safeDraft.flows ?? []).filter(f => !f.isSyntheticEqualization);
   const flowTotalInputs = safeDraft.flowTotalInputs ?? {};
   const flowTotals = safeDraft.flowTotals ?? {};
@@ -355,7 +356,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
     return { byLp, byClass };
   }, [existingAllocations, operationNumber]);
-  console.log("historicalData", historicalData);
+
   const lpRows = useMemo(() => {
     const nameById = new Map();
     (Array.isArray(lps) ? lps : []).forEach((lp) => {
@@ -488,7 +489,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
     const eqFlowTypeId = (Array.isArray(flowTypes) ? flowTypes : []).find(
       (ft) => String(ft.name ?? "").toLowerCase() === "equalization"
     )?.flow_type_id ?? null;
-    console.log("opKind:", opKind, "isEqualization:", isEqualization, "operationType:", operationType);
 
     const newFlow = {
         id: `flow_${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -529,6 +529,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
           : "";
       setFlowPercentInputs((prev) => ({ ...prev, [flowId]: pct }));
   };
+
   const onChangeFlowPercent = (flowId, raw) => {
       const pct = parseMoney(raw);
       const newTotal = (pct !== null && Number.isFinite(pct) && totalCommitment > 0)
@@ -561,8 +562,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
   const totalsByRowId = useMemo(() => {
     const map = {};
-    const flowIds = flows.map((f) => f.id);
-    
     for (const r of rows) {
       const pct = r.ownershipPct;
       let sum = 0;
@@ -744,13 +743,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
     const mappedFlows = flows.map((f) => {
       const flowTotal = flowTotals[f.id] ?? null;
-
-      const perLpAmounts = rows
-        .map((r) => getFlowRowAmount(f, r, flowTotal, breakdown))
-        .filter((v) => v !== null && Number.isFinite(v));
-
       const computedTotalAmount = flowTotal;
-      console.log("[submitToNext] flow raw:", f.id, f.data);
 
       return {
         id: f.id,
@@ -779,7 +772,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
         id: fetchedEqFlow?.id || EQ_FLOW_SYNTHETIC_ID,
         operation_flow_id: fetchedEqFlow?.operation_flow_id ?? null,
         flow_type_id: eqFlowTypeId,
-        flow_name: "Equalization",
+        flow_name: eqFlowName || "Equalization",
         input_type: "percentage",
         input_amount: null,
         input_percentage: eqTargetPct !== null ? eqTargetPct * 100 : null,
@@ -790,10 +783,6 @@ const OperationStep2 = forwardRef(function OperationStep2(
             : 0,
       });
     }
-    console.log("[Step 2 → Next] flows:", mappedFlows);
-    console.log("[Step 2 → Next] perLp:", perLpOut);
-    console.log("[Step 2 → Next] grandTotal:", grandTotal);
-    console.log("[Step 2 → Next] grandPercent:", grandPercent);
 
     onNext({
       operationType: operationType || "Distribution",
@@ -806,7 +795,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
     onNext, operationType, flows, flowTotals, rows, totalsByRowId,
     grandPercent, isEqualization, eqByRowId, eqTargetPct, eqGrandTotal,
     breakdown, shareClassLookup, shareClasses, historicalData,
-    totalCommitment, flowTypes, draft
+    totalCommitment, flowTypes, draft, eqFlowName
   ]);
 
   useImperativeHandle(ref, () => ({ submitToNext }), [submitToNext]);
@@ -885,7 +874,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
             )}
           </div>
 
-          {/* COLUMN HEADERS ROW — all headers as siblings so tallest drives height */}
+          {/* COLUMN HEADERS ROW */}
           <div className="op2-col-headers-row" style={{ gridTemplateColumns: gridCols }}>
 
             {/* LPs / Share Class header */}
@@ -898,7 +887,44 @@ const OperationStep2 = forwardRef(function OperationStep2(
             {/* Equalization header */}
             {isEqualization && (
               <div className="op2-col-header op2-col-header--eq">
-                <label className="wf-label">Equalization</label>
+                
+                {/* Wrapped EQ Name Edit block identical to percentage box */}
+                <div className="wf-field-input" style={{ marginBottom: "2px" }}>
+                  {isEditingEqName ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      className="wf-text-input-inner"
+                      style={{ width: "100%", boxSizing: "border-box" }}
+                      value={eqFlowName}
+                      onChange={(e) => setEqFlowName(e.target.value)}
+                      onBlur={(e) => {
+                        if (!e.target.value.trim()) setEqFlowName("Equalization");
+                        setIsEditingEqName(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (!e.target.value.trim()) setEqFlowName("Equalization");
+                          setIsEditingEqName(false);
+                        }
+                      }}
+                      disabled={isSaving}
+                    />
+                  ) : (
+                    <div 
+                      className="wf-text-input-inner" 
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: isSaving ? "default" : "pointer", width: "100%", boxSizing: "border-box" }}
+                      onClick={() => !isSaving && setIsEditingEqName(true)}
+                    >
+                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {eqFlowName || "Equalization"}
+                      </span>
+                      <EditLineIcon />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Target Percentage */}
                 <div className="wf-field-input wf-input-with-unit">
                   {isEditingEq ? (
                     <>
@@ -936,6 +962,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                     </div>
                   )}
                 </div>
+
               </div>
             )}
 
@@ -956,7 +983,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
           </div>
 
-          {/* BODY — headers removed from inside each col */}
+          {/* BODY */}
           <div className="op2-body-row" style={{ gridTemplateColumns: gridCols }}>
 
             {/* LPs / Share Class column */}
@@ -980,7 +1007,7 @@ const OperationStep2 = forwardRef(function OperationStep2(
                   {rows.map((r) => {
                     const v = eqByRowId[r.id];
                     return (
-                      <div key={r.id} className="op2-row op2-row--right">
+                      <div key={r.id} className="op2-flow-cell">
                         <span className="op2-num">{v === null ? "-" : formatNumber(Number(v.toFixed(2)))}</span>
                       </div>
                     );
@@ -1054,16 +1081,16 @@ const OperationStep2 = forwardRef(function OperationStep2(
 
             {isEqualization && (
               <div className="op2-footer-cell">
-                  <div className="op2-footer-total-input">
-                      <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(Number(eqGrandTotal.toFixed(2)))}</span>
-                      <span><EuroCurrencyIcon /></span>
-                  </div>
-                  <div className="op2-footer-percent">
-                      <div className="op2-footer-total-input">
-                          <span className="op2-footer-dash">{eqGrandTotalPct === null ? "-" : eqGrandTotalPct.toFixed(2)}</span>
-                          <span><PercentageIcon /></span>
-                      </div>
-                  </div>
+                <div className="op2-footer-total-input">
+                    <span className="op2-footer-dash">{eqGrandTotal === null ? "-" : formatNumber(Number(eqGrandTotal.toFixed(2)))}</span>
+                    <span><EuroCurrencyIcon /></span>
+                </div>
+                <div className="op2-footer-percent">
+                    <div className="op2-footer-total-input">
+                        <span className="op2-footer-dash">{eqGrandTotalPct === null ? "-" : eqGrandTotalPct.toFixed(2)}</span>
+                        <span><PercentageIcon /></span>
+                    </div>
+                </div>
               </div>
             )}
 
@@ -1119,13 +1146,17 @@ const OperationStep2 = forwardRef(function OperationStep2(
             </div>
 
             <div className="op2-footer-cell">
-              <div className="op2-footer-total-input">
-                  <span className="op2-footer-dash">{grandTotal === null ? "-" : formatNumber(grandTotal)}</span>
+              <div className="op2-footer-total-input op2-disabled-input">
+                  <span className="op2-footer-dash">
+                    {grandTotal === null ? "-" : formatNumber(grandTotal)}
+                  </span>
                   <span><EuroCurrencyIcon /></span>
               </div>
               <div className="op2-footer-percent">
-                  <div className="op2-footer-total-input">
-                      <span className="op2-footer-dash">{grandPercent === null ? "-" : formatPercent(grandPercent)}</span>
+                  <div className="op2-footer-total-input op2-disabled-input">
+                      <span className="op2-footer-dash">
+                        {grandPercent === null ? "-" : formatPercent(grandPercent)}
+                      </span>
                       <span><PercentageIcon /></span>
                   </div>
               </div>

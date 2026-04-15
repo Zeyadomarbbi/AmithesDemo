@@ -167,3 +167,12 @@
   color: #111827;
   box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
 }
+
+.cf-row--clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.cf-row--clickable:hover {
+    background-color: var(--background-hover, #f9fafb); /* Use your app's hover color */
+}

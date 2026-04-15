@@ -42,25 +42,6 @@ function buildClassColorMap(uniqueClasses) {
 function formatAmount(num) {
   return (Number(num) || 0).toLocaleString("fr-FR");
 }
-
-function formatPercent(num) {
-  return `${(Number(num) || 0).toFixed(2)}%`;
-}
-
-function getInitials(name) {
-  if (!name) return "LP";
-  return name.split(" ").filter(n => n).map(n => n[0]).join("").toUpperCase().slice(0, 2);
-}
-
-function getClassColor(name) {
-  if (!name) return "tag-gray";
-  const n = String(name).toLowerCase();
-  if (n.includes("a1")) return "tag-purple";
-  if (n.includes("a2")) return "tag-green";
-  if (n.includes("b")) return "tag-yellow";
-  return "tag-blue";
-}
-
 /**
  * Main Data Transformer
  * Filters by fundId and groups Commitments by LP + Share Class
@@ -235,11 +216,14 @@ export default function LPsRegister() {
   }, [summaryData.summaryRows, searchTerm, activeClass]);
 
   const tableColumns = useMemo(() => {
-    return (fundClosings || []).map((fc) => ({
-      id:   fc.lps_fund_closing_period_id,
-      name: fc.closing_name || `Closing ${fc.date}`,
-      date: fc.date,
-    }));
+    return (fundClosings || [])
+      .slice()
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map((fc) => ({
+        id:   fc.lps_fund_closing_period_id,
+        name: fc.closing_name || `Closing ${fc.date}`,
+        date: fc.date,
+      }));
   }, [fundClosings]);
 
   // NEW: Identify which closings have active commitments
@@ -422,7 +406,11 @@ export default function LPsRegister() {
                               <span className="item-label-bold">{col.name}</span>
                               <div className="item-details-group">
                                 <span className="item-arrow-icon"><RightArrowIcon /></span>
-                                <span className="item-date">{col.date || "-"}</span>
+                                <span className="item-date">
+                                {col.date
+                                    ? col.date.split('-').reverse().join('/')
+                                    : ''}
+                                </span>
                               </div>
                             </div>
                             

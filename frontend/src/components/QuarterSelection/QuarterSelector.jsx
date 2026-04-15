@@ -41,6 +41,7 @@ function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onD
 
     const filteredOptions = useMemo(() => {
         return options.filter(opt => {
+            
             const label = String(opt.display_label || "").toLowerCase();
             const date = String(opt.date || "").toLowerCase();
             const query = searchTerm.toLowerCase();
@@ -49,7 +50,7 @@ function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onD
     }, [options, searchTerm]);
 
     const isAtLimit = !isSingle && maxSelections !== null && validSelection.length >= maxSelections;
-
+    
     return (
         <div className="quarter-selector-container" ref={wrapperRef}>
             <div 
@@ -73,6 +74,7 @@ function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onD
                     <div className="quarter-list">
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((item) => {
+                                
                                 const isActive = isSingle
                                     ? Number(validSelection) === Number(item.id)
                                     : validSelection.includes(item.id);
@@ -97,7 +99,14 @@ function QuarterSelector({ options = [], selected,  onChange, onAdd, onEdit, onD
                                             <span className="item-label-bold">{item.display_label}</span>
                                             <div className="item-details-group">
                                                 <span className="item-arrow-icon"><RightArrowIcon /></span>
-                                                <span className="item-date">{item.date}</span>
+                                                <span className="item-date">
+                                                {item.date
+                                                ? (() => {
+                                                    const [m, d, y] = item.date.split('/');
+                                                    return `${d}/${m}/${y}`;
+                                                    })()
+                                                : ''}
+                                                </span>
                                             </div>
                                         </div>
 

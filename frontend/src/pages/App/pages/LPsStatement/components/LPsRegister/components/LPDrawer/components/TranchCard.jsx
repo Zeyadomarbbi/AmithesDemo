@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from "react";
 import SimpleDropdown from "../../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import { useNumberFormatter } from "../../../../../../../../../components/useFormatter.js";
 import { MoreActionsIcon, EditIcon, DeleteIcon } from "../../../../../../../../../components/Icons/InteractiveIcons.jsx";
-import { EuroCurrencyIcon } from "../../../../../../../../../components/Icons/FinancialIcons.jsx";
 
 export default function TranchCard({ 
   tranch, 
@@ -125,6 +124,7 @@ export default function TranchCard({
       </>
     );
   }
+  const isTranchInvalid = !tranch.shareClassId || !tranch.currencyId || !tranch.commitment || !tranch.closingId;
 
   // --- EXPANDED / FORM VIEW ---
   return (
@@ -174,9 +174,6 @@ export default function TranchCard({
               placeholder="0.00"
               disabled={isSubmitting}
             />
-            <span className="lp-drawer-field-icon-suffix">
-              <EuroCurrencyIcon />
-            </span>
           </div>
         </div>
 
@@ -197,7 +194,7 @@ export default function TranchCard({
           type="button"
           className="lp-drawer-btn-primary-wide shares-save-btn"
           onClick={() => onSaveTranche(realIndex)}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isTranchInvalid}
         >
           Save
         </button>

@@ -8,35 +8,51 @@ const AddNewTimeframeModal = ({
     isOpen, 
     onClose, 
     onSave, 
-    onDelete, // New prop for deletion
-    editData = null, // New prop to detect edit mode
+    onDelete,
+    editData = null,
     existingDates = [] 
 }) => {
     const [endDate, setEndDate] = useState(new Date());
     const [name, setName] = useState('');
     const [isManualName, setIsManualName] = useState(false);
+    const [originalName, setOriginalName] = useState('');
+    const [originalDate, setOriginalDate] = useState(null);
 
     const isEditMode = !!editData;
 
-    // Initialize/Reset Logic
+    const parseRawDate = (rawDate) => {
+        if (!rawDate) return new Date();
+        if (rawDate instanceof Date) return rawDate;
+        if (typeof rawDate === 'string') {
+            const parsed = rawDate.includes('T')
+                ? new Date(rawDate)
+                : new Date(rawDate.replace(/-/g, '/'));
+            return isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+        return new Date();
+    };
+
     useEffect(() => {
         if (isOpen) {
             if (editData) {
-                // Edit Mode: Populate existing data
-                setName(editData.display_label || editData.name);
-                // Ensure date parsing (handle YYYY-MM-DD strings)
-                setEndDate(new Date(editData.date || editData.endDate));
+                const resolvedName = editData.display_label || editData.name || '';
+                const resolvedDate = parseRawDate(editData.date || editData.endDate);
+
+                setName(resolvedName);
+                setOriginalName(resolvedName);
+                setEndDate(resolvedDate);
+                setOriginalDate(resolvedDate);
                 setIsManualName(true);
             } else {
-                // Add Mode: Reset to defaults
                 setEndDate(new Date(new Date().getFullYear() + 1, 2, 31));
                 setName('');
+                setOriginalName('');
+                setOriginalDate(null);
                 setIsManualName(false);
             }
         }
-    }, [isOpen, editData]);
+    }, [isOpen, editData?.id, editData?.date, editData?.endDate]);
 
-    // Auto-generate name logic (Add mode only)
     useEffect(() => {
         if (!isEditMode && endDate && !isManualName) {
             const year = endDate.getFullYear();
@@ -47,6 +63,10 @@ const AddNewTimeframeModal = ({
     }, [endDate, isManualName, isEditMode]);
 
     if (!isOpen) return null;
+
+    const hasChanged = isEditMode
+        ? (name !== originalName || endDate?.toDateString() !== originalDate?.toDateString())
+        : true;
 
     const handleNameChange = (e) => {
         const value = e.target.value;
@@ -59,37 +79,27 @@ const AddNewTimeframeModal = ({
     };
 
     const handleSave = () => {
-        const monthStr = String(endDate.getMonth() + 1).padStart(2, '0');
-        const dayStr = String(endDate.getDate()).padStart(2, '0');
-        const yearShort = String(endDate.getFullYear()).slice(-2);
-        const formattedCurrentDate = `${monthStr}/${dayStr}/${yearShort}`;
-
-        // Validation: Only check duplicates if the date has actually changed
-        const originalFormattedDate = editData ? 
-            (() => {
-                const d = new Date(editData.date);
-                return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
-            })() : null;
-
-        if (formattedCurrentDate !== originalFormattedDate && existingDates.includes(formattedCurrentDate)) {
-            alert(`The date ${formattedCurrentDate} already exists.`);
-            return;
-        }
-
         const year = endDate.getFullYear();
         const month = String(endDate.getMonth() + 1).padStart(2, '0');
         const day = String(endDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
-        // Return ID if editing so the parent knows which record to update
-        onSave({ 
-            id: editData?.id, 
-            name, 
-            endDate: dateString 
-        });
+        const originalDateString = editData?.date
+            ? (() => {
+                const d = parseRawDate(editData.date);
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            })()
+            : null;
+
+        if (dateString !== originalDateString && existingDates.includes(dateString)) {
+            alert(`The date ${dateString} already exists.`);
+            return;
+        }
+
+        onSave({ id: editData?.id, name, endDate: dateString });
         onClose();
     };
-
+    
     const handleDelete = () => {
         onDelete(editData.id);
         onClose();
@@ -149,7 +159,7 @@ const AddNewTimeframeModal = ({
                         <button 
                             className="antfm-btn antfm-btn-save" 
                             onClick={handleSave}
-                            disabled={!name.trim()}
+                            disabled={!name.trim() || !hasChanged}
                         >
                             {isEditMode ? 'Update' : 'Save'}
                         </button>

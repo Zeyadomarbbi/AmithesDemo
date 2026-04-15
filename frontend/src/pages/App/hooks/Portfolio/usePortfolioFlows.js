@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import useApi from "../../../../hooks/api/useApi";
 
+const toSafeArray = (value) => (Array.isArray(value) ? value : []);
+
 export const usePortfolioFlows = (fundId, investmentId) => {
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [flows, setFlows] = useState([]);
+  const [fairValues, setFairValues] = useState([]);
 
-  /**
-   * FETCH FLOWS
-   */
   const fetchFlows = useCallback(async (scenarioId = null) => {
     if (!investmentId) return;
     setLoading(true);
@@ -16,26 +16,19 @@ export const usePortfolioFlows = (fundId, investmentId) => {
       const endpoint = scenarioId
         ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
         : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
-      
-      const data = await api.get(endpoint);
-      
-      const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-      setFlows(sortedData);
+      const data = toSafeArray(await api.get(endpoint));
+      setFlows([...data].sort((a, b) => new Date(a.date) - new Date(b.date)));
     } catch (err) {
-      console.error("Failed to fetch combined flows:", err.message);
+      console.error("Failed to fetch flows:", err.message);
     } finally {
       setLoading(false);
     }
   }, [fundId, investmentId, api]);
 
-  /**
-   * CREATE FLOW
-   */
-  const createFlow = async (scenarioId, payload) => {
+  const createFlow = async (scenarioId = null, payload) => {
     const endpoint = scenarioId
       ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/`
       : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/`;
-    
     try {
       const data = await api.post(endpoint, { ...payload, scenario_id: scenarioId });
       fetchFlows(scenarioId);
@@ -46,14 +39,10 @@ export const usePortfolioFlows = (fundId, investmentId) => {
     }
   };
 
-  /**
-   * DELETE FLOW
-   */
-  const deleteFlow = async (scenarioId, flowId) => {
+  const deleteFlow = async (scenarioId = null, flowId) => {
     const endpoint = scenarioId
       ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
       : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
-    
     try {
       await api.delete(endpoint);
       fetchFlows(scenarioId);
@@ -62,14 +51,10 @@ export const usePortfolioFlows = (fundId, investmentId) => {
     }
   };
 
-  /**
-   * UPDATE FLOW (PATCH)
-   */
-  const updateFlow = async (scenarioId, flowId, payload) => {
+  const updateFlow = async (scenarioId = null, flowId, payload) => {
     const endpoint = scenarioId
       ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/flows/${flowId}/`
       : `/api/funds/${fundId}/portfolio-investments/${investmentId}/flows/${flowId}/`;
-    
     try {
       const data = await api.patch(endpoint, payload);
       fetchFlows(scenarioId);
@@ -80,12 +65,64 @@ export const usePortfolioFlows = (fundId, investmentId) => {
     }
   };
 
+  // --- FAIR VALUES ---
+
+  const fetchFairValues = useCallback(async (scenarioId = null) => {
+    if (!investmentId) return;
+    setLoading(true);
+    try {
+      const endpoint = scenarioId
+        ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/fair-values/`
+        : `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`;
+      const data = toSafeArray(await api.get(endpoint));
+      setFairValues([...data].sort((a, b) => new Date(a.date) - new Date(b.date)));
+    } catch (err) {
+      console.error("Failed to fetch fair values:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [fundId, investmentId, api]);
+
+  const saveFairValue = async (scenarioId = null, payload) => {
+    const existingId = payload.fairValueId ?? payload.id ?? null;
+    const base = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/fair-values/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/`;
+    const endpoint = existingId ? `${base}${existingId}/` : base;
+    try {
+      const data = existingId
+        ? await api.put(endpoint, payload)
+        : await api.post(endpoint, { ...payload, scenario_id: scenarioId });
+      fetchFairValues(scenarioId);
+      return data;
+    } catch (err) {
+      console.error("Fair value save failed:", err.message);
+      throw err;
+    }
+  };
+
+  const deleteFairValue = async (scenarioId = null, fairValueId) => {
+    const endpoint = scenarioId
+      ? `/api/funds/${fundId}/scenario_list/${scenarioId}/portfolio-investments/${investmentId}/fair-values/${fairValueId}/`
+      : `/api/funds/${fundId}/portfolio-investments/${investmentId}/fair-values/${fairValueId}/`;
+    try {
+      await api.delete(endpoint);
+      fetchFairValues(scenarioId);
+    } catch (err) {
+      console.error("Fair value deletion failed:", err.message);
+    }
+  };
+
   return {
     flows,
+    fairValues,
     loading,
     fetchFlows,
     createFlow,
     updateFlow,
-    deleteFlow
+    deleteFlow,
+    fetchFairValues,
+    saveFairValue,
+    deleteFairValue,
   };
 };

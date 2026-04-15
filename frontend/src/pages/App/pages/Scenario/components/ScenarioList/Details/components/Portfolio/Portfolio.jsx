@@ -28,16 +28,33 @@ const cleanNumber = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const bruteXirr = (cashflows) => {
+  const npv = (r) =>
+    cashflows.reduce((sum, cf) => {
+      const t = (cf.date - cashflows[0].date) / (365 * 24 * 3600 * 1000);
+      return sum + cf.amount / Math.pow(1 + r, t);
+    }, 0);
+
+  let low = -0.999;
+  let high = 1;
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    const val = npv(mid);
+
+    if (Math.abs(val) < 1e-6) return mid;
+    if (val > 0) low = mid;
+    else high = mid;
+  }
+
+  return null;
+};
+
 const safeXirr = (cashflows) => {
   try {
-    if (!cashflows || cashflows.length < 2) return null;
-    const hasPos = cashflows.some((c) => c.amount > 0);
-    const hasNeg = cashflows.some((c) => c.amount < 0);
-    if (!hasPos || !hasNeg) return null;
     return xirrLib(cashflows);
-  } catch (err) {
-    console.error("XIRR Lib Error:", err);
-    return null;
+  } catch {
+    return bruteXirr(cashflows);
   }
 };
 
