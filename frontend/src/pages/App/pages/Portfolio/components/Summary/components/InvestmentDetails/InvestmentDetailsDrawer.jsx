@@ -6,7 +6,7 @@ import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../compone
 import { useNumberFormatter, usePercentageFormatter, useDateFormatter, useMoicFormatter } from "../../../../../../../../components/useFormatter.js";
 import { usePortfolioFlows } from "../../../../../../hooks/Portfolio/usePortfolioFlows.js";
 import { usePortfolioTransactionTypes } from "../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
-import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics, calcIrrSafely  } from "../../PortfolioHelpers";
+import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics, calcIrrSafely } from "../../PortfolioHelpers";
 
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
@@ -86,6 +86,7 @@ export default function InvestmentDetailsDrawer({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const flowIdRef = useRef(1);
   
   const formatNumber  = useNumberFormatter();
@@ -175,24 +176,24 @@ export default function InvestmentDetailsDrawer({
     );
     setFlows(rawFlows.map(mapFlowFromApi));
     if (!fairValueDateLabel) {
-      setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0); return;
-    }
-    const rawFairValues = currentInvestment.fair_value_flows || [];
-    const match = rawFairValues.find((fv) => String(fv.date) === String(fairValueDateLabel));
-    if (match) {
-      setFairValueId(match.fair_value_id ?? match.id ?? null);
-      setFairValueFxRate(match.fx_rate ?? match.fxRate ?? 0);
-      setFairValueAmountLC(match.amount_lc ?? match.amountLC ?? 0);
-    } else {
       setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0);
+    } else {
+      const rawFairValues = currentInvestment.fair_value_flows || [];
+      const match = rawFairValues.find((fv) => String(fv.date) === String(fairValueDateLabel));
+      if (match) {
+        setFairValueId(match.fair_value_id ?? match.id ?? null);
+        setFairValueFxRate(match.fx_rate ?? match.fxRate ?? 0);
+        setFairValueAmountLC(match.amount_lc ?? match.amountLC ?? 0);
+      } else {
+        setFairValueId(null); setFairValueFxRate(0); setFairValueAmountLC(0);
+      }
     }
+    setIsDirty(false);
   }, [currentInvestment, fairValueDateLabel, mapFlowFromApi]);
 
   const fairValueAmount = useMemo(() => {
     return toNumber(fairValueAmountLC) / toNumber(fairValueFxRate);
   }, [fairValueFxRate, fairValueAmountLC]);
-
-
 
   const sumsByTypeEuro = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
@@ -321,6 +322,7 @@ export default function InvestmentDetailsDrawer({
   const moicExclLC = totals?.moicExclLC ?? 0;
 
   const handleAddFlow = (initialFlow = null) => {
+    setIsDirty(true);
     setFlows((prev) => [
       ...prev,
       initialFlow
@@ -330,6 +332,7 @@ export default function InvestmentDetailsDrawer({
   };
 
   const handleUpdateFlow = (id, field, value) => {
+    setIsDirty(true);
     setFlows((prev) =>
       prev.map((f) => {
         if (f.id !== id) return f;
@@ -345,7 +348,11 @@ export default function InvestmentDetailsDrawer({
   const handleDeleteFlow = async (id) => {
     const targetFlow = flows.find((f) => f.id === id);
     if (!targetFlow) return;
-    if (!targetFlow.flowId) { setFlows((prev) => prev.filter((f) => f.id !== id)); return; }
+    if (!targetFlow.flowId) { 
+      setFlows((prev) => prev.filter((f) => f.id !== id)); 
+      setIsDirty(true);
+      return; 
+    }
     try {
       await apiDeleteFlow(null, targetFlow.flowId);
       setFlows((prev) => prev.filter((f) => f.id !== id));
@@ -447,6 +454,7 @@ export default function InvestmentDetailsDrawer({
       await Promise.all(requests);
       if (onSaved) await onSaved();
       
+      setIsDirty(false);
       showToast({ type: "success", title: "Portfolio saved", message: "Investment details have been saved successfully." });
       onClose();
     } catch (err) {
@@ -560,7 +568,10 @@ export default function InvestmentDetailsDrawer({
                   step="any"
                   value={fairValueFxRate === 0 ? "" : fairValueFxRate}
                   placeholder="0"
-                  onChange={(e) => setFairValueFxRate(e.target.value)}
+                  onChange={(e) => {
+                    setFairValueFxRate(e.target.value);
+                    setIsDirty(true);
+                  }}
                   onWheel={noScroll}
                 />
               ) : (
@@ -576,7 +587,10 @@ export default function InvestmentDetailsDrawer({
                   step="any"
                   value={fairValueAmountLC === 0 ? "" : fairValueAmountLC}
                   placeholder="0"
-                  onChange={(e) => setFairValueAmountLC(e.target.value)}
+                  onChange={(e) => {
+                    setFairValueAmountLC(e.target.value);
+                    setIsDirty(true);
+                  }}
                   onWheel={noScroll}
                 />
               ) : (
@@ -616,7 +630,13 @@ export default function InvestmentDetailsDrawer({
         <PermissionGate>
           <div className="invDrawerFooter">
             <button className="invFooterBtn invBtnCancel" onClick={onClose}>Cancel</button>
-            <button className="invFooterBtn invBtnSave" onClick={handleSave}>Save</button>
+            <button 
+              className="invFooterBtn invBtnSave" 
+              onClick={handleSave} 
+              disabled={!isDirty || isMutating}
+            >
+              Save
+            </button>
           </div>
         </PermissionGate>
       </aside>
