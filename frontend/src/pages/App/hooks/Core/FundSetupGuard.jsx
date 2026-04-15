@@ -6,7 +6,7 @@ const FundSetupGuard = ({ children }) => {
   const { funds, isLoading } = useFundData();
   const location = useLocation();
 
-  if (isLoading) return <div>Checking fund status...</div>;
+  if (isLoading) return <div></div>;
 
   const fund = funds.find(f => String(f.id) === String(fundId));
   

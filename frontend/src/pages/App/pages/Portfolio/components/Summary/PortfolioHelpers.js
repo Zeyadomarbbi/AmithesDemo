@@ -1,6 +1,6 @@
 /**
  * PortfolioHelpers.js
- * * Logic to classify investments into Realized, Unrealized, or Unallocated
+ * Logic to classify investments into Realized, Unrealized, or Unallocated
  * buckets based on transaction history and a cutoff date.
  */
 import { xirr } from "@webcarrot/xirr";
@@ -9,7 +9,7 @@ const toNumber = (v) => Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
 
 /**
  * Classifies investments into portfolio buckets based on flows up to a specific date.
- * * @param {Array} investments - Array of investment objects from the portfolio.
+ * @param {Array} investments - Array of investment objects from the portfolio.
  * @param {String|Date} timeframeDate - The cutoff date for the calculation.
  * @returns {Array} List of objects: { investment: Object, status: 'unrealized' | 'realized' | 'unallocated' }
  */
@@ -21,7 +21,11 @@ export const classifyInvestmentsByTimeframe = (investments, timeframeDate) => {
 
   investments.forEach((inv) => {
     const flows = Array.isArray(inv.transaction_flows) ? inv.transaction_flows : [];
-    
+    const hasInvestment = flows.some(f => String(f.transaction_name).toLowerCase() === "investment");
+    if (!hasInvestment) {
+      results.push({ investment: inv, status: "unallocated" });
+      return;
+    }
     // 1. Filter flows by date and exclusion status
     const effectiveFlows = flows.filter((f) => {
       const flowDate = new Date(f.date);
@@ -45,8 +49,6 @@ export const classifyInvestmentsByTimeframe = (investments, timeframeDate) => {
       if (type === "divestment") {
         hasFullDivestmentTrigger = true;
       } else if (type === "partial divestment") {
-        // Backend stores percent. Assuming 1.0 = 10% based on your previous logic
-        // Adjust if your DB stores 10.0 for 10%.
         totalDivestmentPercent += (toNumber(f.divestment_percentage) * 10);
       }
     });
@@ -71,9 +73,6 @@ export const classifyInvestmentsByTimeframe = (investments, timeframeDate) => {
 };
 
 /**
- * Construct cashflows and calculate metrics for a specific investment entry.
- */
-/**
  * Calculates aggregate metrics (Subtotals/Totals) for a group of calculated rows.
  * Handles blended IRR by combining all individual pro-rata cashflows.
  */
@@ -95,25 +94,42 @@ export const calculateSubtotalMetrics = (rows) => {
     }
   });
 
-  let blendedIrr = 0;
+  let blendedIrr = null; // Default to null, not 0
+  
   try {
-    if (combinedCashflows.length >= 2) {
+    if (combinedCashflows.length >= 1) {
       const hasPos = combinedCashflows.some(c => c.amount > 0);
       const hasNeg = combinedCashflows.some(c => c.amount < 0);
-      if (hasPos && hasNeg) {
+      
+      if (hasNeg && !hasPos) {
+        // Total loss scenario (money went out, nothing came back)
+        blendedIrr = -1; 
+      } else if (hasPos && hasNeg) {
         // Sort chronologically for XIRR
         const sorted = [...combinedCashflows].sort((a, b) => a.date - b.date);
-        blendedIrr = xirr(sorted);
+        try {
+          blendedIrr = xirr(sorted);
+        } catch (err) {
+          // If standard XIRR fails (often happens with deeply negative returns), try a negative guess
+          try {
+            blendedIrr = xirr(sorted, { guess: -0.5 });
+          } catch (fallbackErr) {
+            console.warn("Blended IRR calculation failed to converge:", fallbackErr);
+            blendedIrr = null;
+          }
+        }
       }
     }
   } catch (e) {
-    console.warn("Blended IRR calculation failed:", e);
+    console.warn("Blended IRR data construction failed:", e);
   }
 
   return { cost, dividends, value, gain, moicIncl, moicExcl, irr: blendedIrr };
 };
 
-// Update calculatePortfolioMetrics to include the 'internalCashflows' property
+/**
+ * Construct cashflows and calculate metrics for a specific investment entry.
+ */
 export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
   const cutoff = new Date(timeframeDate);
 
@@ -128,6 +144,7 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     const firstInvestmentDate = investmentFlows.length > 0 
       ? investmentFlows.reduce((min, f) => new Date(f.date) < new Date(min) ? f.date : min, investmentFlows[0].date)
       : null;
+
     let totalDivestmentPercent = 0;
     flows.forEach((f) => {
       const type = String(f.transaction_name || "").toLowerCase();
@@ -181,18 +198,40 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
       }
     });
 
-    if (status === "unrealized" && latestFVObj && fairValue !== 0) {
-      cashflows.push({ date: new Date(latestFVObj.date), amount: fairValue });
+    if (status === "unrealized" && latestFVObj) {
+      cashflows.push({ 
+        date: new Date(latestFVObj.date), 
+        amount: fairValue // Push the 0.00 here
+      });
     }
 
-    let grossIrr = 0;
+    let grossIrr = null; // Default to null
     try {
-      if (cashflows.length >= 2) {
+      if (cashflows.length >= 1) {
         const hasPos = cashflows.some(c => c.amount > 0);
         const hasNeg = cashflows.some(c => c.amount < 0);
-        if (hasPos && hasNeg) grossIrr = xirr(cashflows);
+        
+        if (hasNeg && !hasPos) {
+          // Total loss scenario
+          grossIrr = -1;
+        } else if (hasPos && hasNeg) {
+          // Sort chronologically for XIRR
+          const sortedCashflows = [...cashflows].sort((a, b) => a.date - b.date);
+          try {
+            grossIrr = xirr(sortedCashflows);
+          } catch (err) {
+             // Fallback for deeply negative IRRs
+            try {
+              grossIrr = xirr(sortedCashflows, { guess: -0.5 });
+            } catch (fallbackErr) {
+              grossIrr = null;
+            }
+          }
+        }
       }
-    } catch (e) { console.warn("IRR failed", e); }
+    } catch (e) { 
+      console.warn(`IRR Calc failed for ${investment.name}:`, e); 
+    }
 
     return {
       id: `${investment.investment_id}-${status}`,
@@ -216,4 +255,3 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     };
   });
 };
-
