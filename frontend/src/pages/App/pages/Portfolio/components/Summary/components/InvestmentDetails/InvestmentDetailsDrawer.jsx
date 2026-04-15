@@ -190,23 +190,37 @@ export default function InvestmentDetailsDrawer({
 
   const sumsByTypeEuro = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+
     flows.forEach((f) => {
-      const t = canonicalType(f.type);
+      const canonical = canonicalType(f.type);
+      const bucket = canonical === "Partial divestment" ? "Divestment" : canonical;
+
       const lc = Math.abs(toNumber(f.amountLC));
       const fx = toNumber(f.fxRate);
       const eur = fx ? lc / fx : 0;
-      if (sums[t] !== undefined) sums[t] += eur;
+
+      if (sums[bucket] !== undefined) {
+        sums[bucket] += eur;
+      }
     });
+
     return sums;
   }, [flows]);
 
   const sumsByTypeLC = useMemo(() => {
     const sums = Object.fromEntries(FLOW_TYPES.map((t) => [t, 0]));
+
     flows.forEach((f) => {
-      const t = canonicalType(f.type);
+      const canonical = canonicalType(f.type);
+      const bucket = canonical === "Partial divestment" ? "Divestment" : canonical;
+
       const lc = Math.abs(toNumber(f.amountLC));
-      if (sums[t] !== undefined) sums[t] += lc;
+
+      if (sums[bucket] !== undefined) {
+        sums[bucket] += lc;
+      }
     });
+
     return sums;
   }, [flows]);
 
@@ -435,14 +449,6 @@ export default function InvestmentDetailsDrawer({
               ? 100
               : null,
         };
-        console.log("FLOW PAYLOAD:", {
-  flowId: f.flowId,
-  type: f.type,
-  rawDivestmentPct: f.divestmentPercentage,
-  computedDivestmentPct: divestmentPct,
-  backendDivestmentPct: payload.divestment_percentage,
-  payload,
-});
         
         if (f.flowId) {
           return updateFlow(null, f.flowId, payload);
@@ -450,7 +456,6 @@ export default function InvestmentDetailsDrawer({
           return createFlow(null, payload);
         }
       });
-      console.log("VALID FLOWS INPUT:", validFlows);
       const requests = [...flowRequests];
       const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
       
