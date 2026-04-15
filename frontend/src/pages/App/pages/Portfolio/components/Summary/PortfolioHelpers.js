@@ -8,6 +8,28 @@ import { xirr } from "@webcarrot/xirr";
 const toNumber = (v) => Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
 
 // Internal helper to handle XIRR edge cases for both Base and LC cashflows
+export const bruteXirr = (cashflows) => {
+  const npv = (r) =>
+    cashflows.reduce((sum, cf) => {
+      const t = (cf.date - cashflows[0].date) / (365 * 24 * 3600 * 1000);
+      return sum + cf.amount / Math.pow(1 + r, t);
+    }, 0);
+
+  let low = -0.999;
+  let high = 100; // Expanded upper bound to handle high-growth scenarios > 100%
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    const val = npv(mid);
+
+    if (Math.abs(val) < 1e-6) return mid;
+    if (val > 0) low = mid;
+    else high = mid;
+  }
+
+  return null;
+};
+
 export const calcIrrSafely = (flowsArray) => {
   let irr = null;
   try {
@@ -16,7 +38,7 @@ export const calcIrrSafely = (flowsArray) => {
       const hasNeg = flowsArray.some(c => c.amount < 0);
       
       if (hasNeg && !hasPos) {
-        irr = -1; // Total loss scenario
+        irr = -1;
       } else if (hasPos && hasNeg) {
         const sorted = [...flowsArray].sort((a, b) => a.date - b.date);
         try {
@@ -25,7 +47,7 @@ export const calcIrrSafely = (flowsArray) => {
           try {
             irr = xirr(sorted, { guess: -0.5 });
           } catch (fallbackErr) {
-            irr = null;
+            irr = bruteXirr(sorted);
           }
         }
       }

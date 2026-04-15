@@ -2,14 +2,14 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { xirr as xirrLib } from "@webcarrot/xirr";
 import { PermissionGate } from "../../../../../../../../../../../hooks/Auth/PermissionGate";
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
-import { DoubleArrowLeftIcon } from '/src/components/Icons/DirectionIcons';
-import { EditIcon, DeleteIcon } from '/src/components/Icons/InteractiveIcons';
+import { DoubleArrowLeftIcon } from "/src/components/Icons/DirectionIcons";
+import { EditIcon, DeleteIcon } from "/src/components/Icons/InteractiveIcons";
 import { usePortfolioFlows } from "../../../../../../../../../hooks/Portfolio/usePortfolioFlows";
 import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../../../../components/useFormatter.js";
-import Toast from '../../../../../../../../../components/Toast/Toast.jsx';
-import Prompt from '../../../../../../../../../components/Toast/Prompt.jsx';
+import Toast from "../../../../../../../../../components/Toast/Toast.jsx";
+import Prompt from "../../../../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentPopup/NewInvestmentModal.jsx";
-import "/src/pages/App/pages/Portfolio/components/Summary/components/InvestmentDetails/InvestmentDetails.css"
+import "/src/pages/App/pages/Portfolio/components/Summary/components/InvestmentDetails/InvestmentDetails.css";
 
 const FLOW_TYPES = ["Investment", "Dividend", "Interest", "Other", "Divestment"];
 
@@ -55,15 +55,33 @@ const round6 = (n) => {
   return Number.isFinite(v) ? Number(v.toFixed(6)) : 0;
 };
 
+const bruteXirr = (cashflows) => {
+  const npv = (r) =>
+    cashflows.reduce((sum, cf) => {
+      const t = (cf.date - cashflows[0].date) / (365 * 24 * 3600 * 1000);
+      return sum + cf.amount / Math.pow(1 + r, t);
+    }, 0);
+
+  let low = -0.999;
+  let high = 1;
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    const val = npv(mid);
+
+    if (Math.abs(val) < 1e-6) return mid;
+    if (val > 0) low = mid;
+    else high = mid;
+  }
+
+  return null;
+};
+
 const safeXirr = (cashflows) => {
   try {
-    if (!cashflows || cashflows.length < 2) return null;
-    const hasPos = cashflows.some((c) => c.amount > 0);
-    const hasNeg = cashflows.some((c) => c.amount < 0);
-    if (!hasPos || !hasNeg) return null;
     return xirrLib(cashflows);
-  } catch (err) {
-    return null;
+  } catch {
+    return bruteXirr(cashflows);
   }
 };
 
@@ -101,10 +119,11 @@ export default function InvestmentDetailsDrawer({
   const [isMutating, setIsMutating] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const flowIdRef = useRef(1);
+
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
   const noScroll = (e) => e.target.blur();
-  // Metadata
+
   const headerCurrency = useMemo(() => {
     const id = investment?.currencyId || investment?.currency_id;
     const match = currencies?.find((c) => Number(c.id) === Number(id));
@@ -112,7 +131,8 @@ export default function InvestmentDetailsDrawer({
     const symbol = match?.symbol;
     return symbol ? `${code} (${symbol})` : code;
   }, [investment, currencies]);
-  const headerCountry  = investment?.country_name  || investment?.country  || "-";
+
+  const headerCountry  = investment?.country_name || investment?.country || "-";
   const ownershipValue = toNumber(investment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
     ? `${ownershipValue.toFixed(2)}%`
@@ -164,10 +184,6 @@ export default function InvestmentDetailsDrawer({
     setLocalFlows(apiFlows.map(mapFlowFromApi));
   }, [apiFlows, mapFlowFromApi]);
 
-  /* =========================================================
-     CALCULATIONS
-     ========================================================= */
-
   const exitValueLC = useMemo(
     () => toNumber(exitValue) * toNumber(exitFxRate),
     [exitValue, exitFxRate]
@@ -203,21 +219,33 @@ export default function InvestmentDetailsDrawer({
   const irrEuro = useMemo(() => {
     const cashflows = localFlows
       .filter((f) => f.date && toNumber(f.fxRate) > 0)
-      .map((f) => ({ date: new Date(f.date), amount: normalizeAmountLC(f) / toNumber(f.fxRate) }))
+      .map((f) => ({
+        date: new Date(f.date),
+        amount: normalizeAmountLC(f) / toNumber(f.fxRate),
+      }))
       .sort((a, b) => a.date - b.date);
+
     if (exitDate && toNumber(exitValue) !== 0)
       cashflows.push({ date: new Date(exitDate), amount: toNumber(exitValue) });
-    return safeXirr(cashflows);
+
+    const result = safeXirr(cashflows);
+    return result !== null ? result * 100 : null;
   }, [localFlows, exitDate, exitValue]);
 
   const irrLC = useMemo(() => {
     const cashflows = localFlows
       .filter((f) => f.date)
-      .map((f) => ({ date: new Date(f.date), amount: normalizeAmountLC(f) }))
+      .map((f) => ({
+        date: new Date(f.date),
+        amount: normalizeAmountLC(f),
+      }))
       .sort((a, b) => a.date - b.date);
+
     if (exitDate && exitValueLC !== 0)
       cashflows.push({ date: new Date(exitDate), amount: exitValueLC });
-    return safeXirr(cashflows);
+
+    const result = safeXirr(cashflows);
+    return result !== null ? result * 100 : null;
   }, [localFlows, exitDate, exitValueLC]);
 
   const investedEuro = sumsByTypeEuro.Investment;
@@ -231,8 +259,6 @@ export default function InvestmentDetailsDrawer({
     : 0;
   const moicExclEuro = investedEuro > 0 ? sumsByTypeEuro.Divestment / investedEuro : 0;
   const moicExclLC   = investedLC   > 0 ? sumsByTypeLC.Divestment   / investedLC   : 0;
-
-  /* ===== HANDLERS ===== */
 
   const handleAddFlow = (template = null) => {
     setLocalFlows((prev) => [
@@ -348,6 +374,7 @@ export default function InvestmentDetailsDrawer({
       setToast({ type: "error", message: getApiErrorMessage(err, "Error committing scenario changes.") });
     }
   };
+
   return (
     <div className="invDrawerOverlay" onClick={onClose}>
       <aside
@@ -356,13 +383,11 @@ export default function InvestmentDetailsDrawer({
       >
         <div className="invDrawerHeader">
           <button
-            className="invBackBtn"
+            className={`invBackBtn ${expanded ? "invBackBtn--expanded" : ""}`}
             onClick={() => setExpanded((v) => !v)}
             title={expanded ? "Collapse" : "Expand"}
           >
-            <span className={expanded ? "invBackBtn--expanded" : ""}>
-              <DoubleArrowLeftIcon />
-            </span>
+            <DoubleArrowLeftIcon />
           </button>
 
           <div className="invHeaderContent">
@@ -378,9 +403,7 @@ export default function InvestmentDetailsDrawer({
               </div>
               <div className="invMetaItem">
                 <span className="invMetaLabel">Currency</span>
-                <span className="invMetaValue">
-                  {headerCurrency}
-                </span>
+                <span className="invMetaValue">{headerCurrency}</span>
               </div>
               <div className="invMetaItem">
                 <span className="invMetaLabel">Country</span>
@@ -427,7 +450,6 @@ export default function InvestmentDetailsDrawer({
         <div className="invDrawerBody">
           <div className="invSectionHeader">Scenario Trajectory</div>
 
-          {/* Summary Cards */}
           <div className="invCardsRow">
             {FLOW_TYPES.map((type) => (
               <div key={type} className="invSummaryCard">
@@ -480,32 +502,21 @@ export default function InvestmentDetailsDrawer({
           />
 
           <section className="inv-performance">
-            <h4 className="inv-performance-title">Scenario Performance Metrics</h4>
+            <h4 className="invSectionHeader">Scenario Performance Metrics</h4>
             <div className="inv-performance-grid">
-              <div className="perf-card">
-                <span>Gross IRR €</span>
-                <strong>{irrEuro !== null ? formatPercent(irrEuro) : "-"}</strong>
-              </div>
-              <div className="perf-card">
-                <span>Gross IRR LC</span>
-                <strong>{irrLC !== null ? formatPercent(irrLC) : "-"}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC € (incl. div)</span>
-                <strong>{`${formatRatio(moicInclEuro)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC LC (incl. div)</span>
-                <strong>{`${formatRatio(moicInclLC)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC € (excl. div)</span>
-                <strong>{`${formatRatio(moicExclEuro)}x`}</strong>
-              </div>
-              <div className="perf-card">
-                <span>MOIC LC (excl. div)</span>
-                <strong>{`${formatRatio(moicExclLC)}x`}</strong>
-              </div>
+              {[
+                { label: "Gross IRR €",        value: irrEuro !== null ? formatPercent(irrEuro) : "-" },
+                { label: "Gross IRR LC",        value: irrLC !== null ? formatPercent(irrLC) : "-" },
+                { label: "MOIC € (incl. div)",  value: `${formatRatio(moicInclEuro)}x` },
+                { label: "MOIC LC (incl. div)", value: `${formatRatio(moicInclLC)}x` },
+                { label: "MOIC € (excl. div)",  value: `${formatRatio(moicExclEuro)}x` },
+                { label: "MOIC LC (excl. div)", value: `${formatRatio(moicExclLC)}x` },
+              ].map(({ label, value }) => (
+                <div className="perf-card" key={label}>
+                  <div className="invCardTitle" title={label}>{label}</div>
+                  <div className="invCardValue">{value}</div>
+                </div>
+              ))}
             </div>
           </section>
         </div>
