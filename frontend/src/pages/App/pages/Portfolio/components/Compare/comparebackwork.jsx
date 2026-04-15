@@ -236,49 +236,19 @@ export const diffBetweenNewestAndOldest = (row, key, activeQuarters = []) => {
 };
 
 export const getCompareTableColumnOptions = (activeQuarters = []) => {
-  const options = [];
-
-  activeQuarters.forEach((q) => {
-    options.push({
-      key: `cost:${q.id}`,
-      label: `Cost ${q.display_label}`,
-    });
-  });
+  const options = [
+    { key: "cost",       label: "Cost" },
+    { key: "fv",         label: "Fair Value" },
+    { key: "divestment", label: "Divestment" },
+    { key: "dividends",  label: "Dividends" },
+  ];
 
   if (activeQuarters.length >= 2) {
-    options.push({
-      key: "change_cost",
-      label: "Change in Cost",
-    });
+    options.push(
+      { key: "change_cost", label: "Change in Cost" },
+      { key: "change_fv",   label: "Change in FV" }
+    );
   }
-
-  activeQuarters.forEach((q) => {
-    options.push({
-      key: `fv:${q.id}`,
-      label: `FV ${q.display_label}`,
-    });
-  });
-
-  if (activeQuarters.length >= 2) {
-    options.push({
-      key: "change_fv",
-      label: "Change in FV",
-    });
-  }
-
-  activeQuarters.forEach((q) => {
-    options.push({
-      key: `divestment:${q.id}`,
-      label: `Divestment ${q.display_label}`,
-    });
-  });
-
-  activeQuarters.forEach((q) => {
-    options.push({
-      key: `dividends:${q.id}`,
-      label: `Dividends ${q.display_label}`,
-    });
-  });
 
   return options;
 };

@@ -3,9 +3,6 @@ import { useOutletContext } from 'react-router-dom';
 
 import TimeframeSelector from "../../../../../../components/QuarterSelection/TimeframeSelector";
 import SimpleDropdown from "../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
-import SearchBar from "../../../../../../components/SearchBar/SearchBar.jsx";
-import { ChevronDownIcon } from "../../icons.jsx";
-import { CheckMarkIcon } from "../../../../../../components/Icons/InteractiveIcons.jsx";
 import {
   buildTotalRow,
   diffBetweenNewestAndOldest,
@@ -27,10 +24,6 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   const { selectedTimeframeIds, activeQuarters, handleToggleTimeframe } = useCompareTimeframes(fundId, 2);
 
   const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
-  const [isInvDropdownOpen, setIsInvDropdownOpen] = useState(false);
-  const [investmentSearchTerm, setInvestmentSearchTerm] = useState("");
-  const [isColumnDropdownOpen, setIsColumnDropdownOpen] = useState(false);
-  const [columnSearchTerm, setColumnSearchTerm] = useState("");
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState([]);
 
@@ -46,24 +39,6 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     });
   }, [fundInvestments]);
 
-  useEffect(() => {
-    if (!isInvDropdownOpen && investmentSearchTerm) setInvestmentSearchTerm("");
-  }, [isInvDropdownOpen, investmentSearchTerm]);
-
-  useEffect(() => {
-    if (!isColumnDropdownOpen && columnSearchTerm) setColumnSearchTerm("");
-  }, [isColumnDropdownOpen, columnSearchTerm]);
-
-  const visibleRows = useMemo(() => {
-    if (selectedInvestmentIds.length === 0 || selectedInvestmentIds.length === fundInvestments.length)
-      return fundInvestments;
-    return fundInvestments.filter((inv) =>
-      selectedInvestmentIds.some((id) => String(id) === String(inv.id))
-    );
-  }, [fundInvestments, selectedInvestmentIds]);
-
-  
-  const totalRow = useMemo(() => buildTotalRow(visibleRows, activeQuarters), [visibleRows, activeQuarters]);
   const tableColumnOptions = useMemo(() => getCompareTableColumnOptions(activeQuarters), [activeQuarters]);
   const compareOptions = useMemo(() => getCompareChartMetricOptions(), []);
 
@@ -76,14 +51,15 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     });
   }, [tableColumnOptions]);
 
-  const allInvestmentsSelected = selectedInvestmentIds.length === fundInvestments.length && fundInvestments.length > 0;
-  const allColumnsSelected = visibleColumnKeys.length === tableColumnOptions.length && tableColumnOptions.length > 0;
+  const visibleRows = useMemo(() => {
+    if (selectedInvestmentIds.length === 0 || selectedInvestmentIds.length === fundInvestments.length)
+      return fundInvestments;
+    return fundInvestments.filter((inv) =>
+      selectedInvestmentIds.some((id) => String(id) === String(inv.id))
+    );
+  }, [fundInvestments, selectedInvestmentIds]);
 
-  const filteredColumnOptions = useMemo(() => {
-    const q = columnSearchTerm.trim().toLowerCase();
-    if (!q) return tableColumnOptions;
-    return tableColumnOptions.filter((opt) => String(opt.label || "").toLowerCase().includes(q));
-  }, [tableColumnOptions, columnSearchTerm]);
+  const totalRow = useMemo(() => buildTotalRow(visibleRows, activeQuarters), [visibleRows, activeQuarters]);
 
   const effectiveCompareColumn =
     selectedCompareColumn && compareOptions.some((opt) => opt.key === selectedCompareColumn)
@@ -98,179 +74,48 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
     }));
   }, [activeQuarters, effectiveCompareColumn, visibleRows]);
 
-  const activeInvLabel = (() => {
-    if (selectedInvestmentIds.length === 0 || allInvestmentsSelected) return "All Investments";
-    if (selectedInvestmentIds.length === 1)
-      return fundInvestments.find((i) => String(i.id) === String(selectedInvestmentIds[0]))?.name || "1 Investment";
-    return `Investments (${selectedInvestmentIds.length})`;
-  })();
+  // Normalize options shape for SimpleDropdown: needs { id, name }
+  const investmentOptions = useMemo(() =>
+    fundInvestments.map((inv) => ({ id: inv.id, name: inv.name })),
+    [fundInvestments]
+  );
 
-  const filteredInvestmentOptions = useMemo(() => {
-    const q = String(investmentSearchTerm || "").trim().toLowerCase();
-    if (!q) return fundInvestments;
-    return fundInvestments.filter((inv) => String(inv?.name || "").toLowerCase().includes(q));
-  }, [fundInvestments, investmentSearchTerm]);
+  const columnDropdownOptions = useMemo(() =>
+    tableColumnOptions.map((opt) => ({ id: opt.key, name: opt.label })),
+    [tableColumnOptions]
+  );
 
   return (
     <section className="compare-section">
       <div className="compare-timeframes-row">
-
-        {/* INVESTMENT DROPDOWN */}
-        <div className="quarter-selector-container">
-          <div
-            className={`quarter-selector-button ${isInvDropdownOpen ? 'active' : ''}`}
-            onClick={() => setIsInvDropdownOpen(!isInvDropdownOpen)}
-          >
-            <div className="quarter-text-group">
-              <span className="quarter-part">{activeInvLabel}</span>
-            </div>
-            <div className={`quarter-icon ${isInvDropdownOpen ? 'open' : ''}`}>
-              <ChevronDownIcon />
-            </div>
-          </div>
-          {isInvDropdownOpen && (
-            <div className="quarter-dropdown">
-              <div className="quarter-search-wrapper">
-                <SearchBar
-                  key={isInvDropdownOpen ? "open" : "closed"}
-                  placeholder="Search investment..."
-                  onSearch={setInvestmentSearchTerm}
-                  containerClassName="search-bar compare-dropdown-search"
-                  className="compare-dropdown-search-input"
-                />
-              </div>
-              <div className="quarter-list">
-                <div
-                  className={`quarter-item ${allInvestmentsSelected ? 'selected' : ''}`}
-                  onClick={() => {
-                    if (allInvestmentsSelected) {
-                      setSelectedInvestmentIds([]);
-                    } else {
-                      setSelectedInvestmentIds(fundInvestments.map((inv) => inv.id));
-                    }
-                  }}
-                >
-                  <div className="quarter-item-content">
-                    <div className={`qs-checkbox ${allInvestmentsSelected ? 'checked' : ''}`}>
-                      {allInvestmentsSelected && <CheckMarkIcon />}
-                    </div>
-                    <span className="item-label-bold">All Investments</span>
-                  </div>
-                </div>
-                {filteredInvestmentOptions.map((inv) => {
-                  const isSelected = selectedInvestmentIds.some(id => String(id) === String(inv.id));
-                  return (
-                    <div
-                      key={inv.id}
-                      className={`quarter-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        setSelectedInvestmentIds((prev) =>
-                          prev.some((id) => String(id) === String(inv.id))
-                            ? prev.filter((id) => String(id) !== String(inv.id))
-                            : [...prev, inv.id]
-                        );
-                      }}
-                    >
-                      <div className="quarter-item-content">
-                        <div className={`qs-checkbox ${isSelected ? 'checked' : ''}`}>
-                          {isSelected && <CheckMarkIcon />}
-                        </div>
-                        <span className="item-label-bold">{inv.name}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {!filteredInvestmentOptions.length && (
-                  <div className="quarter-no-results">No matches found</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* TIMEFRAME SELECTOR */}
-        <div className="limits-period-wrapper">
-          <TimeframeSelector
-            selected={selectedTimeframeIds}
-            onChange={handleToggleTimeframe}
+        <div className="compare-selectors-group">
+          <SimpleDropdown
+            options={investmentOptions}
+            value={selectedInvestmentIds}
+            onChange={setSelectedInvestmentIds}
+            placeholder="All Investments"
             isSingle={false}
-            maxSelections={2}
+            searchLabel="Search investment..."
+          />
+
+          <div className="limits-period-wrapper">
+            <TimeframeSelector
+              selected={selectedTimeframeIds}
+              onChange={handleToggleTimeframe}
+              isSingle={false}
+              maxSelections={2}
+            />
+          </div>
+
+          <SimpleDropdown
+            options={columnDropdownOptions}
+            value={visibleColumnKeys}
+            onChange={setVisibleColumnKeys}
+            placeholder={`Columns (${visibleColumnKeys.length})`}
+            isSingle={false}
+            searchLabel="Search columns..."
           />
         </div>
-
-        {/* COLUMNS DROPDOWN */}
-        <div className="quarter-selector-container">
-          <div
-            className={`quarter-selector-button ${isColumnDropdownOpen ? 'active' : ''}`}
-            onClick={() => setIsColumnDropdownOpen(!isColumnDropdownOpen)}
-          >
-            <div className="quarter-text-group">
-              <span className="quarter-part">Columns ({visibleColumnKeys.length})</span>
-            </div>
-            <div className={`quarter-icon ${isColumnDropdownOpen ? 'open' : ''}`}>
-              <ChevronDownIcon />
-            </div>
-          </div>
-          {isColumnDropdownOpen && (
-            <div className="quarter-dropdown compare-columns-dropdown">
-              <div className="quarter-search-wrapper">
-                <SearchBar
-                  key={isColumnDropdownOpen ? "open" : "closed"}
-                  placeholder="Search columns..."
-                  onSearch={setColumnSearchTerm}
-                  containerClassName="search-bar compare-dropdown-search"
-                  className="compare-dropdown-search-input"
-                />
-              </div>
-              <div className="quarter-list">
-                <div
-                  className={`quarter-item ${allColumnsSelected ? 'selected' : ''}`}
-                  onClick={() => {
-                    if (allColumnsSelected) {
-                      setVisibleColumnKeys([]);
-                    } else {
-                      setVisibleColumnKeys(tableColumnOptions.map((opt) => opt.key));
-                    }
-                  }}
-                >
-                  <div className="quarter-item-content">
-                    <div className={`qs-checkbox ${allColumnsSelected ? 'checked' : ''}`}>
-                      {allColumnsSelected && <CheckMarkIcon />}
-                    </div>
-                    <span className="item-label-bold">All Columns</span>
-                  </div>
-                </div>
-                {filteredColumnOptions.map((option) => {
-                  const isSelected = visibleColumnKeys.includes(option.key);
-                  return (
-                    <div
-                      key={option.key}
-                      className={`quarter-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        setVisibleColumnKeys((prev) =>
-                          prev.includes(option.key)
-                            ? prev.filter((key) => key !== option.key)
-                            : [...prev, option.key]
-                        );
-                      }}
-                    >
-                      <div className="quarter-item-content">
-                        <div className={`qs-checkbox ${isSelected ? 'checked' : ''}`}>
-                          {isSelected && <CheckMarkIcon />}
-                        </div>
-                        <span className="item-label-bold">{option.label}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {!filteredColumnOptions.length && (
-                  <div className="quarter-no-results">No matches found</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
       </div>
 
       <PortfolioCompareTable
