@@ -26,15 +26,8 @@ const roundForApi = (v) => {
   return Number.isFinite(n) ? Number(n.toFixed(6)) : 0;
 };
 
-const partialDivestmentFromBackend = (value) => {
-  const n = toNumber(value);
-  return Number.isFinite(n) ? n * 10 : 0;
-};
-
-const partialDivestmentToBackend = (value) => {
-  const n = toNumber(value);
-  return Number.isFinite(n) ? n / 10 : 0;
-};
+const toBackendPercent = (v) => toNumber(v);
+const fromBackendPercent = (v) => toNumber(v);
 
 const getApiErrorMessage = (err, fallback = "Request failed.") => {
   const data = err?.response?.data;
@@ -164,8 +157,8 @@ export default function InvestmentDetailsDrawer({
       type: typeName,
       divestmentPercentage:
         canonicalType(typeName) === "Partial divestment"
-          ? partialDivestmentFromBackend(flow.divestment_percentage ?? flow.divestmentPercentage ?? null)
-          : (flow.divestment_percentage ?? flow.divestmentPercentage ?? null),
+          ? fromBackendPercent(flow.divestment_percentage)
+          : toNumber(flow.divestment_percentage)
     };
   }, [makeLocalFlowId]);
 
@@ -313,8 +306,6 @@ export default function InvestmentDetailsDrawer({
 
   const irrEuro = calcIrrSafely(fullCashflows)*100;
   const irrLC   = calcIrrSafely(fullCashflowsLC)*100;
-  console.log("Calculated IRR (Euro):", irrEuro);
-  console.log("Calculated IRR (LC):", irrLC);
   const moicInclEuro = totals?.moicIncl ?? 0;
   const moicInclLC = totals?.moicInclLC ?? 0;
 
@@ -337,8 +328,18 @@ export default function InvestmentDetailsDrawer({
       prev.map((f) => {
         if (f.id !== id) return f;
         if (field === "type") {
+          const isDivestment = String(value || "").trim().toLowerCase() === "divestment";
           const isPartial = String(value || "").trim().toLowerCase() === "partial divestment";
-          return { ...f, type: value, divestmentPercentage: isPartial ? (f.divestmentPercentage ?? "") : null };
+
+          return {
+            ...f,
+            type: value,
+            divestmentPercentage: isDivestment
+              ? 100
+              : isPartial
+                ? (f.divestmentPercentage ?? "")
+                : null
+          };
         }
         return { ...f, [field]: value };
       })
@@ -404,6 +405,8 @@ export default function InvestmentDetailsDrawer({
       const typeMap = new Map(
         transactionTypes.map(normalizeTransactionType).filter((t) => t.id && t.name).map((t) => [normalizeType(t.name), t.id])
       );
+      console.log("FLOW RAW STATE:", flows);
+      
       const validFlows = flows.filter((f) => {
         const fx = toNumber(f.fxRate);
         const lc = toNumber(f.amountLC);
@@ -422,11 +425,24 @@ export default function InvestmentDetailsDrawer({
           const pct = toNumber(divestmentPct);
           if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error("divestment_percentage must be between 0 and 100");
         }
+        const isDivestment = canonicalType(f.type) === "Divestment";
         const payload = {
           transaction_id: transactionId, date: f.date, amount_lc: amountLC,
           fx_rate: fxRate, amount: roundForApi(amountEuro),
-          divestment_percentage: isPartial ? roundForApi(partialDivestmentToBackend(divestmentPct)) : null,
+          divestment_percentage: isPartial
+            ? roundForApi(divestmentPct)
+            : isDivestment
+              ? 100
+              : null,
         };
+        console.log("FLOW PAYLOAD:", {
+  flowId: f.flowId,
+  type: f.type,
+  rawDivestmentPct: f.divestmentPercentage,
+  computedDivestmentPct: divestmentPct,
+  backendDivestmentPct: payload.divestment_percentage,
+  payload,
+});
         
         if (f.flowId) {
           return updateFlow(null, f.flowId, payload);
@@ -434,7 +450,7 @@ export default function InvestmentDetailsDrawer({
           return createFlow(null, payload);
         }
       });
-      
+      console.log("VALID FLOWS INPUT:", validFlows);
       const requests = [...flowRequests];
       const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
       
