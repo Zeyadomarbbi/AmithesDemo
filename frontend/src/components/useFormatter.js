@@ -42,3 +42,15 @@ export const useDateFormatter = () => {
 
   return formatDate;
 };
+
+export const useMoicFormatter = () => {
+  const formatMoic = useCallback((value) => {
+    const num = parseFloat(value || 0);
+
+    if (isNaN(num)) return '0.00x';
+
+    return `${num.toFixed(2)}x`;
+  }, []);
+
+  return formatMoic;
+};

@@ -1,6 +1,6 @@
 // PortfolioTable.jsx
 import React, { useMemo, useState } from "react";
-import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter";
+import { useNumberFormatter, usePercentageFormatter, useMoicFormatter  } from "../../../../../../../../components/useFormatter";
 import { SortableHeaderRenderer } from "../../../../../../../../components/Sort/TableSort";
 // Adjust the path to where SimpleDropdown is located
 import SimpleDropdown from "../../../../../../../../components/SearchBar/SimpleDropdown/SimpleDropdown"; 
@@ -20,7 +20,7 @@ export const DEFAULT_VISIBLE_COLUMN_KEYS = [
 export function useColumnOptions(getFlagUrl) {
   const formatNumber = useNumberFormatter();
   const formatPercentage = usePercentageFormatter();
-
+  const formatMoic = useMoicFormatter();
   return useMemo(() => ([
     {
       key: "country",
@@ -72,7 +72,7 @@ export function useColumnOptions(getFlagUrl) {
       label: "Cost",
       renderHeader: (sortKey, toggleSort, section) => (
         <SortableHeaderRenderer
-          label={<>Cost <span className="portfolioHeaderCurrency"></span></>}
+          label={<>Cost </>}
           columnKey="cost"
           currentSortKey={sortKey}
           toggleSort={toggleSort}
@@ -81,7 +81,7 @@ export function useColumnOptions(getFlagUrl) {
       ),
       renderCell: (row) => formatNumber(row.cost),
       renderSubtotal: (subtotal) => <td>{formatNumber(subtotal.cost)}</td>,
-      renderTotalHeader: () => <th><>Total Cost <span className="portfolioHeaderCurrency"></span></></th>,
+      renderTotalHeader: () => <th><>Total Cost </></th>,
       renderTotalCell: (summary) => <td>{formatNumber(summary.cost)}</td>,
     },
     {
@@ -89,7 +89,7 @@ export function useColumnOptions(getFlagUrl) {
       label: "Dividends / Interests",
       renderHeader: (sortKey, toggleSort, section) => (
         <SortableHeaderRenderer
-          label={<>Dividends / Interests <span className="portfolioHeaderCurrency"></span></>}
+          label={<>Dividends / Interests </>}
           columnKey="dividends"
           currentSortKey={sortKey}
           toggleSort={toggleSort}
@@ -98,7 +98,7 @@ export function useColumnOptions(getFlagUrl) {
       ),
       renderCell: (row) => formatNumber(row.dividends),
       renderSubtotal: (subtotal) => <td>{formatNumber(subtotal.dividends)}</td>,
-      renderTotalHeader: () => <th><>Total Dividends / Interests <span className="portfolioHeaderCurrency"></span></></th>,
+      renderTotalHeader: () => <th><>Total Dividends / Interests </></th>,
       renderTotalCell: (summary) => <td>{formatNumber(summary.dividends)}</td>,
     },
     {
@@ -106,34 +106,34 @@ export function useColumnOptions(getFlagUrl) {
       label: "MOIC (incl. dividends)",
       renderHeader: (sortKey, toggleSort, section) => (
         <SortableHeaderRenderer
-          label={<>MOIC <span className="portfolioHeaderCurrency"></span>(incl. div)</>}
+          label={<>MOIC (incl. div)</>}
           columnKey="moicIncl"
           currentSortKey={sortKey}
           toggleSort={toggleSort}
           center={true}
         />
       ),
-      renderCell: (row) => formatNumber(row.moicIncl),
-      renderSubtotal: (subtotal) => <td>{formatNumber(subtotal.moicIncl)}</td>,
-      renderTotalHeader: () => <th><>Total MOIC <span className="portfolioHeaderCurrency"></span>(incl. div)</></th>,
-      renderTotalCell: (summary) => <td>{formatNumber(summary.moicIncl)}</td>,
+      renderCell: (row) => formatMoic(row.moicIncl),
+      renderSubtotal: (subtotal) => <td>{formatMoic(subtotal.moicIncl)}</td>,
+      renderTotalHeader: () => <th><>Total MOIC (incl. div)</></th>,
+      renderTotalCell: (summary) => <td>{formatMoic(summary.moicIncl)}</td>,
     },
     {
       key: "moicExcl",
       label: "MOIC (excl. dividends)",
       renderHeader: (sortKey, toggleSort, section) => (
         <SortableHeaderRenderer
-          label={<>MOIC <span className="portfolioHeaderCurrency"></span>(excl. div)</>}
+          label={<>MOIC (excl. div)</>}
           columnKey="moicExcl"
           currentSortKey={sortKey}
           toggleSort={toggleSort}
           center={true}
         />
       ),
-      renderCell: (row) => formatNumber(row.moicExcl),
-      renderSubtotal: (subtotal) => <td>{formatNumber(subtotal.moicExcl)}</td>,
-      renderTotalHeader: () => <th><>Total MOIC <span className="portfolioHeaderCurrency"></span>(excl. div)</></th>,
-      renderTotalCell: (summary) => <td>{formatNumber(summary.moicExcl)}</td>,
+      renderCell: (row) => formatMoic(row.moicExcl),
+      renderSubtotal: (subtotal) => <td>{formatMoic(subtotal.moicExcl)}</td>,
+      renderTotalHeader: () => <th><>Total MOIC (excl. div)</></th>,
+      renderTotalCell: (summary) => <td>{formatMoic(summary.moicExcl)}</td>,
     },
     {
       key: "irr",
@@ -149,7 +149,7 @@ export function useColumnOptions(getFlagUrl) {
       ),
       renderCell: (row) => formatPercentage(row.irr * 100),
       renderSubtotal: (subtotal) => <td>{formatPercentage(subtotal.irr * 100)}</td>,
-      renderTotalHeader: () => <th><>Total Gross IRR <span className="portfolioHeaderCurrency"></span></></th>,
+      renderTotalHeader: () => <th><>Total Gross IRR </></th>,
       renderTotalCell: (summary) => <td>{formatPercentage(summary.irr * 100)}</td>,
     },
     {
@@ -160,7 +160,7 @@ export function useColumnOptions(getFlagUrl) {
         const title = section?.key === "realized" ? "Exit Value" : "Fair Value";
         return (
           <SortableHeaderRenderer
-            label={<>{title} <span className="portfolioHeaderCurrency"></span></>}
+            label={<>{title} </>}
             columnKey="value"
             currentSortKey={sortKey}
             toggleSort={toggleSort}
@@ -170,7 +170,7 @@ export function useColumnOptions(getFlagUrl) {
       },
       renderCell: (row) => formatNumber(row.status === "realized" ? row.exitValue : row.fairValue),
       renderSubtotal: (subtotal) => <td className="col-highlight">{formatNumber(subtotal.value)}</td>,
-      renderTotalHeader: () => <th className="col-highlight"><>Total Value <span className="portfolioHeaderCurrency"></span></></th>,
+      renderTotalHeader: () => <th className="col-highlight"><>Total Value </></th>,
       renderTotalCell: (summary) => <td className="col-highlight">{formatNumber(summary.value)}</td>,
     },
     {
@@ -181,17 +181,17 @@ export function useColumnOptions(getFlagUrl) {
         const title = section?.gainLabel || "Gain";
         return (
           <SortableHeaderRenderer
-            label={<>{title} <span className="portfolioHeaderCurrency"></span></>}
+            label={<>{title} </>}
             columnKey="gain"
             currentSortKey={sortKey}
             toggleSort={toggleSort}
-            center={false}
+            center={true}   // change this
           />
         );
       },
       renderCell: (row) => formatNumber(row.gain),
       renderSubtotal: (subtotal) => <td className="col-highlight">{formatNumber(subtotal.gain)}</td>,
-      renderTotalHeader: () => <th className="col-highlight"><>Total Gain <span className="portfolioHeaderCurrency"></span></></th>,
+      renderTotalHeader: () => <th className="col-highlight"><>Total Gain </></th>,
       renderTotalCell: (summary) => <td className="col-highlight">{formatNumber(summary.gain)}</td>,
     },
   ]), [getFlagUrl, formatNumber, formatPercentage]);

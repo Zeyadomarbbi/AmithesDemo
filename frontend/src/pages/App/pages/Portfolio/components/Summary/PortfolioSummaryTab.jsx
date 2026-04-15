@@ -12,7 +12,7 @@ import { useTableSort } from "../../../../../../components/Sort/TableSort";
 import { DownloadIcon, PlusIconWhite } from "../../../../../../components/Icons/InteractiveIcons";
 import { PageSpinner, PageNoData } from "/src/components/LoadingScreens/LoadingScreens";
 import { useNumberFormatter, usePercentageFormatter } from "../../../../../../components/useFormatter";
-import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics } from "./PortfolioHelpers";
+import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics  } from "./PortfolioHelpers";
 import {
   PortfolioTable,
   useColumnOptions,
@@ -96,20 +96,10 @@ function PortfolioSummaryTabContent() {
   const rawRealized = useMemo(() => tableData.filter((r) => r.status === "realized"), [tableData]);
   const rawUnallocated = useMemo(() => tableData.filter((r) => r.status === "unallocated"), [tableData]);
 
-  const buildSubtotal = useCallback((rows) => {
-    const cost = rows.reduce((s, r) => s + r.cost, 0);
-    const dividends = rows.reduce((s, r) => s + r.dividends, 0);
-    const value = rows.reduce((s, r) => s + (r.status === "realized" ? r.exitValue : r.fairValue), 0);
-    const gain = rows.reduce((s, r) => s + r.gain, 0);
-    const moicExcl = cost ? value / cost : 0;
-    const moicIncl = cost ? (value + dividends) / cost : 0;
-    return { cost, dividends, value, gain, moicExcl, moicIncl, irr: 0 }; 
-  }, []);
-
-  const unrealizedSubtotal = useMemo(() => buildSubtotal(rawUnrealized), [rawUnrealized, buildSubtotal]);
-  const realizedSubtotal = useMemo(() => buildSubtotal(rawRealized), [rawRealized, buildSubtotal]);
-  const unallocatedSubtotal = useMemo(() => buildSubtotal(rawUnallocated), [rawUnallocated, buildSubtotal]);
-  const totalSummary = useMemo(() => buildSubtotal(tableData), [tableData, buildSubtotal]);
+  const unrealizedSubtotal = useMemo(() => calculateSubtotalMetrics(rawUnrealized), [rawUnrealized]);
+  const realizedSubtotal = useMemo(() => calculateSubtotalMetrics(rawRealized), [rawRealized]);
+  const unallocatedSubtotal = useMemo(() => calculateSubtotalMetrics(rawUnallocated), [rawUnallocated]);
+  const totalSummary = useMemo(() => calculateSubtotalMetrics(tableData), [tableData]);
 
   const { sorted: sortedUnrealized, sortKey: sortKeyU, toggleSort: toggleSortU } = useTableSort(rawUnrealized, "name");
   const { sorted: sortedRealized, sortKey: sortKeyR, toggleSort: toggleSortR } = useTableSort(rawRealized, "name");

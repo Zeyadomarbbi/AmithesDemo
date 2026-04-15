@@ -73,6 +73,47 @@ export const classifyInvestmentsByTimeframe = (investments, timeframeDate) => {
 /**
  * Construct cashflows and calculate metrics for a specific investment entry.
  */
+/**
+ * Calculates aggregate metrics (Subtotals/Totals) for a group of calculated rows.
+ * Handles blended IRR by combining all individual pro-rata cashflows.
+ */
+export const calculateSubtotalMetrics = (rows) => {
+  const cost = rows.reduce((s, r) => s + r.cost, 0);
+  const dividends = rows.reduce((s, r) => s + r.dividends, 0);
+  const value = rows.reduce((s, r) => s + (r.status === "realized" ? r.exitValue : r.fairValue), 0);
+  const gain = rows.reduce((s, r) => s + r.gain, 0);
+  
+  // Correct MOIC: (Value + Dividends) / Cost
+  const moicIncl = cost > 0 ? (value + dividends) / cost : 0;
+  const moicExcl = cost > 0 ? value / cost : 0;
+
+  // Blended IRR Calculation
+  const combinedCashflows = [];
+  rows.forEach(row => {
+    if (Array.isArray(row.internalCashflows)) {
+      combinedCashflows.push(...row.internalCashflows);
+    }
+  });
+
+  let blendedIrr = 0;
+  try {
+    if (combinedCashflows.length >= 2) {
+      const hasPos = combinedCashflows.some(c => c.amount > 0);
+      const hasNeg = combinedCashflows.some(c => c.amount < 0);
+      if (hasPos && hasNeg) {
+        // Sort chronologically for XIRR
+        const sorted = [...combinedCashflows].sort((a, b) => a.date - b.date);
+        blendedIrr = xirr(sorted);
+      }
+    }
+  } catch (e) {
+    console.warn("Blended IRR calculation failed:", e);
+  }
+
+  return { cost, dividends, value, gain, moicIncl, moicExcl, irr: blendedIrr };
+};
+
+// Update calculatePortfolioMetrics to include the 'internalCashflows' property
 export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
   const cutoff = new Date(timeframeDate);
 
@@ -80,12 +121,10 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     const flows = (investment.transaction_flows || []).filter(
       (f) => !f.is_deleted && new Date(f.date) <= cutoff
     );
-    
     const fairValues = (investment.fair_value_flows || []).filter(
       (fv) => new Date(fv.date) <= cutoff
     );
 
-    // 1. Calculate Total Divestment Percentage at this point in time
     let totalDivestmentPercent = 0;
     flows.forEach((f) => {
       const type = String(f.transaction_name || "").toLowerCase();
@@ -96,7 +135,6 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     });
     if (totalDivestmentPercent > 100) totalDivestmentPercent = 100;
 
-    // 2. Pro-Rata Cost Logic
     const absoluteTotalCost = flows
       .filter(f => String(f.transaction_name).toLowerCase() === "investment")
       .reduce((sum, f) => sum + toNumber(f.amount), 0);
@@ -107,10 +145,9 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     } else if (status === "unrealized") {
       effectiveCost = absoluteTotalCost * (1 - (totalDivestmentPercent / 100));
     } else {
-      effectiveCost = absoluteTotalCost; // Unallocated case
+      effectiveCost = absoluteTotalCost;
     }
 
-    // 3. Dividends and Values
     const dividends = flows
       .filter(f => ["dividends", "interests", "dividend", "interest"].includes(String(f.transaction_name).toLowerCase()))
       .reduce((sum, f) => sum + toNumber(f.amount), 0);
@@ -125,26 +162,23 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
     
     const fairValue = latestFVObj ? toNumber(latestFVObj.amount) : 0;
 
-    // 4. IRR Construction (Edge Case Handling)
+    // --- Cashflows for IRR ---
     const cashflows = [];
-    
-    // Add transaction flows
     flows.forEach(f => {
       const type = String(f.transaction_name).toLowerCase();
       const amount = toNumber(f.amount);
       if (type === "investment") {
-        // Pro-rate the investment outflows for the specific bucket
         const proRataAmount = status === "realized" 
           ? amount * (totalDivestmentPercent / 100)
           : amount * (1 - (totalDivestmentPercent / 100));
-        cashflows.push({ date: new Date(f.date), amount: -proRataAmount });
+        if (proRataAmount !== 0) cashflows.push({ date: new Date(f.date), amount: -proRataAmount });
       } else {
-        cashflows.push({ date: new Date(f.date), amount: amount });
+        // Dividends/Exit values are positive
+        if (amount !== 0) cashflows.push({ date: new Date(f.date), amount: amount });
       }
     });
 
-    // Append Fair Value as terminal flow for Unrealized status
-    if (status === "unrealized" && latestFVObj) {
+    if (status === "unrealized" && latestFVObj && fairValue !== 0) {
       cashflows.push({ date: new Date(latestFVObj.date), amount: fairValue });
     }
 
@@ -153,22 +187,17 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
       if (cashflows.length >= 2) {
         const hasPos = cashflows.some(c => c.amount > 0);
         const hasNeg = cashflows.some(c => c.amount < 0);
-        if (hasPos && hasNeg) {
-          grossIrr = xirr(cashflows);
-        }
+        if (hasPos && hasNeg) grossIrr = xirr(cashflows);
       }
-    } catch (e) {
-      console.warn(`IRR Calc failed for ${investment.name}:`, e);
-    }
+    } catch (e) { console.warn("IRR failed", e); }
 
-    // 5. Final Mapping
     return {
-      id: `${investment.investment_id}-${status}`, // Unique ID for table keys
+      id: `${investment.investment_id}-${status}`,
       originalId: investment.investment_id,
       name: investment.name,
       sector: investment.sector,
       geography: investment.country_name,
-      country: investment.country_name, // For flag utility
+      country: investment.country_name,
       status: status,
       cost: effectiveCost,
       dividends: dividends,
@@ -178,7 +207,9 @@ export const calculatePortfolioMetrics = (classifiedData, timeframeDate) => {
       moicExcl: effectiveCost > 0 ? (status === "realized" ? exitValue : fairValue) / effectiveCost : 0,
       irr: grossIrr,
       gain: ((status === "realized" ? exitValue : fairValue) + dividends) - effectiveCost,
-      ownership: toNumber(investment.ownership)
+      ownership: toNumber(investment.ownership),
+      internalCashflows: cashflows // Stored for subtotal/total blended IRR
     };
   });
 };
+
