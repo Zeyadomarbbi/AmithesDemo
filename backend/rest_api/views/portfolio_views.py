@@ -208,7 +208,9 @@ class PortfolioTransactionFlowView(APIView):
         instance.is_deleted = True
         instance.save(update_fields=["is_deleted", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
-
+    
+    def patch(self, request, fund_id, investment_id, pk):
+        return self.put(request, fund_id, investment_id, pk)
 
 class PortfolioFairValueFlowView(APIView):
     def get(self, request, fund_id, investment_id, pk=None):

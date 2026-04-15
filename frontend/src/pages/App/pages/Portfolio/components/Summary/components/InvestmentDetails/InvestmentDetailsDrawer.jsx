@@ -4,8 +4,9 @@ import { PermissionGate } from "../../../../../../../../hooks/Auth/PermissionGat
 import InvestmentFlowsTable from "./InvestmentFlowsTable";
 import { DoubleArrowLeftIcon } from "../../../../../../../../components/Icons/DirectionIcons";
 import { EditIcon, DeleteIcon, CloseIcon } from "../../../../../../../../components/Icons/InteractiveIcons.jsx";
-import { useNumberFormatter, usePercentageFormatter } from "../../../../../../../../components/useFormatter.js";
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter, useMoicFormatter } from "../../../../../../../../components/useFormatter.js";
 import { usePortfolioFlows } from "../../../../../../hooks/Portfolio/usePortfolioFlows.js";
+import { usePortfolioTransactionTypes } from "../../../../../../hooks/Reference/usePortfolioTransactionTypes.js";
 
 import Prompt from "../../../../../../components/Toast/Prompt.jsx";
 import NewInvestmentModal from "../NewInvestmentModal/NewInvestmentModal.jsx";
@@ -39,7 +40,6 @@ const formatRatio = (n) => {
   if (!Number.isFinite(n)) return "-";
   return n.toFixed(2);
 };
-
 
 const getApiErrorMessage = (err, fallback = "Request failed.") => {
   const data = err?.response?.data;
@@ -86,7 +86,6 @@ export default function InvestmentDetailsDrawer({
   investment,
   timeframe,
   fundId,
-  portfolioDataset,
   onClose,
   onSaved,
   onUpdateInvestment,
@@ -100,7 +99,6 @@ export default function InvestmentDetailsDrawer({
   const [fairValueFxRate, setFairValueFxRate] = useState(0);
   const [fairValueAmountLC, setFairValueAmountLC] = useState(0);
   const [fairValueId, setFairValueId] = useState(null);
-  const [transactionTypes, setTransactionTypes] = useState([]);
   const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -109,6 +107,7 @@ export default function InvestmentDetailsDrawer({
   const formatNumber  = useNumberFormatter();
   const formatPercent = usePercentageFormatter();
   const noScroll = (e) => e.target.blur();
+
   const getFlagUrl = useCallback((countryNameOrId) => {
     if (!countryNameOrId || !countries) return null;
     const countryData = countries.find(c =>
@@ -119,6 +118,12 @@ export default function InvestmentDetailsDrawer({
     const code = countryData.iso2.toLowerCase();
     return `https://flagcdn.com/40x30/${code}.png`;
   }, [countries]);
+
+  const sourceInvestmentId = investment?.id ?? investment?.investment_id ?? investment?.investmentId ?? null;
+  const investmentId = currentInvestment?.id ?? currentInvestment?.investment_id ?? currentInvestment?.investmentId ?? null;
+
+  const { transactionTypes } = usePortfolioTransactionTypes();
+  const { createFlow, updateFlow, deleteFlow: apiDeleteFlow, saveFairValue: apiSaveFairValue } = usePortfolioFlows(fundId, sourceInvestmentId);
 
   const headerCurrency = useMemo(() => {
     const id = currentInvestment?.currencyId || currentInvestment?.currency_id;
@@ -135,42 +140,13 @@ export default function InvestmentDetailsDrawer({
     "";
   const ownershipValue = toNumber(currentInvestment?.ownership);
   const headerOwnership = Number.isFinite(ownershipValue) && ownershipValue > 0
-    ? `${ownershipValue.toFixed(2)}%` : "-";
+    ? `${ownershipValue.toFixed(4)}%` : "-";
   const headerName = currentInvestment?.name || "-";
   const headerSub = currentInvestment?.sector || currentInvestment?.sub || "-";
   const headerTimeframe = timeframe?.display_label || null;
   const fairValueDateLabel = timeframe?.rawDate || timeframe?.date || "";
-  const sourceInvestmentId =
-    investment?.id ?? investment?.investment_id ?? investment?.investmentId ?? null;
-  const investmentId =
-    currentInvestment?.id ?? currentInvestment?.investment_id ?? currentInvestment?.investmentId ?? null;
 
   useEffect(() => { setCurrentInvestment(investment); }, [investment]);
-
-  const refreshInvestmentDetails = useCallback(async () => {
-    if (!fundId || !sourceInvestmentId) return null;
-    const data = await portfolioDataset.fetchInvestment(sourceInvestmentId);
-    setCurrentInvestment(data);
-    return data;
-  }, [fundId, portfolioDataset, sourceInvestmentId]);
-
-  useEffect(() => {
-    refreshInvestmentDetails().catch((err) => {
-      console.error("Failed to reload investment details:", err.message);
-    });
-  }, [refreshInvestmentDetails]);
-
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const data = await portfolioDataset.fetchTransactionTypes();
-        setTransactionTypes(data);
-      } catch (err) {
-        console.error("Transaction types fetch failed:", err.message);
-      }
-    };
-    fetchTypes();
-  }, [portfolioDataset]);
 
   const normalizeTransactionType = useCallback((t) => {
     if (!t) return { id: null, name: "" };
@@ -319,7 +295,6 @@ export default function InvestmentDetailsDrawer({
   const moicExclLC = investmentLC > 0
     ? (sumsByTypeLC.Dividend + toNumber(fairValueAmountLC)) / investmentLC : 0;
 
-  // New flow defaults to empty type so "Select a type" placeholder shows
   const handleAddFlow = (initialFlow = null) => {
     setFlows((prev) => [
       ...prev,
@@ -347,9 +322,9 @@ export default function InvestmentDetailsDrawer({
     if (!targetFlow) return;
     if (!targetFlow.flowId) { setFlows((prev) => prev.filter((f) => f.id !== id)); return; }
     try {
-      await portfolioDataset.deleteFlow(investmentId, targetFlow.flowId, { refresh: false });
+      await apiDeleteFlow(null, targetFlow.flowId);
       setFlows((prev) => prev.filter((f) => f.id !== id));
-      await refreshInvestmentDetails();
+      if (onSaved) await onSaved();
       showToast({ type: "success", title: "Flow deleted", message: "The flow has been deleted successfully." });
     } catch (err) {
       showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the flow." });
@@ -416,15 +391,21 @@ export default function InvestmentDetailsDrawer({
           if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error("divestment_percentage must be between 0 and 100");
         }
         const payload = {
-          flowId: f.flowId,
           transaction_id: transactionId, date: f.date, amount_lc: amountLC,
           fx_rate: fxRate, amount: roundForApi(amountEuro),
           divestment_percentage: isPartial ? roundForApi(partialDivestmentToBackend(divestmentPct)) : null,
         };
-        return portfolioDataset.saveFlow(investmentId, payload, { refresh: false });
+        
+        if (f.flowId) {
+          return updateFlow(null, f.flowId, payload);
+        } else {
+          return createFlow(null, payload);
+        }
       });
+      
       const requests = [...flowRequests];
       const hasFairValueInput = fairValueDateLabel && toNumber(fairValueFxRate) > 0 && Number.isFinite(toNumber(fairValueAmountLC)) && toNumber(fairValueAmountLC) !== 0;
+      
       if (hasFairValueInput) {
         const payload = {
           fairValueId,
@@ -433,12 +414,14 @@ export default function InvestmentDetailsDrawer({
           fx_rate: roundForApi(fairValueFxRate),
           amount: roundForApi(fairValueAmount),
         };
-        requests.push(portfolioDataset.saveFairValue(investmentId, payload, { refresh: false }));
+        requests.push(apiSaveFairValue(null, payload));
       }
+      
       if (!requests.length) { showToast({ type: "error", title: "Save failed", message: "No valid flows to save." }); return; }
+      
       await Promise.all(requests);
-      await refreshInvestmentDetails();
       if (onSaved) await onSaved();
+      
       showToast({ type: "success", title: "Portfolio saved", message: "Investment details have been saved successfully." });
       onClose();
     } catch (err) {
@@ -501,7 +484,6 @@ export default function InvestmentDetailsDrawer({
         <div className="invDrawerBody">
           <div className="invSectionHeader">Flows</div>
 
-          {/* Flow summary cards — display only, formatted xxx,xxx,xxx.yyy */}
           <div className="invCardsRow">
             {[
               { label: "Investment",  value: sumsByTypeEuro.Investment },
