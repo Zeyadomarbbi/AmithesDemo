@@ -14,6 +14,11 @@ urlpatterns = [
         name="scenario-detail"
     ),
     path(
+        "funds/<int:fund_id>/scenario_list/<int:pk>/duplicate/", 
+        DuplicateScenarioView.as_view(), 
+        name="scenario-duplicate"
+    ),
+    path(
         "funds/<int:fund_id>/scenario_list/<int:scenario_pk>/portfolio-investments/",
         ScenarioPortfolioInvestmentViewSet.as_view({'get': 'list', 'post': 'create'}),
         name="scenario-investment-list-create"

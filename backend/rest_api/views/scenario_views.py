@@ -6,8 +6,9 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db import connection
+from django.db import DatabaseError, connection, transaction
 from django.db.models import Q
+from django.apps import apps
 import math
 import traceback
 
@@ -93,8 +94,8 @@ class FundScenarioListView(APIView):
         scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id)
         force = request.query_params.get('force') == 'true'
 
+        # 1. Check for synthesis conflicts
         affected = MapSynthesisScenario.objects.filter(scenario_id=pk).select_related('synthesis')
-
         if affected.exists() and not force:
             names = list(affected.values_list('synthesis__synthesis_name', flat=True))
             return Response(
@@ -102,13 +103,166 @@ class FundScenarioListView(APIView):
                 status=status.HTTP_409_CONFLICT
             )
 
-        if force:
-            synthesis_ids = list(affected.values_list('synthesis_id', flat=True))
-            ScenarioSynthesis.objects.filter(synthesis_id__in=synthesis_ids).delete()
+        # 2. Perform High-Speed Deletion
+        # We list all tables that have "Rebuild" triggers to ensure no race conditions
+        tables_to_silence = [
+            'portfolio_transaction_flows',
+            'scenario_portfolio_projections',
+            'scenario_fundflows_capitalcall_summary',
+            'scenario_fundflows_distribution_summary',
+            'scenario_portfolio_man_fee_base',
+            'man_fee_tranches',
+            'man_fees_tranch_summary'
+        ]
 
-        scenario.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    # Increase timeout for large scenario purges
+                    cursor.execute("SET LOCAL statement_timeout = '600s';")
+                    
+                    # Disable triggers to prevent "rebuild" loops during cascade
+                    for table in tables_to_silence:
+                        cursor.execute(f'ALTER TABLE {table} DISABLE TRIGGER USER;')
+                    
+                    try:
+                        # This single command triggers the CASCADE chain:
+                        # Scenario -> Investments -> Flows -> Summaries/Fees
+                        cursor.execute("DELETE FROM scenario_list WHERE scenario_id = %s", [pk])
+                    finally:
+                        # ALWAYS re-enable triggers, even if delete fails
+                        for table in tables_to_silence:
+                            cursor.execute(f'ALTER TABLE {table} ENABLE TRIGGER USER;')
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Critical Deletion Error for Scenario {pk}: {str(e)}")
+            return Response(
+                {"detail": f"Deletion failed: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
+    def patch(self, request, fund_id, pk):
+            scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+            serializer = ScenarioSerializer(
+                scenario, 
+                data=request.data, 
+                context={"fund_id": fund_id},
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(updated_at=timezone.now())
+            return Response(serializer.data)
+
+class DuplicateScenarioView(APIView):
+    def post(self, request, fund_id, pk):
+        old_scenario_id = pk
+        old_scenario = get_object_or_404(ScenarioList, pk=old_scenario_id, fund_id=fund_id)
+        
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("SET LOCAL statement_timeout = '600s';")
+
+                # 1. Clone Scenario Root
+                new_scenario = ScenarioList.objects.get(pk=old_scenario_id)
+                new_scenario.pk = None
+                new_scenario.scenario_name = request.data.get("scenario_name", f"{new_scenario.scenario_name} (Copy)")
+                new_scenario.description = request.data.get("description", new_scenario.description)
+                new_scenario.created_by = request.data.get("created_by", request.user.username)
+                new_scenario.save()
+                
+                new_scenario_id = new_scenario.scenario_id
+
+                # 2. PRIORITY: Duplicate Projected Transaction Flows
+                # Your fn_rebuild_scenario_projection logic depends on these flows.
+                # If we don't copy these first, the 'Projected' rows will have 0 cost.
+                flow_model = apps.get_model('rest_api', 'PortfolioTransactionFlows') # Update app name if different
+                projected_flows = list(flow_model.objects.filter(scenario_id=old_scenario_id, is_deleted=False))
+                
+                for flow in projected_flows:
+                    flow.pk = None
+                    flow.scenario_id = new_scenario_id
+                
+                if projected_flows:
+                    flow_model.objects.bulk_create(projected_flows, batch_size=1000)
+
+                # 3. Handle 'scenario_portfolio_projections' Overlay
+                # Now that flows are in place, we patch the user inputs (Duration/MOIC)
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE scenario_portfolio_projections target
+                        SET 
+                            input_duration = source.input_duration,
+                            input_moic = source.input_moic,
+                            -- Recalculate based on the newly duplicated flows + inputs
+                            exit_date = CASE 
+                                WHEN target.first_investment_date IS NOT NULL AND source.input_duration IS NOT NULL 
+                                THEN target.first_investment_date + (source.input_duration || ' years')::INTERVAL 
+                                ELSE target.exit_date 
+                            END,
+                            exit_value = CASE 
+                                WHEN source.input_moic IS NOT NULL 
+                                THEN target.cost * source.input_moic 
+                                ELSE target.exit_value 
+                            END,
+                            updated_at = NOW()
+                        FROM scenario_portfolio_projections source
+                        WHERE source.scenario_id = %s
+                          AND target.scenario_id = %s
+                          AND source.investment_id = target.investment_id
+                    """, [old_scenario_id, new_scenario_id])
+
+                # 4. Duplicate remaining tables
+                for model in apps.get_models():
+                    db_table = model._meta.db_table.lower()
+                    
+                    # Skip parent, views, synthesis, and tables already handled
+                    if (model == ScenarioList or 
+                        db_table.startswith('view_') or 
+                        'synthesis' in db_table or 
+                        db_table == 'scenario_portfolio_projections' or
+                        db_table == 'portfolio_transaction_flows'): # Flow is already handled
+                        continue
+
+                    scenario_field = next(
+                        (f for f in model._meta.fields if f.db_column == 'scenario_id' or f.attname == 'scenario_id'), 
+                        None
+                    )
+
+                    if scenario_field:
+                        records = list(model.objects.filter(**{scenario_field.name: old_scenario_id}))
+                        if not records:
+                            continue
+                            
+                        for record in records:
+                            record.pk = None
+                            if scenario_field.is_relation:
+                                setattr(record, scenario_field.name, new_scenario)
+                            else:
+                                setattr(record, scenario_field.attname, new_scenario_id)
+                        
+                        # Use the unique constraint check to prevent trigger collisions
+                        unique_together = model._meta.unique_together
+                        if unique_together:
+                            existing_pks = model.objects.filter(**{scenario_field.name: new_scenario_id}).exists()
+                            if existing_pks:
+                                continue
+
+                        model.objects.bulk_create(records, batch_size=500)
+
+            serializer = ScenarioSerializer(new_scenario)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"Duplication failed: {str(e)}")
+            return Response(
+                {"detail": f"Duplication failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
 class FundScenarioSynthesisView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:
