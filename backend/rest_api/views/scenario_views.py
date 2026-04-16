@@ -157,112 +157,138 @@ class FundScenarioListView(APIView):
             return Response(serializer.data)
 
 class DuplicateScenarioView(APIView):
+    """
+    Performs a high-speed deep clone of a scenario by duplicating all related 
+    database records via SQL, actively mapping new Parent IDs to Child Foreign Keys.
+    """
     def post(self, request, fund_id, pk):
         old_scenario_id = pk
-        old_scenario = get_object_or_404(ScenarioList, pk=old_scenario_id, fund_id=fund_id)
+        get_object_or_404(ScenarioList, pk=old_scenario_id, fund_id=fund_id)
         
+        skip_tables = ['scenario_list', 'map_synthesis_scenario', 'view_fund_realized_cutoff']
+
+        # Helper function to clone parent tables and return a mapped dictionary of {old_id: new_id}
+        def map_parent_table(cursor, table_name, pk_col, new_id, old_id):
+            id_map = {}
+            cursor.execute(f'SELECT "{pk_col}" FROM "{table_name}" WHERE scenario_id = %s', [old_id])
+            old_ids = [row[0] for row in cursor.fetchall()]
+            
+            if not old_ids: return id_map
+                
+            cursor.execute(f"""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = '{table_name}' AND table_schema = 'public'
+                  AND column_name != '{pk_col}' 
+                  AND (is_generated = 'NEVER' OR is_generated IS NULL)
+            """)
+            cols = [f'"{row[0]}"' for row in cursor.fetchall()]
+            sel_cols = [f"{new_id}" if c == '"scenario_id"' else c for c in cols]
+            
+            for o_id in old_ids:
+                cursor.execute(f"""
+                    INSERT INTO "{table_name}" ({','.join(cols)})
+                    SELECT {','.join(sel_cols)} FROM "{table_name}" WHERE "{pk_col}" = %s
+                    RETURNING "{pk_col}"
+                """, [o_id])
+                id_map[o_id] = cursor.fetchone()[0]
+            return id_map
+
         try:
             with transaction.atomic():
-                with connection.cursor() as cursor:
-                    cursor.execute("SET LOCAL statement_timeout = '600s';")
-
-                # 1. Clone Scenario Root
+                # 1. Clone the root scenario
                 new_scenario = ScenarioList.objects.get(pk=old_scenario_id)
                 new_scenario.pk = None
                 new_scenario.scenario_name = request.data.get("scenario_name", f"{new_scenario.scenario_name} (Copy)")
-                new_scenario.description = request.data.get("description", new_scenario.description)
-                new_scenario.created_by = request.data.get("created_by", request.user.username)
                 new_scenario.save()
-                
-                new_scenario_id = new_scenario.scenario_id
+                new_id = new_scenario.scenario_id
 
-                # 2. PRIORITY: Duplicate Projected Transaction Flows
-                # Your fn_rebuild_scenario_projection logic depends on these flows.
-                # If we don't copy these first, the 'Projected' rows will have 0 cost.
-                flow_model = apps.get_model('rest_api', 'PortfolioTransactionFlows') # Update app name if different
-                projected_flows = list(flow_model.objects.filter(scenario_id=old_scenario_id, is_deleted=False))
-                
-                for flow in projected_flows:
-                    flow.pk = None
-                    flow.scenario_id = new_scenario_id
-                
-                if projected_flows:
-                    flow_model.objects.bulk_create(projected_flows, batch_size=1000)
-
-                # 3. Handle 'scenario_portfolio_projections' Overlay
-                # Now that flows are in place, we patch the user inputs (Duration/MOIC)
                 with connection.cursor() as cursor:
+                    cursor.execute("SET LOCAL statement_timeout = '600s';")
+
+                    # 2. Get all valid base tables
                     cursor.execute("""
-                        UPDATE scenario_portfolio_projections target
-                        SET 
-                            input_duration = source.input_duration,
-                            input_moic = source.input_moic,
-                            -- Recalculate based on the newly duplicated flows + inputs
-                            exit_date = CASE 
-                                WHEN target.first_investment_date IS NOT NULL AND source.input_duration IS NOT NULL 
-                                THEN target.first_investment_date + (source.input_duration || ' years')::INTERVAL 
-                                ELSE target.exit_date 
-                            END,
-                            exit_value = CASE 
-                                WHEN source.input_moic IS NOT NULL 
-                                THEN target.cost * source.input_moic 
-                                ELSE target.exit_value 
-                            END,
-                            updated_at = NOW()
-                        FROM scenario_portfolio_projections source
-                        WHERE source.scenario_id = %s
-                          AND target.scenario_id = %s
-                          AND source.investment_id = target.investment_id
-                    """, [old_scenario_id, new_scenario_id])
-
-                # 4. Duplicate remaining tables
-                for model in apps.get_models():
-                    db_table = model._meta.db_table.lower()
+                        SELECT t.table_name 
+                        FROM information_schema.tables t
+                        JOIN information_schema.columns c USING (table_name, table_schema)
+                        WHERE c.column_name = 'scenario_id' AND t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+                    """)
                     
-                    # Skip parent, views, synthesis, and tables already handled
-                    if (model == ScenarioList or 
-                        db_table.startswith('view_') or 
-                        'synthesis' in db_table or 
-                        db_table == 'scenario_portfolio_projections' or
-                        db_table == 'portfolio_transaction_flows'): # Flow is already handled
-                        continue
+                    tables = [row[0] for row in cursor.fetchall() if row[0] not in skip_tables]
 
-                    scenario_field = next(
-                        (f for f in model._meta.fields if f.db_column == 'scenario_id' or f.attname == 'scenario_id'), 
-                        None
-                    )
-
-                    if scenario_field:
-                        records = list(model.objects.filter(**{scenario_field.name: old_scenario_id}))
-                        if not records:
-                            continue
-                            
-                        for record in records:
-                            record.pk = None
-                            if scenario_field.is_relation:
-                                setattr(record, scenario_field.name, new_scenario)
-                            else:
-                                setattr(record, scenario_field.attname, new_scenario_id)
+                    # 3. Disable Triggers & Purge Ghosts (Bottom-Up)
+                    for table in tables:
+                        cursor.execute(f'ALTER TABLE "{table}" DISABLE TRIGGER USER;')
                         
-                        # Use the unique constraint check to prevent trigger collisions
-                        unique_together = model._meta.unique_together
-                        if unique_together:
-                            existing_pks = model.objects.filter(**{scenario_field.name: new_scenario_id}).exists()
-                            if existing_pks:
-                                continue
+                    for table in reversed(tables):
+                        cursor.execute(f'DELETE FROM "{table}" WHERE scenario_id = %s', [new_id])
 
-                        model.objects.bulk_create(records, batch_size=500)
+                    try:
+                        # 4. Map the Core Parents (Generates new IDs)
+                        inv_map = map_parent_table(cursor, 'portfolio_investment', 'investment_id', new_id, old_scenario_id)
+                        tranche_map = map_parent_table(cursor, 'man_fee_tranches', 'tranche_id', new_id, old_scenario_id)
+                        
+                        # Remove mapped parents from the generic loop so they aren't copied twice
+                        tables = [t for t in tables if t not in ['portfolio_investment', 'man_fee_tranches']]
 
-            serializer = ScenarioSerializer(new_scenario)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                        # 5. Perform Graph-Aware SQL Copy for all children
+                        for table in tables:
+                            cursor.execute(f"""
+                                SELECT column_name FROM information_schema.columns 
+                                WHERE table_name = '{table}' AND table_schema = 'public'
+                                  AND (is_generated = 'NEVER' OR is_generated IS NULL)
+                                  AND column_name NOT IN (
+                                      SELECT a.attname FROM pg_index i
+                                      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                                      WHERE i.indrelid = '"{table}"'::regclass AND i.indisprimary
+                                        AND array_length(string_to_array(i.indkey::text, ' '), 1) = 1
+                                  )
+                            """)
+                            
+                            cols = [row[0] for row in cursor.fetchall()]
+                            if not cols: continue
+                                
+                            col_string = ", ".join([f'"{c}"' for c in cols])
+                            select_placeholders = []
+                            query_params = []
+                            
+                            # Dynamically inject mapped IDs using SQL CASE statements
+                            for c in cols:
+                                if c == 'scenario_id':
+                                    select_placeholders.append("%s")
+                                    query_params.append(new_id)
+                                elif c == 'investment_id' and inv_map:
+                                    cases = " ".join([f"WHEN {k} THEN {v}" for k, v in inv_map.items()])
+                                    select_placeholders.append(f'CASE "{c}" {cases} ELSE "{c}" END')
+                                elif c == 'tranche_id' and tranche_map:
+                                    cases = " ".join([f"WHEN {k} THEN {v}" for k, v in tranche_map.items()])
+                                    select_placeholders.append(f'CASE "{c}" {cases} ELSE "{c}" END')
+                                else:
+                                    select_placeholders.append(f'"{c}"')
+                            
+                            query_params.append(old_scenario_id)
+                            select_string = ", ".join(select_placeholders)
+
+                            cursor.execute(f"""
+                                INSERT INTO "{table}" ({col_string})
+                                SELECT {select_string}
+                                FROM "{table}"
+                                WHERE scenario_id = %s
+                            """, query_params)
+
+                    except Exception as loop_error:
+                        print(f"\nCRITICAL ERROR in table '{table}': {str(loop_error)}")
+                        raise loop_error 
+
+                    finally:
+                        # 6. Re-enable triggers
+                        for table in tables + ['portfolio_investment', 'man_fee_tranches']:
+                            cursor.execute(f'ALTER TABLE "{table}" ENABLE TRIGGER USER;')
+
+            return Response(ScenarioSerializer(new_scenario).data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            print(f"Duplication failed: {str(e)}")
-            return Response(
-                {"detail": f"Duplication failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class FundScenarioSynthesisView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:

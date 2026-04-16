@@ -3,47 +3,9 @@ import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../co
 import { DoubleArrowLeftIcon } from '/src/components/Icons/DirectionIcons';
 import { MaximizeIcon, PlusIcon, MinusIcon, CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../components/useFormatter';
+import { PageSpinner, PageError } from '../../../../../../../../components/LoadingScreens/LoadingScreens';
 import useScenarioSynthesisKPIs from './useScenarioSynthesisKPIs';
 import './DrawerDetails.css';
-
-function TableSpinner() {
-    return (
-        <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(255,255,255,0.75)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 10,
-            gap: 12,
-        }}>
-            <style>{`
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
-            <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                border: '2.5px solid #e5e7eb',
-                borderTopColor: '#6b7280',
-                animation: 'spin 0.75s linear infinite',
-            }} />
-            <span style={{
-                fontSize: 12,
-                color: '#9ca3af',
-                letterSpacing: '0.03em',
-                fontWeight: 500,
-            }}>
-                Computing scenarios…
-            </span>
-        </div>
-    );
-}
 
 export default function DrawerDetails({ 
     onClose, onExpand, title, description, scenarios = [], fundId, synthesisId, blueprint = [] 
@@ -61,7 +23,7 @@ export default function DrawerDetails({
                 ...bpRow,
                 originalIndex: index,
                 data: fetchedRow ? fetchedRow.data : {},
-                subRows: fetchedRow ? fetchedRow.subRows : [] 
+                subRows: fetchedRow ? fetchedRow.subRows : [],
             };
         });
     }, [blueprint, kpiData]);
@@ -109,7 +71,20 @@ export default function DrawerDetails({
             </div>
 
             <div className="scenario-synthesis-drawer-table-wrapper" style={{ position: 'relative' }}>
-                {loading && <TableSpinner />}
+                {loading && (
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(255,255,255,0.75)',
+                        backdropFilter: 'blur(2px)',
+                        zIndex: 10,
+                    }}>
+                        <PageSpinner label="Computing scenarios…" />
+                    </div>
+                )}
 
                 <div className="scenario-synthesis-table-container">
                     <table className="scenario-synthesis-table">

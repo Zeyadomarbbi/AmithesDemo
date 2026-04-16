@@ -6,49 +6,11 @@ import FundCard from './FundKPIs/FundCard/FundCard';
 import FundValueChart from './FundKPIs/FundValueChart/FundValueChart';
 import PortfolioValueChart from './PortfolioKPIs/PortfolioValueChart/PortfolioValueChart';
 import PortfolioCard from './PortfolioKPIs/PortfolioCard/PortfolioCard';
+import { PageError, PageSpinner, PageNoData } from '../../../../../../components/LoadingScreens/LoadingScreens';
 import { fetchPortfolioValueCreationKPIs } from './PortfolioKPIs/PortfolioCard/portfolioCardnChartCalculations';
 import { useCASKPIs } from '../../../../hooks/LPsStatement/useCASKPIs';
 import useApi from '../../../../../../hooks/api/useApi';
 import './KPIDashboard.css';
-
-function GlobalSpinner() {
-  return (
-    <div style={{
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(255,255,255,0.75)',
-      backdropFilter: 'blur(2px)',
-      zIndex: 10,
-      gap: 12,
-      minHeight: '400px',
-      borderRadius: '8px'
-    }}>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        border: '2.5px solid #e5e7eb',
-        borderTopColor: '#6b7280',
-        animation: 'spin 0.75s linear infinite',
-      }} />
-      <span style={{
-        fontSize: 12,
-        color: '#9ca3af',
-        letterSpacing: '0.03em',
-        fontWeight: 500,
-      }}>
-        Running API calculations...
-      </span>
-    </div>
-  );
-}
 
 function KPIDashboard() {
   const { fundId } = useOutletContext();
@@ -56,23 +18,21 @@ function KPIDashboard() {
   const api = useApi();
   const { quarters, isLoading: isTimeframesLoading } = useTimeframes(fundId);
 
-  // Debounce logic
   const [debouncedTimeframeId, setDebouncedTimeframeId] = useState(timeframeId);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedTimeframeId(timeframeId);
-    }, 400); // 400ms delay
+    }, 400);
     return () => clearTimeout(timer);
   }, [timeframeId]);
 
   const [portfolioCardData, setPortfolioCardData] = useState([]);
   const [portfolioValueChartData, setPortfolioValueChartData] = useState([]);
   const [isPortfolioCardLoading, setIsPortfolioCardLoading] = useState(false);
-  
-  // Pass debounced ID to hooks and memos
+
   const { data: casData, isLoading: casLoading } = useCASKPIs(fundId, debouncedTimeframeId);
-  
+
   const selectedTimeframeDate = useMemo(() => {
     const selected = quarters?.find((q) => String(q.id) === String(debouncedTimeframeId));
     return selected?.rawDate || null;
@@ -91,9 +51,7 @@ function KPIDashboard() {
     const loadPortfolioCardData = async () => {
       try {
         setIsPortfolioCardLoading(true);
-        const result = await fetchPortfolioValueCreationKPIs(
-          api,
-          {
+        const result = await fetchPortfolioValueCreationKPIs(api, {
           fundId: Number(fundId),
           cutoffDate: selectedTimeframeDate,
         });
@@ -108,27 +66,22 @@ function KPIDashboard() {
           setPortfolioValueChartData([]);
         }
       } finally {
-        if (!isCancelled) {
-          setIsPortfolioCardLoading(false);
-        }
+        if (!isCancelled) setIsPortfolioCardLoading(false);
       }
     };
 
     loadPortfolioCardData();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [fundId, debouncedTimeframeId, selectedTimeframeDate, isTimeframesLoading]);
 
   const fundCardData = useMemo(() => {
     if (!casData?.basic_kpis) return [];
     const k = casData.basic_kpis;
     const irr = casData.irr;
-    
-    const fmt = (v) => v != null ? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
-    const fmtX = (v) => v != null ? `${v.toFixed(2)}x` : 'N/A';
-    const fmtPct = (v) => v != null ? `${(v).toFixed(2)}%` : 'N/A';
+
+    const fmt    = (v) => v != null ? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
+    const fmtX   = (v) => v != null ? `${v.toFixed(2)}x` : 'N/A';
+    const fmtPct = (v) => v != null ? `${v.toFixed(2)}%` : 'N/A';
 
     return [
       { label: 'Total Commitments', value: fmt(k.commitment?.total) },
@@ -149,18 +102,31 @@ function KPIDashboard() {
     const k = casData.basic_kpis;
     const toM = (v) => v != null ? parseFloat((v / 1_000_000).toFixed(2)) : 0;
     return [
-      { name: 'Capital\nCalled',  value: toM(k.capital_called?.total) },
-      { name: 'Total\nValue',     value: toM(k.total_value?.total) },
+      { name: 'Capital\nCalled', value: toM(k.capital_called?.total) },
+      { name: 'Total\nValue',    value: toM(k.total_value?.total) },
     ];
   }, [casData]);
 
-  // Activate global spinner instantly upon URL change, persisting until debounced fetch resolves
   const isDebouncing = timeframeId !== debouncedTimeframeId;
   const isGlobalLoading = isTimeframesLoading || casLoading || isPortfolioCardLoading || isDebouncing;
 
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: '400px' }}>
-      {isGlobalLoading && <GlobalSpinner />}
+      {isGlobalLoading && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(255,255,255,0.75)',
+          backdropFilter: 'blur(2px)',
+          zIndex: 10,
+          borderRadius: '8px',
+        }}>
+          <PageSpinner label="Running API calculations..." />
+        </div>
+      )}
       <div className="kpi-dashboard-grid">
         <FundCard data={fundCardData} />
         <FundValueChart data={fundChartData} />

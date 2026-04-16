@@ -37,9 +37,24 @@ function ScenariosPage() {
     const [duplicatingScenario, setDuplicatingScenario] = useState(null);
 
     if (state.isLoading) {
-        return <PageSpinner label="Loading scenarios and syntheses..." />;
+    return (
+        <div
+        style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 10,
+            borderRadius: '8px',
+        }}
+        >
+        <PageSpinner label="Loading scenarios and syntheses..." />
+        </div>
+    );
     }
-
     if (state.error) {
         return <PageError message={state.error} />;
     }
@@ -68,15 +83,16 @@ function ScenariosPage() {
                     width: '100vw',
                     height: '100vh',
                     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                    color: '#000000', // Changed to solid black
                     display: 'flex',
-                    flexDirection: 'column', // Ensures label stays below spinner if needed
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 9999,
                     backdropFilter: 'blur(2px)'
                 }}>
-                    <PageSpinner label="Deleting scenario and cleaning up data..." />
+                    <PageSpinner 
+                        label="Deleting scenario and cleaning up data..." 
+                        textColor="#000000" 
+                    />
                 </div>
             )}
             <div className="scenarios-page-container">
