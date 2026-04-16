@@ -1221,6 +1221,7 @@ class SensitivityService:
         self.waterfall_config = fetch_waterfall_config(fund_id)
         self.ratios, self.share_class_names = fetch_commitments_and_ratios(fund_id, scenario_id)
         self.total_commitment = self._fetch_total_commitment()
+        self.remain_fraction = 1.0
         self.base_investment_flows = self._fetch_base_investment_flows()
         self.realized_calls, self.realized_dists = fetch_realized_lookups(fund_id)
         self.portfolio_total_cost = fetch_portfolio_total_cost(fund_id, scenario_id)
@@ -1257,12 +1258,11 @@ class SensitivityService:
     
     def _fetch_base_investment_flows(self):
         """
-        Fetches the raw transaction flows for this specific investment.
-        Investments = Negative Cashflow
-        Dividends/Interests = Positive Cashflow
+        Fetches the raw transaction flows, calculates the remaining unrealized fraction,
+        and returns the pro-rata cashflows for the Asset-Level IRR.
         """
         query = """
-            SELECT f.date, f.amount, t.transaction_name
+            SELECT f.date, f.amount, t.transaction_name, f.divestment_percentage, f.scenario_id
             FROM portfolio_transaction_flows f
             JOIN portfolio_transaction_type t ON t.transaction_id = f.transaction_id
             WHERE f.investment_id = %s
@@ -1270,24 +1270,52 @@ class SensitivityService:
               AND (f.scenario_id IS NULL OR f.scenario_id = %s)
             ORDER BY f.date;
         """
-        base_flows = []
+        raw_flows = []
         with connection.cursor() as cursor:
             cursor.execute(query, [self.investment_id, self.scenario_id])
             for row in cursor.fetchall():
-                date = row[0]
-                amount = float(row[1])
-                t_name = row[2]
-                
-                # Assign IRR direction signs
-                if t_name == 'Investment':
-                    cf = -abs(amount)
+                raw_flows.append({
+                    'date': row[0],
+                    'amount': float(row[1]),
+                    't_name': (row[2] or '').lower(),
+                    'divest_pct': float(row[3]) if row[3] is not None else 0.0,
+                    'scenario_id': row[4]
+                })
+
+        # 1. Calculate Divestment Percentage (Base Flows Only)
+        total_divest_pct = 0.0
+        for f in raw_flows:
+            if f['scenario_id'] is None:
+                if 'partial divest' in f['t_name']:
+                    total_divest_pct += f['divest_pct'] * 10.0 # Matches frontend * 10 logic
+                elif 'divest' in f['t_name']:
+                    total_divest_pct = 100.0
+
+        total_divest_pct = min(total_divest_pct, 100.0)
+        self.remain_fraction = 1.0 - (total_divest_pct / 100.0)
+
+        # 2. Build Pro-Rata Flows for the Invested Bucket (Asset Level IRR)
+        base_flows = []
+        for f in raw_flows:
+            amt = f['amount']
+            t_name = f['t_name']
+            
+            if f['scenario_id'] is not None:
+                # Scenario flows apply 100% to the invested bucket
+                if 'invest' in t_name and 'divest' not in t_name:
+                    base_flows.append((f['date'], -abs(amt)))
                 else:
-                    cf = abs(amount)
-                    
-                base_flows.append((date, cf))
-                
+                    base_flows.append((f['date'], abs(amt)))
+            else:
+                # Base flows apply pro-rata to the remaining fraction
+                if 'invest' in t_name and 'divest' not in t_name:
+                    base_flows.append((f['date'], -abs(amt) * self.remain_fraction))
+                elif 'dividend' in t_name or 'interest' in t_name:
+                    base_flows.append((f['date'], abs(amt) * self.remain_fraction))
+                # Base divestments are completely excluded from the unrealized timeline
+
         return base_flows
-    
+
     def _calculate_virtual_exit(self, moic_input, duration_input):
         virtual_exit_date = None
         virtual_exit_value = 0.0
@@ -1298,7 +1326,9 @@ class SensitivityService:
             virtual_exit_date = self.base_projection.first_investment_date + relativedelta(years=years, months=months)
 
         if moic_input is not None:
-            virtual_exit_value = float(self.base_projection.cost) * float(moic_input)
+            # CRITICAL FIX: Apply MOIC only to the remaining (Unrealized) cost
+            invested_cost = float(self.base_projection.cost) * getattr(self, 'remain_fraction', 1.0)
+            virtual_exit_value = invested_cost * float(moic_input)
 
         return virtual_exit_date, virtual_exit_value
 
@@ -1695,7 +1725,8 @@ class TargetModeService:
         
         # 3. Fetch costs
         self.investment_costs = self._fetch_investment_costs()
-        
+        # 4. Fetch unrealized fractions (NEW)
+        self.remain_fractions = self._fetch_remain_fractions()
         # EXECUTE DEBUG PRINT
         self.debug_print_state()
 
@@ -1720,6 +1751,37 @@ class TargetModeService:
         
         print(f"--- [DEBUG END] ---\n")
 
+    def _fetch_remain_fractions(self):
+        inv_ids = list(self.investment_costs.keys())
+        if not inv_ids:
+            return {}
+            
+        format_strings = ','.join(['%s'] * len(inv_ids))
+        query = f"""
+            SELECT f.investment_id, t.transaction_name, COALESCE(f.divestment_percentage, 0)
+            FROM portfolio_transaction_flows f
+            JOIN portfolio_transaction_type t ON t.transaction_id = f.transaction_id
+            WHERE f.is_deleted = false AND f.scenario_id IS NULL
+              AND f.investment_id IN ({format_strings})
+        """
+        fractions = {inv_id: 0.0 for inv_id in inv_ids}
+        with connection.cursor() as cursor:
+            cursor.execute(query, tuple(inv_ids))
+            for row in cursor.fetchall():
+                inv_id = row[0]
+                t_name = (row[1] or '').lower()
+                divest_pct = float(row[2])
+                
+                if 'partial divest' in t_name:
+                    fractions[inv_id] += divest_pct * 10.0 # Matches frontend * 10 logic
+                elif 'divest' in t_name:
+                    fractions[inv_id] = 100.0
+                    
+        # Convert percentages to a remaining multiplier (e.g., 20% divested = 0.8 remaining)
+        for inv_id, total_pct in fractions.items():
+            fractions[inv_id] = max(0.0, 1.0 - (min(total_pct, 100.0) / 100.0))
+            
+        return fractions
 
     def calculate_preview(self, target_kpi_type, target_kpi_value, unlocked_ids, tol=0.0001, max_iter=50):
         low_moic = 0.0
@@ -1783,9 +1845,14 @@ class TargetModeService:
             source_id = d_copy.get('source_id')
             
             if source_id in unlocked_ids and d_copy.get('source_type') == 'projected':
-                cost = self.investment_costs.get(source_id, 0.0)
+                absolute_cost = self.investment_costs.get(source_id, 0.0)
+                remain_frac = self.remain_fractions.get(source_id, 1.0)
+                
+                # CRITICAL FIX: Scale cost to the unrealized portion before applying MOIC
+                unrealized_cost = absolute_cost * remain_frac
+                
                 # Ensure flows are negative for distributions in your ledger structure
-                d_copy['flows'] = -(float(cost or 0) * test_moic)
+                d_copy['flows'] = -(float(unrealized_cost or 0) * test_moic)
                 
             virtual_dists.append(d_copy)
             
@@ -1810,18 +1877,22 @@ class TargetModeService:
 
         preview = []
         for proj in qs:
-            cost = float(proj.cost or 0.0)
+            absolute_cost = float(proj.cost or 0.0)
+            remain_frac = self.remain_fractions.get(proj.investment_id, 1.0)
+            
+            # Show the mathematically relevant cost in the preview
+            unrealized_cost = absolute_cost * remain_frac
+            
             preview.append({
-                "projection_id": proj.projection_id, # CRITICAL: used for the updateProjection call
+                "projection_id": proj.projection_id, 
                 "investment_id": proj.investment_id,
                 "name": proj.investment.name, 
                 "current_moic": float(proj.input_moic or 0.0),
                 "suggested_moic": round(optimal_moic, 4),
-                "cost": cost,
-                "suggested_exit_value": round(cost * optimal_moic, 2)
+                "cost": unrealized_cost, # Now reflects the remaining cost
+                "suggested_exit_value": round(unrealized_cost * optimal_moic, 2)
             })
         return preview
-
     # ==========================================================
     # YOUR EXACT WATERFALL ENGINE (With TVPI/Total Dist added)
     # ==========================================================

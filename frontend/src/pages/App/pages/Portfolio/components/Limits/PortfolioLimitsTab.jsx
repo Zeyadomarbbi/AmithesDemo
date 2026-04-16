@@ -1,11 +1,38 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useOutletContext, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { LIMITS_DATA } from "../../portfolioData";
 import NewLimitPanel from "./components/NewLimitPanel";
 import QuarterSelector from "../../../../../../components/QuarterSelection/QuarterSelector";
 import { useTimeframes, apiRowToQuarter } from '../../../../hooks/Core/useTimeframes';
-import { PlusIcon, SortIcon } from "../../icons.jsx";
+import { PlusIcon, SortIcon } from "../../../../../../components/Icons/InteractiveIcons";
+
 import "./PortfolioLimitsTab.css";
+
+const LIMITS_DATA = {
+  "1": [ // Fund ID
+    {
+      id: 1,
+      name: "Single ticket",
+      article: "Art 12.7",
+      description: "No single investment shall represent more than 15.00%",
+      limit: "15.00%",
+      values: {
+        "18": "13.15%", // Timeframe ID: Value
+        "19": "14.20%"
+      }
+    },
+    {
+      id: 2,
+      name: "Countries",
+      article: "Art 12.8",
+      description: "No more than 60.00% shall be invested in Spain",
+      limit: "60.00%",
+      values: {
+        "18": "22.04%",
+        "19": "25.10%"
+      }
+    }
+  ]
+};
 
 const PortfolioLimitsTab = () => {
   const { fundId } = useOutletContext();
