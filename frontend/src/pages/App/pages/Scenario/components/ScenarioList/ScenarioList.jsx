@@ -1,10 +1,12 @@
+// ScenarioList.jsx
+
 import React from 'react';
 import ScenarioCard from './Cards/Cards'; // Updated import path
 import './ScenarioList.css';
 
-function ScenarioList({ title, scenarios, selectedIds, onToggleSelect, onDelete }) { 
+function ScenarioList({ title, scenarios, selectedIds, onToggleSelect, onDelete, onEdit, onDuplicate }) { 
     return (
-        <div className="scenario-list-container">
+        <div className="scenario-list">
             <div className="scenario-list-header">
               <span className="scenario-list-title">{title}</span>
               <span className="scenario-list-count">{scenarios.length}</span>
@@ -18,10 +20,12 @@ function ScenarioList({ title, scenarios, selectedIds, onToggleSelect, onDelete 
                         title={scenario.title}
                         author={scenario.author}
                         createdDate={scenario.createdDate}
-                        description={scenario.description} // Ensure description is passed
+                        description={scenario.description}
                         isSelected={selectedIds.includes(scenario.id)}
                         onToggle={() => onToggleSelect(scenario.id)}
-                        onDelete={onDelete} // <--- Pass the delete handler
+                        onDelete={onDelete}
+                        onEdit={onEdit} 
+                        onDuplicate={onDuplicate}
                     />
                 ))}
             </div>

@@ -1,8 +1,23 @@
-// ─── Spinner ─────────────────────────────────────────────────────────────────
-
 import { WarningIcon, ErrorIcon } from "../Icons/MiscIcons";
 
-export function PageSpinner({ label = "Loading..." }) {
+const centeredContainerStyle = {
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 14, // Inherited from PageSpinner
+  minHeight: 320,
+};
+
+const labelStyle = {
+  fontSize: 13,
+  color: '#9ca3af', // Inherited from PageSpinner textColor default
+  fontWeight: 500,
+  letterSpacing: '0.02em',
+};
+
+export function PageSpinner({ label = "Loading...", textColor = '#9ca3af' }) {
   return (
     <>
       <style>{`
@@ -19,15 +34,34 @@ export function PageSpinner({ label = "Loading..." }) {
         gap: 14,
         minHeight: 320,
       }}>
-        <div style={{
-          width: 34,
-          height: 34,
-          borderRadius: '50%',
-          border: '2.5px solid #e5e7eb',
-          borderTopColor: '#6b7280',
-          animation: 'allfunds-spin 0.75s linear infinite',
-        }} />
-        <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500, letterSpacing: '0.02em' }}>
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          style={{ animation: 'allfunds-spin 1.4s linear infinite' }}
+        >
+          <circle
+            cx="18" cy="18" r="14"
+            fill="none"
+            stroke="rgba(247,169,59,0.18)"
+            strokeWidth="2.5"
+          />
+          <circle
+            cx="18" cy="18" r="14"
+            fill="none"
+            stroke="#F7A93B"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="88"
+            strokeDashoffset="66"
+          />
+        </svg>
+        <span style={{
+          fontSize: 13,
+          color: textColor,
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+        }}>
           {label}
         </span>
       </div>
@@ -35,19 +69,9 @@ export function PageSpinner({ label = "Loading..." }) {
   );
 }
 
-// ─── Error state ──────────────────────────────────────────────────────────────
-
 export function PageError({ message }) {
   return (
-    <div style={{
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      minHeight: 320,
-    }}>
+    <div style={centeredContainerStyle}>
       <div style={{
         width: 38,
         height: 38,
@@ -60,11 +84,11 @@ export function PageError({ message }) {
       }}>
         <ErrorIcon style={{ width: 20, height: 20 }} />
       </div>
-      <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
+      <span style={labelStyle}>
         Failed to load data
       </span>
       {message && (
-        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center' }}>
+        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center', marginTop: -4 }}>
           {message}
         </span>
       )}
@@ -74,15 +98,7 @@ export function PageError({ message }) {
 
 export function PageNoData({ message = "No data available" }) {
   return (
-    <div style={{
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      minHeight: 320,
-    }}>
+    <div style={centeredContainerStyle}>
       <div style={{
         width: 38,
         height: 38,
@@ -95,11 +111,11 @@ export function PageNoData({ message = "No data available" }) {
       }}>
         <WarningIcon style={{ width: 20, height: 20 }} />
       </div>
-      <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
+      <span style={labelStyle}>
         No data found
       </span>
       {message && (
-        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center' }}>
+        <span style={{ fontSize: 12, color: '#9ca3af', maxWidth: 320, textAlign: 'center', marginTop: -4 }}>
           {message}
         </span>
       )}

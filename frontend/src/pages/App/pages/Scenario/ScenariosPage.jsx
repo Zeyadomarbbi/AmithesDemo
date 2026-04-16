@@ -33,13 +33,13 @@ function ScenariosPage() {
     const { state, actions } = useScenarioHandlers(fundId, author, apiRowToScenario, showToast);
     const [conflictPrompt, setConflictPrompt] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingScenario, setEditingScenario] = useState(null);
+    const [duplicatingScenario, setDuplicatingScenario] = useState(null);
 
-    // Block rendering until both lists resolve
     if (state.isLoading) {
         return <PageSpinner label="Loading scenarios and syntheses..." />;
     }
 
-    // Block rendering if either list fails
     if (state.error) {
         return <PageError message={state.error} />;
     }
@@ -60,98 +60,152 @@ function ScenariosPage() {
     
     return (
         <div className="scenarios-page">
-            <div className="scenarios-page-container">
-                {/* 1. Header Row */}
-                <div className="scenarios-page-header">
-                    <h1 className="scenarios-page-title">Scenarios</h1>
-                </div>
+            {state.isDeleting && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    backdropFilter: 'blur(2px)'
+                }}>
+                    <PageSpinner 
+                        label="Deleting scenario and cleaning up data..." 
+                        textColor="#000000" 
+                    />
+                </div>
+            )}
+            <div className="scenarios-page-container">
+                <div className="scenarios-page-header">
+                    <h1 className="scenarios-page-title">Scenarios</h1>
+                </div>
 
-                {/* 2. Content Area */}
-                <div className="scenarios-page-content-area">
-                    <ScenarioControls
-                        onAddClick={() => actions.setIsModalOpen(true)}
-                        selectedScenarioCount={state.selectedScenarioIds.length}
-                        onCreateSynthesisClick={() => actions.setIsSynthesisModalOpen(true)}
-                        onSearch={setSearchQuery}
-                    />
+                <div className="scenarios-page-content-area">
+                    <ScenarioControls
+                        onAddClick={() => actions.setIsModalOpen(true)}
+                        selectedScenarioCount={state.selectedScenarioIds.length}
+                        onCreateSynthesisClick={() => actions.setIsSynthesisModalOpen(true)}
+                        onSearch={setSearchQuery}
+                    />
 
-                    {hasNoData ? (
-                        /* Display PageNoData if both lists are empty */
-                        <PageNoData 
-                            message={searchQuery 
-                                ? `No results matching "${searchQuery}"` 
-                                : "Start by creating your first scenario."
-                            } 
-                        />
-                    ) : (
-                        <>
-                            <div className="scenarios-frame-3">
-                                <ScenarioList
-                                    title="List Of Scenario"
-                                    scenarios={filteredScenarios}
-                                    selectedIds={state.selectedScenarioIds}
-                                    onToggleSelect={actions.toggleScenarioSelection}
-                                    onDelete={(id) => actions.handleDeleteScenario(id, (syntheses) => setConflictPrompt({ scenarioId: id, syntheses }))}
-                                />
-                            </div>
+                    {hasNoData ? (
+                        <PageNoData 
+                            message={searchQuery 
+                                ? `No results matching "${searchQuery}"` 
+                                : "Start by creating your first scenario."
+                            } 
+                        />
+                    ) : (
+                        <>
+                            <div className="scenarios-frame-3">
+                                <ScenarioList
+                                    title="List Of Scenario"
+                                    scenarios={filteredScenarios}
+                                    selectedIds={state.selectedScenarioIds}
+                                    onToggleSelect={actions.toggleScenarioSelection}
+                                    onDelete={(id) => actions.handleDeleteScenario(id, (syntheses) => setConflictPrompt({ scenarioId: id, syntheses }))}
+                                    onEdit={(id) => {
+                                        const target = state.scenarios.find(s => s.id === id);
+                                        setEditingScenario(target);
+                                    }}
+                                    onDuplicate={(id) => {
+                                        const target = state.scenarios.find(s => s.id === id);
+                                        setDuplicatingScenario(target);
+                                    }}
+                                />
+                            </div>
 
-                            <div className="scenarios-frame-4">
-                                <SynthesisList
-                                    title="Scenario Synthesis"
-                                    syntheses={filteredSyntheses}
-                                    onDelete={actions.handleDeleteSynthesis}
-                                />
-                            </div>
-                        </>
-                    )}
+                            <div className="scenarios-frame-4">
+                                <SynthesisList
+                                    title="Scenario Synthesis"
+                                    syntheses={filteredSyntheses}
+                                    onDelete={actions.handleDeleteSynthesis}
+                                />
+                            </div>
+                        </>
+                    )}
 
-                    {state.isModalOpen && (
-                        <AddNewScenarioModal
-                            author={author}
-                            onSave={actions.handleAddScenario}
-                            onClose={() => actions.setIsModalOpen(false)}
-                        />
-                    )}
+                    {state.isModalOpen && (
+                        <AddNewScenarioModal
+                            author={author}
+                            onSave={actions.handleAddScenario}
+                            onClose={() => actions.setIsModalOpen(false)}
+                        />
+                    )}
 
-                    {state.isSynthesisModalOpen && (
-                        <CreateSynthesisModal
-                            selectedScenarioIds={state.selectedScenarioIds}
-                            allScenarios={state.scenarios}
-                            onSave={actions.handleAddSynthesis}
-                            onClose={() => actions.setIsSynthesisModalOpen(false)}
-                        />
-                    )}
+                    {editingScenario && (
+                        <AddNewScenarioModal
+                            author={author}
+                            initialData={editingScenario}
+                            onSave={async (updatedData) => {
+                                try {
+                                    await actions.handleEditScenario(editingScenario.id, updatedData);
+                                    setEditingScenario(null);
+                                } catch (error) {}
+                            }}
+                            onClose={() => setEditingScenario(null)}
+                        />
+                    )}
 
-                    {conflictPrompt && (
-                        <Prompt
-                            type="error"
-                            title="Scenario In Use"
-                            message={`This scenario is linked to: ${conflictPrompt.syntheses.join(', ')}. Confirming will delete the scenario and those syntheses permanently.`}
-                            confirmLabel="Delete All"
-                            cancelLabel="Cancel"
-                            onConfirm={() => {
-                                actions.handleForceDeleteScenario(conflictPrompt.scenarioId);
-                                setConflictPrompt(null);
-                            }}
-                            onCancel={() => setConflictPrompt(null)}
-                        />
-                    )}
+                    {duplicatingScenario && (
+                        <AddNewScenarioModal
+                            author={author}
+                            initialData={duplicatingScenario}
+                            isDuplicate={true}
+                            onSave={async (newData) => {
+                                try {
+                                    await actions.handleDuplicateScenario(duplicatingScenario.id, newData);
+                                    setDuplicatingScenario(null);
+                                } catch (error) {}
+                            }}
+                            onClose={() => setDuplicatingScenario(null)}
+                        />
+                    )}
 
-                    {toast && (
-                        <Toast
-                            key={toast.key}
-                            title={toast.title}
-                            message={toast.message}
-                            type={toast.type}
-                            duration={toast.duration}
-                            onClose={closeToast}
-                        />
-                    )}
+                    {state.isSynthesisModalOpen && (
+                        <CreateSynthesisModal
+                            selectedScenarioIds={state.selectedScenarioIds}
+                            allScenarios={state.scenarios}
+                            onSave={actions.handleAddSynthesis}
+                            onClose={() => actions.setIsSynthesisModalOpen(false)}
+                        />
+                    )}
 
-                    <Outlet context={{ fundId }} />
-                </div>
-            </div>
-        </div>
-    );
+                    {conflictPrompt && (
+                        <Prompt
+                            type="error"
+                            title="Scenario In Use"
+                            message={`This scenario is linked to: ${conflictPrompt.syntheses.join(', ')}. Confirming will delete the scenario and those syntheses permanently.`}
+                            confirmLabel="Delete All"
+                            cancelLabel="Cancel"
+                            onConfirm={() => {
+                                actions.handleForceDeleteScenario(conflictPrompt.scenarioId);
+                                setConflictPrompt(null);
+                            }}
+                            onCancel={() => setConflictPrompt(null)}
+                        />
+                    )}
+
+                    {toast && (
+                        <Toast
+                            key={toast.key}
+                            title={toast.title}
+                            message={toast.message}
+                            type={toast.type}
+                            duration={toast.duration}
+                            onClose={closeToast}
+                        />
+                    )}
+
+                    <Outlet context={{ fundId }} />
+                </div>
+            </div>
+        </div>
+    );
 }
 export default ScenariosPage;

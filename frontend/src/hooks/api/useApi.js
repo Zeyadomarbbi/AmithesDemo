@@ -7,59 +7,85 @@ function getAccessToken() {
 
 const formatBody = (data) => (data instanceof FormData ? data : JSON.stringify(data));
 
+// Singleton lock for concurrent refresh requests
+let refreshPromise = null;
+
 async function refreshAccessToken() {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
   const refresh = localStorage.getItem('refresh');
   if (!refresh) return false;
 
-  const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      });
 
-  if (!response.ok) return false;
+      if (!response.ok) return false;
 
-  const data = await response.json();
-  localStorage.setItem('access', data.access);
-  if (data.refresh) localStorage.setItem('refresh', data.refresh);
-  return true;
+      const data = await response.json();
+      localStorage.setItem('access', data.access);
+      if (data.refresh) localStorage.setItem('refresh', data.refresh);
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      refreshPromise = null; // Release lock
+    }
+  })();
+
+  return refreshPromise;
 }
 
 async function request(endpoint, options = {}, retry = true) {
-  const token = getAccessToken();
+  let token = getAccessToken();
   const isFormData = options.body instanceof FormData;
   const isAuthRoute =
     endpoint.includes('/api/login/') ||
     endpoint.includes('/api/token/refresh/');
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(!isAuthRoute && token && {
-        "Authorization": `Bearer ${token}`
-      }),
-      ...options.headers,
-    },
-  });
+  const executeFetch = (currentToken) => {
+    return fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        ...(!isAuthRoute && currentToken && {
+          "Authorization": `Bearer ${currentToken}`
+        }),
+        ...options.headers,
+      },
+    });
+  };
+
+  let response = await executeFetch(token);
 
   if (response.status === 401 && !isAuthRoute) {
     if (retry) {
       const refreshed = await refreshAccessToken();
-      if (refreshed) return request(endpoint, options, false);
+      if (refreshed) {
+        token = getAccessToken(); // Retrieve the newly minted token
+        response = await executeFetch(token); // Re-execute with new token
+      } else {
+        localStorage.clear(); 
+        window.location.href = "/login"; 
+        return new Promise(() => {}); 
+      }
+    } else {
+      localStorage.clear(); 
+      window.location.href = "/login"; 
+      return new Promise(() => {});
     }
-    
-    // If we reach here, refresh failed or retry is exhausted
-    localStorage.clear(); 
-    window.location.href = "/login"; // Force redirect to break the loop
-    return new Promise(() => {}); // Return a pending promise to stop execution
   }
   
   if (response.status === 204) return null;
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    // Ensure the error message is always a string
     const errorMessage = errorData.detail || errorData.error || "Request failed";
     const error = new Error(errorMessage);
     error.response = { data: errorData, status: response.status };

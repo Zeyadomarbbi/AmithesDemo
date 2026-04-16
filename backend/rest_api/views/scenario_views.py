@@ -6,8 +6,9 @@ from rest_framework import status
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db import connection
+from django.db import DatabaseError, connection, transaction
 from django.db.models import Q
+from django.apps import apps
 import math
 import traceback
 
@@ -93,8 +94,8 @@ class FundScenarioListView(APIView):
         scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id)
         force = request.query_params.get('force') == 'true'
 
+        # 1. Check for synthesis conflicts
         affected = MapSynthesisScenario.objects.filter(scenario_id=pk).select_related('synthesis')
-
         if affected.exists() and not force:
             names = list(affected.values_list('synthesis__synthesis_name', flat=True))
             return Response(
@@ -102,13 +103,192 @@ class FundScenarioListView(APIView):
                 status=status.HTTP_409_CONFLICT
             )
 
-        if force:
-            synthesis_ids = list(affected.values_list('synthesis_id', flat=True))
-            ScenarioSynthesis.objects.filter(synthesis_id__in=synthesis_ids).delete()
+        # 2. Perform High-Speed Deletion
+        # We list all tables that have "Rebuild" triggers to ensure no race conditions
+        tables_to_silence = [
+            'portfolio_transaction_flows',
+            'scenario_portfolio_projections',
+            'scenario_fundflows_capitalcall_summary',
+            'scenario_fundflows_distribution_summary',
+            'scenario_portfolio_man_fee_base',
+            'man_fee_tranches',
+            'man_fees_tranch_summary'
+        ]
 
-        scenario.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    # Increase timeout for large scenario purges
+                    cursor.execute("SET LOCAL statement_timeout = '600s';")
+                    
+                    # Disable triggers to prevent "rebuild" loops during cascade
+                    for table in tables_to_silence:
+                        cursor.execute(f'ALTER TABLE {table} DISABLE TRIGGER USER;')
+                    
+                    try:
+                        # This single command triggers the CASCADE chain:
+                        # Scenario -> Investments -> Flows -> Summaries/Fees
+                        cursor.execute("DELETE FROM scenario_list WHERE scenario_id = %s", [pk])
+                    finally:
+                        # ALWAYS re-enable triggers, even if delete fails
+                        for table in tables_to_silence:
+                            cursor.execute(f'ALTER TABLE {table} ENABLE TRIGGER USER;')
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Critical Deletion Error for Scenario {pk}: {str(e)}")
+            return Response(
+                {"detail": f"Deletion failed: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
+    def patch(self, request, fund_id, pk):
+            scenario = get_object_or_404(ScenarioList, pk=pk, fund_id=fund_id, is_deleted=False)
+            serializer = ScenarioSerializer(
+                scenario, 
+                data=request.data, 
+                context={"fund_id": fund_id},
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(updated_at=timezone.now())
+            return Response(serializer.data)
+
+class DuplicateScenarioView(APIView):
+    """
+    Performs a high-speed deep clone of a scenario by duplicating all related 
+    database records via SQL, actively mapping new Parent IDs to Child Foreign Keys.
+    """
+    def post(self, request, fund_id, pk):
+        old_scenario_id = pk
+        get_object_or_404(ScenarioList, pk=old_scenario_id, fund_id=fund_id)
+        
+        skip_tables = ['scenario_list', 'map_synthesis_scenario', 'view_fund_realized_cutoff']
+
+        # Helper function to clone parent tables and return a mapped dictionary of {old_id: new_id}
+        def map_parent_table(cursor, table_name, pk_col, new_id, old_id):
+            id_map = {}
+            cursor.execute(f'SELECT "{pk_col}" FROM "{table_name}" WHERE scenario_id = %s', [old_id])
+            old_ids = [row[0] for row in cursor.fetchall()]
+            
+            if not old_ids: return id_map
+                
+            cursor.execute(f"""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = '{table_name}' AND table_schema = 'public'
+                  AND column_name != '{pk_col}' 
+                  AND (is_generated = 'NEVER' OR is_generated IS NULL)
+            """)
+            cols = [f'"{row[0]}"' for row in cursor.fetchall()]
+            sel_cols = [f"{new_id}" if c == '"scenario_id"' else c for c in cols]
+            
+            for o_id in old_ids:
+                cursor.execute(f"""
+                    INSERT INTO "{table_name}" ({','.join(cols)})
+                    SELECT {','.join(sel_cols)} FROM "{table_name}" WHERE "{pk_col}" = %s
+                    RETURNING "{pk_col}"
+                """, [o_id])
+                id_map[o_id] = cursor.fetchone()[0]
+            return id_map
+
+        try:
+            with transaction.atomic():
+                # 1. Clone the root scenario
+                new_scenario = ScenarioList.objects.get(pk=old_scenario_id)
+                new_scenario.pk = None
+                new_scenario.scenario_name = request.data.get("scenario_name", f"{new_scenario.scenario_name} (Copy)")
+                new_scenario.save()
+                new_id = new_scenario.scenario_id
+
+                with connection.cursor() as cursor:
+                    cursor.execute("SET LOCAL statement_timeout = '600s';")
+
+                    # 2. Get all valid base tables
+                    cursor.execute("""
+                        SELECT t.table_name 
+                        FROM information_schema.tables t
+                        JOIN information_schema.columns c USING (table_name, table_schema)
+                        WHERE c.column_name = 'scenario_id' AND t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+                    """)
+                    
+                    tables = [row[0] for row in cursor.fetchall() if row[0] not in skip_tables]
+
+                    # 3. Disable Triggers & Purge Ghosts (Bottom-Up)
+                    for table in tables:
+                        cursor.execute(f'ALTER TABLE "{table}" DISABLE TRIGGER USER;')
+                        
+                    for table in reversed(tables):
+                        cursor.execute(f'DELETE FROM "{table}" WHERE scenario_id = %s', [new_id])
+
+                    try:
+                        # 4. Map the Core Parents (Generates new IDs)
+                        inv_map = map_parent_table(cursor, 'portfolio_investment', 'investment_id', new_id, old_scenario_id)
+                        tranche_map = map_parent_table(cursor, 'man_fee_tranches', 'tranche_id', new_id, old_scenario_id)
+                        
+                        # Remove mapped parents from the generic loop so they aren't copied twice
+                        tables = [t for t in tables if t not in ['portfolio_investment', 'man_fee_tranches']]
+
+                        # 5. Perform Graph-Aware SQL Copy for all children
+                        for table in tables:
+                            cursor.execute(f"""
+                                SELECT column_name FROM information_schema.columns 
+                                WHERE table_name = '{table}' AND table_schema = 'public'
+                                  AND (is_generated = 'NEVER' OR is_generated IS NULL)
+                                  AND column_name NOT IN (
+                                      SELECT a.attname FROM pg_index i
+                                      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                                      WHERE i.indrelid = '"{table}"'::regclass AND i.indisprimary
+                                        AND array_length(string_to_array(i.indkey::text, ' '), 1) = 1
+                                  )
+                            """)
+                            
+                            cols = [row[0] for row in cursor.fetchall()]
+                            if not cols: continue
+                                
+                            col_string = ", ".join([f'"{c}"' for c in cols])
+                            select_placeholders = []
+                            query_params = []
+                            
+                            # Dynamically inject mapped IDs using SQL CASE statements
+                            for c in cols:
+                                if c == 'scenario_id':
+                                    select_placeholders.append("%s")
+                                    query_params.append(new_id)
+                                elif c == 'investment_id' and inv_map:
+                                    cases = " ".join([f"WHEN {k} THEN {v}" for k, v in inv_map.items()])
+                                    select_placeholders.append(f'CASE "{c}" {cases} ELSE "{c}" END')
+                                elif c == 'tranche_id' and tranche_map:
+                                    cases = " ".join([f"WHEN {k} THEN {v}" for k, v in tranche_map.items()])
+                                    select_placeholders.append(f'CASE "{c}" {cases} ELSE "{c}" END')
+                                else:
+                                    select_placeholders.append(f'"{c}"')
+                            
+                            query_params.append(old_scenario_id)
+                            select_string = ", ".join(select_placeholders)
+
+                            cursor.execute(f"""
+                                INSERT INTO "{table}" ({col_string})
+                                SELECT {select_string}
+                                FROM "{table}"
+                                WHERE scenario_id = %s
+                            """, query_params)
+
+                    except Exception as loop_error:
+                        print(f"\nCRITICAL ERROR in table '{table}': {str(loop_error)}")
+                        raise loop_error 
+
+                    finally:
+                        # 6. Re-enable triggers
+                        for table in tables + ['portfolio_investment', 'man_fee_tranches']:
+                            cursor.execute(f'ALTER TABLE "{table}" ENABLE TRIGGER USER;')
+
+            return Response(ScenarioSerializer(new_scenario).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class FundScenarioSynthesisView(APIView):
     def get(self, request, fund_id, pk=None):
         if pk:

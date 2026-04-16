@@ -1,16 +1,28 @@
-// AddNewScenarioModal.jsx (Updated)
+// AddNewScenarioModal.jsx
 
-import React, { useState } from 'react'; // Import useState
+import React, { useState, useEffect } from 'react';
 import { CloseIcon } from '/src/components/Icons/InteractiveIcons';
 import './AddNewScenarioModal.css';
 
-// Receive new props: author and onSave
-function AddNewScenarioModal({ author, onSave, onClose }) {
+function AddNewScenarioModal({ author, initialData = null, isDuplicate = false, onSave, onClose }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const handleSave = () => {
-        // .trim() prevents saving if the user only entered spaces
-        if (!name.trim() || !description.trim()) return;
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (initialData) {
+            setName(isDuplicate ? `${initialData.title} (Copy)` : initialData.title);
+            setDescription(initialData.description);
+        } else {
+            setName('');
+            setDescription('');
+        }
+    }, [initialData, isDuplicate]);
+
+    const handleSave = async () => {
+        if (!name.trim() || !description.trim() || isSubmitting) return;
+
+        setIsSubmitting(true);
 
         const scenarioData = {
             name: name.trim(),
@@ -18,23 +30,41 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
             author: author,
         };
         
-        onSave(scenarioData);
+        try {
+            await onSave(scenarioData);
+        } catch (error) {
+            // Allows the user to try again if the API call fails
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
+    const modalTitle = isDuplicate 
+        ? "Duplicate Scenario" 
+        : initialData 
+            ? "Edit Scenario" 
+            : "Add A New Scenario";
+
+    let footerTitle = "Create Scenario";
+    if (isSubmitting) {
+        footerTitle = isDuplicate ? "Duplicating..." : initialData ? "Saving..." : "Creating...";
+    } else {
+        footerTitle = isDuplicate ? "Duplicate" : initialData ? "Save Changes" : "Create Scenario";
+    }
+
   return (
-    <div className="modal-add-scenario-overlay" onClick={onClose}>
-      
+    <div className="modal-add-scenario-overlay" onClick={!isSubmitting ? onClose : undefined}>
       <div className="modal-add-scenario-content" onClick={e => e.stopPropagation()}>
         
-        {/* --- HEADER --- */}
         <div className="modal-add-scenario-header">
-          <h2 className="modal-add-scenario-title">Add A New Scenario</h2>
-          <div className="modal-add-scenario-close-btn-wrapper" onClick={onClose}>
+          <h2 className="modal-add-scenario-title">
+            {modalTitle}
+          </h2>
+          <div className="modal-add-scenario-close-btn-wrapper" onClick={!isSubmitting ? onClose : undefined}>
             <CloseIcon />
           </div>
         </div>
 
-        {/* --- BODY: Inputs --- */}
         <div className="modal-add-scenario-body">
           <div className="modal-add-scenario-input-group">
             <label className="modal-add-scenario-input-label">Name *</label>
@@ -44,6 +74,7 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
                 placeholder="placeholder"
                 value={name}
                 onChange={(e) => setName(e.target.value)} 
+                disabled={isSubmitting}
             />
           </div>
           
@@ -54,24 +85,27 @@ function AddNewScenarioModal({ author, onSave, onClose }) {
                 placeholder="placeholder" 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                disabled={isSubmitting}
             />
           </div>
         </div>
 
-        {/* --- FOOTER: Buttons --- */}
         <div className="modal-add-scenario-footer">
-          <button className="modal-add-scenario-btn-cancel" onClick={onClose}>
+          <button 
+                className="modal-add-scenario-btn-cancel" 
+                onClick={onClose}
+                disabled={isSubmitting}
+          >
             Cancel
           </button>
           <button 
-                className="modal-add-scenario-btn-save" 
+                className={`modal-add-scenario-btn-save ${isSubmitting ? 'loading' : ''}`} 
                 onClick={handleSave}
-                disabled={!name.trim() || !description.trim()} // Disable until fields are populated
+                disabled={!name.trim() || !description.trim() || isSubmitting} 
             >
-            Save
+            {footerTitle}
           </button>
         </div>
-
       </div>
     </div>
   );
