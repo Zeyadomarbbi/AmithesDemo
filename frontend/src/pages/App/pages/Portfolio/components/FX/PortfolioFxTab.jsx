@@ -9,7 +9,7 @@ import FxChartsView from "./components/Charts/FxChartsView";
 import "./PortfolioFxTab.css";
 
 const PortfolioFxTab = () => {
-  const { fundId, portfolioDataset } = useOutletContext();
+  const { fundId, portfolio } = useOutletContext();
   const { funds, isLoading: isFundsLoading } = useFundData();
   const [fxBreakdown, setFxBreakdown] = useState("deals");
   const timeframesState = useFxDealsTimeframes(fundId);
@@ -19,7 +19,7 @@ const PortfolioFxTab = () => {
       fundId,
       timeframesState.debouncedSelectedTimeframes,
       [],
-      portfolioDataset
+      portfolio
     );
 
   const currentFund = funds.find((f) => String(f.id) === String(fundId));
@@ -28,7 +28,7 @@ const PortfolioFxTab = () => {
   const shared = {
     ...timeframesState,
     dealsInvestments,
-    isDealsLoading: isDealsLoading || Boolean(portfolioDataset?.isLoading),
+    isDealsLoading: isDealsLoading || Boolean(portfolio?.loading),
     symbol,
     isFundsLoading,
   };

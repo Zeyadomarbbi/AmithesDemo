@@ -27,11 +27,9 @@ const PortfolioCompareTab = ({ onSelectInvestment }) => {
   const [selectedInvestmentIds, setSelectedInvestmentIds] = useState([]);
   const [selectedCompareColumn, setSelectedCompareColumn] = useState(null);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState([]);
-
   // Passing portfolio instead of portfolioDataset
   const { rows: compareRows } = useCompareRows(fundId, activeQuarters, [], portfolio);
   const fundInvestments = compareRows;
-  console.log("Fund Investments:", fundInvestments);
   useEffect(() => {
     if (!fundInvestments.length) return;
     setSelectedInvestmentIds((prev) => {

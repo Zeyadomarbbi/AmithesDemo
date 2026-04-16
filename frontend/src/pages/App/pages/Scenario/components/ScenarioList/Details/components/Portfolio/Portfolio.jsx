@@ -13,11 +13,12 @@ import { PlusIcon } from '/src/components/Icons/InteractiveIcons';
 import InvestmentDetailsDrawer from "./NewInvestment/InvestmentDetails/InvestmentDetailsDrawer.jsx";
 import NewInvestmentModal from "./NewInvestment/NewInvestmentPopup/NewInvestmentModal.jsx";
 import Toast from '../../../../../../../components/Toast/Toast.jsx';
-import { useNumberFormatter, usePercentageFormatter } from '../../../../../../../../../components/useFormatter';
+import { useNumberFormatter, usePercentageFormatter, useMoicFormatter } from '../../../../../../../../../components/useFormatter';
 import PortfolioSection from "./PortfolioTables/PortfolioSection";
 import TargetSelectionModal from "./TargetSelectionModal/TargetSelectionModal";
 import TargetFinalizationModal from "./TargetSelectionModal/TargetFinalizationModal.jsx";
 import SimulationResults from "./SimulationResults/SimulationResults.jsx"; 
+import { classifyInvestmentsByTimeframe, calculatePortfolioMetrics, calculateSubtotalMetrics } from "/src/pages/App/pages/Portfolio/components/Summary/PortfolioHelpers.js"
 import "./Portfolio.css";
 
 // --- [HELPER FUNCTIONS] ---
@@ -107,58 +108,179 @@ export const processPortfolioData = (investments, projections, targetDate, activ
     const proj = projections.find(p => p.investment === inv.investment_id) || {};
     const rowData = { ...inv, ...proj, id: inv.investment_id };
 
-    let finalExitDate = rowData.exit_date;
-    let finalExitValue = rowData.exit_value;
+    // ── 1. PROJECTED DEALS (Created within Scenario) ────────────────────────
+    if (inv.scenario_id !== null) {
+      let finalExitDate = rowData.exit_date;
+      if (rowData.first_investment_date && rowData.input_duration) {
+        const d = new Date(rowData.first_investment_date);
+        const dur = cleanNumber(rowData.input_duration);
+        d.setFullYear(d.getFullYear() + Math.floor(dur));
+        d.setMonth(d.getMonth() + Math.round((dur % 1) * 12));
+        finalExitDate = d.toISOString().split('T')[0];
+      }
 
-    if (rowData.first_investment_date && rowData.input_duration) {
-       const d = new Date(rowData.first_investment_date);
-       const dur = cleanNumber(rowData.input_duration);
-       d.setFullYear(d.getFullYear() + Math.floor(dur));
-       d.setMonth(d.getMonth() + Math.round((dur % 1) * 12));
-       finalExitDate = d.toISOString().split('T')[0];
+      const scenarioCost = cleanNumber(rowData.cost);
+      const scenarioMoic = cleanNumber(rowData.input_moic);
+      let finalExitValue = rowData.exit_value;
+      if (scenarioCost && scenarioMoic) finalExitValue = scenarioCost * scenarioMoic;
+
+      const flows = (inv.transaction_flows || []).filter(f => !f.is_deleted && f.scenario_id == activeScenarioId);
+      const metrics = calculateRowMetrics(flows, finalExitDate, finalExitValue);
+
+      results.projected.push({
+        ...rowData,
+        display_cost: scenarioCost,
+        exit_value: finalExitValue,
+        exit_date: finalExitDate,
+        dividends_interests: metrics.dividends,
+        irr: metrics.irr !== null ? (metrics.irr * 100).toFixed(2) + "%" : "0.00%",
+        current_status: "Projected"
+      });
+      return;
     }
 
-    if (rowData.cost && rowData.input_moic) {
-       const cost = cleanNumber(rowData.cost);
-       const moic = cleanNumber(rowData.input_moic);
-       finalExitValue = cost * moic;
+    // ── 2. BASE DEALS (Split logic + Scenario Overlay) ──────────────────────
+    const baseFlows = (inv.transaction_flows || []).filter(f => !f.is_deleted && f.scenario_id === null);
+    const scenarioFlows = (inv.transaction_flows || []).filter(f => !f.is_deleted && f.scenario_id == activeScenarioId);
+
+    // Unallocated fallback
+    if (baseFlows.length === 0 && scenarioFlows.length === 0) {
+      results.unrealized.push({
+        ...rowData,
+        display_cost: cleanNumber(rowData.cost),
+        exit_value: cleanNumber(rowData.exit_value),
+        dividends_interests: 0,
+        irr: "0.00%",
+        current_status: "Unallocated"
+      });
+      return;
     }
 
-    const flows = (inv.transaction_flows || []).filter(f => {
-      const isNotDeleted = !f.is_deleted;
-      const matchesScenario = (f.scenario_id === null || f.scenario_id == activeScenarioId);
-      return isNotDeleted && matchesScenario;
+    // Determine Divestment Splitting
+    let totalDivestmentPercent = 0;
+    let hasFullDivestmentTrigger = false;
+    let lastDivestmentDateStr = null;
+
+    baseFlows.forEach(f => {
+      const type = (f.transaction_name || "").toLowerCase();
+      if (type === "divestment") {
+        hasFullDivestmentTrigger = true;
+        if (!lastDivestmentDateStr || new Date(f.date) > new Date(lastDivestmentDateStr)) lastDivestmentDateStr = f.date;
+      } else if (type === "partial divestment") {
+        totalDivestmentPercent += (cleanNumber(f.divestment_percentage) * 10);
+        if (!lastDivestmentDateStr || new Date(f.date) > new Date(lastDivestmentDateStr)) lastDivestmentDateStr = f.date;
+      }
     });
 
-    const metrics = calculateRowMetrics(flows, finalExitDate, finalExitValue);
-    
-    const enrichedData = { 
-        ...rowData, 
-        irr: metrics.irr ? (metrics.irr * 100).toFixed(2) + "%" : "0.00%",
-        dividends_interests: metrics.dividends,
-        exit_value: finalExitValue,
-        exit_date: finalExitDate
-    };
+    const divestPct = hasFullDivestmentTrigger ? 100 : Math.min(totalDivestmentPercent, 100);
+    const divestFraction = divestPct / 100;
+    const remainFraction = 1 - divestFraction;
 
-    if (inv.scenario_id !== null) {
-      results.projected.push({ ...enrichedData, current_status: "Projected" });
-      return;
+    // Base Totals (Before Pro-Rata)
+    const investFlows = baseFlows.filter(f => (f.transaction_name || "").toLowerCase() === "investment");
+    const absoluteCost = investFlows.reduce((sum, f) => sum + cleanNumber(f.amount), 0);
+    const baseDividends = baseFlows.filter(f => ["dividend", "interest"].some(t => (f.transaction_name || "").toLowerCase().includes(t))).reduce((sum, f) => sum + cleanNumber(f.amount), 0);
+    const baseExitValue = baseFlows.filter(f => (f.transaction_name || "").toLowerCase().includes("divest")).reduce((sum, f) => sum + cleanNumber(f.amount), 0);
+
+    const firstInvDateStr = investFlows.length > 0 
+      ? investFlows.reduce((min, f) => new Date(f.date) < new Date(min) ? f.date : min, investFlows[0].date)
+      : rowData.first_investment_date;
+
+    // ── A. REALIZED BUCKET ──────────────────────────────────────────────────
+    if (divestPct > 0) {
+      const rCost = absoluteCost * divestFraction;
+      const rDividends = baseDividends * divestFraction;
+      const rExitDate = lastDivestmentDateStr;
+      
+      let rDuration = 0;
+      if (firstInvDateStr && rExitDate) {
+         const ms = new Date(rExitDate) - new Date(firstInvDateStr);
+         rDuration = Number((ms / (1000 * 60 * 60 * 24 * 365.25)).toFixed(2));
+      }
+
+      const rMoic = rCost > 0 ? (baseExitValue + rDividends) / rCost : 0;
+
+      const rIrrFlows = [];
+      baseFlows.forEach(f => {
+        const t = (f.transaction_name || "").toLowerCase();
+        const amt = cleanNumber(f.amount);
+        if (t === "investment") rIrrFlows.push({ date: new Date(f.date), amount: -(amt * divestFraction) });
+        else if (t.includes("divest")) rIrrFlows.push({ date: new Date(f.date), amount: amt });
+        else if (t.includes("dividend") || t.includes("interest")) rIrrFlows.push({ date: new Date(f.date), amount: amt * divestFraction });
+      });
+      rIrrFlows.sort((a, b) => a.date - b.date);
+      const rIrrResult = safeXirr(rIrrFlows.filter(cf => !isNaN(cf.date)));
+
+      results.realized.push({
+        ...rowData,
+        display_cost: rCost,
+        exit_value: baseExitValue,
+        exit_date: rExitDate,
+        input_duration: rDuration,
+        dividends_interests: rDividends,
+        input_moic: rMoic,
+        irr: rIrrResult !== null ? (rIrrResult * 100).toFixed(2) + "%" : "0.00%",
+        current_status: "Realized",
+        is_partial: divestPct < 100
+      });
     }
 
-    if (flows.length === 0) {
-      results.unrealized.push({ ...enrichedData, current_status: "Unallocated" });
-      return;
-    }
+    // ── B. INVESTED BUCKET (Unrealized + Scenario Overlay) ──────────────────
+    if (divestPct < 100) {
+      const iCost = absoluteCost * remainFraction;
 
-    let totalExitPct = flows.reduce((sum, f) => sum + cleanNumber(f.divestment_percentage), 0);
-    
-    if (totalExitPct >= 100) {
-      results.realized.push(enrichedData);
-    } else if (totalExitPct > 0 && totalExitPct < 100) {
-      results.realized.push({ ...enrichedData, is_partial: true });
-      results.unrealized.push({ ...enrichedData, is_partial: true });
-    } else {
-      results.unrealized.push(enrichedData);
+      const scenarioDividends = scenarioFlows.filter(f => ["dividend", "interest"].some(t => (f.transaction_name || "").toLowerCase().includes(t))).reduce((sum, f) => sum + cleanNumber(f.amount), 0);
+      const iDividends = (baseDividends * remainFraction) + scenarioDividends;
+
+      let iDuration = Number(cleanNumber(rowData.input_duration).toFixed(2));
+      let iExitDate = rowData.exit_date;
+      if (firstInvDateStr && iDuration > 0) {
+        const d = new Date(firstInvDateStr);
+        d.setFullYear(d.getFullYear() + Math.floor(iDuration));
+        d.setMonth(d.getMonth() + Math.round((iDuration % 1) * 12));
+        iExitDate = d.toISOString().split('T')[0];
+      }
+
+      const inputMoic = cleanNumber(rowData.input_moic || 0);
+      const iExitValue = inputMoic > 0 ? (iCost * inputMoic) : 0;
+
+      const iIrrFlows = [];
+      
+      // Pro-rata base inflows/outflows
+      baseFlows.forEach(f => {
+        const t = (f.transaction_name || "").toLowerCase();
+        const amt = cleanNumber(f.amount);
+        if (t === "investment") iIrrFlows.push({ date: new Date(f.date), amount: -(amt * remainFraction) });
+        else if (t.includes("dividend") || t.includes("interest")) iIrrFlows.push({ date: new Date(f.date), amount: amt * remainFraction });
+      });
+
+      // Scenario overlays
+      scenarioFlows.forEach(f => {
+         const t = (f.transaction_name || "").toLowerCase();
+         const amt = cleanNumber(f.amount);
+         if (t === "investment") iIrrFlows.push({ date: new Date(f.date), amount: -Math.abs(amt) });
+         else if (t.includes("dividend") || t.includes("interest") || t.includes("divest")) iIrrFlows.push({ date: new Date(f.date), amount: Math.abs(amt) });
+      });
+
+      // Terminal condition
+      if (iExitDate && iExitValue > 0) {
+        iIrrFlows.push({ date: new Date(iExitDate), amount: iExitValue });
+      }
+
+      iIrrFlows.sort((a, b) => a.date - b.date);
+      const iIrrResult = safeXirr(iIrrFlows.filter(cf => !isNaN(cf.date)));
+
+      results.unrealized.push({
+        ...rowData,
+        display_cost: iCost,
+        exit_value: iExitValue,
+        exit_date: iExitDate,
+        input_duration: iDuration,
+        dividends_interests: iDividends,
+        irr: iIrrResult !== null ? (iIrrResult * 100).toFixed(2) + "%" : "0.00%",
+        current_status: "Invested",
+        is_partial: divestPct > 0
+      });
     }
   });
 
@@ -166,6 +288,9 @@ export const processPortfolioData = (investments, projections, targetDate, activ
 };
 
 function Portfolio({ fundId, scenarioId, timeframeDate }) {
+  const formatNumber  = useNumberFormatter();
+  const formatPercent = usePercentageFormatter();
+  const formatMoic    = useMoicFormatter();
   const [activeMode, setActiveMode] = useState(null);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
   const [isFinalizationOpen, setIsFinalizationOpen] = useState(false); // NEW
@@ -175,9 +300,8 @@ function Portfolio({ fundId, scenarioId, timeframeDate }) {
   const [simRefreshTrigger, setSimRefreshTrigger] = useState(0);
   const [lockedRows, setLockedRows] = useState([]);
   const { countries = [] } = useCountries();
-  const { currencies = [], isLoading: currenciesLoading } = useCurrencies();
-  const formatNumber  = useNumberFormatter();
-  const formatPercent = usePercentageFormatter();
+  const { currencies = [] } = useCurrencies();
+
   const { data: shareClassesData } = useShareClasses(fundId);
 
     // 2. Extract just the names for the modal columns

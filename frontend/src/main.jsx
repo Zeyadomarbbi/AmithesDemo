@@ -50,7 +50,6 @@ import PortfolioSummaryTab from "./pages/App/pages/Portfolio/components/Summary/
 import PortfolioFxTab from "./pages/App/pages/Portfolio/components/FX/PortfolioFxTab";
 import PortfolioLimitsTab from "./pages/App/pages/Portfolio/components/Limits/PortfolioLimitsTab";
 import PortfolioCompareTab from "./pages/App/pages/Portfolio/components/Compare/PortfolioCompareTab";
-import CompareDetailPanel from "./pages/App/pages/Portfolio/components/Compare/CompareDetailPanel";
 
 /* --- SCENARIOS --- */
 import ScenariosPage from './pages/App/pages/Scenario/ScenariosPage';
@@ -158,7 +157,6 @@ const router = createBrowserRouter([
                       { path: 'fx', element: <PortfolioFxTab /> },
                       { path: 'limits', element: <PortfolioLimitsTab /> },
                       { path: 'compare', element: <PortfolioCompareTab /> },
-                      { path: 'compare/:positionId', element: <CompareDetailPanel /> },
                     ],
                   },
                   { 

@@ -4,7 +4,7 @@ import { LockOpenIcon, LockClosedIcon } from '/src/components/Icons/InteractiveI
 import { SensitivityIcon } from '/src/components/Icons/MiscIcons';
 import DateInputWithPicker from '../../../../../../../../../../components/DateComponents/DateInput';
 import { useTableSort, SortableHeaderRenderer } from '../../../../../../../../../../components/Sort/TableSort';
-import { useNumberFormatter, usePercentageFormatter, useDateFormatter } from '../../../../../../../../../../components/useFormatter';
+import { useNumberFormatter, usePercentageFormatter, useDateFormatter, useMoicFormatter } from '../../../../../../../../../../components/useFormatter';
 import Sensitivity from '../Sensitivity/Sensitivity';
 import './PortfolioTables.css';
 
@@ -123,6 +123,7 @@ function PortfolioSection({
     const formatNumber  = useNumberFormatter();
     const formatPercent = usePercentageFormatter();
     const formatDate    = useDateFormatter();
+    const formatMoic    = useMoicFormatter();
 
     const { sorted: sortedRows, sortKey, toggleSort } = useTableSort(localRows, "name");
 
@@ -239,7 +240,7 @@ function PortfolioSection({
 
                                 <td className="scenario-pf-center">
                                     {readOnly
-                                        ? <input className="scenario-pf-input" value={r.input_moic || 0} readOnly />
+                                        ? <input className="scenario-pf-input" value={formatMoic(r.input_moic || 0)} readOnly />
                                         : <input className="scenario-pf-input" value={r.input_moic ?? ""} onChange={(e) => handleLocalInputChange(r.id, 'input_moic', e.target.value)} />
                                     }
                                 </td>

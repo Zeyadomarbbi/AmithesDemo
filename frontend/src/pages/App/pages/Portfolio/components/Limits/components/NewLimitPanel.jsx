@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { CloseIcon, ChevronLeftIcon, ChevronDownIcon } from "../../../icons";
+import { CloseIcon } from "../../../../../../../components/Icons/InteractiveIcons";
+import { ChevronDownIcon, ChevronLeftIcon } from "../../../../../../../components/Icons/DirectionIcons";
+
 import "./NewLimitPanel.css";
 
 const NewLimitPanel = ({ open, onClose, onSave }) => {
