@@ -37,24 +37,9 @@ function ScenariosPage() {
     const [duplicatingScenario, setDuplicatingScenario] = useState(null);
 
     if (state.isLoading) {
-    return (
-        <div
-        style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(255,255,255,0.75)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 10,
-            borderRadius: '8px',
-        }}
-        >
-        <PageSpinner label="Loading scenarios and syntheses..." />
-        </div>
-    );
+        return <PageSpinner label="Loading scenarios and syntheses..." />;
     }
+
     if (state.error) {
         return <PageError message={state.error} />;
     }
