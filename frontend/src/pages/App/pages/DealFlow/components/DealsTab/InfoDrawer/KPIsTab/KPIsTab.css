@@ -1,0 +1,241 @@
+/* ================================
+   KPIs TAB
+   ================================ */
+
+.kpi-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+/* ---- SECTION ---- */
+.kpi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpi-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  border-bottom: 1px solid #375a89;
+  padding-bottom: 3px;
+}
+
+.kpi-section-title span {
+  font-family: "Inter", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #375a89;
+  white-space: nowrap;
+}
+
+/* ---- TOOLBAR ---- */
+.kpi-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kpi-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.kpi-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s;
+}
+
+.kpi-btn-outline:hover {
+  border-color: #375a89;
+}
+
+.kpi-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.kpi-btn-primary:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+/* ---- TABLE CONTAINER ---- */
+.kpi-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e6e9f1;
+  border-radius: 6px;
+}
+
+/* ---- TABLE ---- */
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  display: table;
+  table-layout: fixed;
+}
+
+.kpi-table thead,
+.kpi-table tbody,
+.kpi-table tfoot {
+  display: table-header-group;
+}
+
+.kpi-table tbody {
+  display: table-row-group;
+}
+
+.kpi-table tfoot {
+  display: table-footer-group;
+}
+
+.kpi-table tr {
+  display: table-row;
+}
+
+.kpi-table th,
+.kpi-table td {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+/* ---- HEADER ---- */
+.kpi-th {
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6e9f1;
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1c1917;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.kpi-th--handle {
+  width: 36px;
+  padding: 10px 8px;
+}
+
+.kpi-th--label {
+  text-align: left;
+  width: 160px;
+}
+
+.kpi-th--value {
+  text-align: right;
+}
+
+/* ---- BODY ROWS ---- */
+.kpi-row {
+  display: table-row;
+  background: #ffffff;
+  border-bottom: 1px solid #edf0f7;
+}
+
+.kpi-row:last-child {
+  border-bottom: none;
+}
+
+.kpi-row:hover {
+  background: #f9fafb;
+}
+
+/* ---- BODY CELLS ---- */
+.kpi-td {
+  display: table-cell;
+  padding: 10px 16px;
+  color: #2b2f38;
+  white-space: nowrap;
+  border-left: none;
+  border-right: none;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.kpi-td--handle {
+  width: 36px;
+  padding: 10px 8px;
+  cursor: grab;
+  text-align: center;
+}
+
+.kpi-td--handle:active {
+  cursor: grabbing;
+}
+
+.kpi-td--label {
+  width: 160px;
+  text-align: left;
+  font-weight: 500;
+  color: #1c1917;
+}
+
+.kpi-td--value {
+  text-align: right;
+  color: #374151;
+}
+
+/* ---- TOTAL ROW ---- */
+.kpi-total-row {
+  display: table-row;
+}
+
+.kpi-total-row td {
+  display: table-cell;
+  background: #254a7b;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  height: 55px;
+  padding: 0 16px;
+  opacity: 1;
+  vertical-align: middle;
+}
+
+.kpi-total-label {
+  text-align: left;
+  width: 160px;
+}
+
+.kpi-total-value {
+  text-align: right;
+}

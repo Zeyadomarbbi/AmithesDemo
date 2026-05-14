@@ -32,6 +32,9 @@ import CapitalFlows from './pages/App/pages/LPsStatement/components/CapitalFlows
 import Limits from './pages/App/pages/LPsStatement/components/Limits/Limits.jsx';
 import LPsRegister from './pages/App/pages/LPsStatement/components/LPsRegister/LPsRegister.jsx';
 
+/* --- DEALFLOW --- */
+import DealflowPage from './pages/App/pages/dealflow/Dealflowpage';
+
 /* --- FINANCIALS --- */
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
 import PnLTab from "./pages/App/pages/Financials/components/PnLTab/PnLTab.jsx";
@@ -159,7 +162,11 @@ const router = createBrowserRouter([
                       { path: 'compare', element: <PortfolioCompareTab /> },
                     ],
                   },
-                  { 
+                  {
+                    path: 'dealflow',
+                    element: <DealflowPage />,
+                  },
+                  {
                     path: "financials",
                     element: <FinancialsPage />,
                     children: [

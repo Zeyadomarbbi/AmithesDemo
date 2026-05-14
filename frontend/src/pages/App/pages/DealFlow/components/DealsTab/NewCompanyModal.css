@@ -1,0 +1,144 @@
+/* ================================
+   NEW COMPANY MODAL
+   ================================ */
+
+.ncm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ncm-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 360px;
+  height: 338px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  opacity: 1;
+}
+
+/* ---- HEADER ---- */
+.ncm-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 16px 0;
+}
+
+.ncm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.ncm-close:hover {
+  color: #1c1917;
+}
+
+/* ---- BODY ---- */
+.ncm-body {
+  padding: 4px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ncm-title {
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 4px;
+}
+
+/* ---- FIELD ---- */
+.ncm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ncm-label {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.ncm-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ncm-input::placeholder {
+  color: #9ca3af;
+}
+
+.ncm-input:focus {
+  border-color: #375a89;
+}
+
+/* ---- FOOTER ---- */
+.ncm-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px 24px;
+  border-top: 1px solid #e6e9f1;
+}
+
+.ncm-btn-cancel {
+  flex: 1;
+  height: 42px;
+  background: #fafaf9;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7b7d7e;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ncm-btn-cancel:hover {
+  border-color:  #efefee;
+}
+
+.ncm-btn-next {
+  flex: 1;
+  height: 42px;
+  background: #f7a93b;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ncm-btn-next:hover {
+  background: #f7a93b;
+}

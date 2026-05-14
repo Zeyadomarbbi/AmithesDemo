@@ -1,0 +1,183 @@
+/* ================================
+   FILTER MODAL
+   ================================ */
+
+.fm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.fm-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 620px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ---- HEADER ---- */
+.fm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e6e9f1;
+  flex-shrink: 0;
+}
+
+.fm-title {
+  font-family: "Inter", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.fm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.fm-close:hover {
+  color: #1c1917;
+}
+
+/* ---- BODY ---- */
+.fm-body {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+  background: #ffffff;
+}
+
+/* ---- SECTION ---- */
+.fm-section {
+  background: #f4f5f6;
+}
+
+.fm-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: #f4f5f6;
+  cursor: pointer;
+}
+
+.fm-chevron {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.fm-section-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c1917;
+}
+
+/* ---- OPTIONS ---- */
+.fm-options {
+  background: #f4f5f6;
+}
+
+.fm-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 24px 11px 58px;
+  background: #f4f5f6;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.fm-option:hover {
+  background: #eaecf5;
+}
+
+.fm-option-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #374151;
+}
+
+/* ---- CHECKBOX ---- */
+.fm-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #375a89;
+  flex-shrink: 0;
+}
+
+/* ---- FOOTER ---- */
+.fm-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e6e9f1;
+  flex-shrink: 0;
+}
+
+.fm-btn-cancel {
+  height: 40px;
+  flex: 1;
+  background: #fafaf9;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color:  #7b7d7e;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.fm-btn-cancel:hover {
+  border-color:  #efefee;
+}
+
+.fm-btn-filter {
+  height: 40px;
+  flex: 1;
+  background: #f7a93b;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.fm-btn-filter:hover {
+  background: #f7a93b;
+}

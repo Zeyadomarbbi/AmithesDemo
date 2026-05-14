@@ -6,7 +6,7 @@ import { useFundData } from '../../hooks/Core/FundContext';
 import { useActiveFund } from '../../hooks/useActiveFund';
 import Toast from '../Toast/Toast';
 import SearchBar from '../../../../components/SearchBar/SearchBar';
-import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon } from '/src/components/Icons/MiscIcons';
+import { DashboardTabIcon, PortfolioIcon, FinancialsIcon, ScenariosIcon, LPsIcon, AllFundsIcons, AdminsIcon, HelpIcon, SettingsIcon, DealflowIcon } from '/src/components/Icons/MiscIcons';
 import { ChevronDownIconWhite, ProfileExpandIcon } from '/src/components/Icons/DirectionIcons';
 import { LogoutIcon, AccountIcon } from '/src/components/Icons/InteractiveIcons';
 import { AmethisLOGO } from '/src/components/Icons/MiscIcons';
@@ -181,6 +181,9 @@ function SidePanel() {
               </NavLink>
               <NavLink to={`/funds/${activeFundId}/scenario-dashboard`} className="nav-item">
                 <ScenariosIcon /> <span>Scenarios</span>
+              </NavLink>
+              <NavLink to={`/funds/${activeFundId}/dealflow`} className="nav-item">
+                <DealflowIcon /> <span>Dealflow</span>
               </NavLink>
             </nav>
           )}

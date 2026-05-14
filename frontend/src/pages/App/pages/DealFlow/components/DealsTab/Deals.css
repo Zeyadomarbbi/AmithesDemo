@@ -1,0 +1,269 @@
+/* ================================
+   DEALS TAB
+   ================================ */
+
+.deals-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* ---- TOOLBAR ---- */
+.deals-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.deals-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Outline buttons (Delete, Download) */
+.deals-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: #FAFAF9;
+  border: 0px solid rgba(122, 124, 125, 0.5);
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s;
+}
+
+.deals-btn-outline:hover {
+  border-color: #375a89;
+}
+
+/* Filled Filter button */
+.deals-btn-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  background: #375a89;
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.deals-btn-filter:hover {
+  background: #2d4a72;
+}
+
+/* + New company button */
+.deals-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.deals-btn-primary:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+/* ---- TABLE CONTAINER ---- */
+.deals-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ---- TABLE ---- */
+.deals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  border-left: none;
+  border-right: none;
+}
+
+/* ---- HEADER ---- */
+.deals-table thead th {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid #e6e9f1;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.deals-th-left {
+  text-align: left !important;
+}
+
+.deals-th-checkbox {
+  width: 48px;
+  text-align: center !important;
+}
+
+/* ---- BODY ROWS ---- */
+.deals-table tbody tr {
+  background-color: #ffffff;
+  border-bottom: 1px solid #edf0f7;
+}
+
+.deals-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.deals-table tbody tr:hover {
+  background-color: #f3f6ff;
+}
+
+/* ---- BODY CELLS ---- */
+.deals-table tbody td {
+  padding: 14px;
+  color: #2b2f38;
+  white-space: nowrap;
+  text-align: center;
+  border-left: none;
+  border-right: none;
+}
+
+.deals-td-left {
+  text-align: left !important;
+}
+
+.deals-td-center {
+  text-align: center !important;
+}
+
+.deals-td-checkbox {
+  text-align: center !important;
+  width: 48px;
+}
+
+/* ---- CLICKABLE NAME ---- */
+.deals-name-link {
+  cursor: pointer;
+  color: #375a89;
+}
+
+.deals-name-link:hover {
+  text-decoration: underline;
+}
+
+/* ---- TEXT ---- */
+.deals-cell-text {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2b2f38;
+  white-space: nowrap;
+}
+
+/* ---- STAGE BADGE ---- */
+.deals-stage-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stage-briefing    { background: #d3f2ff; color: #4c6977; }
+.stage-dropped     { background: #ffe4e6; color: #be123c; }
+.stage-in-portfolio{ background: #ede9fe; color: #6d28d9; }
+.stage-sourcing    { background: #cffafe; color: #0e7490; }
+.stage-ic1         { background: #fef3c7; color: #92400e; }
+.stage-ic2         { background: #fef3c7; color: #92400e; }
+.stage-invested    { background: #d1fae5; color: #065f46; }
+.stage-default     { background: #f2f3f4; color: #4b5563; }
+
+/* ---- GEOGRAPHY ---- */
+.deals-geography {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2b2f38;
+  white-space: nowrap;
+}
+
+.deals-geography .country-flag-img {
+  width: 20px;
+  height: 15px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- CHECKBOX ---- */
+.deals-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #375a89;
+}
+
+/* ---- FOOTER (TOTAL ROW) ---- */
+.deals-total-row td {
+  padding: 10px 14px;
+  background: #254a7b;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-left: none;
+  border-right: none;
+  text-align: left;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .deals-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deals-toolbar-actions {
+    flex-wrap: wrap;
+  }
+}

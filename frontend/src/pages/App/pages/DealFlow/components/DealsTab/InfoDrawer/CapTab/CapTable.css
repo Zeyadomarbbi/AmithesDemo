@@ -1,0 +1,218 @@
+/* ================================
+   CAP TABLE
+   ================================ */
+
+.ct-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* ---- VERSION BAR ---- */
+.ct-versions-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e6e9f1;
+  padding-bottom: 0;
+}
+
+.ct-versions {
+  display: flex;
+  gap: 0;
+}
+
+.ct-version-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 20px 10px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.ct-version-btn--active {
+  border-bottom-color: #f7a93b;
+}
+
+.ct-version-label {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1917;
+  white-space: nowrap;
+}
+
+.ct-version-date {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.ct-version-btn--active .ct-version-label {
+  color: #254a7b;
+}
+
+/* ---- NEW CAP TABLE BUTTON ---- */
+.ct-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  margin-bottom: 8px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.ct-new-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+/* ---- TABLE CONTAINER ---- */
+.ct-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ---- TABLE ---- */
+.ct-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+}
+
+/* ---- HEADER ---- */
+.ct-table thead th {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid #e6e9f1;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ct-th {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e6e9f1;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1c1917;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ct-th--left {
+  text-align: left !important;
+}
+
+.ct-th--highlight {
+  background: #eaf0f8 !important;
+}
+
+/* ---- BODY ROWS ---- */
+.ct-row {
+  background: #ffffff;
+  border-bottom: 1px solid #edf0f7;
+}
+
+.ct-row:last-child {
+  border-bottom: none;
+}
+
+.ct-row:hover {
+  background: #f3f6ff;
+}
+
+/* ---- BODY CELLS ---- */
+.ct-td {
+  padding: 10px 14px;
+  color: #2b2f38;
+  white-space: nowrap;
+  border-left: none;
+  border-right: none;
+  font-size: 13px;
+}
+
+.ct-td--center {
+  text-align: center;
+}
+
+.ct-td--highlight {
+  background: #eaf0f8;
+  text-align: center;
+}
+
+.ct-row:hover .ct-td--highlight {
+  background: #dce8f4;
+}
+
+/* ---- NAME CELL ---- */
+.ct-td--name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  min-width: 140px;
+}
+
+.ct-name {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.ct-comment {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+/* ---- TOTAL ROW ---- */
+.ct-total-row td {
+  background: #254a7b;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  padding: 10px 14px;
+}
+
+.ct-td--total-label {
+  text-align: left;
+  min-width: 140px;
+}
+
+.ct-td--total-center {
+  text-align: center;
+}
