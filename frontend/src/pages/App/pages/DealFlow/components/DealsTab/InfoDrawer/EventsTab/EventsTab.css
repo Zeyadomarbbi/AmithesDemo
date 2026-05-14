@@ -1,0 +1,216 @@
+/* ================================
+   EVENTS TAB
+   ================================ */
+
+.et-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* ---- TOOLBAR ---- */
+.et-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.et-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.et-count {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  white-space: nowrap;
+}
+
+.et-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.et-new-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+/* ---- EVENT LIST ---- */
+.et-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- EVENT CARD ---- */
+.et-card {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  background: #f9fafb;
+  border: 1px solid #e6e9f1;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+/* ---- LEFT COLUMN ---- */
+.et-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 140px;
+}
+
+.et-meta-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: 0%;
+  color: #375a89;
+}
+
+.et-docs-label {
+  margin-top: 12px;
+}
+
+
+.et-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.et-doc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #e6e9f1;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.et-doc-icon {
+  display: flex;
+  align-items: center;
+  color: #375a89;
+  flex-shrink: 0;
+}
+
+.et-doc-name {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #375a89;
+  text-decoration: underline;
+}
+
+.et-doc-name:hover {
+  color: #254a7b;
+}
+
+/* ---- RIGHT COLUMN ---- */
+.et-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.et-right-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.et-title-input {
+  flex: 1;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c1917;
+  background: #f9fafb;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 10px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+
+.et-title-input:focus {
+  border-color: #375a89;
+  background: #ffffff;
+}
+
+.et-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.et-more-btn:hover {
+  color: #375a89;
+}
+
+.et-description-input {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.6;
+  background: #ffffff;
+  border: 1px solid #e6e9f1;
+  border-radius: 6px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.et-description-input:focus {
+  border-color: #375a89;
+}

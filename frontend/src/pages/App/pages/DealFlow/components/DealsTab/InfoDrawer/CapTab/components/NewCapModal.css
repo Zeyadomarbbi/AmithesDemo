@@ -1,0 +1,152 @@
+/* ================================
+   NEW CAP TABLE MODAL
+   ================================ */
+
+.ncap-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ncap-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ---- HEADER ---- */
+.ncap-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 16px 0;
+  flex-shrink: 0;
+}
+
+.ncap-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.ncap-close:hover {
+  color: #1c1917;
+}
+
+/* ---- BODY ---- */
+.ncap-body {
+  padding: 4px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ncap-title {
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 4px;
+}
+
+/* ---- FIELD ---- */
+.ncap-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ncap-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+/* ---- INPUT ---- */
+.ncap-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.ncap-input::placeholder {
+  color: #9ca3af;
+}
+
+.ncap-input:focus {
+  border-color: #375a89;
+}
+
+/* ---- DATE ---- */
+.ncap-date-wrap {
+  width: 100%;
+}
+
+/* ---- FOOTER ---- */
+.ncap-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px 24px;
+  border-top: 1px solid #e6e9f1;
+  flex-shrink: 0;
+}
+
+.ncap-btn-cancel {
+  width: 143px;
+  height: 32px;
+  background: #fafaf9;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7b7d7e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ncap-btn-cancel:hover {
+  background: #efefee;
+}
+
+.ncap-btn-next {
+  width: 143px;
+  height: 32px;
+  background: #f7a93b;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ncap-btn-next:hover {
+  background: #f59a1a;
+}
