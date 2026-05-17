@@ -14,11 +14,11 @@ const INITIAL_VERSIONS = [
 const SHARE_COLS = ["Series A", "Series B", "Common", "Preferred", "Seed"];
 
 const ROWS = [
-  { id: 1, name: "Shareholder X", comment: "Comment", seriesA: 10000, seriesB: 250,  common: 548,  preferred: null, seed: null, esop: null,  nfd: 15.54, fd: 14.87 },
-  { id: 2, name: "Shareholder X", comment: "Comment", seriesA: null,  seriesB: null,  common: 201,  preferred: 1587, seed: 540,  esop: null,  nfd: 5.54,  fd: 5.12  },
-  { id: 3, name: "Shareholder X", comment: "Comment", seriesA: 5000,  seriesB: null,  common: 6541, preferred: 873,  seed: null, esop: null,  nfd: 30.45, fd: 29.89 },
-  { id: 4, name: "Shareholder X", comment: "Comment", seriesA: 1548,  seriesB: 254,   common: null, preferred: null, seed: null, esop: 254,   nfd: 24.25, fd: 25.54 },
-  { id: 5, name: "Shareholder X", comment: "Comment", seriesA: 6254,  seriesB: 987,   common: null, preferred: 1547, seed: null, esop: 254,   nfd: 7.68,  fd: 8.01  },
+  { id: 1, name: "Shareholder X", comment: "Comment", seriesA: 10000, seriesB: 250,  common: 548,  preferred: null, seed: null, esop: null },
+  { id: 2, name: "Shareholder X", comment: "Comment", seriesA: null,  seriesB: null,  common: 201,  preferred: 1587, seed: 540,  esop: null },
+  { id: 3, name: "Shareholder X", comment: "Comment", seriesA: 5000,  seriesB: null,  common: 6541, preferred: 873,  seed: null, esop: null },
+  { id: 4, name: "Shareholder X", comment: "Comment", seriesA: 1548,  seriesB: 254,   common: null, preferred: null, seed: null, esop: 254  },
+  { id: 5, name: "Shareholder X", comment: "Comment", seriesA: 6254,  seriesB: 987,   common: null, preferred: 1547, seed: null, esop: 254  },
 ];
 
 const KEY_MAP = {
@@ -41,6 +41,23 @@ function fmtPct(val) {
 
 function totCol(key) {
   return ROWS.reduce((s, r) => s + (r[key] ?? 0), 0);
+}
+
+// n.f.d (%) = SUM(row share cols) / SUM(total share cols)  — exact Excel: =SUM(C3:G3)/SUM($C$8:$G$8)
+function rowShareSum(row) {
+  return (row.seriesA ?? 0) + (row.seriesB ?? 0) + (row.common ?? 0) + (row.preferred ?? 0) + (row.seed ?? 0);
+}
+const totalShareSum = ROWS.reduce((s, r) => s + rowShareSum(r), 0);
+const totalEsopSum  = totCol("esop");
+
+function calcNfd(row) {
+  return totalShareSum > 0 ? (rowShareSum(row) / totalShareSum) * 100 : 0;
+}
+
+// f.d (%) = SUM(row share cols + esop) / SUM(total share cols + total esop)  — exact Excel: =SUM(C3:G3,I3)/SUM($C$8:$G$8,$I$8)
+function calcFd(row) {
+  const denom = totalShareSum + totalEsopSum;
+  return denom > 0 ? ((rowShareSum(row) + (row.esop ?? 0)) / denom) * 100 : 0;
 }
 
 function formatDate(d) {
@@ -139,9 +156,9 @@ export default function CapTable() {
                 {SHARE_COLS.map((col) => (
                   <td key={col} className="ct-td ct-td--center">{fmt(row[KEY_MAP[col]])}</td>
                 ))}
-                <td className="ct-td ct-td--center ct-td--highlight">{fmtPct(row.nfd)}</td>
+                <td className="ct-td ct-td--center ct-td--highlight">{fmtPct(calcNfd(row))}</td>
                 <td className="ct-td ct-td--center">{fmt(row.esop)}</td>
-                <td className="ct-td ct-td--center ct-td--highlight">{fmtPct(row.fd)}</td>
+                <td className="ct-td ct-td--center ct-td--highlight">{fmtPct(calcFd(row))}</td>
               </tr>
             ))}
           </tbody>
@@ -151,9 +168,9 @@ export default function CapTable() {
               {SHARE_COLS.map((col) => (
                 <td key={col} className="ct-td--total-center">{fmt(totCol(KEY_MAP[col]))}</td>
               ))}
-              <td className="ct-td--total-center">{fmtPct(ROWS.reduce((s, r) => s + (r.nfd ?? 0), 0))}</td>
+              <td className="ct-td--total-center">{fmtPct(ROWS.reduce((s, r) => s + calcNfd(r), 0))}</td>
               <td className="ct-td--total-center">{fmt(totCol("esop"))}</td>
-              <td className="ct-td--total-center">{fmtPct(ROWS.reduce((s, r) => s + (r.fd ?? 0), 0))}</td>
+              <td className="ct-td--total-center">{fmtPct(ROWS.reduce((s, r) => s + calcFd(r), 0))}</td>
             </tr>
           </tfoot>
         </table>
