@@ -14,47 +14,11 @@ import {
   Area,
 } from "recharts";
 import { ChevronDownIcon } from "../../../../../../components/Icons/DirectionIcons";
+import { useDashboardData } from "/src/pages/App/hooks/DealFlow/useDashboardData";
 import "./DashboardTab.css";
 
-const SECTOR_DATA = [
-  { name: "Healthcare", value: 4,  color: "#E8734A" },
-  { name: "Utilities",  value: 13, color: "#375A89" },
-  { name: "Energy",     value: 3,  color: "#C8A97A" },
-];
-
-const COUNTRY_DATA = [
-  { name: "Egypt",       value: 8, color: "#7B6FC6" },
-  { name: "Ivory Coast", value: 7, color: "#D94F5C" },
-  { name: "Morocco",     value: 5, color: "#F5C842" },
-];
-
-const CURRENCY_DATA = [
-  { name: "USD", value: 9, color: "#E8734A" },
-  { name: "EUR", value: 9, color: "#375A89" },
-  { name: "MAD", value: 9, color: "#F5C842" },
-  { name: "EGP", value: 9, color: "#4A5568" },
-];
-
-const BAR_DATA = [
-  { month: "Dec", fundIII: 1, menaIII: 0, menaII: 1 },
-  { month: "Jan", fundIII: 2, menaIII: 1, menaII: 1 },
-  { month: "Feb", fundIII: 1, menaIII: 0, menaII: 1 },
-  { month: "Mar", fundIII: 2, menaIII: 0, menaII: 1 },
-  { month: "Apr", fundIII: 2, menaIII: 0, menaII: 0 },
-  { month: "May", fundIII: 1, menaIII: 0, menaII: 0 },
-  { month: "Jun", fundIII: 5, menaIII: 2, menaII: 1 },
-];
-
-const FUNNEL_DATA = [
-  { stage: "Dropped",  value: 70 },
-  { stage: "Briefing", value: 30 },
-  { stage: "IC 1",     value: 21 },
-  { stage: "IC 2",     value: 12 },
-  { stage: "Invested", value: 9  },
-];
-
-const STATUS_OPTIONS  = ["Live", "Invested", "Dropped", "Exited"];
-const STAGE_OPTIONS   = ["Sourcing", "Briefing", "IC 1", "IC 2", "Invested"];
+const STATUS_OPTIONS = ["Live", "Invested", "Dropped", "Exited"];
+const STAGE_OPTIONS  = ["Sourcing", "Briefing", "IC 1", "IC 2", "Invested"];
 
 function FilterSelect({ placeholder, options, value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -169,6 +133,9 @@ function DashboardTab() {
   const [stage,  setStage]  = useState("");
   const [fund,   setFund]   = useState("");
 
+  const { sectorData, countryData, currencyData, barData, barTotals, funnelData } =
+    useDashboardData({ status, stage, fund });
+
   return (
     <>
       {/* Filters */}
@@ -185,9 +152,9 @@ function DashboardTab() {
       </div>
 
       <div className="df-cards-row">
-        <DonutCard title="Breakdown by sector"   data={SECTOR_DATA}   />
-        <DonutCard title="Breakdown by country"  data={COUNTRY_DATA}  />
-        <DonutCard title="Breakdown by currency" data={CURRENCY_DATA} />
+        <DonutCard title="Breakdown by sector"   data={sectorData}   />
+        <DonutCard title="Breakdown by country"  data={countryData}  />
+        <DonutCard title="Breakdown by currency" data={currencyData} />
       </div>
 
       {/* Evolution */}
@@ -205,7 +172,7 @@ function DashboardTab() {
 
           <div className="df-bar-chart-area">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={BAR_DATA} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+              <BarChart data={barData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                 <CartesianGrid
                   vertical={false}
                   strokeDasharray="3 3"
@@ -242,17 +209,17 @@ function DashboardTab() {
             <div className="df-bar-legend-item">
               <span className="df-bar-legend-dot" style={{ backgroundColor: "#375A89" }} />
               <span className="df-bar-legend-name">Fund III</span>
-              <strong className="df-bar-legend-val">14</strong>
+              <strong className="df-bar-legend-val">{barTotals.fundIII}</strong>
             </div>
             <div className="df-bar-legend-item">
               <span className="df-bar-legend-dot" style={{ backgroundColor: "#F9A8B4" }} />
               <span className="df-bar-legend-name">MENA III</span>
-              <strong className="df-bar-legend-val">3</strong>
+              <strong className="df-bar-legend-val">{barTotals.menaIII}</strong>
             </div>
             <div className="df-bar-legend-item">
               <span className="df-bar-legend-dot" style={{ backgroundColor: "#FD9640" }} />
               <span className="df-bar-legend-name">MENA II</span>
-              <strong className="df-bar-legend-val">5</strong>
+              <strong className="df-bar-legend-val">{barTotals.menaII}</strong>
             </div>
           </div>
         </div>
@@ -262,7 +229,7 @@ function DashboardTab() {
           <div className="df-card-title">Funnel chart stages</div>
 
           <div className="df-funnel-headers">
-            {FUNNEL_DATA.map((d, i) => (
+            {funnelData.map((d, i) => (
               <div key={i} className="df-funnel-col">
                 <span className="df-funnel-stage-label">{d.stage}</span>
                 <strong className="df-funnel-stage-value">{d.value}</strong>
@@ -273,7 +240,7 @@ function DashboardTab() {
           <div className="df-funnel-area">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={FUNNEL_DATA}
+                data={funnelData}
                 margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
               >
                 <defs>
@@ -288,6 +255,7 @@ function DashboardTab() {
                 <Area
                   type="linear"
                   dataKey="value"
+                  data={funnelData}
                   stroke="none"
                   fill="url(#funnelHorizGrad)"
                   isAnimationActive={false}
