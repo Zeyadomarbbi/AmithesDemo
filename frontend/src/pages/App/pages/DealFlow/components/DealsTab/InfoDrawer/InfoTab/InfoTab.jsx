@@ -84,6 +84,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   const [activeTab, setActiveTab] = useState("Information");
   const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState(createInitialForm(deal));
+  const [tabSave, setTabSave] = useState({ fn: null, isDirty: false, isSaving: false });
   const { toast, showToast, closeToast } = useToast();
 
   const {
@@ -266,10 +267,10 @@ function InfoTab({ deal, onClose, onSaved }) {
 
         <div className="it-body">
           {activeTab === "Events" && <EventsTab dealId={deal?.id} />}
-          {activeTab === "Cap table" && <CapTable dealId={deal?.id} />}
+          {activeTab === "Cap table" && <CapTable dealId={deal?.id} onSaveStateChange={setTabSave} />}
           {activeTab === "Dataroom" && <Dataroom dealId={deal?.id} />}
-          {activeTab === "KPIs" && <KPIsTab dealId={deal?.id} />}
-          {activeTab === "Other" && <OtherTab dealId={deal?.id} />}
+          {activeTab === "KPIs" && <KPIsTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
+          {activeTab === "Other" && <OtherTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
 
           {activeTab === "Information" && (
             <>
@@ -599,6 +600,11 @@ function InfoTab({ deal, onClose, onSaved }) {
           {activeTab === "Information" && (
             <button className="it-save-btn" onClick={handleSave} disabled={isBusy || !isDirty}>
               {isSaving ? "Saving..." : isDetailLoading ? "Loading..." : "Save"}
+            </button>
+          )}
+          {(activeTab === "Cap table" || activeTab === "KPIs" || activeTab === "Other") && (
+            <button className="it-save-btn" onClick={tabSave.fn} disabled={tabSave.isSaving || !tabSave.isDirty}>
+              {tabSave.isSaving ? "Saving..." : "Save"}
             </button>
           )}
         </div>

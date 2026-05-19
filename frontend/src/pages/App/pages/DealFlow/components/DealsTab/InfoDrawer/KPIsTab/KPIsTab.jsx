@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
@@ -85,7 +85,7 @@ function displayNumber(value) {
   });
 }
 
-export default function KPIsTab({ dealId }) {
+export default function KPIsTab({ dealId, onSaveStateChange }) {
   const [activePeriodId, setActivePeriodId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [showCreator, setShowCreator] = useState(false);
@@ -138,6 +138,12 @@ export default function KPIsTab({ dealId }) {
   );
   const activeDraft = activePeriodId ? drafts[activePeriodId] || null : null;
   const isDirty = activePeriod && activeDraft ? periodHasChanges(activePeriod, activeDraft) : false;
+
+  const handleSaveRef = useRef(null);
+  useEffect(() => {
+    if (!onSaveStateChange) return;
+    onSaveStateChange({ fn: () => handleSaveRef.current?.(), isDirty, isSaving });
+  }, [isDirty, isSaving, onSaveStateChange]);
 
   const updateDraftField = (field, value) => {
     if (!activePeriodId) return;
@@ -260,6 +266,8 @@ export default function KPIsTab({ dealId }) {
       });
     }
   };
+
+  handleSaveRef.current = handleSave;
 
   return (
     <div className="kpi-wrapper">
@@ -391,14 +399,12 @@ export default function KPIsTab({ dealId }) {
                 placeholder="Order"
               />
             </div>
-            <div className="kpi-editor-actions">
-              <button className="kpi-btn-outline" onClick={handleAddRow} disabled={isSaving}>
-                <PlusIcon /> New KPI
-              </button>
-              <button className="kpi-btn-save" onClick={handleSave} disabled={isSaving || !isDirty}>
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
+          </div>
+
+          <div className="kpi-table-header">
+            <button className="kpi-btn-primary" onClick={handleAddRow} disabled={isSaving}>
+              <PlusIcon /> New KPI
+            </button>
           </div>
 
           <div className="kpi-table-container">
@@ -488,6 +494,7 @@ export default function KPIsTab({ dealId }) {
               </tfoot>
             </table>
           </div>
+
         </div>
       )}
 

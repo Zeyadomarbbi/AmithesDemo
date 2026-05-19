@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
@@ -63,7 +63,7 @@ function snapshotHasChanges(snapshot, draft) {
   );
 }
 
-export default function OtherTab({ dealId }) {
+export default function OtherTab({ dealId, onSaveStateChange }) {
   const [activeSnapshotId, setActiveSnapshotId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [showModal, setShowModal] = useState(false);
@@ -107,6 +107,12 @@ export default function OtherTab({ dealId }) {
   );
   const activeDraft = activeSnapshotId ? drafts[activeSnapshotId] || null : null;
   const isDirty = activeSnapshot && activeDraft ? snapshotHasChanges(activeSnapshot, activeDraft) : false;
+
+  const handleSaveRef = useRef(null);
+  useEffect(() => {
+    if (!onSaveStateChange) return;
+    onSaveStateChange({ fn: () => handleSaveRef.current?.(), isDirty, isSaving });
+  }, [isDirty, isSaving, onSaveStateChange]);
 
   const updateDraftField = (field, value) => {
     if (!activeSnapshotId) return;
@@ -228,6 +234,8 @@ export default function OtherTab({ dealId }) {
     }
   };
 
+  handleSaveRef.current = handleSave;
+
   return (
     <div className="ot-wrapper">
       {showModal && <NewBoardModal onClose={() => setShowModal(false)} onNext={handleCreateSnapshot} />}
@@ -284,14 +292,12 @@ export default function OtherTab({ dealId }) {
                 dateFormat="DD/MM/YYYY"
               />
             </div>
-            <div className="ot-editor-actions">
-              <button className="ot-add-row-btn" onClick={handleAddMember} disabled={isSaving}>
-                <PlusIcon /> Add member
-              </button>
-              <button className="ot-save-btn" onClick={handleSave} disabled={isSaving || !isDirty}>
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
+          </div>
+
+          <div className="ot-table-header">
+            <button className="ot-add-row-btn" onClick={handleAddMember} disabled={isSaving}>
+              <PlusIcon /> Add member
+            </button>
           </div>
 
           <div className="ot-table-container">
@@ -360,6 +366,7 @@ export default function OtherTab({ dealId }) {
               </tfoot>
             </table>
           </div>
+
         </>
       )}
 

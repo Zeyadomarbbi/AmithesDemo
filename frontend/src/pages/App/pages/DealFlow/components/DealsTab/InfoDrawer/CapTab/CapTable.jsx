@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
@@ -121,7 +121,7 @@ function buildTotals(entries) {
   };
 }
 
-export default function CapTable({ dealId }) {
+export default function CapTable({ dealId, onSaveStateChange }) {
   const [showModal, setShowModal] = useState(false);
   const [activeSnapshotId, setActiveSnapshotId] = useState(null);
   const [drafts, setDrafts] = useState({});
@@ -166,6 +166,12 @@ export default function CapTable({ dealId }) {
   const activeDraft = activeSnapshotId ? drafts[activeSnapshotId] || null : null;
   const totals = useMemo(() => buildTotals(activeDraft?.entries || []), [activeDraft]);
   const isDirty = activeSnapshot && activeDraft ? snapshotHasChanges(activeSnapshot, activeDraft) : false;
+
+  const handleSaveRef = useRef(null);
+  useEffect(() => {
+    if (!onSaveStateChange) return;
+    onSaveStateChange({ fn: () => handleSaveRef.current?.(), isDirty, isSaving });
+  }, [isDirty, isSaving, onSaveStateChange]);
 
   const updateDraftField = (field, value) => {
     if (!activeSnapshotId) return;
@@ -297,6 +303,8 @@ export default function CapTable({ dealId }) {
     }
   };
 
+  handleSaveRef.current = handleSave;
+
   return (
     <div className="ct-wrapper">
       {showModal && <NewCapModal onClose={() => setShowModal(false)} onNext={handleCreateSnapshot} />}
@@ -353,14 +361,12 @@ export default function CapTable({ dealId }) {
                 dateFormat="DD/MM/YYYY"
               />
             </div>
-            <div className="ct-editor-actions">
-              <button className="ct-add-row-btn" onClick={handleAddRow} disabled={isSaving}>
-                <PlusIcon /> Add row
-              </button>
-              <button className="ct-save-btn" onClick={handleSave} disabled={isSaving || !isDirty}>
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
+          </div>
+
+          <div className="ct-table-header">
+            <button className="ct-add-row-btn" onClick={handleAddRow} disabled={isSaving}>
+              <PlusIcon /> Add row
+            </button>
           </div>
 
           <div className="ct-table-container">
@@ -447,6 +453,7 @@ export default function CapTable({ dealId }) {
               </tfoot>
             </table>
           </div>
+
         </>
       )}
 

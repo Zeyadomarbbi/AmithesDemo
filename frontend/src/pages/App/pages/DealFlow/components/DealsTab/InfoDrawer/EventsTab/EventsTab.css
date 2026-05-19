@@ -97,7 +97,7 @@
   flex-direction: column;
   gap: 6px;
   flex-shrink: 0;
-  width: 140px;
+  width: 220px;
 }
 
 .et-meta-label {
@@ -180,6 +180,7 @@
   font-family: "Inter", sans-serif;
   font-size: 12px;
   color: #6b7280;
+  padding-left: 10px;
 }
 
 .et-title-input {
@@ -282,6 +283,7 @@
 .et-actions {
   display: flex;
   justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .et-save-btn {
@@ -291,7 +293,7 @@
   min-width: 88px;
   height: 34px;
   padding: 0 14px;
-  background: #375a89;
+  background: #f7a93b;
   color: #ffffff;
   border: none;
   border-radius: 6px;
