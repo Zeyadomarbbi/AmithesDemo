@@ -5,10 +5,20 @@ import "./NewCompanyModal.css";
 function NewCompanyModal({ onClose, onNext }) {
   const [companyName, setCompanyName] = useState("");
   const [codeName, setCodeName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleNext = () => {
-    onNext?.({ companyName, codeName });
-    onClose();
+  const handleNext = async () => {
+    if (!onNext) {
+      onClose();
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onNext({ companyName, codeName });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,8 +59,10 @@ function NewCompanyModal({ onClose, onNext }) {
 
         {/* Footer */}
         <div className="ncm-footer">
-          <button className="ncm-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="ncm-btn-next" onClick={handleNext}>Next</button>
+          <button className="ncm-btn-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
+          <button className="ncm-btn-next" onClick={handleNext} disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Next"}
+          </button>
         </div>
 
       </div>

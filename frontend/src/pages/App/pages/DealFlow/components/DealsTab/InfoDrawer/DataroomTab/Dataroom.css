@@ -83,6 +83,39 @@
   white-space: nowrap;
 }
 
+.dr-btn-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dr-btn-upload:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dr-empty-state {
+  padding: 28px 20px;
+  border: 1px dashed #d8dce8;
+  border-radius: 8px;
+  background: #fbfcfe;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* ---- TABLE CONTAINER ---- */
 .dr-table-container {
   width: 100%;
@@ -263,6 +296,18 @@
   font-family: "Inter", sans-serif;
   font-size: 13px;
   color: #2b2f38;
+}
+
+.dr-doc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dr-doc-sub {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 /* ---- EDITING ROW ---- */

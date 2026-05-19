@@ -9,6 +9,17 @@
   width: 100%;
 }
 
+.ct-empty-state {
+  padding: 28px 20px;
+  border: 1px dashed #d8dce8;
+  border-radius: 8px;
+  background: #fbfcfe;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* ---- VERSION BAR ---- */
 .ct-versions-bar {
   display: flex;
@@ -22,6 +33,7 @@
 .ct-versions {
   display: flex;
   gap: 0;
+  flex-wrap: wrap;
 }
 
 .ct-version-btn {
@@ -85,6 +97,108 @@
 
 .ct-new-btn:hover {
   background: rgba(55, 90, 137, 0.28);
+}
+
+.ct-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ct-delete-snapshot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  margin-bottom: 8px;
+  background: rgba(180, 35, 24, 0.12);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #b42318;
+  cursor: pointer;
+}
+
+.ct-snapshot-editor {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.2fr) minmax(180px, 0.8fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.ct-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ct-editor-field--date .date-input-container {
+  width: 100%;
+}
+
+.ct-editor-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.ct-editor-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ct-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ct-add-row-btn,
+.ct-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ct-add-row-btn {
+  background: #eef3f8;
+  color: #375a89;
+}
+
+.ct-save-btn {
+  background: #375a89;
+  color: #ffffff;
+  min-width: 88px;
+}
+
+.ct-add-row-btn:disabled,
+.ct-save-btn:disabled,
+.ct-new-btn:disabled,
+.ct-delete-snapshot-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ---- TABLE CONTAINER ---- */
@@ -176,10 +290,6 @@
 
 /* ---- NAME CELL ---- */
 .ct-td--name {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
   min-width: 140px;
 }
 
@@ -195,6 +305,44 @@
   font-size: 12px;
   font-weight: 400;
   color: #6b7280;
+}
+
+.ct-cell-input {
+  width: 100%;
+  min-width: 72px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #dbe1ea;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ct-cell-input--text {
+  text-align: left;
+  min-width: 160px;
+}
+
+.ct-cell-input--highlight {
+  background: #f5f8fc;
+}
+
+.ct-row-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ct-row-delete-btn:hover {
+  color: #b42318;
 }
 
 /* ---- TOTAL ROW ---- */
@@ -215,4 +363,23 @@
 
 .ct-td--total-center {
   text-align: center;
+}
+
+@media (max-width: 980px) {
+  .ct-versions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ct-top-actions {
+    justify-content: flex-end;
+  }
+
+  .ct-snapshot-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .ct-editor-actions {
+    justify-content: flex-start;
+  }
 }

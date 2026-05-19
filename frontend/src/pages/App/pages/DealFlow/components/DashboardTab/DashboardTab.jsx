@@ -15,14 +15,14 @@ import {
 } from "recharts";
 import { ChevronDownIcon } from "../../../../../../components/Icons/DirectionIcons";
 import { useDashboardData } from "/src/pages/App/hooks/DealFlow/useDashboardData";
+import Toast from "../../../../components/Toast/Toast";
+import { useToast } from "../../../../components/Toast/useToast";
 import "./DashboardTab.css";
-
-const STATUS_OPTIONS = ["Live", "Invested", "Dropped", "Exited"];
-const STAGE_OPTIONS  = ["Sourcing", "Briefing", "IC 1", "IC 2", "Invested"];
 
 function FilterSelect({ placeholder, options, value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const selectedOption = options.find((option) => option.value === value);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -40,7 +40,7 @@ function FilterSelect({ placeholder, options, value, onChange }) {
         type="button"
       >
         <span className={value ? "df-filter-value" : "df-filter-placeholder"}>
-          {value || placeholder}
+          {selectedOption?.label || placeholder}
         </span>
         <span className={`df-filter-chevron ${open ? "df-filter-chevron--open" : ""}`}>
           <ChevronDownIcon />
@@ -56,13 +56,13 @@ function FilterSelect({ placeholder, options, value, onChange }) {
               Clear
             </div>
           )}
-          {options.map((o) => (
+          {options.map((option) => (
             <div
-              key={o}
-              className={`df-filter-option ${value === o ? "df-filter-option--selected" : ""}`}
-              onMouseDown={() => { onChange(o); setOpen(false); }}
+              key={option.value}
+              className={`df-filter-option ${value === option.value ? "df-filter-option--selected" : ""}`}
+              onMouseDown={() => { onChange(option.value); setOpen(false); }}
             >
-              {o}
+              {option.label}
             </div>
           ))}
         </div>
@@ -132,17 +132,56 @@ function DashboardTab() {
   const [status, setStatus] = useState("");
   const [stage,  setStage]  = useState("");
   const [fund,   setFund]   = useState("");
+  const { toast, showToast, closeToast } = useToast();
 
-  const { sectorData, countryData, currencyData, barData, barTotals, funnelData } =
+  const {
+    statusOptions,
+    stageOptions,
+    fundOptions,
+    sectorData,
+    countryData,
+    currencyData,
+    barData,
+    barTotals,
+    fundSeries,
+    funnelData,
+    isLoading,
+    error,
+  } =
     useDashboardData({ status, stage, fund });
+
+  useEffect(() => {
+    if (error) {
+      showToast({
+        type: "error",
+        title: "Dashboard failed",
+        message: error,
+      });
+    }
+  }, [error, showToast]);
 
   return (
     <>
       {/* Filters */}
       <div className="df-filters">
-        <FilterSelect placeholder="Select a status" options={STATUS_OPTIONS} value={status} onChange={setStatus} />
-        <FilterSelect placeholder="Select a stage"  options={STAGE_OPTIONS}  value={stage}  onChange={setStage}  />
-        <FilterSelect placeholder="Select a fund" options={[]} value={fund} onChange={setFund} />
+        <FilterSelect
+          placeholder="Select a status"
+          options={statusOptions}
+          value={status}
+          onChange={setStatus}
+        />
+        <FilterSelect
+          placeholder="Select a stage"
+          options={stageOptions}
+          value={stage}
+          onChange={setStage}
+        />
+        <FilterSelect
+          placeholder="Select a fund"
+          options={fundOptions}
+          value={fund}
+          onChange={setFund}
+        />
       </div>
 
       {/* Breakdown */}
@@ -168,7 +207,7 @@ function DashboardTab() {
         {/* Bar chart */}
         <div className="df-card df-bar-card">
           <div className="df-card-title">Number of deal</div>
-          <span className="df-badge-this-month">+8 this month</span>
+          <span className="df-badge-this-month">{isLoading ? "Loading..." : `${barData.length} months tracked`}</span>
 
           <div className="df-bar-chart-area">
             <ResponsiveContainer width="100%" height="100%">
@@ -198,29 +237,27 @@ function DashboardTab() {
                   }}
                   cursor={{ fill: "rgba(0,0,0,0.04)" }}
                 />
-                <Bar dataKey="menaII"  stackId="a" fill="#FD9640" />
-                <Bar dataKey="menaIII" stackId="a" fill="#F9A8B4" />
-                <Bar dataKey="fundIII" stackId="a" fill="#375A89" radius={[4, 4, 0, 0]} />
+                {fundSeries.map((series, index) => (
+                  <Bar
+                    key={series.key}
+                    dataKey={series.key}
+                    stackId="a"
+                    fill={series.color}
+                    radius={index === fundSeries.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                  />
+                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           <div className="df-bar-legend">
-            <div className="df-bar-legend-item">
-              <span className="df-bar-legend-dot" style={{ backgroundColor: "#375A89" }} />
-              <span className="df-bar-legend-name">Fund III</span>
-              <strong className="df-bar-legend-val">{barTotals.fundIII}</strong>
-            </div>
-            <div className="df-bar-legend-item">
-              <span className="df-bar-legend-dot" style={{ backgroundColor: "#F9A8B4" }} />
-              <span className="df-bar-legend-name">MENA III</span>
-              <strong className="df-bar-legend-val">{barTotals.menaIII}</strong>
-            </div>
-            <div className="df-bar-legend-item">
-              <span className="df-bar-legend-dot" style={{ backgroundColor: "#FD9640" }} />
-              <span className="df-bar-legend-name">MENA II</span>
-              <strong className="df-bar-legend-val">{barTotals.menaII}</strong>
-            </div>
+            {fundSeries.map((series) => (
+              <div key={series.key} className="df-bar-legend-item">
+                <span className="df-bar-legend-dot" style={{ backgroundColor: series.color }} />
+                <span className="df-bar-legend-name">{series.name}</span>
+                <strong className="df-bar-legend-val">{barTotals[series.key] ?? series.total ?? 0}</strong>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -266,6 +303,17 @@ function DashboardTab() {
         </div>
 
       </div>
+
+      {toast && (
+        <Toast
+          key={toast.key}
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={closeToast}
+        />
+      )}
     </>
   );
 }

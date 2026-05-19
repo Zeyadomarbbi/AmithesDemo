@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { CloseIcon, PlusIcon } from "/src/components/Icons/InteractiveIcons";
-import { ChevronDownIcon, ChevronDoubleLeftIcon } from "/src/components/Icons/DirectionIcons";
-import { useTableSort, SortableHeaderRenderer } from "/src/components/Sort/TableSort";
-import { useCountries } from "../../../../../../hooks/Reference/useCountries";
-import { useCurrencies } from "../../../../../../hooks/Reference/useCurrencies";
+import React, { useEffect, useMemo, useState } from "react";
+import { CloseIcon, PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
+import { ChevronDoubleLeftIcon } from "/src/components/Icons/DirectionIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
+import Toast from "../../../../../../components/Toast/Toast";
+import { useToast } from "../../../../../../components/Toast/useToast";
+import {
+  mapDealDetailToForm,
+  mapInfoFormToPayload,
+  useDealInfoBackend,
+  useDealflowLookupOptions,
+} from "../../Deals_backend_work";
 import EventsTab from "../EventsTab/EventsTab";
 import CapTable from "../CapTab/CapTable";
 import Dataroom from "../DataroomTab/Dataroom";
@@ -14,23 +19,33 @@ import "./InfoTab.css";
 
 const TABS = ["Information", "Events", "Cap table", "Dataroom", "KPIs", "Other"];
 
-const TEAM_DATA = [
-  { id: 1, initials: "AR", color: "#E8734A", name: "Alice Right",  position: "Partner"   },
-  { id: 2, initials: "JD", color: "#375A89", name: "Jean Dupont",  position: "Director"  },
-  { id: 3, initials: "VD", color: "#7B6FC6", name: "Vasco Durand", position: "Associate" },
-  { id: 4, initials: "VD", color: "#7B6FC6", name: "Vasco Durand", position: "Analyst"   },
-  { id: 5, initials: "AR", color: "#E8734A", name: "Alice Right",  position: "Support 1" },
-  { id: 6, initials: "JD", color: "#375A89", name: "Jean Dupont",  position: "Support 2" },
-];
-
-function SelectWrap({ children }) {
-  return (
-    <div className="it-select-wrap">
-      {children}
-      <span className="it-select-chevron"><ChevronDownIcon /></span>
-    </div>
-  );
-}
+const createInitialForm = (deal) => ({
+  dealName: deal?.name || "",
+  codeName: deal?.code || "",
+  sector: deal?.sectorId || null,
+  businessDescription: "",
+  status: deal?.statusId || null,
+  stage: deal?.stageId || null,
+  fund: deal?.fundId || null,
+  ticket: deal?.ticketAmount ?? "",
+  currency: deal?.currencyId || null,
+  legalForm: null,
+  countryOfIncorporation: null,
+  countryOfMainOperation: null,
+  sourceType: null,
+  contact: "",
+  sponsors: "",
+  sourcingRelevantInfo: "",
+  exitType: null,
+  exitRelevantInfo: "",
+  website: "",
+  registrationNumber: "",
+  address: "",
+  zipCode: "",
+  city: "",
+  country: null,
+  teamMembers: [],
+});
 
 function SectionHeader({ label }) {
   return (
@@ -40,107 +55,203 @@ function SectionHeader({ label }) {
   );
 }
 
-function InfoTab({ deal, onClose }) {
+function normalizeNumericInput(value) {
+  return String(value ?? "").replace(/[^\d.,-]/g, "");
+}
+
+function normalizePositiveIntegerInput(value) {
+  return String(value ?? "").replace(/[^\d]/g, "");
+}
+
+function buildInitials(name) {
+  return String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "U";
+}
+
+function hasFormChanges(currentForm, loadedForm, lookupOptions) {
+  return (
+    JSON.stringify(mapInfoFormToPayload(currentForm, lookupOptions)) !==
+    JSON.stringify(mapInfoFormToPayload(loadedForm, lookupOptions))
+  );
+}
+
+function InfoTab({ deal, onClose, onSaved }) {
   const [activeTab, setActiveTab] = useState("Information");
   const [isExpanded, setIsExpanded] = useState(false);
-  const teamSort = useTableSort(TEAM_DATA, "name");
-  const { countries = [] } = useCountries();
-  const { currencies = [] } = useCurrencies();
+  const [form, setForm] = useState(createInitialForm(deal));
+  const { toast, showToast, closeToast } = useToast();
 
-  const countryOptions = countries.map((c) => ({
-    id: c.id,
-    name: c.name || c.country_name || "",
-  }));
+  const {
+    detail,
+    isLoading: isDetailLoading,
+    isSaving,
+    error: detailError,
+    saveDealDetail,
+  } = useDealInfoBackend(deal?.id);
 
-  const currencyOptions = currencies.map((c) => ({
-    id: c.id,
-    name: `${c.currency_name || c.name || ""} (${c.currency_code || c.code || ""})`,
-  }));
-
-  const [form, setForm] = useState({
-    dealName:               deal?.name     || "",
-    codeName:               deal?.code     || "",
-    sector:                 deal?.sector   || "",
-    businessDescription:    "",
-    status:                 deal?.status   || "",
-    stage:                  deal?.stage    || "",
-    fund:                   deal?.fund     || "",
-    ticket:                 deal?.ticket   || "",
-    currency:               "",
-    legalForm:              "",
-    countryOfIncorporation: "",
-    countryOfMainOperation: "",
-    sourceType:             "",
-    contact:                "",
-    sponsors:               "",
-    sourcingRelevantInfo:   "",
-    exitType:               "",
-    exitRelevantInfo:       "",
-    website:                "",
-    registrationNumber:     "",
-    address:                "",
-    zipCode:                "",
-    city:                   "",
-    country:                "",
-  });
+  const {
+    sectors,
+    statuses,
+    stages,
+    sourceTypes,
+    exitTypes,
+    legalForms,
+    teamRoles,
+    dealflowUsers,
+    countries,
+    currencies,
+    funds,
+    isLoading: areLookupsLoading,
+    error: lookupError,
+  } = useDealflowLookupOptions();
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, []);
 
   useEffect(() => {
-    if (!deal) return;
-    setForm({
-      dealName:               deal.name     || "",
-      codeName:               deal.code     || "",
-      sector:                 deal.sector   || "",
-      businessDescription:    "",
-      status:                 deal.status   || "",
-      stage:                  deal.stage    || "",
-      fund:                   deal.fund     || "",
-      ticket:                 deal.ticket   || "",
-      currency:               "",
-      legalForm:              "",
-      countryOfIncorporation: "",
-      countryOfMainOperation: "",
-      sourceType:             "",
-      contact:                "",
-      sponsors:               "",
-      sourcingRelevantInfo:   "",
-      exitType:               "",
-      exitRelevantInfo:       "",
-      website:                "",
-      registrationNumber:     "",
-      address:                "",
-      zipCode:                "",
-      city:                   "",
-      country:                "",
-    });
-  }, [deal?.id]);
+    if (detail) {
+      setForm(mapDealDetailToForm(detail, { countries, currencies, funds }));
+      return;
+    }
+    setForm(createInitialForm(deal));
+  }, [detail, deal?.id, countries, currencies, funds]);
 
-  const update = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
-  const updateDirect = (key) => (val) => setForm((prev) => ({ ...prev, [key]: val }));
+  useEffect(() => {
+    if (detailError) {
+      showToast({
+        type: "error",
+        title: "Load failed",
+        message: detailError,
+      });
+    }
+  }, [detailError, showToast]);
+
+  useEffect(() => {
+    if (lookupError) {
+      showToast({
+        type: "error",
+        title: "Options failed",
+        message: lookupError,
+      });
+    }
+  }, [lookupError, showToast]);
+
+  const currentTitle = useMemo(() => form.dealName || deal?.name || "Deal", [form.dealName, deal?.name]);
+  const isBusy = isDetailLoading || areLookupsLoading || isSaving;
+  const lookupOptions = useMemo(() => ({ countries, currencies, funds }), [countries, currencies, funds]);
+  const loadedReferenceForm = detail
+    ? mapDealDetailToForm(detail, lookupOptions)
+    : createInitialForm(deal);
+  const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
+
+  const update = (key) => (e) =>
+    setForm((prev) => ({
+      ...prev,
+      [key]: key === "ticket" ? normalizeNumericInput(e.target.value) : e.target.value,
+    }));
+
+  const updateDirect = (key) => (value) =>
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+
+  const updateTeamMember = (rowId, key, value) =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: prev.teamMembers.map((member) =>
+        member.id === rowId
+          ? {
+              ...member,
+              [key]: key === "positionOrder" ? normalizePositiveIntegerInput(value) : value,
+            }
+          : member
+      ),
+    }));
+
+  const addTeamMember = () =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: [
+        ...prev.teamMembers,
+        {
+          id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          userId: null,
+          roleId: null,
+          positionOrder: String(prev.teamMembers.length + 1),
+          userName: "",
+          roleName: "",
+        },
+      ],
+    }));
+
+  const removeTeamMember = (rowId) =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: prev.teamMembers.filter((member) => member.id !== rowId),
+    }));
+
+  const teamRows = useMemo(
+    () =>
+      form.teamMembers.map((member) => {
+        const selectedUser = dealflowUsers.find((option) => option.id === member.userId);
+        const selectedRole = teamRoles.find((option) => option.id === member.roleId);
+        return {
+          ...member,
+          userName: selectedUser?.raw?.name || member.userName || "",
+          userLabel: selectedUser?.name || member.userName || "",
+          roleName: selectedRole?.raw?.name || member.roleName || "",
+        };
+      }),
+    [form.teamMembers, dealflowUsers, teamRoles]
+  );
+
+  const handleSave = async () => {
+    try {
+      const saved = await saveDealDetail(form, lookupOptions);
+      setForm(mapDealDetailToForm(saved, lookupOptions));
+      showToast({
+        type: "success",
+        title: "Saved",
+        message: `"${saved.dealName}" has been updated successfully.`,
+      });
+      await onSaved?.(saved);
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Save failed",
+        message: err.message || "Could not save deal information.",
+      });
+    }
+  };
 
   return (
     <div className="it-overlay" onClick={onClose}>
       <aside className={`it-drawer${isExpanded ? " it-drawer--expanded" : ""}`} onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
         <div className="it-header">
           <button
             className="it-expand-btn"
-            onClick={() => setIsExpanded(prev => !prev)}
+            onClick={() => setIsExpanded((prev) => !prev)}
             style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
           >
             <ChevronDoubleLeftIcon />
           </button>
-          <h2 className="it-company-name">{deal?.name}</h2>
-          <button className="it-close-btn" onClick={onClose}><CloseIcon /></button>
+          <h2 className="it-company-name">{currentTitle}</h2>
+          <button className="it-close-btn" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </div>
 
-        {/* Tabs */}
         <div className="it-tabs">
           {TABS.map((tab) => (
             <button
@@ -153,13 +264,13 @@ function InfoTab({ deal, onClose }) {
           ))}
         </div>
 
-        {/* Scrollable body */}
         <div className="it-body">
-          {activeTab === "Events" && <EventsTab />}
-          {activeTab === "Cap table" && <CapTable />}
-          {activeTab === "Dataroom" && <Dataroom />}
-          {activeTab === "KPIs" && <KPIsTab />}
-          {activeTab === "Other" && <OtherTab />}
+          {activeTab === "Events" && <EventsTab dealId={deal?.id} />}
+          {activeTab === "Cap table" && <CapTable dealId={deal?.id} />}
+          {activeTab === "Dataroom" && <Dataroom dealId={deal?.id} />}
+          {activeTab === "KPIs" && <KPIsTab dealId={deal?.id} />}
+          {activeTab === "Other" && <OtherTab dealId={deal?.id} />}
+
           {activeTab === "Information" && (
             <>
               <SectionHeader label="General information" />
@@ -175,56 +286,64 @@ function InfoTab({ deal, onClose }) {
                 </div>
                 <div className="it-field">
                   <label className="it-label">Sector</label>
-                  <SelectWrap>
-                    <select className="it-select" value={form.sector} onChange={update("sector")}>
-                      <option value="" disabled hidden>Please select a sector</option>
-                      <option>Healthcare</option>
-                      <option>Software</option>
-                      <option>Energy</option>
-                      <option>Materials</option>
-                      <option>Defense</option>
-                      <option>Industry</option>
-                      <option>Real Estate</option>
-                      <option>Utilities</option>
-                    </select>
-                  </SelectWrap>
+                  <SimpleDropdown
+                    options={sectors}
+                    value={form.sector}
+                    onChange={updateDirect("sector")}
+                    placeholder="Please select a sector"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
               </div>
 
               <div className="it-field">
                 <label className="it-label">Business description</label>
-                <textarea className="it-textarea" value={form.businessDescription} onChange={update("businessDescription")} placeholder="Please describe the business activity" />
+                <textarea
+                  className="it-textarea"
+                  value={form.businessDescription}
+                  onChange={update("businessDescription")}
+                  placeholder="Please describe the business activity"
+                />
               </div>
 
               <div className="it-grid-3">
                 <div className="it-field">
                   <label className="it-label">Status</label>
-                  <SelectWrap>
-                    <select className="it-select" value={form.status} onChange={update("status")}>
-                      <option value="" disabled hidden>Please select a status</option>
-                      <option>Live</option>
-                      <option>Invested</option>
-                      <option>Dropped</option>
-                      <option>Exited</option>
-                    </select>
-                  </SelectWrap>
+                  <SimpleDropdown
+                    options={statuses}
+                    value={form.status}
+                    onChange={updateDirect("status")}
+                    placeholder="Please select a status"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
                 <div className="it-field">
                   <label className="it-label">Stage</label>
-                  <SelectWrap>
-                    <select className="it-select" value={form.stage} onChange={update("stage")}>
-                      <option value="" disabled hidden>Please select a stage</option>
-                      <option>Sourcing</option>
-                      <option>Briefing</option>
-                      <option>IC 1</option>
-                      <option>IC 2</option>
-                      <option>Invested</option>
-                    </select>
-                  </SelectWrap>
+                  <SimpleDropdown
+                    options={stages}
+                    value={form.stage}
+                    onChange={updateDirect("stage")}
+                    placeholder="Please select a stage"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
                 <div className="it-field">
                   <label className="it-label">Fund</label>
-                  <input className="it-input" value={form.fund} onChange={update("fund")} placeholder="Please enter a fund" />
+                  <SimpleDropdown
+                    options={funds}
+                    value={form.fund}
+                    onChange={updateDirect("fund")}
+                    placeholder="Please select a fund"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
               </div>
 
@@ -236,12 +355,13 @@ function InfoTab({ deal, onClose }) {
                 <div className="it-field">
                   <label className="it-label">Currency</label>
                   <SimpleDropdown
-                    options={currencyOptions}
+                    options={currencies}
                     value={form.currency}
                     onChange={updateDirect("currency")}
                     placeholder="Please select a currency"
                     labelKey="name"
                     valueKey="id"
+                    disabled={areLookupsLoading}
                   />
                 </div>
               </div>
@@ -249,28 +369,38 @@ function InfoTab({ deal, onClose }) {
               <div className="it-grid-3">
                 <div className="it-field">
                   <label className="it-label">Legal form</label>
-                  <input className="it-input" value={form.legalForm} onChange={update("legalForm")} placeholder="Please enter a legal form" />
+                  <SimpleDropdown
+                    options={legalForms}
+                    value={form.legalForm}
+                    onChange={updateDirect("legalForm")}
+                    placeholder="Please select a legal form"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
                 <div className="it-field">
                   <label className="it-label">Country of incorporation</label>
                   <SimpleDropdown
-                    options={countryOptions}
+                    options={countries}
                     value={form.countryOfIncorporation}
                     onChange={updateDirect("countryOfIncorporation")}
                     placeholder="Please select a country"
                     labelKey="name"
                     valueKey="id"
+                    disabled={areLookupsLoading}
                   />
                 </div>
                 <div className="it-field">
                   <label className="it-label">Country of main operation</label>
                   <SimpleDropdown
-                    options={countryOptions}
+                    options={countries}
                     value={form.countryOfMainOperation}
                     onChange={updateDirect("countryOfMainOperation")}
                     placeholder="Please select a country"
                     labelKey="name"
                     valueKey="id"
+                    disabled={areLookupsLoading}
                   />
                 </div>
               </div>
@@ -280,14 +410,15 @@ function InfoTab({ deal, onClose }) {
               <div className="it-grid-2">
                 <div className="it-field">
                   <label className="it-label">Source type</label>
-                  <SelectWrap>
-                    <select className="it-select" value={form.sourceType} onChange={update("sourceType")}>
-                      <option value="" disabled hidden>Please select a source type</option>
-                      <option>Proprietary</option>
-                      <option>M&A</option>
-                      <option>Co-Invest</option>
-                    </select>
-                  </SelectWrap>
+                  <SimpleDropdown
+                    options={sourceTypes}
+                    value={form.sourceType}
+                    onChange={updateDirect("sourceType")}
+                    placeholder="Please select a source type"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading}
+                  />
                 </div>
                 <div className="it-field">
                   <label className="it-label">Contact</label>
@@ -302,19 +433,37 @@ function InfoTab({ deal, onClose }) {
 
               <div className="it-field">
                 <label className="it-label">Relevant information</label>
-                <textarea className="it-textarea" value={form.sourcingRelevantInfo} onChange={update("sourcingRelevantInfo")} placeholder="Please enter any relevant information regarding the sourcing" />
+                <textarea
+                  className="it-textarea"
+                  value={form.sourcingRelevantInfo}
+                  onChange={update("sourcingRelevantInfo")}
+                  placeholder="Please enter any relevant information regarding the sourcing"
+                />
               </div>
 
               <SectionHeader label="Exit details" />
 
               <div className="it-field">
                 <label className="it-label">Exit type</label>
-                <input className="it-input" value={form.exitType} onChange={update("exitType")} placeholder="Please enter an exit type" />
+                <SimpleDropdown
+                  options={exitTypes}
+                  value={form.exitType}
+                  onChange={updateDirect("exitType")}
+                  placeholder="Please select an exit type"
+                  labelKey="name"
+                  valueKey="id"
+                  disabled={areLookupsLoading}
+                />
               </div>
 
               <div className="it-field">
                 <label className="it-label">Relevant information</label>
-                <textarea className="it-textarea" value={form.exitRelevantInfo} onChange={update("exitRelevantInfo")} placeholder="Please enter any relevant information regarding the sourcing" />
+                <textarea
+                  className="it-textarea"
+                  value={form.exitRelevantInfo}
+                  onChange={update("exitRelevantInfo")}
+                  placeholder="Please enter any relevant information regarding the exit"
+                />
               </div>
 
               <SectionHeader label="Additional information" />
@@ -326,7 +475,12 @@ function InfoTab({ deal, onClose }) {
                 </div>
                 <div className="it-field">
                   <label className="it-label">Registration number</label>
-                  <input className="it-input" value={form.registrationNumber} onChange={update("registrationNumber")} placeholder="Please enter a registration number" />
+                  <input
+                    className="it-input"
+                    value={form.registrationNumber}
+                    onChange={update("registrationNumber")}
+                    placeholder="Please enter a registration number"
+                  />
                 </div>
               </div>
 
@@ -346,12 +500,13 @@ function InfoTab({ deal, onClose }) {
                 <div className="it-field">
                   <label className="it-label">Country</label>
                   <SimpleDropdown
-                    options={countryOptions}
+                    options={countries}
                     value={form.country}
                     onChange={updateDirect("country")}
                     placeholder="Please select a country"
                     labelKey="name"
                     valueKey="id"
+                    disabled={areLookupsLoading}
                   />
                 </div>
               </div>
@@ -362,40 +517,102 @@ function InfoTab({ deal, onClose }) {
                 <table className="it-team-table">
                   <thead>
                     <tr>
-                      <th className="it-team-th">
-                        <SortableHeaderRenderer label="User" columnKey="name" currentSortKey={teamSort.sortKey} toggleSort={teamSort.toggleSort} center={false} />
-                      </th>
-                      <th className="it-team-th">
-                        <SortableHeaderRenderer label="Position" columnKey="position" currentSortKey={teamSort.sortKey} toggleSort={teamSort.toggleSort} center={false} />
-                      </th>
+                      <th className="it-team-th">User</th>
+                      <th className="it-team-th">Position</th>
+                      <th className="it-team-th">Order</th>
+                      <th className="it-team-th it-team-th--actions" />
                     </tr>
                   </thead>
                   <tbody>
-                    {teamSort.sorted.map((member) => (
+                    {teamRows.map((member) => (
                       <tr key={member.id} className="it-team-row">
                         <td className="it-team-td">
                           <div className="it-user-cell">
-                            <span className="it-user-avatar">{member.initials}</span>
-                            <span className="it-user-name">{member.name}</span>
+                            <span className="it-user-avatar">{buildInitials(member.userName || member.userLabel)}</span>
+                            <div className="it-team-select-wrap">
+                              <SimpleDropdown
+                                options={dealflowUsers}
+                                value={member.userId}
+                                onChange={(value) => updateTeamMember(member.id, "userId", value)}
+                                placeholder="Select a user"
+                                labelKey="name"
+                                valueKey="id"
+                                disabled={areLookupsLoading}
+                              />
+                            </div>
                           </div>
                         </td>
-                        <td className="it-team-td">{member.position}</td>
+                        <td className="it-team-td">
+                          <SimpleDropdown
+                            options={teamRoles}
+                            value={member.roleId}
+                            onChange={(value) => updateTeamMember(member.id, "roleId", value)}
+                            placeholder="Select a role"
+                            labelKey="name"
+                            valueKey="id"
+                            disabled={areLookupsLoading}
+                          />
+                        </td>
+                        <td className="it-team-td">
+                          <input
+                            className="it-input it-team-order-input"
+                            value={member.positionOrder}
+                            onChange={(e) => updateTeamMember(member.id, "positionOrder", e.target.value)}
+                            placeholder="1"
+                          />
+                        </td>
+                        <td className="it-team-td it-team-td--actions">
+                          <button
+                            type="button"
+                            className="it-team-icon-btn"
+                            onClick={() => removeTeamMember(member.id)}
+                            aria-label="Remove user"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </td>
                       </tr>
                     ))}
+                    {teamRows.length === 0 && (
+                      <tr className="it-team-row">
+                        <td className="it-team-td it-team-empty" colSpan={4}>
+                          No team members added yet.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
-                  <tfoot><tr className="it-team-footer-row"><td colSpan={2} /></tr></tfoot>
+                  <tfoot>
+                    <tr className="it-team-footer-row">
+                      <td colSpan={4} />
+                    </tr>
+                  </tfoot>
                 </table>
-                <button className="it-new-user-btn"><PlusIcon /> New user</button>
+                <button type="button" className="it-new-user-btn" onClick={addTeamMember}>
+                  <PlusIcon /> New user
+                </button>
               </div>
             </>
           )}
         </div>
 
-        {/* Footer */}
         <div className="it-footer">
-          <button className="it-save-btn">Save</button>
+          {activeTab === "Information" && (
+            <button className="it-save-btn" onClick={handleSave} disabled={isBusy || !isDirty}>
+              {isSaving ? "Saving..." : isDetailLoading ? "Loading..." : "Save"}
+            </button>
+          )}
         </div>
 
+        {toast && (
+          <Toast
+            key={toast.key}
+            title={toast.title}
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration}
+            onClose={closeToast}
+          />
+        )}
       </aside>
     </div>
   );

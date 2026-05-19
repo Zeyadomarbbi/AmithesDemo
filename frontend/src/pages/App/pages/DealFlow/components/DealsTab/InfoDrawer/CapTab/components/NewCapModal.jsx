@@ -29,14 +29,14 @@ function NewCapModal({ onClose, onNext }) {
             <input
               type="text"
               className="ncap-input"
-              placeholder="placeholder"
+              placeholder="Enter snapshot name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
           <div className="ncap-field">
-            <label className="ncap-label">Date*</label>
+            <label className="ncap-label">Date</label>
             <div className="ncap-date-wrap">
               <DateInputWithPicker
                 initialDate={date}
@@ -51,7 +51,7 @@ function NewCapModal({ onClose, onNext }) {
         {/* Footer */}
         <div className="ncap-footer">
           <button className="ncap-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="ncap-btn-next" onClick={handleNext}>Next</button>
+          <button className="ncap-btn-next" onClick={handleNext}>Create</button>
         </div>
 
       </div>
