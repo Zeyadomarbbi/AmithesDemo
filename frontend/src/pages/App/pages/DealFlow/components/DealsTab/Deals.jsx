@@ -1,43 +1,37 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import SearchBar from "../../../../../../components/SearchBar/SearchBar";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../components/Sort/TableSort";
 import { TrashIcon, DownloadIcon, PlusIcon } from "/src/components/Icons/InteractiveIcons";
+import Toast from "../../../../components/Toast/Toast";
+import { useToast } from "../../../../components/Toast/useToast";
 import FilterModal from "./FilterModal";
 import NewCompanyModal from "./NewCompanyModal";
 import InfoTab from "./InfoDrawer/InfoTab/InfoTab";
+import { useDealsBackend } from "./Deals_backend_work";
+import { exportRowsToExcel } from "./exportUtils";
 import "./Deals.css";
 
-const DEALS_DATA = [
-  { id: 1, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Live",     stage: "Briefing",      sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 2, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Dropped",  stage: "Dropped",       sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 3, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Invested", stage: "In portfolio",  sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 4, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Dropped",  stage: "Dropped",       sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 5, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Live",     stage: "Sourcing",      sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 6, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Live",     stage: "IC 1",          sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-  { id: 7, name: "Medisis", code: "Medisis", fund: "Fund III", status: "Live",     stage: "IC 1",          sector: "Materials", ticket: "10,000,000", currency: "EUR", iso2: "fr", country: "France" },
-];
-
 const COLS = [
-  { key: "name",     label: "Name",      center: false },
-  { key: "code",     label: "Code",      center: false },
-  { key: "fund",     label: "Fund",      center: false },
-  { key: "status",   label: "Status",    center: false },
-  { key: "stage",    label: "Stage",     center: true  },
-  { key: "sector",   label: "Sector",    center: false },
-  { key: "ticket",   label: "Ticket",    center: false },
-  { key: "currency", label: "Currency",  center: true  },
-  { key: "country",  label: "Geography", center: false },
+  { key: "name", label: "Name", center: false },
+  { key: "code", label: "Code", center: false },
+  { key: "fund", label: "Fund", center: false },
+  { key: "status", label: "Status", center: false },
+  { key: "stage", label: "Stage", center: true },
+  { key: "sector", label: "Sector", center: false },
+  { key: "ticket", label: "Ticket", center: false },
+  { key: "currency", label: "Currency", center: true },
+  { key: "country", label: "Geography", center: false },
 ];
 
 const stageBadgeClass = (stage) => {
   const map = {
-    "Briefing":     "stage-briefing",
-    "Dropped":      "stage-dropped",
+    Briefing: "stage-briefing",
+    Dropped: "stage-dropped",
     "In portfolio": "stage-in-portfolio",
-    "Sourcing":     "stage-sourcing",
-    "IC 1":         "stage-ic1",
-    "IC 2":         "stage-ic2",
-    "Invested":     "stage-invested",
+    Sourcing: "stage-sourcing",
+    "IC 1": "stage-ic1",
+    "IC 2": "stage-ic2",
+    Invested: "stage-invested",
   };
   return map[stage] || "stage-default";
 };
@@ -49,68 +43,158 @@ function Deals() {
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState(null);
 
-  const { sorted, sortKey, toggleSort } = useTableSort(DEALS_DATA, "name");
+  const { toast, showToast, closeToast } = useToast();
+  const { deals, isLoading, isCreating, isDeleting, error, createDeal, deleteDeals, loadDeals } = useDealsBackend();
 
-  const filtered = sorted.filter((d) => {
+  const sourceDeals = useMemo(() => (Array.isArray(deals) ? deals : []), [deals]);
+  const { sorted, sortKey, toggleSort } = useTableSort(sourceDeals, "name");
+
+  const filtered = sorted.filter((deal) => {
     const q = searchQuery.trim().toLowerCase();
     return (
-      d.name.toLowerCase().includes(q) ||
-      d.code.toLowerCase().includes(q) ||
-      d.fund.toLowerCase().includes(q) ||
-      d.status.toLowerCase().includes(q) ||
-      d.stage.toLowerCase().includes(q) ||
-      d.sector.toLowerCase().includes(q) ||
-      d.country.toLowerCase().includes(q)
+      String(deal.name || "").toLowerCase().includes(q) ||
+      String(deal.code || "").toLowerCase().includes(q) ||
+      String(deal.fund || "").toLowerCase().includes(q) ||
+      String(deal.status || "").toLowerCase().includes(q) ||
+      String(deal.stage || "").toLowerCase().includes(q) ||
+      String(deal.sector || "").toLowerCase().includes(q) ||
+      String(deal.country || "").toLowerCase().includes(q)
     );
   });
 
-  const allChecked = filtered.length > 0 && filtered.every((d) => selectedIds.includes(d.id));
+  const handleCreateDeal = async ({ companyName, codeName }) => {
+    try {
+      const createdDeal = await createDeal({ companyName, codeName });
+      setShowNewCompany(false);
+      setSelectedDeal(createdDeal);
+      showToast({
+        type: "success",
+        title: "Deal created",
+        message: `"${createdDeal.name}" has been created successfully.`,
+      });
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Creation failed",
+        message: err.message || "Could not create the deal.",
+      });
+    }
+  };
 
-  const toggleAll = () =>
-    setSelectedIds(allChecked ? [] : filtered.map((d) => d.id));
+  const allChecked = filtered.length > 0 && filtered.every((deal) => selectedIds.includes(deal.id));
+
+  const toggleAll = () => setSelectedIds(allChecked ? [] : filtered.map((deal) => deal.id));
 
   const toggleRow = (id) =>
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
+
+  const handleDownload = () => {
+    try {
+      const selectedRows = filtered.filter((deal) => selectedIds.includes(deal.id));
+      const exportRows = selectedRows.length > 0 ? selectedRows : filtered;
+      if (exportRows.length === 0) {
+        showToast({
+          type: "error",
+          title: "Nothing to export",
+          message: "There are no deals available to download.",
+        });
+        return;
+      }
+
+      exportRowsToExcel({
+        rows: exportRows,
+        sheetName: "Deals",
+        fileName: `dealflow_deals_${new Date().toISOString().slice(0, 10)}`,
+        columns: [
+          { header: "Name", value: (row) => row.name || "" },
+          { header: "Code", value: (row) => row.code || "" },
+          { header: "Fund", value: (row) => row.fund || "" },
+          { header: "Status", value: (row) => row.status || "" },
+          { header: "Stage", value: (row) => row.stage || "" },
+          { header: "Sector", value: (row) => row.sector || "" },
+          { header: "Ticket", value: (row) => row.ticket || "" },
+          { header: "Currency", value: (row) => row.currency || "" },
+          { header: "Geography", value: (row) => row.country || "" },
+        ],
+      });
+
+      showToast({
+        type: "success",
+        title: "Download started",
+        message: `${exportRows.length} deal${exportRows.length === 1 ? "" : "s"} exported to Excel.`,
+      });
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Download failed",
+        message: err.message || "Could not export deals.",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected deal${selectedIds.length === 1 ? "" : "s"}?`)) return;
+    try {
+      const deletedIds = await deleteDeals(selectedIds);
+      setSelectedIds((prev) => prev.filter((id) => !deletedIds.includes(id)));
+      if (selectedDeal && deletedIds.includes(selectedDeal.id)) {
+        setSelectedDeal(null);
+      }
+      showToast({
+        type: "success",
+        title: "Deals deleted",
+        message: `${deletedIds.length} deal${deletedIds.length === 1 ? "" : "s"} deleted successfully.`,
+      });
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Delete failed",
+        message: err.message || "Could not delete the selected deals.",
+      });
+    }
+  };
 
   return (
     <div className="deals-wrapper">
-      {showFilter && (
-        <FilterModal onClose={() => setShowFilter(false)} />
-      )}
+      {showFilter && <FilterModal onClose={() => setShowFilter(false)} />}
       {showNewCompany && (
-        <NewCompanyModal onClose={() => setShowNewCompany(false)} />
+        <NewCompanyModal onClose={() => setShowNewCompany(false)} onNext={handleCreateDeal} />
       )}
       {selectedDeal && (
-        <InfoTab deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
+        <InfoTab
+          deal={selectedDeal}
+          onClose={() => setSelectedDeal(null)}
+          onSaved={async () => {
+            await loadDeals().catch(() => {});
+          }}
+        />
       )}
 
-      {/* Toolbar */}
       <div className="deals-toolbar">
         <SearchBar placeholder="Search by name..." onSearch={setSearchQuery} />
 
         <div className="deals-toolbar-actions">
-          <button className="deals-btn-outline">
+          <button className="deals-btn-outline" onClick={handleDelete} disabled={selectedIds.length === 0 || isDeleting}>
             <TrashIcon />
-            Delete
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
-          <button className="deals-btn-outline">
+          <button className="deals-btn-outline" onClick={handleDownload} disabled={isLoading || filtered.length === 0}>
             <DownloadIcon />
             Download
           </button>
-          <button className="deals-btn-filter" onClick={() => setShowFilter(true)}>Filter</button>
-          <button className="deals-btn-primary" onClick={() => setShowNewCompany(true)}>
+          <button className="deals-btn-filter" onClick={() => setShowFilter(true)}>
+            Filter
+          </button>
+          <button className="deals-btn-primary" onClick={() => setShowNewCompany(true)} disabled={isCreating}>
             <PlusIcon />
-            New company
+            {isCreating ? "Creating..." : "New company"}
           </button>
         </div>
       </div>
 
-      {/* Table */}
       <div className="deals-table-container">
         <table className="deals-table">
-
           <thead>
             <tr>
               <th className="deals-th-checkbox">
@@ -122,10 +206,7 @@ function Deals() {
                 />
               </th>
               {COLS.map((col) => (
-                <th
-                  key={col.key}
-                  className={col.center ? "" : "deals-th-left"}
-                >
+                <th key={col.key} className={col.center ? "" : "deals-th-left"}>
                   <SortableHeaderRenderer
                     label={col.label}
                     columnKey={col.key}
@@ -139,95 +220,124 @@ function Deals() {
           </thead>
 
           <tbody>
-            {filtered.map((deal) => (
-              <tr key={deal.id}>
-
-                <td className="deals-td-checkbox">
-                  <input
-                    type="checkbox"
-                    className="deals-checkbox"
-                    checked={selectedIds.includes(deal.id)}
-                    onChange={() => toggleRow(deal.id)}
-                  />
+            {isLoading && (
+              <tr>
+                <td className="deals-td-left" colSpan={COLS.length + 1}>
+                  Loading deals...
                 </td>
-
-                <td className="deals-td-left">
-                  <span
-                    className="deals-cell-text deals-name-link"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedDeal(deal)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSelectedDeal(deal);
-                      }
-                    }}
-                  >
-                    {deal.name}
-                  </span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-cell-text">{deal.code}</span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-cell-text">{deal.fund}</span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-cell-text">{deal.status}</span>
-                </td>
-
-                <td className="deals-td-center">
-                  <span className={`deals-stage-badge ${stageBadgeClass(deal.stage)}`}>
-                    {deal.stage}
-                  </span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-cell-text">{deal.sector}</span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-cell-text">{deal.ticket}</span>
-                </td>
-
-                <td className="deals-td-center">
-                  <span className="deals-cell-text">{deal.currency}</span>
-                </td>
-
-                <td className="deals-td-left">
-                  <span className="deals-geography">
-                    {deal.iso2 && (
-                      <img
-                        src={`https://flagcdn.com/40x30/${deal.iso2}.png`}
-                        alt={deal.country}
-                        className="country-flag-img"
-                        width={20}
-                        height={15}
-                      />
-                    )}
-                    {deal.country}
-                  </span>
-                </td>
-
               </tr>
-            ))}
+            )}
+
+            {!isLoading &&
+              filtered.map((deal) => (
+                <tr key={deal.id}>
+                  <td className="deals-td-checkbox">
+                    <input
+                      type="checkbox"
+                      className="deals-checkbox"
+                      checked={selectedIds.includes(deal.id)}
+                      onChange={() => toggleRow(deal.id)}
+                    />
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span
+                      className="deals-cell-text deals-name-link"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedDeal(deal)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedDeal(deal);
+                        }
+                      }}
+                    >
+                      {deal.name}
+                    </span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-cell-text">{deal.code}</span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-cell-text">{deal.fund}</span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-cell-text">{deal.status}</span>
+                  </td>
+
+                  <td className="deals-td-center">
+                    <span className={`deals-stage-badge ${stageBadgeClass(deal.stage)}`}>{deal.stage}</span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-cell-text">{deal.sector}</span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-cell-text">{deal.ticket}</span>
+                  </td>
+
+                  <td className="deals-td-center">
+                    <span className="deals-cell-text">{deal.currency}</span>
+                  </td>
+
+                  <td className="deals-td-left">
+                    <span className="deals-geography">
+                      {deal.iso2 && (
+                        <img
+                          src={`https://flagcdn.com/40x30/${deal.iso2}.png`}
+                          alt={deal.country}
+                          className="country-flag-img"
+                          width={20}
+                          height={15}
+                        />
+                      )}
+                      {deal.country}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+
+            {!isLoading && filtered.length === 0 && (
+              <tr>
+                <td className="deals-td-left" colSpan={COLS.length + 1}>
+                  {searchQuery.trim()
+                    ? "No deals match your search."
+                    : "No deals found yet. Create your first deal to get started."}
+                </td>
+              </tr>
+            )}
           </tbody>
 
           <tfoot>
             <tr className="deals-total-row">
               <td colSpan={COLS.length + 1}>
-                {filtered.length} / {DEALS_DATA.length}
+                {filtered.length} / {sourceDeals.length}
                 {selectedIds.length > 0 && ` · ${selectedIds.length} selected`}
               </td>
             </tr>
           </tfoot>
-
         </table>
       </div>
+
+      {toast && (
+        <Toast
+          key={toast.key}
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={closeToast}
+        />
+      )}
+
+      {error && !toast && (
+        <Toast type="error" title="Load failed" message={error} duration={0} onClose={() => {}} />
+      )}
     </div>
   );
 }

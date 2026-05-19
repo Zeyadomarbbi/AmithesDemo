@@ -69,6 +69,17 @@
   gap: 12px;
 }
 
+.et-empty-state {
+  padding: 28px 20px;
+  border: 1px dashed #d8dce8;
+  border-radius: 8px;
+  background: #fbfcfe;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* ---- EVENT CARD ---- */
 .et-card {
   display: flex;
@@ -107,6 +118,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.et-docs-empty {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #9ca3af;
 }
 
 .et-doc-item {
@@ -155,6 +172,16 @@
   gap: 8px;
 }
 
+.et-secondary-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 .et-title-input {
   flex: 1;
   font-family: "Inter", sans-serif;
@@ -193,6 +220,24 @@
   color: #375a89;
 }
 
+.et-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.et-delete-btn:hover {
+  color: #b42318;
+}
+
 .et-description-input {
   font-family: "Inter", sans-serif;
   font-size: 13px;
@@ -213,4 +258,50 @@
 
 .et-description-input:focus {
   border-color: #375a89;
+}
+
+.et-type-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.et-type-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(55, 90, 137, 0.12);
+  color: #375a89;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.et-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.et-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  height: 34px;
+  padding: 0 14px;
+  background: #375a89;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.et-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

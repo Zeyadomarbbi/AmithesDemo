@@ -10,6 +10,7 @@ from .financial_urls import urlpatterns as financial_urlpatterns
 from .lps_statement_urls import urlpatterns as lps_statement_urlpatterns
 from .portfolio_urls import urlpatterns as portfolio_urlpatterns
 from .kpis_urls import urlpatterns as kpis_urlpatterns
+from .dealflow_urls import urlpatterns as dealflow_urlpatterns
 
 urlpatterns = [
     path("login/",               login_view,               name="login"),
@@ -30,3 +31,4 @@ urlpatterns += financial_urlpatterns
 urlpatterns += lps_statement_urlpatterns
 urlpatterns += portfolio_urlpatterns
 urlpatterns += kpis_urlpatterns
+urlpatterns += dealflow_urlpatterns

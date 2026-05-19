@@ -1,58 +1,162 @@
-// Replace the mock data blocks below with real API calls when the backend is ready.
-// The hook signature — useDashboardData({ status, stage, fund }) — stays the same.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import useApi from "/src/hooks/api/useApi";
 
-const MOCK_SECTOR_DATA = [
-  { name: "Healthcare", value: 4,  color: "#E8734A" },
-  { name: "Utilities",  value: 13, color: "#375A89" },
-  { name: "Energy",     value: 3,  color: "#C8A97A" },
-];
+const DEALFLOW_DASHBOARD_ENDPOINT = "/api/dealflow/dashboard/";
 
-const MOCK_COUNTRY_DATA = [
-  { name: "Egypt",       value: 8, color: "#7B6FC6" },
-  { name: "Ivory Coast", value: 7, color: "#D94F5C" },
-  { name: "Morocco",     value: 5, color: "#F5C842" },
-];
+function toSafeArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.results)) return value.results;
+  if (Array.isArray(value?.rows)) return value.rows;
+  return [];
+}
 
-const MOCK_CURRENCY_DATA = [
-  { name: "USD", value: 9, color: "#E8734A" },
-  { name: "EUR", value: 9, color: "#375A89" },
-  { name: "MAD", value: 9, color: "#F5C842" },
-  { name: "EGP", value: 9, color: "#4A5568" },
-];
+function readDisplayText(value, fallback = "") {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (value && typeof value === "object") {
+    if (typeof value.name === "string") return value.name;
+    if (typeof value.label === "string") return value.label;
+    if (typeof value.code === "string") return value.code;
+  }
+  return fallback;
+}
 
-const MOCK_BAR_DATA = [
-  { month: "Dec", fundIII: 1, menaIII: 0, menaII: 1 },
-  { month: "Jan", fundIII: 2, menaIII: 1, menaII: 1 },
-  { month: "Feb", fundIII: 1, menaIII: 0, menaII: 1 },
-  { month: "Mar", fundIII: 2, menaIII: 0, menaII: 1 },
-  { month: "Apr", fundIII: 2, menaIII: 0, menaII: 0 },
-  { month: "May", fundIII: 1, menaIII: 0, menaII: 0 },
-  { month: "Jun", fundIII: 5, menaIII: 2, menaII: 1 },
-];
+function toFilterOptions(rows) {
+  return toSafeArray(rows).map((row) => ({
+    value: typeof row?.id === "object" ? readDisplayText(row?.id) : row?.id ?? "",
+    label: readDisplayText(row?.name, ""),
+    color: row?.color ?? "",
+    code: readDisplayText(row?.code, ""),
+  }));
+}
 
-const MOCK_FUNNEL_DATA = [
-  { stage: "Dropped",  value: 70 },
-  { stage: "Briefing", value: 30 },
-  { stage: "IC 1",     value: 21 },
-  { stage: "IC 2",     value: 12 },
-  { stage: "Invested", value: 9  },
-];
+function mapDonutData(rows) {
+  return toSafeArray(rows).map((row) => ({
+    id: row?.id ?? null,
+    name: readDisplayText(row?.name, ""),
+    value: Number(row?.value ?? 0),
+    color: row?.color || "#375A89",
+    totalTicketAmount: Number(row?.total_ticket_amount ?? 0),
+  }));
+}
 
-const MOCK_BAR_TOTALS = { fundIII: 14, menaIII: 3, menaII: 5 };
+function mapFunnelData(rows) {
+  return toSafeArray(rows).map((row) => ({
+    id: row?.id ?? null,
+    stage: readDisplayText(row?.name, ""),
+    value: Number(row?.value ?? 0),
+    color: row?.color || "#375A89",
+    totalTicketAmount: Number(row?.total_ticket_amount ?? 0),
+    displayOrder: row?.stage_display_order ?? null,
+  }));
+}
+
+function mapBarData(rows, fundSeries) {
+  const seriesKeys = toSafeArray(fundSeries).map((series) => readDisplayText(series?.key, ""));
+  return toSafeArray(rows).map((row) => {
+    const normalized = {
+      month: readDisplayText(row?.month, ""),
+    };
+    seriesKeys.forEach((key) => {
+      normalized[key] = Number(row?.[key] ?? 0);
+    });
+    return normalized;
+  });
+}
+
+function mapFundSeries(rows) {
+  return toSafeArray(rows).map((row) => ({
+    key: readDisplayText(row?.key, ""),
+    name: readDisplayText(row?.name, ""),
+    color: row?.color || "#375A89",
+    total: Number(row?.total ?? 0),
+  }));
+}
 
 export function useDashboardData({ status, stage, fund } = {}) {
-  // TODO: replace with API call, e.g.:
-  // const { data, isLoading } = useQuery(['dashboard', status, stage, fund], () =>
-  //   fetchDashboardData({ status, stage, fund })
-  // );
+  const api = useApi();
+  const [data, setData] = useState({
+    filtersData: {
+      statuses: [],
+      stages: [],
+      funds: [],
+    },
+    summary: {
+      totalDeals: 0,
+      totalTicketAmount: 0,
+      liveDeals: 0,
+      investedDeals: 0,
+      droppedDeals: 0,
+      averageTicket: 0,
+    },
+    bySector: [],
+    byCountry: [],
+    byCurrency: [],
+    byStage: [],
+    byMonth: [],
+    barTotals: {},
+    fundSeries: [],
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  return {
-    sectorData:   MOCK_SECTOR_DATA,
-    countryData:  MOCK_COUNTRY_DATA,
-    currencyData: MOCK_CURRENCY_DATA,
-    barData:      MOCK_BAR_DATA,
-    barTotals:    MOCK_BAR_TOTALS,
-    funnelData:   MOCK_FUNNEL_DATA,
-    isLoading:    false,
-  };
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (status) params.set("status_id", status);
+      if (stage) params.set("stage_id", stage);
+      if (fund) params.set("fund_id", fund);
+      const query = params.toString() ? `?${params.toString()}` : "";
+      const payload = await api.get(`${DEALFLOW_DASHBOARD_ENDPOINT}${query}`);
+      setData({
+        filtersData: payload?.filtersData || { statuses: [], stages: [], funds: [] },
+        summary: payload?.summary || {
+          totalDeals: 0,
+          totalTicketAmount: 0,
+          liveDeals: 0,
+          investedDeals: 0,
+          droppedDeals: 0,
+          averageTicket: 0,
+        },
+        bySector: toSafeArray(payload?.bySector),
+        byCountry: toSafeArray(payload?.byCountry),
+        byCurrency: toSafeArray(payload?.byCurrency),
+        byStage: toSafeArray(payload?.byStage),
+        byMonth: toSafeArray(payload?.byMonth),
+        barTotals: payload?.barTotals || {},
+        fundSeries: toSafeArray(payload?.fundSeries),
+      });
+    } catch (err) {
+      setError(err.message || "Failed to load dashboard data.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, status, stage, fund]);
+
+  useEffect(() => {
+    loadDashboard().catch(() => {});
+  }, [loadDashboard]);
+
+  return useMemo(
+    () => ({
+      statusOptions: toFilterOptions(data.filtersData.statuses),
+      stageOptions: toFilterOptions(data.filtersData.stages),
+      fundOptions: toFilterOptions(data.filtersData.funds),
+      sectorData: mapDonutData(data.bySector),
+      countryData: mapDonutData(data.byCountry),
+      currencyData: mapDonutData(data.byCurrency),
+      barData: mapBarData(data.byMonth, data.fundSeries),
+      barTotals: data.barTotals || {},
+      fundSeries: mapFundSeries(data.fundSeries),
+      funnelData: mapFunnelData(data.byStage),
+      summary: data.summary,
+      isLoading,
+      error,
+      reload: loadDashboard,
+    }),
+    [data, isLoading, error, loadDashboard]
+  );
 }

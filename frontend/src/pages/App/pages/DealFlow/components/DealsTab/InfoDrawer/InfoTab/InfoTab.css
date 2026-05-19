@@ -320,8 +320,8 @@
 }
 
 .it-team-table {
-  width: 278px;
-  height: 444px;
+  width: min(100%, 760px);
+  min-height: 240px;
   border-collapse: collapse;
   font-family: "Inter", sans-serif;
   font-size: 13px;
@@ -365,6 +365,13 @@
   border-left: none;
   border-right: none;
   text-align: left;
+  vertical-align: middle;
+}
+
+.it-team-th--actions,
+.it-team-td--actions {
+  width: 52px;
+  text-align: center;
 }
 
 .it-team-footer-row td {
@@ -378,6 +385,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.it-team-select-wrap {
+  min-width: 220px;
+  flex: 1;
 }
 
 .it-user-avatar {
@@ -399,6 +411,32 @@
   font-size: 13px;
   font-weight: 500;
   color: #1c1917;
+}
+
+.it-team-order-input {
+  min-width: 88px;
+}
+
+.it-team-icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(215, 58, 73, 0.1);
+  color: #d73a49;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.it-team-icon-btn:hover {
+  background: rgba(215, 58, 73, 0.18);
+}
+
+.it-team-empty {
+  color: #6b7280;
+  text-align: center;
 }
 
 /* ---- FOOTER ---- */

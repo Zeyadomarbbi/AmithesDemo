@@ -29,14 +29,14 @@ function NewBoardModal({ onClose, onNext }) {
             <input
               type="text"
               className="nbrd-input"
-              placeholder="placeholder"
+              placeholder="Enter snapshot name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
           <div className="nbrd-field">
-            <label className="nbrd-label">Date*</label>
+            <label className="nbrd-label">Date</label>
             <div className="nbrd-date-wrap">
               <DateInputWithPicker
                 initialDate={date}
@@ -51,7 +51,7 @@ function NewBoardModal({ onClose, onNext }) {
         {/* Footer */}
         <div className="nbrd-footer">
           <button className="nbrd-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="nbrd-btn-next" onClick={handleNext}>Next</button>
+          <button className="nbrd-btn-next" onClick={handleNext}>Create</button>
         </div>
 
       </div>

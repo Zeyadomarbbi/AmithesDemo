@@ -9,6 +9,17 @@
   width: 100%;
 }
 
+.ot-empty-state {
+  padding: 28px 20px;
+  border: 1px dashed #d8dce8;
+  border-radius: 8px;
+  background: #fbfcfe;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* ---- VERSION BAR ---- */
 .ot-versions-bar {
   display: flex;
@@ -21,6 +32,7 @@
 .ot-versions {
   display: flex;
   gap: 0;
+  flex-wrap: wrap;
 }
 
 .ot-version-btn {
@@ -86,6 +98,93 @@
   background: rgba(55, 90, 137, 0.28);
 }
 
+.ot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ot-delete-btn,
+.ot-save-btn,
+.ot-add-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ot-delete-btn {
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
+.ot-add-row-btn {
+  background: #eef3f8;
+  color: #375a89;
+}
+
+.ot-save-btn {
+  background: #375a89;
+  color: #ffffff;
+  min-width: 88px;
+}
+
+.ot-add-btn:disabled,
+.ot-delete-btn:disabled,
+.ot-add-row-btn:disabled,
+.ot-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ot-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 0.8fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.ot-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ot-editor-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.ot-editor-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ot-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ---- TABLE CONTAINER ---- */
 .ot-table-container {
   width: 100%;
@@ -94,13 +193,10 @@
 
 /* ---- TABLE ---- */
 .ot-table {
-  width: 500px;
-  height: 498px;
-  border-collapse: separate;
-  border-spacing: 0 8px;
+  width: 100%;
+  border-collapse: collapse;
   font-family: "Inter", sans-serif;
   font-size: 13px;
-  vertical-align: top;
 }
 
 /* ---- HEADER ---- */
@@ -168,6 +264,40 @@
   text-align: center;
 }
 
+.ot-cell-input {
+  width: 100%;
+  min-width: 84px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #dbe1ea;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ot-cell-input--text {
+  text-align: left;
+  min-width: 180px;
+}
+
+.ot-row-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ot-row-delete-btn:hover {
+  color: #b42318;
+}
+
 /* ---- DATE BADGES ---- */
 .ot-badge {
   display: inline-flex;
@@ -194,7 +324,6 @@
 /* ---- TOTAL ROW ---- */
 .ot-total-row td {
   background: #254a7b;
-  width: 500px;
   height: 36px;
   border: none;
   padding: 0;
@@ -203,5 +332,23 @@
 
 .ot-total-row {
   display: table-row;
-  justify-content: space-between;
+}
+
+@media (max-width: 980px) {
+  .ot-versions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ot-actions {
+    justify-content: flex-end;
+  }
+
+  .ot-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-editor-actions {
+    justify-content: flex-start;
+  }
 }

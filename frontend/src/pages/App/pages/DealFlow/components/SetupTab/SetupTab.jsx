@@ -1,6 +1,14 @@
-import React, { useState } from "react";
-import { useTableSort, SortableHeaderRenderer } from "/src/components/Sort/TableSort";
-import { PlusIcon, TrashIcon, EditLineIcon, DoneIcon, CloseIcon } from "/src/components/Icons/InteractiveIcons";
+import React, { useEffect, useMemo, useState } from "react";
+import SearchBar from "/src/components/SearchBar/SearchBar";
+import {
+  PlusIcon,
+  EditLineIcon,
+  DoneIcon,
+  CloseIcon,
+} from "/src/components/Icons/InteractiveIcons";
+import Toast from "../../../../components/Toast/Toast";
+import { useToast } from "../../../../components/Toast/useToast";
+import { SETUP_CATEGORIES, buildSetupCode, useSetupBackend } from "./setupbackend.jsx";
 import "./SetupTab.css";
 
 const COLOR_PALETTE = [
@@ -8,116 +16,127 @@ const COLOR_PALETTE = [
   "#fca5a5", "#fdba74", "#67e8f9", "#f9a8d4",
 ];
 
-const INITIAL_DATA = {
-  status: [
-    { id: 1, name: "Live" },
-    { id: 2, name: "Invested" },
-    { id: 3, name: "Dropped" },
-    { id: 4, name: "Exited" },
-  ],
-  stage: [
-    { id: 1, name: "Sourcing", color: "#c4b5fd" },
-    { id: 2, name: "Briefing", color: "#a7f3d0" },
-    { id: 3, name: "IC 1",     color: "#fde68a" },
-    { id: 4, name: "IC 2",     color: "#bae6fd" },
-    { id: 5, name: "Invested", color: "#fca5a5" },
-  ],
-  source: [
-    { id: 1, name: "Proprietary" },
-    { id: 2, name: "M&A" },
-    { id: 3, name: "Co-Invest" },
-  ],
-  doctype: [
-    { id: 1, name: "Legal",      color: "#fca5a5" },
-    { id: 2, name: "Financial",  color: "#c4b5fd" },
-    { id: 3, name: "Valuation",  color: "#a7f3d0" },
-    { id: 4, name: "KYC",        color: "#fde68a" },
-    { id: 5, name: "Agreements", color: "#c4b5fd" },
-    { id: 6, name: "IC Process", color: "#bae6fd" },
-  ],
-  sector: [
-    { id: 1, name: "Healthcare" },
-    { id: 2, name: "Software" },
-    { id: 3, name: "Energy" },
-    { id: 4, name: "Materials" },
-    { id: 5, name: "Defense" },
-    { id: 6, name: "Industry" },
-    { id: 7, name: "Real Estate" },
-    { id: 8, name: "Utilities" },
-  ],
-};
-
-const CATEGORIES = [
-  { key: "status",  label: "Status",           itemLabel: "status",           hasColor: false },
-  { key: "stage",   label: "Stage",            itemLabel: "stage",            hasColor: true  },
-  { key: "source",  label: "Source",           itemLabel: "source type",      hasColor: false },
-  { key: "doctype", label: "Type of document", itemLabel: "type of document", hasColor: true  },
-  { key: "sector",  label: "Sector",           itemLabel: "sector",           hasColor: false },
-];
+function createEmptyDraft() {
+  return {
+    name: "",
+    code: "",
+    color: COLOR_PALETTE[0],
+    displayOrder: "",
+    isActive: true,
+  };
+}
 
 function ColorPicker({ value, onChange }) {
   return (
     <div className="setup-color-picker">
-      {COLOR_PALETTE.map((c) => (
+      {COLOR_PALETTE.map((color) => (
         <button
-          key={c}
+          key={color}
           type="button"
-          className={`setup-color-dot${value === c ? " setup-color-dot--active" : ""}`}
-          style={{ backgroundColor: c }}
-          onClick={() => onChange(c)}
-          aria-label={`Pick color ${c}`}
+          className={`setup-color-dot${value === color ? " setup-color-dot--active" : ""}`}
+          style={{ backgroundColor: color }}
+          onClick={() => onChange(color)}
+          aria-label={`Pick color ${color}`}
         />
       ))}
     </div>
   );
 }
 
-function CategoryPanel({ category, items, onChange }) {
-  const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", color: COLOR_PALETTE[0] });
-  const sort = useTableSort(items, "name");
+function SetupStatusBadge({ isActive }) {
+  return (
+    <span className={`setup-status-badge${isActive ? "" : " setup-status-badge--inactive"}`}>
+      {isActive ? "Active" : "Inactive"}
+    </span>
+  );
+}
 
-  const startEdit = (row) => {
-    setEditingId(row.id);
-    setDraft({ name: row.name, color: row.color || COLOR_PALETTE[0] });
+function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdate, onToggleActive, onErrorToast, searchQuery }) {
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(createEmptyDraft());
+
+  useEffect(() => {
+    setEditingId(null);
+    setDraft(createEmptyDraft());
+  }, [category.key]);
+
+  const filteredItems = useMemo(() => {
+    const query = String(searchQuery || "").trim().toLowerCase();
+    if (!query) return items;
+    return items.filter((item) =>
+      [item.name, item.code]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [items, searchQuery]);
+
+  const startCreate = () => {
+    setEditingId("__new__");
+    setDraft(createEmptyDraft());
   };
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDraft({
+      name: item.name || "",
+      code: item.code || "",
+      color: item.color || COLOR_PALETTE[0],
+      displayOrder: item.displayOrder ?? "",
+      isActive: item.isActive !== false,
+    });
+  };
+
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft({ name: "", color: COLOR_PALETTE[0] });
-  };
-  const saveEdit = (id) => {
-    const trimmed = draft.name.trim();
-    if (!trimmed) return;
-    if (id === "__new__") {
-      const nextId = items.reduce((m, r) => Math.max(m, r.id), 0) + 1;
-      const newRow = category.hasColor
-        ? { id: nextId, name: trimmed, color: draft.color }
-        : { id: nextId, name: trimmed };
-      onChange([newRow, ...items]);
-    } else {
-      onChange(
-        items.map((r) =>
-          r.id === id
-            ? (category.hasColor ? { ...r, name: trimmed, color: draft.color } : { ...r, name: trimmed })
-            : r
-        )
-      );
-    }
-    cancelEdit();
-  };
-  const remove = (id) => onChange(items.filter((r) => r.id !== id));
-  const addNew = () => {
-    setEditingId("__new__");
-    setDraft({ name: "", color: COLOR_PALETTE[0] });
+    setDraft(createEmptyDraft());
   };
 
-  const isAddingNew = editingId === "__new__";
+  const handleDraftNameChange = (value) => {
+    setDraft((prev) => {
+      const nextName = value;
+      const shouldAutofillCode = !prev.code || prev.code === buildSetupCode(prev.name);
+      return {
+        ...prev,
+        name: nextName,
+        code: shouldAutofillCode ? buildSetupCode(nextName) : prev.code,
+      };
+    });
+  };
+
+  const saveDraft = async (itemId) => {
+    const payload = {
+      ...draft,
+      name: String(draft.name || "").trim(),
+      code: String(draft.code || "").trim().toUpperCase(),
+      color: category.hasColor ? draft.color : "",
+    };
+
+    if (!payload.name) {
+      onErrorToast("Name is required.");
+      return;
+    }
+    if (!payload.code) {
+      onErrorToast("Code is required.");
+      return;
+    }
+
+    try {
+      if (itemId === "__new__") {
+        await onCreate(payload);
+      } else {
+        await onUpdate(itemId, payload);
+      }
+      cancelEdit();
+    } catch {
+      // Error toast already handled by caller.
+    }
+  };
 
   return (
     <div className="setup-panel">
       <div className="setup-panel-header">
         <h2 className="setup-panel-title">{category.label}</h2>
-        <button className="setup-add-btn" onClick={addNew} disabled={isAddingNew}>
+        <button className="setup-add-btn" onClick={startCreate} disabled={editingId === "__new__" || isSaving}>
           <PlusIcon /> New {category.itemLabel}
         </button>
       </div>
@@ -126,87 +145,134 @@ function CategoryPanel({ category, items, onChange }) {
         <table className="setup-table">
           <thead>
             <tr>
-              <th className="setup-th setup-th--name">
-                <SortableHeaderRenderer
-                  label="Name"
-                  columnKey="name"
-                  currentSortKey={sort.sortKey}
-                  toggleSort={sort.toggleSort}
-                  center={false}
-                />
-              </th>
+              <th className="setup-th setup-th--name">Name</th>
+              <th className="setup-th setup-th--code">Code</th>
               {category.hasColor && <th className="setup-th setup-th--color">Color</th>}
-              <th className="setup-th setup-th--actions" />
+              <th className="setup-th setup-th--order">Display order</th>
+              <th className="setup-th setup-th--status">Status</th>
+              <th className="setup-th setup-th--actions">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {isAddingNew && (
+            {editingId === "__new__" && (
               <tr className="setup-row setup-row--editing">
-                <td className="setup-td setup-td--name">
+                <td className="setup-td">
                   <input
                     autoFocus
                     className="setup-input"
                     placeholder={`New ${category.itemLabel}`}
                     value={draft.name}
-                    onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveEdit("__new__");
-                      if (e.key === "Escape") cancelEdit();
-                    }}
+                    onChange={(e) => handleDraftNameChange(e.target.value)}
+                  />
+                </td>
+                <td className="setup-td">
+                  <input
+                    className="setup-input"
+                    placeholder="CODE_NAME"
+                    value={draft.code}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
                   />
                 </td>
                 {category.hasColor && (
-                  <td className="setup-td setup-td--color">
-                    <ColorPicker value={draft.color} onChange={(c) => setDraft((p) => ({ ...p, color: c }))} />
+                  <td className="setup-td">
+                    <ColorPicker value={draft.color} onChange={(color) => setDraft((prev) => ({ ...prev, color }))} />
                   </td>
                 )}
+                <td className="setup-td">
+                  <input
+                    className="setup-input"
+                    placeholder="Order"
+                    value={draft.displayOrder}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, displayOrder: e.target.value.replace(/[^\d-]/g, "") }))}
+                  />
+                </td>
+                <td className="setup-td">
+                  <SetupStatusBadge isActive={draft.isActive} />
+                </td>
                 <td className="setup-td setup-td--actions">
                   <div className="setup-actions">
-                    <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveEdit("__new__")}><DoneIcon /></button>
+                    <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveDraft("__new__")}><DoneIcon /></button>
                     <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
                   </div>
                 </td>
               </tr>
             )}
 
-            {sort.sorted.map((row) => {
-              const isEditing = editingId === row.id;
+            {isLoading && (
+              <tr>
+                <td className="setup-empty" colSpan={category.hasColor ? 6 : 5}>Loading {category.itemLabel}s...</td>
+              </tr>
+            )}
+
+            {!isLoading && filteredItems.map((item) => {
+              const isEditing = editingId === item.id;
               return (
-                <tr key={row.id} className={`setup-row${isEditing ? " setup-row--editing" : ""}`}>
-                  <td className="setup-td setup-td--name">
+                <tr key={item.id} className={`setup-row${isEditing ? " setup-row--editing" : ""}${item.isActive ? "" : " setup-row--inactive"}`}>
+                  <td className="setup-td">
                     {isEditing ? (
                       <input
                         autoFocus
                         className="setup-input"
                         value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") saveEdit(row.id);
-                          if (e.key === "Escape") cancelEdit();
-                        }}
+                        onChange={(e) => handleDraftNameChange(e.target.value)}
                       />
-                    ) : row.name}
+                    ) : (
+                      item.name
+                    )}
+                  </td>
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input
+                        className="setup-input"
+                        value={draft.code}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                      />
+                    ) : (
+                      <code className="setup-code">{item.code}</code>
+                    )}
                   </td>
                   {category.hasColor && (
-                    <td className="setup-td setup-td--color">
+                    <td className="setup-td">
                       {isEditing ? (
-                        <ColorPicker value={draft.color} onChange={(c) => setDraft((p) => ({ ...p, color: c }))} />
+                        <ColorPicker value={draft.color} onChange={(color) => setDraft((prev) => ({ ...prev, color }))} />
+                      ) : item.color ? (
+                        <span className="setup-color-swatch" style={{ backgroundColor: item.color }} />
                       ) : (
-                        <span className="setup-color-swatch" style={{ backgroundColor: row.color }} />
+                        "-"
                       )}
                     </td>
                   )}
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input
+                        className="setup-input"
+                        value={draft.displayOrder}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, displayOrder: e.target.value.replace(/[^\d-]/g, "") }))}
+                      />
+                    ) : (
+                      item.displayOrder === "" || item.displayOrder === null ? "-" : item.displayOrder
+                    )}
+                  </td>
+                  <td className="setup-td">
+                    <SetupStatusBadge isActive={isEditing ? draft.isActive : item.isActive} />
+                  </td>
                   <td className="setup-td setup-td--actions">
                     <div className="setup-actions">
                       {isEditing ? (
                         <>
-                          <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveEdit(row.id)}><DoneIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveDraft(item.id)}><DoneIcon /></button>
                           <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
                         </>
                       ) : (
                         <>
-                          <button className="setup-icon-btn" onClick={() => startEdit(row)} aria-label="Edit"><EditLineIcon /></button>
-                          <button className="setup-icon-btn setup-icon-btn--danger" onClick={() => remove(row.id)} aria-label="Delete"><TrashIcon /></button>
+                          <button className="setup-icon-btn" onClick={() => startEdit(item)} aria-label="Edit" disabled={isSaving}><EditLineIcon /></button>
+                          <button
+                            className={`setup-toggle-btn${item.isActive ? "" : " setup-toggle-btn--inactive"}`}
+                            onClick={() => onToggleActive(item)}
+                            disabled={isSaving}
+                          >
+                            {item.isActive ? "Deactivate" : "Activate"}
+                          </button>
                         </>
                       )}
                     </div>
@@ -215,10 +281,12 @@ function CategoryPanel({ category, items, onChange }) {
               );
             })}
 
-            {!isAddingNew && sort.sorted.length === 0 && (
+            {!isLoading && editingId !== "__new__" && filteredItems.length === 0 && (
               <tr>
-                <td className="setup-empty" colSpan={category.hasColor ? 3 : 2}>
-                  No {category.itemLabel} yet. Click “New {category.itemLabel}” to add one.
+                <td className="setup-empty" colSpan={category.hasColor ? 6 : 5}>
+                  {searchQuery
+                    ? `No ${category.itemLabel} matches your search.`
+                    : `No ${category.itemLabel} yet. Click "New ${category.itemLabel}" to add one.`}
                 </td>
               </tr>
             )}
@@ -230,23 +298,84 @@ function CategoryPanel({ category, items, onChange }) {
 }
 
 export default function SetupTab() {
-  const [activeKey, setActiveKey] = useState(CATEGORIES[0].key);
-  const [data, setData] = useState(INITIAL_DATA);
+  const [activeKey, setActiveKey] = useState(SETUP_CATEGORIES[0].key);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { toast, showToast, closeToast } = useToast();
 
-  const activeCategory = CATEGORIES.find((c) => c.key === activeKey);
-  const items = data[activeKey];
+  const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive } = useSetupBackend(activeCategory.taxonomyType);
+
+  useEffect(() => {
+    if (error) {
+      showToast({
+        type: "error",
+        title: "Setup failed",
+        message: error,
+      });
+    }
+  }, [error, showToast]);
+
+  const countsByKey = useMemo(
+    () => Object.fromEntries(SETUP_CATEGORIES.map((category) => [category.key, category.key === activeKey ? items.length : null])),
+    [activeKey, items.length]
+  );
+
+  const handleCreate = async (payload) => {
+    const created = await createItem(payload);
+    showToast({
+      type: "success",
+      title: "Item created",
+      message: `"${created.name}" has been created successfully.`,
+    });
+    return created;
+  };
+
+  const handleUpdate = async (itemId, payload) => {
+    const updated = await updateItem(itemId, payload);
+    showToast({
+      type: "success",
+      title: "Item updated",
+      message: `"${updated.name}" has been updated successfully.`,
+    });
+    return updated;
+  };
+
+  const handleToggleActive = async (item) => {
+    try {
+      const updated = await toggleItemActive(item);
+      showToast({
+        type: "success",
+        title: updated.isActive ? "Item activated" : "Item deactivated",
+        message: `"${updated.name}" is now ${updated.isActive ? "active" : "inactive"}.`,
+      });
+    } catch {
+      // Toast comes from hook error effect.
+    }
+  };
+
+  const handleErrorToast = (message) => {
+    showToast({
+      type: "error",
+      title: "Validation failed",
+      message,
+    });
+  };
 
   return (
     <div className="setup-wrapper">
+      <div className="setup-topbar">
+        <SearchBar placeholder="Search by name or code..." onSearch={setSearchQuery} />
+      </div>
+
       <div className="setup-subtabs">
-        {CATEGORIES.map((cat) => (
+        {SETUP_CATEGORIES.map((category) => (
           <button
-            key={cat.key}
-            className={`setup-subtab${activeKey === cat.key ? " active" : ""}`}
-            onClick={() => setActiveKey(cat.key)}
+            key={category.key}
+            className={`setup-subtab${activeKey === category.key ? " active" : ""}`}
+            onClick={() => setActiveKey(category.key)}
           >
-            {cat.label}
-            <span className="setup-subtab-count">{data[cat.key].length}</span>
+            {category.label}
+            <span className="setup-subtab-count">{countsByKey[category.key] ?? "-"}</span>
           </button>
         ))}
       </div>
@@ -254,8 +383,25 @@ export default function SetupTab() {
       <CategoryPanel
         category={activeCategory}
         items={items}
-        onChange={(next) => setData((prev) => ({ ...prev, [activeKey]: next }))}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        onToggleActive={handleToggleActive}
+        onErrorToast={handleErrorToast}
+        searchQuery={searchQuery}
       />
+
+      {toast && (
+        <Toast
+          key={toast.key}
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={closeToast}
+        />
+      )}
     </div>
   );
 }

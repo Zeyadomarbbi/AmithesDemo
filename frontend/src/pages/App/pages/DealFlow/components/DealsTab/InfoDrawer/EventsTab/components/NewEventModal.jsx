@@ -1,12 +1,14 @@
 import React, { useState, useRef } from "react";
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
+import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./NewEventModal.css";
 
-function NewEventModal({ onClose, onSubmit }) {
+function NewEventModal({ onClose, onSubmit, eventTypes = [], isSaving = false }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(null);
   const [description, setDescription] = useState("");
+  const [eventTypeId, setEventTypeId] = useState(null);
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -26,7 +28,7 @@ function NewEventModal({ onClose, onSubmit }) {
   const handleDragLeave = () => setDragging(false);
 
   const handleSubmit = () => {
-    onSubmit?.({ title, date, description, file });
+    onSubmit?.({ title, eventDate: date, description, eventTypeId, file });
   };
 
   return (
@@ -40,7 +42,7 @@ function NewEventModal({ onClose, onSubmit }) {
 
         {/* Body */}
         <div className="nem-body">
-          <h2 className="nem-title">Create a company</h2>
+          <h2 className="nem-title">Create an event</h2>
 
           {/* Title + Date row */}
           <div className="nem-row">
@@ -49,7 +51,7 @@ function NewEventModal({ onClose, onSubmit }) {
               <input
                 type="text"
                 className="nem-input"
-                placeholder="placeholder"
+                placeholder="Enter event title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -67,12 +69,25 @@ function NewEventModal({ onClose, onSubmit }) {
             </div>
           </div>
 
+          <div className="nem-field">
+            <label className="nem-label">Event type</label>
+            <SimpleDropdown
+              options={eventTypes}
+              value={eventTypeId}
+              onChange={setEventTypeId}
+              placeholder="Please select an event type"
+              labelKey="name"
+              valueKey="id"
+              disabled={isSaving}
+            />
+          </div>
+
           {/* Description */}
           <div className="nem-field">
-            <label className="nem-label">Description of the event*</label>
+            <label className="nem-label">Description of the event</label>
             <textarea
               className="nem-textarea"
-              placeholder="placeholder"
+              placeholder="Enter the event description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -110,7 +125,9 @@ function NewEventModal({ onClose, onSubmit }) {
         {/* Footer */}
         <div className="nem-footer">
           <button className="nem-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="nem-btn-next" onClick={handleSubmit}>Next</button>
+          <button className="nem-btn-next" onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Create"}
+          </button>
         </div>
 
       </div>

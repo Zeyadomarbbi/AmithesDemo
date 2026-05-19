@@ -3,9 +3,7 @@ import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import { ChevronDownIcon } from "/src/components/Icons/DirectionIcons";
 import "./FilterModal.css";
 
-const TYPE_OPTIONS = ["Transaction", "Financial", "Legal"];
-
-function FilterModal({ onClose, onApply }) {
+function FilterModal({ onClose, onApply, typeOptions = [] }) {
   const [typeOpen, setTypeOpen] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState([]);
 
@@ -14,10 +12,10 @@ function FilterModal({ onClose, onApply }) {
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
 
-  const allTypesSelected = selectedTypes.length === TYPE_OPTIONS.length;
+  const allTypesSelected = selectedTypes.length === typeOptions.length && typeOptions.length > 0;
 
   const toggleAllTypes = () =>
-    setSelectedTypes(allTypesSelected ? [] : [...TYPE_OPTIONS]);
+    setSelectedTypes(allTypesSelected ? [] : [...typeOptions]);
 
   const handleApply = () => {
     onApply?.({ types: selectedTypes });
@@ -52,9 +50,9 @@ function FilterModal({ onClose, onApply }) {
               <span className="drfm-group-label">Type</span>
             </div>
 
-            {typeOpen && (
+                {typeOpen && (
               <div className="drfm-options">
-                {TYPE_OPTIONS.map((type) => (
+                {typeOptions.map((type) => (
                   <label key={type} className="drfm-option">
                     <input
                       type="checkbox"
