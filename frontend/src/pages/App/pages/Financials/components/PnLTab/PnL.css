@@ -1,0 +1,270 @@
+/* frontend/src/pages/App/pages/Financials/styles/PnL.css */
+
+/* =========================
+   STOP PAGE HORIZONTAL SCROLL (GLOBAL)
+   ========================= */
+html,
+body,
+#root {
+  overflow-x: hidden;
+}
+
+/* ===== Toolbar ===== */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  align-items: flex-start;
+}
+
+.left-tools,
+.right-tools {
+  display: flex;
+  gap: 12px;
+}
+.right-tools {
+  gap: 8px;
+}
+
+.right-tools .ghost-btn {
+  background: #fafaf9 !important;
+  border: #cccdce80 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.right-tools .ghost-btn:hover,
+.right-tools .ghost-btn:active {
+  background: #fafaf9 !important;
+  box-shadow: none !important;
+}
+
+.right-tools .ghost-btn:focus,
+.right-tools .ghost-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ===== Card wrapper ===== */
+.financials-card {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 12px;
+  overflow: visible;
+  overflow-x: hidden;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+/* Per-table horizontal scroll container */
+.pnl-card-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+}
+
+/* Grid scope — sizes itself to content, scrolls if needed */
+.pnl-grid-scope {
+  min-width: 100%;
+  width: max-content;
+}
+
+/* ===== Header row (periods) ===== */
+.table-header-row {
+  align-items: center;
+  box-sizing: border-box;
+  height: 55px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+  color: var(--text-muted);
+  background: #FFFFFF;
+}
+
+/* header cells */
+.col-period {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.period-label {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  flex: none;
+  order: 2;
+  flex-grow: 0;
+}
+
+.period-label span {
+  opacity: 0.4;
+  font-size: 0.9em;
+  font-weight: 400;
+  user-select: none;
+}
+
+.col-period .icon-svg-muted svg {
+  fill: #375a89;
+  stroke: #375a89;
+}
+.col-period .icon-svg-muted {
+  color: #375a89;
+}
+
+.header-left-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.header-left-slot .pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-left-slot .pill-btn:focus,
+.header-left-slot .pill-btn:focus-visible {
+  outline: none;
+}
+
+.header-left-slot .pill-btn:hover {
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* =========================================================
+   PNL DYNAMIC GRID SHARED
+   — all rows use the same column definition via CSS vars
+   ========================================================= */
+.pnl-grid-scope .table-header-row,
+.pnl-grid-scope .group-row,
+.pnl-grid-scope .detail-row,
+.pnl-grid-scope .net-row {
+  display: grid;
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
+  align-items: center;
+}
+
+/* keep last column aligned */
+.pnl-grid-scope .group-action-cell,
+.pnl-grid-scope .pnl-row-actions {
+  justify-self: end;
+  min-width: var(--pnl-actions-col);
+}
+
+/* prevent weird stretching */
+.pnl-grid-scope .col-period,
+.pnl-grid-scope .group-value,
+.pnl-grid-scope .detail-input-wrapper,
+.pnl-grid-scope .net-value {
+  min-width: 0;
+}
+
+/* ===== Net Row ===== */
+.net-row {
+  background: #375A89;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 14px 16px;
+  box-sizing: border-box; /* <-- ADD THIS */
+  width: 100%;            /* <-- ADD THIS */
+}
+
+.net-value {
+  text-align: center !important;
+  justify-self: center;
+}
+.net-value.positive { color: #FFFFFF; }
+.net-value.negative { color: #FFFFFF; }
+
+.pnl-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.pnl-grid-scope .net-row {
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.pnl-footer {
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pnl-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px;
+}
+
+.pnl-btn-save {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.pnl-btn-save:hover { background-color: #e2962d; }
+.pnl-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}
+
+.financials-section-title {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #1C1917;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+  padding: 24px 0 16px 0;
+}

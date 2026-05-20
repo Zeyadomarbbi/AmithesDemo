@@ -1,0 +1,260 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.ff-capital-calls-container {
+  width: 100%;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.ff-capital-calls-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  display: block;
+}
+
+.ff-capital-calls-table {
+  width: 100%;
+  min-width: 1200px; /* Forces horizontal scroll on small screens to prevent squashing */
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+
+/* --- Header --- */
+.ff-capital-calls-th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+  white-space: nowrap;
+  border-bottom: 2px solid #E5E7EB;
+  background: #fff;
+}
+
+.ff-capital-calls-sidebar-header {
+  width: 60px;
+  min-width: 60px;
+}
+
+.ff-capital-calls-th-left {
+  text-align: left;
+}
+
+.ff-capital-calls-th-right {
+  text-align: right;
+}
+
+.ff-capital-calls-th-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ff-capital-calls-th-right-align {
+  justify-content: flex-end;
+}
+
+/* --- Sidebar Group Cell --- */
+.ff-capital-calls-td-sidebar {
+  vertical-align: middle;
+  padding: 16px 8px;
+  border-right: 1px solid #F3F4F6;
+  background-color: #ffffff;
+  width: 60px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.ff-capital-calls-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ff-capital-calls-year-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: #111827;
+}
+
+.ff-capital-calls-control-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ff-capital-calls-ctrl-btn {
+  width: 32px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ff-capital-calls-ctrl-btn:hover {
+  background: #F3F4F6;
+}
+
+.ff-capital-calls-ctrl-icon {
+  width: 12px;
+  height: 12px;
+  color: #375A89;
+}
+
+.ff-capital-calls-row-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: #FAFAF9;
+  border-top: 1px solid #E5E7EB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+/* --- Data Cells --- */
+.ff-capital-calls-td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151;
+  border-bottom: 1px solid #F3F4F6;
+  vertical-align: middle;
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.ff-capital-calls-td-right {
+  text-align: right;
+}
+
+.ff-capital-calls-td-date {
+  position: relative;
+  overflow: visible;
+  min-width: 140px;
+}
+
+/* Spacer Row Logic */
+.ff-capital-calls-spacer-row td {
+  height: 24px;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+/* Helpers */
+.ff-capital-calls-header-hint {
+  font-size: 12px;
+  color: #7B7D7E;
+  font-weight: 500;
+  margin: 0 4px;
+}
+
+.ff-capital-calls-sort-icon {
+  width: 14px;
+  height: 14px;
+  color: #3B82F6;
+}
+
+.ff-capital-calls-loading,
+.ff-capital-calls-error,
+.ff-capital-calls-empty {
+  padding: 40px;
+  text-align: center;
+}
+
+.ff-capital-calls-error {
+  color: #d32f2f;
+}
+
+.ff-capital-calls-tr {
+  background-color: #ffffff; /* Default FFFFFF */
+}
+
+/* Apply stripe to even rows within the tbody. 
+   Since the first row (index 0) is background-color: #ffffff, 
+   the second row (even) will be #FAFAF9.
+*/
+.ff-capital-calls-tbody .ff-capital-calls-tr:nth-child(even) {
+  background-color: #FAFAF9;
+}
+
+/* Ensure the sidebar background matches the row stripe if necessary, 
+   or keep it white for a clean "grouping" look. 
+   Given your structure, keeping it white is usually preferred for span rows. */
+.ff-capital-calls-td-sidebar {
+  background-color: #ffffff;
+}
+
+/* Ensure cells inherit the row background color */
+.ff-capital-calls-td {
+  background-color: inherit;
+}
+
+.ff-capital-calls-footer {
+  /* CHANGED: Removed position: sticky and margin-top: auto */
+  position: static; 
+  flex-shrink: 0; /* Prevents footer from being crushed */
+  margin-top: 0;
+  
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 40px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ff-capital-calls-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
+}
+
+.ff-capital-calls-btn-save {
+  flex: 1;
+  padding: 0 32px;
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.ff-capital-calls-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.ff-capital-calls-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}

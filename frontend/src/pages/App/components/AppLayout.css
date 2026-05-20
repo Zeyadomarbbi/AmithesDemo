@@ -1,0 +1,51 @@
+.app-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  height: 100vh;
+  min-width: min-content;
+  width: 15vw;
+}
+
+.sidebar-wrapper .side-panel {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.sidebar-resize-handle:hover {
+  background: rgba(55, 90, 137, 0.3);
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #FFFFFF;
+}

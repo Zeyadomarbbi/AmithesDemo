@@ -1,0 +1,191 @@
+/* FieldsSection.css */
+.af-panel-fields-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px 32px 24px 48px;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.af-fields-row-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.af-text-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 6px;
+}
+
+.af-text-field-wrapper.af-full-width {
+  width: 100%;
+  flex: none;
+}
+
+.af-input-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.af-field-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #375A89;
+}
+
+.af-input-box {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  width: 100%;
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.af-select-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.af-input-box.af-dropdown::before {
+  content: attr(data-value);
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.af-input-box.af-dropdown {
+  cursor: pointer;
+}
+
+.af-text-input, .af-select-input-display {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+  background: transparent;
+}
+
+.af-input-box.af-dropdown:hover {
+  border-color: #375A89;
+}
+
+.af-text-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.af-placeholder-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.af-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.af-badge-green {
+  background: #DAF8E3;
+  color: #1A6433;
+}
+
+.af-badge-blue {
+  background: #D3F2FF;
+  color: #4C6977;
+}
+
+.af-badge-grey {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+.af-chevron-icon {
+  display: flex;
+  align-items: center;
+  color: #375A89;
+}
+
+.af-destructive-action-row {
+  display: flex;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.af-destructive-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 6px;
+  width: 136px;
+  height: 40px;
+  background: #FFF1F2;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #E11D48;
+  transition: background 0.2s ease;
+}
+
+.af-destructive-btn:hover {
+  background: #ffe4e6;
+}
+
+.af-input-box:hover {
+  border-color: #375A89;
+}
+
+.af-input-box:focus-within {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}

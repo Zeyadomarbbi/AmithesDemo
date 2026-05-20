@@ -1,0 +1,224 @@
+/* =========================
+   BACKDROP
+   ========================= */
+.nf-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 20px; /* Prevents touching screen edges */
+  overflow-y: auto;
+}
+
+/* =========================
+   MODAL PANEL
+   ========================= */
+.nf-modal {
+  width: 100%;
+  max-width: 450px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.26);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Moved here to allow the entire modal to scroll if needed */
+}
+
+/* =========================
+   HEADER
+   ========================= */
+.nf-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+
+.nf-title {
+  margin: 0;
+  align-self: flex-start;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.nf-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #9ca3af;
+  padding: 4px;
+}
+
+/* =========================
+   BODY
+   ========================= */
+.nf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: visible; /* Changed from overflow-y: auto */
+  padding-right: 4px;
+}
+
+.nf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nf-label {
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+.nf-input {
+  width: 100%; /* Ensure inputs fill container */
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 0 12px;
+  font-size: 14px;
+  outline: none;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box; /* Crucial for width: 100% */
+}
+
+.nf-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+
+/* Ensure select text doesn't overlap the icon */
+.nf-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px !important; /* Space for the icon */
+  cursor: pointer;
+}
+
+/* =========================
+   FOOTER BUTTONS
+   ========================= */
+.nf-footer {
+  margin-top: 32px; /* Replaced large margin-top with relative spacing */
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.nf-btn {
+  flex: 1; /* Buttons share available width equally */
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.nf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nf-btn-secondary {
+  background: #e7eff880;
+  color: #7b7d7e;
+}
+
+.nf-btn-primary {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+/* Update Inputs and Selects */
+.nf-input,
+.nf-select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nf-input:hover,
+.nf-select:hover {
+  border-color: #375A89;
+}
+
+.nf-input:focus,
+.nf-select:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* Update Buttons */
+.nf-btn {
+  /* Inherit transition, adding transform/shadow for depth */
+  transition: opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nf-btn:hover:not(:disabled) {
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* Specific Secondary Button Hover */
+.nf-btn-secondary:hover:not(:disabled) {
+  border: 1px solid #375A89;
+  background: #FFFFFF;
+  color: #375A89;
+}
+
+/* =========================
+   MOBILE ADJUSTMENTS
+   ========================= */
+@media (max-width: 480px) {
+  .nf-backdrop {
+    padding: 0;
+    align-items: flex-end; /* "Drawer" style on mobile */
+  }
+
+  .nf-modal {
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .nf-footer {
+    flex-direction: column-reverse; /* Stack buttons on small screens */
+  }
+
+  .nf-btn {
+    width: 100%;
+  }
+}

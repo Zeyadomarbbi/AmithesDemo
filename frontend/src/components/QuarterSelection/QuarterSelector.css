@@ -1,0 +1,253 @@
+/* --- CONTAINER --- */
+.quarter-selector-container {
+  position: relative;
+  display: inline-block;
+  z-index: 30;
+}
+
+.quarter-selector-container:hover .quarter-selector-button {
+  border-color: #375A89;
+}
+
+.quarter-selector-container:focus-within .quarter-selector-button {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+/* --- TRIGGER BUTTON --- */
+.quarter-selector-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  width: auto;      
+  max-width: 100%;  
+  height: 40px;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  user-select: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quarter-selector-button:hover,
+.quarter-selector-button.active {
+  border-color: #375A89;
+  background: #FFFFFF;
+}
+
+.quarter-selector-button.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.quarter-text-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.quarter-part, .year-part {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+.quarter-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375A89;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.quarter-icon.open {
+  transform: rotate(180deg);
+}
+
+/* --- DROPDOWN --- */
+.quarter-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+}
+
+.quarter-search-wrapper {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+/* --- LIST ITEMS --- */
+.quarter-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 250px;
+  overflow-y: auto;
+  gap: 2px;
+}
+
+/* UNIFIED ITEM LAYOUT */
+.quarter-item {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.quarter-item:hover {
+  background-color: #F3F4F6;
+}
+
+.quarter-item.selected {
+  background-color: #F8FAFC; 
+}
+
+.quarter-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.quarter-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+}
+
+.edit-action {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.edit-action:hover {
+  opacity: 1;
+}
+
+.quarter-empty-state {
+  padding: 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* --- CHECKBOX STYLING --- */
+.qs-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.qs-checkbox.checked {
+  background-color: #F7A93B; 
+  border-color: #F7A93B;    
+}
+
+/* --- TEXT & DETAILS --- */
+.item-label-bold {
+  font-weight: 600;
+  color: #1C1917;
+  min-width: 24px;
+}
+
+.item-details-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #375A89;
+}
+
+.item-arrow-icon {
+  width: 10px; 
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+}
+
+.quarter-item.selected .item-arrow-icon,
+.quarter-item:hover .item-arrow-icon,
+.quarter-item.selected .item-date,
+.quarter-item:hover .item-date {
+  color: #375A89; 
+}
+
+.item-date {
+  font-size: 14px;
+  color: #375A89; 
+}
+
+/* --- FOOTER (Add Button) --- */
+.add-timeframe-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 8px 12px; 
+  cursor: pointer;
+  color: #375A89; 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.add-timeframe-btn:hover {
+  background-color: #F3F4F6;
+  border-radius: 4px;
+}
+
+.add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quarter-selector-button:focus,
+.quarter-selector-button.active {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}

@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+/* =========================================================
+   ROOT BLOCK (Step 1 form)
+   ========================================================= */
+
+.op1 {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100% !important;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* generic field wrapper */
+.op1-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* label */
+.op1-label {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  color: #375a89;
+}
+
+/* text/date input */
+.op1-input {
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.op1-input::placeholder {
+  color: #7b7d7e;
+}
+
+/* =========================================================
+   DATES ROW
+   ========================================================= */
+.op1-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.op1-row .op1-field {
+  flex: 1;
+}
+
+.op1-input:hover {
+  border-color: #375A89;
+}
+
+.op1-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  .op1 {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .op1-row {
+    flex-direction: column;
+  }
+}

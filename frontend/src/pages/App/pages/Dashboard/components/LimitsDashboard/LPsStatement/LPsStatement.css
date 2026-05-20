@@ -1,0 +1,110 @@
+/* --- CONTAINER --- */
+.lps-limits-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.lps-limits-card * {
+  box-sizing: border-box;
+}
+
+/* Header */
+.lps-limits-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+.lps-header-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #1C1917;
+  margin: 0;
+}
+.lps-header-count {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* --- TABLE CONTAINER (Responsive wrapper) --- */
+.lps-limits-table-container {
+  width: 100%;
+  border: none;
+  background: transparent;
+  /* Enable horizontal scrolling on small screens */
+  overflow-x: auto; 
+}
+
+/* --- TABLE STRUCTURE --- */
+.lps-limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Default: Use fixed layout for predictable desktop widths */
+  table-layout: fixed; 
+}
+
+/* --- TABLE HEAD --- */
+.lps-limits-table thead tr {
+  height: 56px;
+  background-color: rgba(204, 205, 206, 0.2); 
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5); 
+}
+
+.lps-limits-table th {
+  text-align: left;
+  vertical-align: middle;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lps-limits-table th .lps-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: #375A89;
+  width: 14px;
+  height: 14px;
+}
+
+/* --- TABLE BODY --- */
+.lps-limits-table tbody tr {
+  height: 58px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.lps-limits-table td {
+  padding: 8px 12px; 
+  vertical-align: middle;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  word-wrap: break-word; 
+}
+
+/* --- COLUMN WIDTHS (Desktop Default) --- */
+.lps-td-name, .lps-th-name { width: 17.58%; }
+.lps-name-primary { font-weight: 500; color: #1C1917; line-height: 20px; margin-bottom: 2px; }
+.lps-name-secondary { font-weight: 400; font-size: 14px; color: #375A89; line-height: 20px; }
+
+.lps-td-desc, .lps-th-desc { width: 48.83%; }
+.lps-td-desc { font-weight: 400; color: #1C1917; line-height: 20px; }
+
+.lps-td-limit, .lps-th-limit { width: 33.59%; text-align: right; }
+.lps-td-limit { padding-right: 12px; font-weight: 500; color: #1C1917; }
+.lps-th-limit { text-align: right !important; }
+.lps-th-limit .lps-icon { margin-left: 2px; }

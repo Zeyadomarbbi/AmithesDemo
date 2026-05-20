@@ -1,0 +1,227 @@
+.mgmt-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: var(--surface-primary, #FAFAF9);
+  padding: 1.25%; /* Relative padding */
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mgmt-phase-title {
+  margin-bottom: 0.75rem;
+  font-family: 'Inter';
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1vw, 0.9rem); /* Fluid typography */
+  line-height: 1.5;
+  color: #375A89;
+}
+
+.mgmt-phase-body {
+  display: flex;
+  flex-wrap: wrap; /* Allows wrapping on small mobile screens */
+  gap: 2vw;        /* Responsive gap */
+  align-items: flex-start;
+}
+
+/* Responsive Left Container */
+.mgmt-left-container {
+  display: flex;
+  flex: 1 1 25%;    /* Takes 25% width but can grow/shrink */
+  min-width: 200px; /* Safety floor for readability */
+  max-width: 400px; 
+}
+
+.mgmt-field-input.static-field {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5%;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background: #FFFFFF;
+  height: 40px; 
+  box-sizing: border-box;
+  
+  /* Responsive offset using calc and line-height variables */
+  margin-top: calc(20px + 0.4rem); 
+
+  width: 100%;
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+}
+
+/* Responsive Right Side */
+.mgmt-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5vw;
+  flex: 2 1 60%;   /* Takes roughly 60% of available space */
+}
+
+.mgmt-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Ensures items don't look overly stretched on huge screens */
+  flex: 0 1 auto; 
+}
+
+.mgmt-meta-label {
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+/* Percentage Inputs */
+.mgmt-date-input {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background: #FFFFFF;
+  height: 40px; 
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mgmt-date-input-inner {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  background: transparent;
+}
+
+/* Date Picker Overrides */
+.mgmt-date-wrapper .input-trigger {
+  height: 40px !important;
+  width: clamp(120px, 12vw, 150px); /* Fluid width */
+  border: 1px solid #E5E7EB !important;
+  border-radius: 6px !important;
+  background-color: #FFFFFF !important;
+  padding: 0 5% !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.mgmt-date-wrapper .selected-date-text {
+  font-family: 'Inter';
+  font-size: 14px !important;
+  color: #1C1917 !important;
+  font-weight: 500 !important;
+}
+
+/* Styling for the disabled date picker wrapper */
+.mgmt-date-wrapper.mgmt-disabled .input-trigger {
+  background-color: #F9FAFB !important; /* Light gray background */
+  border-color: #E5E7EB !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+.mgmt-date-wrapper.mgmt-disabled .selected-date-text {
+  color: #6B7280 !important; /* Muted text color */
+}
+
+/* Styling for the static "Until" field to distinguish it from inputs if desired */
+.mgmt-date-input.static-value {
+  background-color: #F9FAFB;
+  border-style: dashed; /* Optional: dashed border to show it is non-editable */
+  cursor: default;
+}
+
+.mgmt-date-input.static-value .mgmt-date-input-inner {
+  color: #6B7280;
+  pointer-events: none;
+}
+
+/* --- Interactive State Sync --- */
+
+/* 1. Input & Static Field Sync */
+.mgmt-field-input.static-field,
+.mgmt-date-input,
+.mgmt-date-wrapper .input-trigger {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mgmt-field-input.static-field:hover,
+.mgmt-date-input:hover,
+.mgmt-date-wrapper:not(.mgmt-disabled) .input-trigger:hover {
+  border-color: #375A89 !important;
+}
+
+.mgmt-date-input:focus-within,
+.mgmt-date-wrapper:not(.mgmt-disabled) .input-trigger:focus-within {
+  border-color: #375A89 !important;
+  box-shadow: 0 0 0 1px #375A89 !important;
+  background: #FFFFFF !important;
+}
+
+/* 2. Static/Disabled Exceptions */
+.mgmt-date-input.static-value:hover {
+  border-color: #375A89;
+}
+
+.mgmt-date-input.static-value:focus-within {
+  box-shadow: none;
+  border-color: #E5E7EB;
+}
+
+.mgmt-date-wrapper.mgmt-disabled .input-trigger:hover {
+  border-color: #E5E7EB !important;
+  box-shadow: none !important;
+}
+
+.mgmt-ppm-row {
+  margin-top: 0.5rem;
+}
+
+.mgmt-ppm-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background: #FFFFFF;
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.mgmt-ppm-textarea::placeholder {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.mgmt-ppm-textarea:hover {
+  border-color: #375A89;
+}
+
+.mgmt-ppm-textarea:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .mgmt-left-container {
+    flex: 1 1 100%; /* Stacks vertically on tablets/phones */
+    max-width: none;
+  }
+  .mgmt-field-input.static-field {
+    margin-top: 0; /* Removes offset when stacked */
+  }
+}

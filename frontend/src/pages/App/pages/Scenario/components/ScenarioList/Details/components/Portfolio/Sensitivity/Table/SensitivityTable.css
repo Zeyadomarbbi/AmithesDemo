@@ -1,0 +1,256 @@
+/* =========================================
+   SENSITIVITY TABLE HEADER
+   ========================================= */
+
+.sensitivity-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 20px;
+}
+
+.sensitivity-title-text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+    flex-shrink: 0;
+}
+
+.sensitivity-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sensitivity-header-dropdown-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.sensitivity-net-irr-control-container {
+    min-width: 120px;
+}
+
+/* =========================================
+   SEARCHABLE SELECT OVERRIDES
+   ========================================= */
+
+.sensitivity-header-dropdown-container .custom-select-container {
+    width: 100%;
+}
+
+.sensitivity-header-control-dropdown {
+    width: 100%;
+    height: 44px;
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1C1917;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sensitivity-header-control-dropdown.is-open {
+    border-color: #375A89;
+}
+
+.sensitivity-dropdown-icon {
+    display: none;
+}
+
+
+/* Dropdown panel */
+.sensitivity-header-dropdown-container .custom-select-dropdown {
+    min-width: 100%;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background: #FFFFFF;
+    z-index: 100;
+}
+
+/* =========================================
+   LOADING OVERLAY
+   ========================================= */
+
+.sensitivity-loading-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: inherit;
+}
+
+.sensitivity-loading-spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(55, 90, 137, 0.2);
+    border-top-color: #375A89;
+    border-radius: 50%;
+    animation: sensitivity-spin 0.75s linear infinite;
+}
+
+.sensitivity-loading-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #375A89;
+}
+
+@keyframes sensitivity-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+    .sensitivity-header-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sensitivity-controls-group {
+        width: 100%;
+        gap: 4px;
+    }
+
+    .sensitivity-header-dropdown-container {
+        flex: 1 1 48%;
+    }
+}
+
+/* =========================================
+   SENSITIVITY TABLE GRID
+   ========================================= */
+
+.sensitivity-main-grid {
+    display: grid;
+    grid-template-columns: 102px repeat(5, 1fr);
+    gap: 0;
+    width: 100%;
+    border: 1px solid #E5E7EB;
+    background: rgba(204, 205, 206, 0.2);
+    transition: opacity 0.2s ease;
+}
+
+.sensitivity-grid-cell {
+    border-right: none;
+    border-bottom: 1px solid rgba(231, 229, 228, 0.24);
+    padding: 0;
+    box-sizing: border-box;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* A. Top-Left Axis Label Cell */
+.sensitivity-moic-label-cell {
+    position: relative;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    padding: 8px;
+    gap: 0;
+    border-bottom: none;
+    background: none;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.sensitivity-moic-label-text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    position: relative;
+    text-align: right;
+    align-self: flex-end;
+    z-index: 1;
+}
+
+.sensitivity-duration-label-text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+    position: relative;
+    text-align: left;
+    align-self: flex-start;
+    z-index: 1;
+}
+
+/* B. MOIC Input Header Cells */
+.sensitivity-moic-input {
+    padding: 8px;
+    justify-content: center;
+    background: none;
+    border-bottom: 1px solid rgba(231, 229, 228, 0.24);
+}
+
+/* C. Unified Input Field */
+.sensitivity-moic-input-field,
+.sensitivity-duration-input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    height: 40px;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    text-align: center;
+    outline: none;
+}
+
+/* D. IRR Result Cells */
+.sensitivity-irr-result-cell {
+    padding: 8px 16px;
+    justify-content: center;
+    background: none;
+    border-bottom: 1px solid rgba(231, 229, 228, 0.24);
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+}
+
+/* Remove bottom border from last row — 6 cells per row (1 label + 5 data) */
+.sensitivity-main-grid > *:nth-last-child(-n + 6) {
+    border-bottom: none;
+}
+
+.sensitivity-grid--loading {
+    opacity: 0.4;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}

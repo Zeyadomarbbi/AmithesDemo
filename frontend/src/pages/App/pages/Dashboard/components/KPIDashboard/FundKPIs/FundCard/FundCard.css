@@ -1,0 +1,98 @@
+/* --- CONTAINER --- */
+.fc-card-fund {
+  /* Removed fixed width and height for responsiveness */
+  /* width: 325.33px; */ 
+  /* height: 585px; */ 
+  width: 100%;
+  height: 100%;
+  
+  /* Basic Card Styling */
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  /* Use relative units or responsive pixels for padding */
+  padding: 16px 24px; 
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* Gap between header and metrics list */
+  
+}
+
+/* --- The Header --- */
+.fc-fund-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-bottom: 8px; /* Added to separate from body */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  flex-shrink: 0;
+}
+
+.fc-fund-title, .fc-fund-unit {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  gap: 4px;
+}
+
+/* --- The List Container --- */
+.fc-fund-metrics-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex-grow: 1;
+  gap: 4px; /* Gap between data rows */
+  
+}
+
+.fc-fund-metrics-container.fc-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  flex-grow: 1;
+}
+
+/* --- The Row Styles (Restores the horizontal layout) --- */
+.fc-fund-data-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* Removed fixed height. Use padding/margin if height is determined by content. */
+  height: 36px; /* Keeping height for consistent metric display */
+  gap: 12px;
+  width: 100%;
+  
+}
+
+.fc-row-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #375A89;
+  white-space: nowrap;
+  /* Added min-width to ensure label doesn't shrink too much */
+  min-width: 120px; 
+}
+
+.fc-row-separator {
+  flex-grow: 1; /* Pushes value to the right */
+  height: 0px;
+  border-bottom: 0.5px dashed rgba(204, 205, 206, 0.5);
+  margin-top: 4px;
+}
+
+.fc-row-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  /* Added flex-shrink to ensure the value doesn't wrap unexpectedly */
+  flex-shrink: 0; 
+}

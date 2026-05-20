@@ -1,0 +1,292 @@
+/* =========================================
+   1. CONTAINER & TABLE RESET
+   ========================================= */
+.scenario-pf-table-container {
+    width: 100%;
+    background: #fff;
+    box-sizing: border-box;
+    overflow-x: auto;
+    border-radius: 6px;
+}
+
+.scenario-pf-table-container.no-borders {
+    border: none;
+}
+
+.scenario-pf-main-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+
+.table-section-spacer td {
+    height: 40px; /* Adjust this value for the size of the gap */
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* =========================================
+   2. SECTION HEADER
+   ========================================= */
+.scenario-pf-section-header {
+    padding: 24px 0 8px 0;
+    background: #fff;
+    border: none;
+}
+
+.scenario-pf-section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+}
+
+.scenario-pf-section-count {
+    font-weight: 500;
+    font-size: 16px;
+    color: #375A89;
+}
+
+/* =========================================
+   3. COLUMN HEADERS
+   ========================================= */
+.scenario-pf-main-table thead th {
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    font-weight: 600;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 12px;
+    
+}
+
+.scenario-pf-th-wrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 20px;
+    justify-content: flex-start;
+}
+
+.scenario-pf-th-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+}
+
+.scenario-pf-sort {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: #9CA3AF;
+}
+
+.scenario-pf-currency-indicator {
+    color: #9CA3AF;
+    font-weight: 500;
+    font-size: 11px;
+}
+
+/* =========================================
+   4. BODY ROWS
+   ========================================= */
+.scenario-pf-main-table td {
+    vertical-align: middle;
+    color: #111827;
+    white-space: nowrap;
+    padding: 6px 12px;
+}
+
+.scenario-pf-main-table tbody tr:nth-child(odd) {
+    background-color: #FAFAF9;
+}
+
+.scenario-pf-main-table tbody tr:nth-child(even) {
+    background-color: #FFFFFF;
+}
+
+/* =========================================
+   5. NAME BLOCK
+   ========================================= */
+.scenario-pf-name-block {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    flex: none;
+    order: 0;
+    flex-grow: 1;
+}
+
+.scenario-pf-name-block.clickable {
+    cursor: pointer;
+}
+
+.scenario-pf-name-block.readonly {
+    cursor: default;
+}
+
+.scenario-pf-name-block .label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-self: stretch;
+}
+
+.scenario-pf-name-block .sub {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+    align-self: stretch;
+}
+
+/* =========================================
+   6. ALIGNMENT
+   ========================================= */
+.scenario-pf-left {
+    text-align: left !important;
+}
+
+.scenario-pf-center {
+    text-align: center !important;
+}
+
+/* =========================================
+   7. INPUTS
+   ========================================= */
+.scenario-pf-input {
+    box-sizing: border-box;
+    display: block;
+    field-sizing: content;
+    min-width: 2ch;
+    padding: 8px 12px;
+    background: #FFFFFF;
+    border: 1px solid rgba(204, 205, 206, 0.5);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #1C1917;
+    text-align: inherit;
+    margin: 0 auto;
+}
+
+.scenario-pf-input:focus {
+    border-color: #375A89;
+    outline: none;
+}
+
+.scenario-pf-input[readonly] {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: default;
+}
+
+/* =========================================
+   8. SUMMARY ROW
+   ========================================= */
+.scenario-pf-summary-row td {
+    background-color: #375A89 !important;
+    color: #FFFFFF !important;
+    font-weight: 400;
+    border-bottom: none;
+    /* Remove the radius from all cells first */
+    border-radius: 0; 
+}
+
+/* Apply radius only to the bottom-left of the first cell */
+.scenario-pf-summary-row td:first-child {
+    border-radius: 0 0 0 8px;
+}
+
+/* Apply radius only to the bottom-right of the last cell */
+.scenario-pf-summary-row td:last-child {
+    border-radius: 0 0 8px 0;
+}
+
+.scenario-pf-summary-row .scenario-pf-input[readonly] {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    font-weight: 400;
+}
+
+.scenario-pf-summary-row .scenario-pf-input[readonly] {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    font-weight: 400;
+}
+
+.scenario-pf-row-active {
+    background-color: #EFF6FF !important;
+    border-left: 3px solid #375A89;
+    border-right: 3px solid #375A89;
+}
+
+/* =========================================
+   9. ACTION BUTTONS
+   ========================================= */
+.scenario-pf-action-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+}
+
+.scenario-pf-action-btn.locked {
+    background: #F3E8FF;
+    border: 1px solid #A855F7;
+    color: #A855F7;
+}
+
+/* =========================================
+   10. SENSITIVITY EXPANDED ROW
+   ========================================= */
+.scenario-pf-sensitivity-expanded-row td {
+    background-color: #FAFAF9;
+    padding: 4px 12px;
+}
+
+/* =========================================
+   11. SECTION SPACING
+   ========================================= */
+
+.scenario-pf-main-table thead tr:first-child th.scenario-pf-section-header {
+    padding-top: 32px;
+    padding-bottom: 8px;
+    background: #fff;
+    border-top: none;
+    border-bottom: none;
+}
+
+.scenario-pf-main-table thead:first-child tr:first-child th.scenario-pf-section-header {
+    padding-top: 0;
+}
+.scenario-pf-section-header:first-child th {
+    padding-top: 0;
+}

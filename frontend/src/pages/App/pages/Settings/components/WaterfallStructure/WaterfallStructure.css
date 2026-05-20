@@ -1,0 +1,62 @@
+
+.wf-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;              /* Grow to fill parent */
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.wf-content {
+  /* 1. REQUIRED: Make this a flex container so 'gap' works */
+  display: flex;
+  flex-direction: column; 
+  flex: 1;              
+  overflow-y: auto;     
+  gap: 12px;            /* Now this will separate Phase1 and Phase2 */
+  padding-bottom: 24px; 
+}
+
+/* Footer Save Button */
+.wf-footer {
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.wf-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px;
+}
+
+.wf-btn-save {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.wf-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.wf-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}

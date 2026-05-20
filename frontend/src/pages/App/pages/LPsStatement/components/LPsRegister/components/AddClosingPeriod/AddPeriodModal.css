@@ -1,0 +1,190 @@
+.lp-add-closing-period-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.lp-add-closing-period-modal {
+  background: #ffffff;
+  border-radius: 0.5rem; /* ~8px */
+  box-shadow: 0 1.125rem 2.8125rem rgba(15, 23, 42, 0.25);
+  
+  /* FLEXIBILITY LOGIC */
+  width: 90%;            /* Standard mobile width */
+  max-width: 22.5rem;    /* Equivalent to 360px, but scales with font-size */
+  min-width: 18.75rem;   /* Ensures it doesn't get too squished on tiny screens */
+  
+  /* SPACING */
+  padding: 1.5rem 1.5rem 1rem;
+  
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", sans-serif;
+}
+
+.lp-add-closing-period-modal-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.lp-add-closing-period-modal-close-btn {
+  align-self: flex-end;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: #fafaf9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+}
+
+.lp-add-closing-period-modal-title {
+  align-self: flex-start;
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+
+.lp-add-closing-period-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.lp-add-closing-period-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lp-add-closing-period-modal-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.lp-add-closing-period-modal-input-wrapper {
+  position: relative;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Remove default browser arrow */
+.lp-add-closing-period-modal-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px; /* Space for the icon */
+  cursor: pointer;
+}
+
+/* Icon positioning */
+.lp-add-closing-period-modal-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none; /* Allows clicks to pass through to the select */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #375a89; /* Matches your label color */
+}
+
+/* Optional: Icon size adjustment if needed */
+.lp-add-closing-period-modal-chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+.lp-add-closing-period-modal-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+/* --- FOOTER STYLING --- */
+.lp-add-closing-period-modal-footer {
+  display: flex;
+  gap: 0.8rem;
+  padding-top: 1.5rem;
+  justify-content: flex-end; /* Aligns single save button to the right */
+}
+
+.lp-add-closing-period-modal-footer.is-edit {
+  justify-content: space-between; /* Spreads delete and save buttons apart */
+}
+
+.lp-add-closing-period-modal-btn-primary {
+  min-width: 120px;
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #f7a93b;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lp-add-closing-period-modal-btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #ef4444; 
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #fef2f2; 
+  color: #ef4444; 
+}
+
+.lp-add-closing-period-modal-btn-danger:hover {
+  background: #fee2e2;
+}
+
+.lp-add-closing-period-modal-input:hover {
+  border-color: #375A89;
+}
+
+.lp-add-closing-period-modal-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+.lp-add-closing-period-modal-close-btn:hover {
+  background: #F3F4F6;
+}
+
+.lp-add-closing-period-modal-btn-primary:hover {
+  background: #e2962d;
+}

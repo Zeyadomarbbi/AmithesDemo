@@ -1,0 +1,256 @@
+.sf-financials-page-layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  overflow-y: auto; /* CHANGED: changed from hidden to auto */
+  z-index: 1;
+  position: relative;
+}
+
+.sf-financials-main-content {
+  flex: 1;
+  overflow: visible; /* CHANGED: removed overflow-y: auto */
+  padding: 24px 40px;
+  width: 100%;
+  box-sizing: border-box;
+  /* Ensures content pushes the footer down */
+  min-height: fit-content; 
+  padding-bottom: 48px;
+}
+
+.sf-fin-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+}
+
+.sf-fin-view-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sf-view-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  gap: 8px;
+}
+
+.sf-view-badge.active {
+  background: #375A89;
+  color: #FFFFFF;
+}
+
+.sf-view-badge:not(.active) {
+  background: #FAFAF9;
+  color: #7B7D7E;
+}
+
+.sf-fin-actions {
+  display: flex;
+  align-items: center;
+}
+
+.sf-action-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 8px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #7B7D7E;
+}
+
+.sf-action-btn.sf-btn-download {
+  background: #FAFAF9;
+  transition: background 0.2s ease;
+}
+
+.sf-fin-sub-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.sf-btn-add-year {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sf-legend-wrapper {
+  display: flex;
+  gap: 16px;
+  background-color: #FAFAF9;
+  width: fit-content;
+  padding: 16px 24px 16px 24px;
+  height: fit-content;
+  border-radius: 8px;
+}
+
+.sf-legend-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: default;
+}
+
+.sf-realized {
+  color: #000000;
+  font-weight: 700;
+}
+
+.sf-projected {
+  color: #375A89;
+  font-weight: 700;
+}
+
+/* shared overlay base */
+.sf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* fullscreen variant */
+.sf-overlay.fullscreen {
+  background: #FFFFFF;
+  flex-direction: column;
+  padding: 40px;
+  box-sizing: border-box;
+  z-index: 200;
+}
+
+/* modal variant */
+.sf-overlay.modal {
+  background: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.sf-modal-content {
+  position: relative;
+  width: 80%;
+  max-width: 1000px;
+  background: #FFFFFF;
+  padding: 20px;
+  border-radius: 8px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.sf-overlay-content {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.sf-footer {
+  /* CHANGED: Removed position: sticky and margin-top: auto */
+  position: static; 
+  flex-shrink: 0; /* Prevents footer from being crushed */
+  margin-top: 0;
+  
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 40px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sf-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
+}
+
+.sf-btn-save {
+  flex: 1;
+  padding: 0 32px;
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.sf-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.sf-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}
+
+.sf-overlay.modal .scenario-dd-fees-container {
+  max-height: 65vh;
+  border-radius: 8px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sf-overlay.modal .scenario-dd-fees-table-wrapper {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 16px;
+}
+
+.sf-view-badge:not(.active):hover {
+  background: #F3F4F6;
+  color: #375A89;
+}
+
+.sf-action-btn.sf-btn-download:hover {
+  background: #F3F4F6;
+}

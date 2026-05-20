@@ -1,0 +1,186 @@
+/* ================================
+   DATAROOM FILTER MODAL
+   ================================ */
+
+.drfm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.drfm-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 587px;
+  height: 347px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ---- HEADER ---- */
+.drfm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+}
+
+.drfm-title {
+  font-family: "Inter", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1917;
+  margin: 0;
+}
+
+.drfm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.drfm-close:hover {
+  color: #1c1917;
+}
+
+/* ---- BODY ---- */
+.drfm-body {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 180px;
+}
+
+/* ---- GROUP ---- */
+.drfm-group {
+  background: #f9fafb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.drfm-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.drfm-group-header:hover {
+  background: #f3f4f6;
+}
+
+.drfm-chevron {
+  display: flex;
+  align-items: center;
+  color: #6b7280;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.drfm-chevron--open {
+  transform: rotate(0deg);
+}
+
+.drfm-chevron:not(.drfm-chevron--open) {
+  transform: rotate(-90deg);
+}
+
+.drfm-group-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c1917;
+}
+
+/* ---- OPTIONS ---- */
+.drfm-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0 8px 48px;
+}
+
+.drfm-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 0;
+  cursor: pointer;
+}
+
+.drfm-option-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* ---- CHECKBOX ---- */
+.drfm-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #375a89;
+  flex-shrink: 0;
+}
+
+/* ---- FOOTER ---- */
+.drfm-footer {
+  display: flex;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  padding: 16px 24px;
+  gap: 12px;
+}
+
+.drfm-btn-cancel {
+  flex: 1;
+  height: 40px;
+  background: #fafaf9;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7b7d7e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.drfm-btn-cancel:hover {
+  background: #efefee;
+}
+
+.drfm-btn-apply {
+  flex: 1;
+  height: 40px;
+  background: #f7a93b;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.drfm-btn-apply:hover {
+  background: #f7a93b;
+}

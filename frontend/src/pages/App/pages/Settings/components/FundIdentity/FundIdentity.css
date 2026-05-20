@@ -1,0 +1,189 @@
+.fund-identity-wrapper {
+  display: flex;
+  flex: 1; 
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  background-color: #FFFFFF;
+}
+
+.fund-identity-form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 24px 16px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.fund-identity-field {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fund-identity-field--full {
+  grid-column: 1 / -1;
+}
+
+.fund-identity-label {
+  font-size: 0.8rem;
+  color: var(--fs-label);
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+
+.fund-identity-required {
+  color: red;
+  margin-left: 2px;
+}
+
+.fund-identity-input {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid var(--fs-border-soft);
+  border-radius: 4px;
+  width: 100%;
+  height: 40px; 
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.fund-identity-input-inner {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  outline: none;
+  padding: 0 12px;
+}
+
+.fund-identity-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2rem;
+}
+
+.fund-identity-select-chevron {
+  position: absolute;
+  right: 14px;
+  top: calc(50% - 6px);
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #375A89;
+  border-bottom: 2px solid #375A89;
+  transform: rotate(45deg);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Date Picker Overrides */
+.fund-identity-form .date-input-container .input-trigger {
+  background-color: var(--fs-input-bg) !important;
+  border: 1px solid var(--fs-border-soft) !important;
+  border-radius: 4px !important;
+  height: 40px !important;
+  padding: 0 0.75rem !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.fund-identity-form .date-input-container .selected-date-text {
+  color: #1f2933 !important;
+  opacity: 1 !important;
+}
+
+.fund-identity-footer {
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fund-identity-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
+}
+
+.fund-identity-btn-save {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.fund-identity-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.fund-identity-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}
+
+
+.fund-identity-input .custom-select-chevron {
+    margin-right: 12px;
+}
+
+.fund-identity-input .custom-select-container {
+    width: 100%;
+    height: 100%;
+}
+
+.fund-identity-input .custom-select-trigger {
+    height: 100%;
+    padding: 0 0 0 12px;
+}
+
+.fund-identity-input .custom-select-dropdown {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.fund-identity-input,
+.fund-identity-form .date-input-container .input-trigger {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover State */
+.fund-identity-input:hover,
+.fund-identity-form .date-input-container .input-trigger:hover {
+  border-color: #375A89 !important;
+}
+
+/* Focus State */
+.fund-identity-input:focus-within,
+.fund-identity-form .date-input-container .input-trigger:focus-within {
+  border-color: #375A89 !important;
+  box-shadow: 0 0 0 1px #375A89 !important;
+  background: #FFFFFF;
+}
+
+/* Button Sync */
+.fund-identity-btn-save {
+  /* Match transition timing */
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fund-identity-btn-save:hover:not(:disabled) {
+  background-color: #e2962d;
+  box-shadow: 0 0 0 1px #375A89;
+}

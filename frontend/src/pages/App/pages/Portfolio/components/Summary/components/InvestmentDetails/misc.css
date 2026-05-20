@@ -1,0 +1,111 @@
+.invBackBtn--expanded {
+  transform: rotate(180deg);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.invDrawerPanel.closing {
+  animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.invCurrencyIcon {
+  display: inline-flex;
+  align-items: center;
+}
+.invCurrencyIcon svg path {
+  fill: #1c1917 !important;
+}
+
+.invSortIcon { margin-left: 4px; vertical-align: middle; }
+
+.invSelectWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+.invSelectWrapper .invBadgeSelect { width: 100%; padding-right: 28px; }
+
+.invSelectChevron {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invBadgeSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 32px;
+  border-radius: 6px;
+  padding: 0 28px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  width: auto;
+  min-width: 80px;
+  max-width: 140px;
+  background: #ffffff;
+  color: #334155;
+  background-image: none;
+}
+.invBadgeSelect option {
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-weight: 500;
+}
+
+.badge-Investment         { color: #b45309 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Dividend,
+.badge-Dividends          { color: #15803d !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Interest,
+.badge-Interests          { color: #0369a1 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Divestment         { color: #b91c1c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Other              { color: #6d28d9 !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+.badge-Partial-divestment { color: #be123c !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; }
+
+.invEmptyCell { height: 40px; }
+
+.inv-performance-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 99999;
+  background: #1f2937;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  max-width: 420px;
+}
+.toast-error { background: #b91c1c; }
+.toast-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.toast-inv { top: 20px; right: 20px; }

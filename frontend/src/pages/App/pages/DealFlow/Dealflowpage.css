@@ -1,0 +1,71 @@
+/* ================================
+   DEALFLOW PAGE
+   ================================ */
+
+.df-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  background: #ffffff;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+}
+
+/* Prevent SVG filter bleed from global rules */
+.df-page svg {
+  filter: invert(0) !important;
+}
+
+/* ---- TITLE ---- */
+.df-title {
+  font-family: "Crimson Pro", serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 33px;
+  color: #1c1917;
+  margin: 0;
+}
+
+/* ---- TABS ---- */
+.df-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.df-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px 12px;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: border-color 0.2s;
+}
+
+.df-tab:hover {
+  color: #375a89;
+}
+
+.df-tab.active {
+  color: #375a89;
+  border-bottom: 2px solid #f7a93b;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 600px) {
+  .df-title {
+    font-size: 24px;
+    white-space: normal;
+  }
+}

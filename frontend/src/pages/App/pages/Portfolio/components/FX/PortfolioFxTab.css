@@ -1,0 +1,62 @@
+.fx-tab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #FFFFFF; /* White background for the container */
+  border-radius: 12px; /* Rounded corners for the container */
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for elevation */
+}
+
+/* ===== FX Breakdown Pills ===== */
+
+.fx-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 16px;
+}
+
+.fx-breakdown-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fx-breakdown-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+.fx-breakdown-controls {
+  display: flex;
+  background: #F9FAFB; /* Light gray background for the group */
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.fx-breakdown-pill {
+  border: none;
+  border-radius: 8px; /* Slightly rounded corners inside the container */
+  padding: 6px 16px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  /* Text-SM/Medium Default */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.fx-breakdown-pill.active {
+  background: #FFFFFF; /* White pill background */
+  color: #111827; /* Black text when selected */
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); /* Subtle elevation */
+}

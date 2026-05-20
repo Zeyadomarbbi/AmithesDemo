@@ -1,0 +1,93 @@
+:root {
+  --fs-bg-page: #ffffff;
+  --fs-card-bg: #ffffff;
+  --fs-border-soft: #d1d5e0;
+  --fs-label: #375a89;
+  --fs-text-main: #1f2933;
+  --fs-placeholder: #9ca3af;
+  --fs-accent: #375a89;
+  --fs-input-bg: #f8f9f9;
+  --fs-tabs-underline: #f7a93b;
+  --dp-border: #e5e7eb;
+  --dp-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --dp-accent: #f7a93b;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.fund-settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%; /* CHANGED: from height to min-height */
+  width: 100%;
+  background-color: #FFFFFF;
+}
+
+.fund-settings-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Ensures this container fills the min-height of the page */
+}
+
+/* HEADER */
+.fund-settings-header {
+  flex-shrink: 0; /* Prevents header from shrinking */
+  padding-bottom: 0;
+}
+
+.fund-settings-title {
+  font-family: "Crimson Pro", serif;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 100%;
+  color: #1c1917;
+  padding-bottom: 24px;
+}
+
+/* Tabs */
+.fund-settings-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  margin-bottom: 24px;
+}
+
+.fund-settings-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0 4px 12px; 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; 
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.fund-settings-tab:hover {
+  color: #375A89;
+}
+
+.fund-settings-tab--active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B;
+}
+
+/* CONTENT AREA - THIS PUSHES THE FOOTER DOWN */
+.fund-settings-content-area {
+  flex: 1;              /* Grow to fill page */
+  display: flex;        /* NEW: Turn this into a flex container */
+  flex-direction: column; /* NEW: Stack children vertically */
+  padding-bottom: 0;
+}

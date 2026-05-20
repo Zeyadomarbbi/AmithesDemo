@@ -1,0 +1,210 @@
+/* ===== Compare Section ===== */
+
+.compare-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.compare-timeframes-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.compare-selectors-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+
+/* ===== Compare Table Card ===== */
+
+.compare-table-card {
+  margin-top: 4px;
+}
+
+/* ===== Chart Section ===== */
+
+.compare-chart-section {
+  margin-top: 8px;
+}
+
+.compare-chart-card {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  padding: 16px 20px 20px;
+}
+
+.compare-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.compare-chart-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.compare-chart-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.compare-chart-placeholder {
+  height: 220px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(
+    to top,
+    rgba(55, 90, 137, 0.15),
+    rgba(55, 90, 137, 0.03)
+  );
+}
+
+/* ===== Compare Right Panel Overlay ===== */
+
+.compare-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.12);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+}
+
+/* ===== Compare Right Panel ===== */
+
+.compare-detail-panel {
+  width: 720px;
+  max-width: 100%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -4px 0 24px rgba(15, 23, 42, 0.16);
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* ===== Panel Header ===== */
+
+.compare-detail-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.compare-back-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Investment Header ===== */
+
+.compare-investment-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.compare-investment-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.meta-label {
+  color: var(--text-muted);
+}
+
+.meta-value {
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+/* ===== Summary Cards ===== */
+
+.compare-flows-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.flow-summary-card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.flow-summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.flow-summary-amount {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ===== Fair Value Section ===== */
+
+.compare-fairvalue-section {
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  padding: 12px 14px;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* ===== Flows Table ===== */
+
+.compare-flows-table-section {
+  margin-bottom: 20px;
+}
+
+/* ===== Footer ===== */
+
+.compare-footer-section {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .compare-detail-panel {
+    width: 100%;
+  }
+
+  .compare-flows-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

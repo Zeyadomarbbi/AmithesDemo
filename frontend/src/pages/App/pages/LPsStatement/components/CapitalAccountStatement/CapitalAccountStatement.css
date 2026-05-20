@@ -1,0 +1,324 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ===========================================
+   CAPITAL ACCOUNT STATEMENT (CAS)
+   =========================================== */
+
+.lp-capital-account {
+  font-family: "Inter", sans-serif;
+}
+
+/* ---------- TOP BAR ---------- */
+
+.lp-cas-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+}
+
+.lp-cas-period {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-cas-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-cas-btn-download {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  height: 40px;
+  background: #fff;
+  color: #375A89;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.lp-cas-breakdown-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-cas-breakdown-label {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  white-space: nowrap;
+}
+
+.lp-cas-mode-switch {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px;
+  background: #FAFAF9;
+  border-radius: 9px;
+  gap: 0;
+}
+
+.lp-cas-mode-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 10px;
+  gap: 4px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: stretch;
+  transition: all 0.15s;
+}
+
+.lp-cas-mode-btn.active {
+  background: #FFFFFF;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  border-radius: 6px;
+  color: #1C1917;
+}
+
+.lp-cas-mode-btn:hover:not(.active) {
+  background: #F0F0EE;
+}
+
+.lp-cas-btn-download:hover {
+  background: #F8FAFC;
+}
+
+.lp-cas-filter-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 8px;
+
+  width: 152px;
+  height: 40px;
+
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+
+  cursor: pointer;
+}
+
+.lp-cas-filter-text {
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.lp-cas-filter-chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-cas-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* ---------- Notice button ---------- */
+
+.lp-cas-notice-btn {
+  height: 32px;
+  padding: 4px 16px;
+  border-radius: 6px;
+  border: none;
+  background-color: #f9fafb;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7B7D7E;
+  cursor: pointer;
+}
+
+.lp-cas-notice-btn:hover {
+  background-color: #f3f4f6;
+}
+
+/* ---------- Breakdown segmented control ---------- */
+
+.lp-cas-breakdown-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.lp-cas-breakdown {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: 5px;
+  height: 36px;
+}
+
+.lp-cas-breakdown-label {
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.lp-cas-breakdown-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px;
+  background: #fafaf9;
+  border-radius: 9px;
+  gap: 4px;
+
+  min-width: 154px;
+  height: 36px;
+}
+
+.lp-cas-breakdown-tab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  gap: 4px;
+
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+}
+
+.lp-cas-breakdown-tab--active {
+  background: #ffffff;
+  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+  border-radius: 6px;
+  color: #1c1917;
+}
+
+/* LPs mode: remove the huge empty space above the table */
+.lp-cas-breakdown-block--lps {
+  gap: 10px !important;
+}
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+
+@media (max-width: 1024px) {
+  .lp-cas-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .lp-cas-actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .lp-cas-breakdown-block {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .lp-capital-account {
+    margin-top: 8px;
+  }
+
+  .lp-cas-topbar {
+    gap: 10px;
+  }
+
+  .lp-cas-period {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .lp-cas-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .lp-cas-breakdown-block {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-cas-period {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lp-cas-notice-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .lp-cas-breakdown-tabs {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .lp-cas-breakdown-tab {
+    flex: 1;
+  }
+}

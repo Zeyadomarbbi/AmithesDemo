@@ -1,0 +1,109 @@
+/* --- CONTAINER --- */
+.fns-limits-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.fns-limits-card * {
+  box-sizing: border-box;
+}
+
+/* Header */
+.fns-limits-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+.fns-header-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #1C1917;
+  margin: 0;
+}
+.fns-header-count {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+/* --- TABLE CONTAINER (Responsive wrapper) --- */
+.fns-limits-table-container {
+  width: 100%;
+  border: none;
+  background: transparent;
+  /* Enable horizontal scrolling on small screens */
+  overflow-x: auto; 
+}
+
+/* --- TABLE STRUCTURE --- */
+.fns-limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; 
+}
+
+/* --- TABLE HEAD --- */
+.fns-limits-table thead tr {
+  height: 56px;
+  background-color: rgba(204, 205, 206, 0.2); 
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5); 
+}
+
+.fns-limits-table th {
+  text-align: left;
+  vertical-align: middle;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fns-limits-table th .fns-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: #375A89;
+  width: 14px;
+  height: 14px;
+}
+
+/* --- TABLE BODY --- */
+.fns-limits-table tbody tr {
+  height: 58px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.fns-limits-table td {
+  padding: 8px 12px; 
+  vertical-align: middle;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  word-wrap: break-word; 
+}
+
+/* --- COLUMN WIDTHS (Desktop Default) --- */
+.fns-td-name, .fns-th-name { width: 17.58%; }
+.fns-name-primary { font-weight: 500; color: #1C1917; line-height: 20px; margin-bottom: 2px; }
+.fns-name-secondary { font-weight: 400; font-size: 14px; color: #375A89; line-height: 20px; }
+
+.fns-td-desc, .fns-th-desc { width: 48.83%; }
+.fns-td-desc { font-weight: 400; color: #1C1917; line-height: 20px; }
+
+.fns-td-limit, .fns-th-limit { width: 33.59%; text-align: right; }
+.fns-td-limit { padding-right: 12px; font-weight: 500; color: #1C1917; }
+.fns-th-limit { text-align: right !important; }
+.fns-th-limit .fns-icon { margin-left: 2px; }

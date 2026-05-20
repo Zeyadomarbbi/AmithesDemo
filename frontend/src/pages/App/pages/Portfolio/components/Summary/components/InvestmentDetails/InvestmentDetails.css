@@ -1,0 +1,826 @@
+/* =========================================
+   Global & Layout
+   ========================================= */
+.invDrawerOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.1);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 40;
+}
+
+.invDrawerPanel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  height: 100%;
+  width: 50vw; 
+  max-width: 100%;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+  box-shadow: -8px 0px 19px rgba(0, 0, 0, 0.1);
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 50; 
+}
+
+.invBackBtn span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.invDrawerPanel.share-drawer--expanded {
+  width: 100%;
+}
+
+.invBackBtn--expanded {
+  transform: rotate(180deg);
+}
+/* =========================================
+   Header
+   ========================================= */
+.invDrawerHeader {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+}
+
+.invBackBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.invBackBtn:hover { border-color: #375A89; background: #ffffff; }
+
+.invHeaderContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.invTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+.invMainTitle {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+}
+.invSubTitle {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.invMetaGroup {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.invMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.invMetaLabel {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.invMetaValue {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.invHeaderActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.invActionIcon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.invActionIcon:hover { border-color: #375A89; color: #375A89; background: #ffffff; }
+
+/* =========================================
+   Body & Scroll
+   ========================================= */
+.invDrawerBody {
+  flex: 1;
+  padding: 24px 24px 32px;
+  overflow-x: clip;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.invSectionHeader {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #1C1917;
+  padding-bottom: 16px;
+}
+
+/* =========================================
+   Summary Cards
+   ========================================= */
+.invCardsRow {
+  display: grid;
+  grid-auto-flow: column;            /* force single row */
+  grid-auto-columns: 1fr;            /* equal width */
+  gap: 8px;                          /* fixed gap */
+  width: 100%;
+  padding-bottom: 16px;
+}
+
+.invSummaryCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  min-height: fit-content; 
+  max-height: max-content;
+  box-sizing: border-box;
+}
+
+.invCardTitle {
+  font-family: 'Inter';
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: #375A89;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invCardValue {
+  font-family: 'Inter';
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  color: #1C1917;
+    overflow: hidden;
+  word-break: break-word;
+}
+
+/* =========================================
+   Fair Value Box
+   ========================================= */
+.invFairBox {
+  background: #EFF6FF;
+  color: #EFF6FF;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.invFairCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.invFairLabelTitle {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+  color: #1C1917; 
+}
+
+.invFairLabelTitleSub {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.invFairLabel {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89 !important;
+}
+
+.invFairStaticVal {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  white-space: normal;
+  word-break: break-word;
+    overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invInputBase {
+  height: 40px;
+  display: block;
+  border-radius: 4px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  justify-content: center;
+  text-align: center;
+  padding: 0 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  background: #FFFFFF;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+  cursor: text;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.invInputBase:hover {
+  border-color: #375A89;
+}
+
+.invInputBase:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  background: #FFFFFF;
+}
+
+.invInputBase::placeholder {
+  color: #7B7D7E;
+}
+
+.invInputBase[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.invInputBase[type="number"]::-webkit-outer-spin-button,
+.invInputBase[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* =========================================
+   Table
+   ========================================= */
+.invTableContainer {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  overflow: visible;
+  position: relative;
+}
+
+.invTableScroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.invTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  table-layout: fixed;
+  overflow: visible;
+}
+
+.invTable tbody { overflow: visible; }
+
+.invTable tbody tr {
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.invTable tbody tr:nth-child(odd) { background: #ffffff; }
+.invTable tbody tr:nth-child(odd) .invTableInput {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+.invTable tbody tr:nth-child(odd) .invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; }
+
+.invTable tbody tr:nth-child(even) { background: #f8f9fb; }
+.invTable tbody tr:nth-child(even) .invTableInput {
+  background: #f8f9fb;
+  border-color: #ebebeb;
+}
+.invTable tbody tr:nth-child(even) .invTableInput:focus { background: #ffffff; border-color: #375A89; box-shadow: 0 0 0 1px #375A89; }
+
+
+.invTable th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 10px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: none;
+  background: transparent;
+}
+
+.invTable input { box-shadow: none !important; outline: none !important; }
+
+.invTable tbody tr td {
+  padding: 10px 10px;
+  vertical-align: middle;
+  overflow: visible !important;
+  position: relative;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Column widths ── */
+.invThFlow,       .invTdFlow       { width: 48px;  color: #64748b; font-weight: 400; white-space: nowrap; }
+.invThDate,       .invTdDate       { width: 150px; overflow: visible !important; }
+.invThAmountEuro, .invTdAmountEuro { width: 140px; min-width: 140px; }
+.invThFxRate,     .invTdFxRate     { width: 120px; min-width: 120px; }
+.invThAmountLC,   .invTdAmountLC   { width: 140px; min-width: 140px; }
+.invThType,       .invTdType       { width: 170px; min-width: 170px; vertical-align: top !important; padding-top: 10px !important; overflow: visible !important; }
+.invTdActions                      { overflow: visible !important; }
+.invThActions                      { text-align: right; padding-right: 12px; width: 60px; }
+
+/* ── Currency label in Amount header ── */
+.invHeaderCurrency {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
+  color: #7B7D7E;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
+/* ── Input wrapper ── */
+.invInputWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  overflow: visible !important;
+}
+
+/* ── Partial divestment stacked input ── */
+.invPartialInput {
+  margin-top: 6px;
+  position: relative;
+}
+
+.invPartialInput .invInputWrapper {
+  position: relative;
+}
+
+.invPartialInput .invTableInput {
+  height: 32px;
+  font-size: 12px;
+  padding: 0 28px 0 8px;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px;
+  background: #ffffff !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.invTableInput:hover { border: 1px solid #375A89; background: #ffffff; }
+.invPartialInput .invTableInput:focus { border-color: #375A89 !important; box-shadow: 0 0 0 1px #375A89 !important; background: #ffffff !important; }
+
+.invPartialInput svg {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.invTableInput {
+  width: 100%;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border 0.2s, background 0.2s;
+  box-shadow: none;
+  box-sizing: border-box;
+  cursor: text;
+}
+.invTableInput:hover { border: 1px solid #cbd5e1; background: #ffffff; }
+.invTableInput:focus { border: 1px solid #375A89; box-shadow: 0 0 0 1px #375A89; outline: none; background: #ffffff; }
+.invTableInput:read-only { color: #64748b; background: transparent; cursor: default; }
+.invTableInput:read-only:hover { border: 1px solid #e2e8f0; background: transparent; }
+.invNum { text-align: right; }
+
+/* ── Custom Type Select ── */
+.typeSelectWrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.typeSelectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  gap: 6px;
+  transition: border 0.2s;
+}
+.typeSelectTrigger:hover { border-color: #375a89; }
+
+.typeSelectBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Placeholder state — no type selected yet ── */
+.typeSelectPlaceholder {
+  color:#7B7D7E !important;
+  font-weight: 400 !important;
+}
+
+.typeSelectChevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.typeSelectDropdown {
+  max-height: 260px;
+  max-width: fit-content;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}
+
+.typeSelectOption {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  transition: background 0.15s;
+}
+.typeSelectOption:hover { background: #f1f5f9; }
+
+.typeSelectOption .typeSelectBadge {
+  background: transparent !important;
+  color: #334155 !important;
+  padding: 0;
+}
+
+/* ── Actions ── */
+.invActionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.invRowActionBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.invRowActionBtn:hover { background: #f1f5f9; }
+
+/* ── Add Flow Button ── */
+.invAddFlowBtn {
+  margin-top: 12px;
+  background: rgba(55, 90, 137, 0.1);
+  color: #375a89;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  transition: background 0.15s;
+}
+.invAddFlowBtn:hover { background: rgba(55, 90, 137, 0.18); }
+.invAddFlowIcon { width: 16px; height: 16px; display: inline-flex; align-items: center; }
+.invAddFlowText { line-height: 1; }
+
+/* =========================================
+   Performance Section
+   ========================================= */
+.inv-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.perf-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: max-content;
+}
+
+.perf-card span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #375a89;
+  line-height: 1.4;
+}
+
+.perf-card strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.perf-card .invCardTitle {
+  white-space: normal;
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .inv-performance-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 720px) {
+  .inv-performance-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* =========================================
+   Footer
+   ========================================= */
+.invDrawerFooter {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fff;
+}
+
+.invFooterBtn {
+  height: 40px;
+  padding: 10px 70px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  gap: 6px;
+}
+
+.invBtnCancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.invBtnCancel:hover { background: #e2e8f0; }
+
+.invBtnSave { background: #f59e0b; color: #ffffff; }
+.invBtnSave:hover { background: #d97706; }
+.invBtnSave:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+/* =========================================
+   Kebab Menu
+   ========================================= */
+.kebabWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.kebabBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.kebabBtn:hover { background: #f1f5f9; }
+
+.kebabDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  z-index: 9999;
+  min-width: 180px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.kebabItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+  transition: background 0.15s;
+  white-space: nowrap;
+  width: 100%;
+}
+.kebabItem:hover { background: #f8fafc; }
+
+.kebabItemDelete { color: #ef4444; }
+.kebabItemDelete:hover { background: #fef2f2; }
+
+.kebabDivider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+.kebabItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.kebabItemClose {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.invFairBox.invFairBox--flows {
+  display: grid;
+  grid-template-columns: 50px minmax(150px, 1.2fr) minmax(140px, 1fr) minmax(120px, 1fr) minmax(140px, 1fr) minmax(170px, 1.2fr) 40px;
+  align-items: center;
+  row-gap: 16px;
+  column-gap: 16px;
+  background: #ffffff;
+  color: inherit;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.invFairBox--flows .invFairCol {
+  flex: none;
+  min-width: 0;
+  width: 100%;
+  align-items: stretch;
+}
+
+.invFairBox--flows .invFairCol[style*="align-items: flex-end"] {
+  align-items: flex-end !important;
+}

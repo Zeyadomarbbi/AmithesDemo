@@ -1,0 +1,220 @@
+/* --- Portfolio.css --- */
+.portfolio-tab-container {
+  display: flex;
+  padding: 24px 40px;
+  background-color: #FFFFFF;
+  
+  /* CHANGED: Ensure container grows */
+  min-height: 100%; 
+  height: auto;
+  
+  position: relative;
+  overflow-y: visible; 
+  overflow-x: hidden;
+}
+
+.portfolio-split-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100%;   /* grows with content */
+  height: auto;       /* do NOT fix height */
+  align-items: stretch; /* both columns match tallest */
+  position: relative;
+  overflow: visible;
+}
+
+.scenario-pf-section-header {
+    padding: 24px 0 8px 0;
+    background: #fff;
+    border-bottom: none;
+}
+
+.portfolio-content-inner {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* LEFT COLUMN */
+.portfolio-main-column {
+  flex: 1;
+  min-width: 0;
+  height: auto;       /* natural height */
+  overflow: visible;
+  transition: flex-grow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-right: 1px solid #eee;
+}
+
+/* RIGHT COLUMN (Simulation Panel) */
+.simulation-side-panel {
+  background-color: #1e293b;
+  width: 3%;
+  height: auto;       /* natural height, stretches via align-items: stretch */
+  min-height: 0;      /* remove min-height: 100% — this was the culprit */
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-x: auto;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+  z-index: 10;
+  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+}
+
+/* When open, expand right column */
+.portfolio-split-layout.sim-open .simulation-side-panel {
+  width: 45%; /* Or 40% if you prefer percentage */
+}
+
+/* CONTENT WRAPPER inside SimulationResults */
+/* This ensures the content doesn't jump around */
+/* =========================================================
+   Standard Components (No Changes Needed Below)
+========================================================= */
+
+
+.portfolio-controls-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.control-toggles-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-track {
+  width: 32px;
+  height: 18px;
+  background: rgba(204, 205, 206, 0.4);
+  border-radius: 999px;
+  position: relative;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.toggle-track.active {
+  background-color: #F59E0B;
+}
+
+.toggle-knob {
+  width: 14.5px;
+  height: 14.5px;
+  background: #FFFFFF;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  position: absolute;
+  left: 2px;
+  transition: transform 0.2s ease;
+}
+
+.toggle-track.active .toggle-knob {
+  transform: translateX(14px);
+}
+
+.toggle-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+.destructive-btn-md {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  background: #FFF1F2;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #E11D48;
+}
+
+.proj-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(55, 90, 137, 0.2);
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    cursor: pointer;
+    width: fit-content;
+    margin-top: 16px;
+    transition: background 0.2s;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    color: #375A89;
+}
+
+.proj-add-btn:hover {
+    background: rgba(55, 90, 137, 0.2);
+}
+
+.scenario-portfolio-footer {
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.scenario-portfolio-actions {
+  display: flex;
+  gap: 12px;
+  width: 200px; 
+}
+
+.scenario-portfolio-btn-save {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+}
+
+.scenario-portfolio-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.scenario-portfolio-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}

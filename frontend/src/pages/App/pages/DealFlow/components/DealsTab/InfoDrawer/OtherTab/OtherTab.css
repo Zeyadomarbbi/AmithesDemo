@@ -1,0 +1,365 @@
+/* ================================
+   OTHER TAB
+   ================================ */
+
+.ot-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.ot-empty-state {
+  padding: 28px 20px;
+  border: 1px dashed #d8dce8;
+  border-radius: 8px;
+  background: #fbfcfe;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ---- VERSION BAR ---- */
+.ot-versions-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e6e9f1;
+}
+
+.ot-versions {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.ot-version-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 20px 10px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.ot-version-btn--active {
+  border-bottom-color: #f7a93b;
+}
+
+.ot-version-label {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1917;
+  white-space: nowrap;
+}
+
+.ot-version-date {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.ot-version-btn--active .ot-version-label {
+  color: #254a7b;
+}
+
+/* ---- ADD BUTTON ---- */
+.ot-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  margin-bottom: 8px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.ot-add-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+.ot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ot-delete-btn,
+.ot-add-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  background: rgba(55, 90, 137, 0.2);
+  color: #375a89;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.ot-delete-btn:hover,
+.ot-add-row-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+.ot-delete-btn {
+  margin-bottom: 8px;
+}
+
+.ot-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #f7a93b;
+  color: #ffffff;
+  min-width: 88px;
+}
+
+
+.ot-add-btn:disabled,
+.ot-delete-btn:disabled,
+.ot-add-row-btn:disabled,
+.ot-save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ot-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 0.8fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.ot-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ot-editor-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+.ot-editor-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ot-table-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- TABLE CONTAINER ---- */
+.ot-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ---- TABLE ---- */
+.ot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+}
+
+/* ---- HEADER ---- */
+.ot-table thead th {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid #e6e9f1;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ot-th {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e6e9f1;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1c1917;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ot-th--left {
+  text-align: left !important;
+}
+
+/* ---- BODY ROWS ---- */
+.ot-row {
+  background: #ffffff;
+  border-bottom: 1px solid #edf0f7;
+}
+
+.ot-row:last-child {
+  border-bottom: none;
+}
+
+
+/* ---- BODY CELLS ---- */
+.ot-td {
+  padding: 14px;
+  color: #2b2f38;
+  white-space: nowrap;
+  border-left: none;
+  border-right: none;
+  font-size: 13px;
+}
+
+.ot-td--left {
+  text-align: left;
+  font-weight: 500;
+}
+
+.ot-td--center {
+  text-align: center;
+}
+
+.ot-cell-input {
+  width: 100%;
+  min-width: 84px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #dbe1ea;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1c1917;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ot-cell-input--text {
+  text-align: left;
+  min-width: 180px;
+}
+
+.ot-row-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ot-row-delete-btn:hover {
+  color: #b42318;
+}
+
+/* ---- DATE BADGES ---- */
+.ot-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ot-badge--in {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ot-badge--out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ---- TOTAL ROW ---- */
+.ot-total-row td {
+  background: #254a7b;
+  height: 36px;
+  border: none;
+  padding: 0;
+  opacity: 1;
+}
+
+.ot-total-row {
+  display: table-row;
+}
+
+@media (max-width: 980px) {
+  .ot-versions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ot-actions {
+    justify-content: flex-end;
+  }
+
+  .ot-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-editor-actions {
+    justify-content: flex-start;
+  }
+}

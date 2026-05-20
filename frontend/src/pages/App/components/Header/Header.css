@@ -1,0 +1,74 @@
+/* in: frontend/src/components/Header.css */
+
+.top-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 69px;
+  padding: 0.5rem 2.5rem; /* Reduced vertical padding for two rows */
+  box-sizing: border-box;
+  background: #FAFAF9;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.header-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px; /* Tight gap between name and currency */
+  min-width: 0;
+  flex: 1;
+}
+
+/* Row 1: Fund Name & ShortName */
+.header-row-primary {
+  width: 100%;
+}
+
+.header-fund-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
+}
+
+.header-fund-shortname {
+  font-weight: 400;
+  color: #64748b; /* Muted slate color */
+  margin-left: 4px;
+}
+
+/* Row 2: Currency Details */
+.header-row-secondary {
+  width: 100%;
+}
+
+.header-currency-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; /* Smaller metadata size */
+  font-weight: 500;
+  color: #94a3b8; /* Lighter slate for secondary info */
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .top-header {
+    padding: 0.5rem 1rem;
+    min-height: 56px;
+  }
+}

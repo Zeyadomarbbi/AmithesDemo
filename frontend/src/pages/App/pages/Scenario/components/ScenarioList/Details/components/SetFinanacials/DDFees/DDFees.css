@@ -1,0 +1,297 @@
+.scenario-dd-fees-container {
+  background-color: #fff;
+  font-family: 'Inter', sans-serif;
+  color: #111827;
+  box-sizing: border-box;
+}
+/** HEADER **/
+.scenario-dd-fees-header-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 16px;
+}
+
+.scenario-dd-fees-close-btn {
+  align-self: flex-end;
+  background: #FAFAF9;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #9CA3AF;
+  transition: background 0.2s, color 0.2s;
+}
+
+.scenario-dd-fees-title {
+  /* Text- BASE/semibold */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1C1917;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.scenario-dd-fees-close-btn:hover {
+  background: #F3F4F6;
+  color: #6B7280;
+}
+
+
+/** TABLE **/
+.scenario-dd-fees-table-wrapper {
+  padding: 16px;
+  padding-bottom: 64px;
+}
+
+.scenario-dd-fees-no-data {
+  padding: 48px 16px;
+  text-align: center;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #9CA3AF;
+}
+
+.scenario-dd-fees-no-data-box {
+  padding: 48px 16px;
+  text-align: center;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #6B7280;
+  background-color: #F9FAFB;
+  border-radius: 4px;
+}
+.scenario-dd-fees-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scenario-dd-fees-table thead th {
+  background-color: #FFFFFF;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #fff; 
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 16px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+  flex: none;
+  order: 0;
+  flex-grow: 1;
+  width: 16%;
+}
+
+.scenario-dd-fees-table tbody tr {
+  background-color: #F9FAFB;
+  border-bottom: 1px solid #FFFFFF;
+}
+
+.scenario-dd-fees-table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.scenario-dd-fees-td-name {
+  text-align: left;
+}
+
+.scenario-dd-fees-inv-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scenario-dd-fees-inv-title {
+
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #1C1917;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.scenario-dd-fees-inv-period {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.scenario-dd-fees-td-center { text-align: center; }
+.scenario-dd-fees-td-right { text-align: right; }
+
+.scenario-dd-fees-status-text-sunk {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+}
+
+.scenario-dd-fees-status-text-sunk-small {
+  color: #999;
+  font-size: 12px;
+}
+
+.scenario-dd-fees-val-text {
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  text-align: center;
+  letter-spacing: 0.01em;
+
+  color: #1C1917;
+
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+
+}
+
+.scenario-dd-fees-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  background-color: #FFFFFF; 
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: center;
+  box-sizing: border-box;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #000000;
+  flex: none;
+  order: 1;
+  flex-grow: 1;
+}
+
+.scenario-dd-fees-input:hover {
+  border-color: #375A89;
+}
+
+
+/** FOOTER **/
+.scenario-dd-fees-footer {
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.scenario-dd-fees-actions {
+  display: flex;
+  gap: 12px;
+  width: auto; 
+}
+
+.scenario-dd-fees-btn-cancel {
+  height: 40px;
+  padding: 10px 16px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #FAFAF9;
+  color: #7B7D7E;
+  transition: background 0.2s ease;
+}
+
+.scenario-dd-fees-btn-cancel:hover {
+  background-color: #F3F4F6;
+}
+
+.scenario-dd-fees-btn-save {
+  height: 40px;
+  padding: 12px 64px;
+  border-radius: 4px; 
+  border: none; 
+  cursor: pointer;
+  font-family: 'Inter', sans-serif; 
+  font-weight: 500; 
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  background-color: #F7A93B;
+  color: #FFFFFF;
+  transition: background 0.2s ease;
+  
+}
+
+.scenario-dd-fees-btn-save:hover {
+  background-color: #e2962d;
+}
+
+.scenario-dd-fees-btn-save:disabled {
+  background-color: #D0D5DD;
+  cursor: not-allowed;
+}
+
+.scenario-dd-fees-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}

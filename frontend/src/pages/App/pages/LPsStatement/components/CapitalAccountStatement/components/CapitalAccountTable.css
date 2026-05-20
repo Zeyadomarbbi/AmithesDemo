@@ -1,0 +1,241 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* ===========================================
+   TABLE
+   =========================================== */
+
+.lp-cas-table-wrapper {
+  border-radius: 6px;
+  overflow-x: auto;
+  background-color: #ffffff;
+  border: none;
+}
+
+.lp-cas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+}
+
+/* header row */
+
+.lp-cas-table thead tr {
+  background-color: #f9fafb;
+  height: 50px;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.lp-cas-kpi-header,
+.lp-cas-header-cell {
+  padding: 8px 16px;
+  font-weight: 500;
+  color: #000000;
+  white-space: nowrap;
+  border: none;
+}
+
+.lp-cas-kpi-header {
+  text-align: left;
+}
+
+.lp-cas-header-cell {
+  text-align: right;
+}
+
+/* body rows */
+
+.lp-cas-row {
+  height: 50px;
+}
+
+.lp-cas-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.lp-cas-table tbody tr:nth-child(even) {
+  background-color: #fafaf9;
+}
+
+.lp-cas-table tbody tr {
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.lp-cas-table td {
+  padding: 8px 16px;
+  color: #1c1917;
+  border: none;
+}
+
+/* KPI left cell */
+
+.lp-cas-kpi-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+/* numeric cells */
+.lp-cas-value-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* no vertical borders */
+.lp-cas-table th,
+.lp-cas-table td {
+  border-left: none;
+  border-right: none;
+}
+
+/* ===========================================
+   EXPAND ROWS
+   =========================================== */
+
+.lp-cas-row--expandable {
+  cursor: pointer;
+}
+
+.lp-cas-row--open {
+  background-color: #fafafa;
+}
+
+/* plus/minus button */
+.lp-cas-expand-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-cas-plus-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.lp-cas-plus-icon svg {
+  display: block;
+}
+
+/* ===========================================
+   EXPANDED METRICS (Adjusted NAV & Waterfall)
+   =========================================== */
+
+/* Remove borders from the table rows */
+.lp-cas-table tbody tr.lp-cas-adjusted-row,
+.lp-cas-table tbody tr.lp-cas-waterfall-row {
+  border-bottom: none !important;
+  border-top: none !important;
+}
+
+.lp-cas-table tbody tr.lp-cas-spacer-row {
+  border-bottom: none !important;
+  border-top: none !important;
+}
+
+/* Apply background and remove any cell-level borders */
+.lp-cas-adjusted-row td,
+.lp-cas-waterfall-row td,
+.lp-cas-spacer-row td {
+  background-color: #f3f4f6 !important;
+  border: none !important; 
+}
+
+.lp-cas-spacer-row {
+  height: 24px;
+}
+
+.lp-cas-spacer-row td {
+  padding: 0 !important;
+}
+
+.lp-cas-waterfall-row .lp-cas-kpi-cell {
+  font-weight: 400 !important;
+}
+
+.lp-cas-adjusted-input {
+    width: auto;
+    min-width: 80px;
+    max-width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: inherit;
+    text-align: center;
+    background: #ffffff;
+    outline: none;
+    font-family: "Inter", sans-serif;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lp-cas-adjusted-row .lp-cas-value-cell {
+    white-space: nowrap;
+}
+
+.lp-cas-adjusted-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+/* ===========================================
+   KPI / VALUE CELL WEIGHT OVERRIDES
+   =========================================== */
+
+.lp-cas-table tbody td.lp-cas-kpi-cell {
+  font-weight: 600 !important;
+}
+
+.lp-cas-table tbody td.lp-cas-value-cell {
+  font-weight: 400 !important;
+}
+
+.lp-cas-adjusted-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lp-cas-adjusted-display .pnl-edit-btn {
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lp-cas-adjusted-input:hover {
+  border-color: #375A89;
+}
+
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+
+@media (max-width: 1024px) {
+  .lp-cas-nav-details {
+    padding: 0 24px 16px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Remove overflow-x: auto and -webkit-overflow-scrolling here */
+  .lp-cas-table {
+    min-width: 720px;
+  }
+}

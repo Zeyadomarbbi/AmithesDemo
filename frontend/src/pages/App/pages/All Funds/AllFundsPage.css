@@ -1,0 +1,243 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&display=swap");
+
+/* =========================
+   PAGE WRAPPER
+========================= */
+.allfunds-page {
+  font-family: "Inter", sans-serif;
+  color: #1c1917;
+  background: #ffffff;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  /* big shift to the left */
+}
+
+/* ===== Header ===== */
+.allfunds-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Title */
+.allfunds-title {
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 33px;
+  color: #1C1917;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Tabs */
+.allfunds-tabs-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px; 
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  margin-top: 2px;
+}
+
+.allfunds-tab-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px 12px; 
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; 
+  transition: border-color 0.2s;
+}
+
+.allfunds-tab-item.active {
+  border-bottom: 2px solid #F7A93B;
+}
+
+/* ===== Toolbar ===== */
+.allfunds-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  width: 100%;
+}
+
+/* Search bar */
+.search-box {
+  box-sizing: border-box;
+  width: 280px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 4px;
+}
+
+/* 🔧 icon container – no circle, no background */
+.search-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  box-shadow: none;
+  outline: none;
+}
+
+/* in case any global styles add pseudo-elements */
+.search-icon::before,
+.search-icon::after {
+  content: none !important;
+}
+
+.search-icon svg {
+  display: block;
+}
+
+/* input */
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: #7b7d7e;
+}
+
+/* New fund button */
+.new-fund-btn {
+  box-sizing: border-box;
+  width: 120px;
+  height: 32px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(55, 90, 137, 0.2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  
+  /* Typography */
+  font-family: var(--font-body, "Inter", sans-serif); /* Fallback to standard sans-serif */
+  font-weight: 500;
+  font-size: 14px;      /* text-sm */
+  line-height: 20px;
+  letter-spacing: 0.01em; /* 1% of font size */
+  
+  color: #375a89;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  margin-left: auto;
+  white-space: nowrap; /* Ensures text doesn't wrap given the fixed width */
+}
+
+.new-fund-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+  border-color: rgba(55, 90, 137, 0.35);
+}
+
+
+
+/* ===== Grid (responsive) ===== */
+.funds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* ===== Responsive layout ===== */
+
+@media (max-width: 1280px) {
+  .allfunds-page {
+    padding: 24px 72px 48px 32px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .allfunds-page {
+    padding: 24px 40px 40px 24px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .allfunds-toolbar {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .allfunds-page {
+    padding: 20px 16px 32px;
+    gap: 18px;
+  }
+
+  .allfunds-title {
+    font-size: 20px;
+  }
+
+  .allfunds-tabs-frame {
+    gap: 14px;
+  }
+
+  .allfunds-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .new-fund-btn {
+    width: 100%;
+    margin-left: 0;
+    border-radius: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .allfunds-title {
+    font-size: 18px;
+  }
+
+  .allfunds-tabs-frame {
+    font-size: 12px;
+  }
+
+  .funds-grid {
+    gap: 12px;
+  }
+}

@@ -1,0 +1,307 @@
+/* frontend/src/pages/App/pages/Financials/components/PnLTables/FinancialTables.css */
+
+/* ===== TABLE WRAPPERS ===== */
+.pnl-income,
+.pnl-expenses,
+.pnl-tax {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* ===== GROUP ROW (shared base) ===== */
+.group-row {
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+  padding: 14px 16px;
+  box-sizing: border-box; /* <-- ADD THIS */
+  width: 100%;            /* <-- ADD THIS */
+}
+
+/* ===== BLUE BAND ===== */
+.group-row--band {
+  height: 55px;
+  background: #375A89;
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+
+  display: grid;
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.group-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.group-value {
+  text-align: center;
+  font-weight: 500;
+  color: #ffffff;
+  justify-self: center;   /* <-- ADD THIS to snap perfectly into grid track */
+  width: 100%;            /* <-- ADD THIS */
+}
+
+.group-action-cell {
+  justify-self: end;
+  text-align: right;
+}
+
+/* ===== DETAIL ROWS ===== */
+.detail-row {
+  display: grid;
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
+  align-items: center;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+  background-color: #ffffff;
+}
+
+.detail-row:nth-of-type(odd) {
+  background-color: #FAFAF9;
+}
+
+/* ===== LABEL CELL ===== */
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.detail-label-text {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+}
+
+.pnl-edit-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #375a89;
+  flex: 0 0 auto;
+}
+
+.pnl-edit-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.pnl-edit-btn:focus,
+.pnl-edit-btn:focus-visible {
+  outline: none;
+}
+
+/* ===== INPUTS ===== */
+.detail-input-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  justify-self: center;
+}
+
+.amount-input,
+.pnl-label-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  background: rgba(55, 90, 137, 0.12);
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #000;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.amount-input {
+  text-align: center;
+}
+
+.amount-input:focus,
+.pnl-label-input:focus {
+  outline: none;
+  background: #ffffff;
+}
+
+/* ===== ACTIONS ===== */
+.pnl-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  justify-self: end;
+  grid-column: -1;
+}
+
+.pnl-kebab {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #375a89;
+}
+
+.pnl-kebab-wrap {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+  overflow: visible;
+}
+
+.pnl-kebab-menu {
+  position: absolute;
+  right: calc(100% + 8px);
+  left: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 50;
+}
+
+.pnl-kebab-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.pnl-kebab-item:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.pnl-kebab-delete {
+  color: #dc2626;
+}
+
+/* ===== ADD ROW BUTTON ===== */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375a89;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pill-btn:focus,
+.pill-btn:focus-visible {
+  outline: none;
+}
+
+/* ===== TYPEHERE ROW VARIANT ===== */
+.detail-row--typehere .pnl-row-actions {
+  align-self: start;
+  margin-top: 6px;
+}
+
+.detail-row,
+.group-row--band {
+  grid-template-columns:
+    var(--pnl-label-col)
+    repeat(var(--pnl-cols), var(--pnl-period-col))
+    var(--pnl-actions-col);
+}
+
+.amount-display {
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.amount-display-text {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #1C1917;
+}
+
+.amount-input:hover,
+.pnl-label-input:hover {
+  border-color: #375A89;
+}
+
+.amount-input:focus,
+.pnl-label-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+  background: #ffffff;
+}

@@ -1,0 +1,9 @@
+.limits-dashboard-frame {
+  display: flex;
+  flex-direction: column;
+  
+  /* EXACT WIDTH ENFORCEMENT */
+  width: 100%;   
+  padding-top: 8px;
+  gap: 32px;
+}

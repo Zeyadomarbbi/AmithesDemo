@@ -1,0 +1,110 @@
+/* --- CONTAINER --- */
+.pc-card-portfolio-wide {
+  /* Removed fixed dimensions for responsiveness, use 100% or flex */
+  width: 100%;
+  height: 100%; /* Or defined height if it needs to be fixed */
+  box-sizing: border-box;
+
+  /* Background color change noted */
+  background: rgba(55, 90, 137, 0.2);
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  padding: 16px 24px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- The Header --- */
+.pc-fund-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-bottom: 8px; /* Added from fc-card for consistency */
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  flex-shrink: 0; /* Changed from 'flex: none' for consistency */
+}
+
+.pc-fund-title, .pc-fund-unit {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+  /* Removed gap: 4px as it applies to children, not the element itself */
+}
+
+/* --- Layout Columns Container --- */
+.pc-portfolio-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 48px;
+  width: 100%;
+  flex-grow: 1;
+}
+
+/* EMPTY STATE STYLING (Derived from FundCard) */
+.pc-portfolio-body.pc-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  flex-grow: 1;
+}
+
+.pc-portfolio-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px; /* Added gap between rows, similar to fc-fund-metrics-container */
+}
+
+/* --- Row Styles (Self-contained) --- */
+.pc-portfolio-data-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 36px;
+  gap: 12px;
+  width: 100%;
+}
+
+.pc-portfolio-data-row.pc-multi-line {
+  height: 56px;
+}
+
+.pc-portfolio-data-row.pc-multi-line .pc-row-label {
+  white-space: normal;
+  width: 112px;
+  line-height: 20px;
+}
+
+.pc-row-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #375A89;
+  white-space: nowrap;
+  /* Added min-width for structure consistency */
+  min-width: 120px;
+}
+
+.pc-row-separator {
+  flex-grow: 1;
+  height: 0px;
+  border-bottom: 0.5px dashed rgba(204, 205, 206, 0.5);
+  margin-top: 4px;
+}
+
+.pc-row-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #1C1917;
+  flex-shrink: 0; /* Added for consistency */
+}

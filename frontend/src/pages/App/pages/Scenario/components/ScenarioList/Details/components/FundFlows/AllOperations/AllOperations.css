@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+.all-ops-container {
+  position: relative;
+  width: 100%;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-responsive-wrapper {
+  width: 100%;
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Keep the min-width to ensure columns don't get crushed */
+  table-layout: fixed; 
+}
+/* --- Header Styles --- */
+.ops-table thead {
+  border-bottom: 2px solid #E5E7EB; 
+}
+
+.ops-table th {
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827; 
+  white-space: nowrap; 
+  text-align: left;
+  width: 20%; 
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  
+  /* Ensure content truncates if it gets too small */
+  overflow: hidden; 
+  text-overflow: ellipsis;
+}
+
+.th-content.right {
+  justify-content: flex-end;
+}
+
+.header-hint {
+  font-size: 12px;       
+  color: #7B7D7E;        
+  font-weight: 500;      
+  margin-left: 4px;      
+  margin-right: 2px;     
+}
+
+.th-left { text-align: left; }
+.th-right { text-align: right; }
+
+.sort-icon {
+  width: 14px;
+  height: 14px;
+  color: #3B82F6; 
+  flex-shrink: 0; 
+}
+
+/* --- Row Styles --- */
+.ops-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #374151; 
+  border-bottom: 1px solid #F3F4F6; 
+  vertical-align: middle;
+  
+  /* Ensure long text doesn't break the fixed layout */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-right { text-align: right; }
+
+.ops-table tbody tr:nth-child(odd) { background-color: #ffffff; }
+.ops-table tbody tr:nth-child(even) { background-color: #FAFAF9; }
+
+.row-highlight { background-color: #DDE5ED !important; }
+.row-highlight td { border-bottom: 1px solid #cbd5e1; }
+
+/* --- Date Column Specifics --- */
+.ops-table .td-date {
+  /* Since we used a Portal, we strictly don't need overrides here anymore, 
+     but keeping it 'visible' is safer for layout flow */
+  position: relative;
+  white-space: normal; 
+}

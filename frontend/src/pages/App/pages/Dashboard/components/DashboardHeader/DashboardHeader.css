@@ -1,0 +1,57 @@
+.dashboard-header-frame {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+}
+
+.welcome-text {
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 33px;
+  color: #1C1917;
+  margin: 0;
+  white-space: nowrap; /* Keep title on one line if possible */
+}
+
+/* Wrapper for actions (Selector) to control positioning */
+.header-actions {
+    width: auto;
+    align-self: flex-end;
+    position: relative; /* Establishes stacking context */
+}
+
+.header-actions .quarter-dropdown {
+    left: auto;
+    right: 0;
+}
+
+/* --- RESPONSIVE QUERIES --- */
+
+/* Mobile Devices (Under 600px) */
+@media (max-width: 600px) {
+  .dashboard-header-frame {
+    flex-direction: column;
+    align-items: flex-start; /* Align left when stacked */
+  }
+  
+  .welcome-text {
+    font-size: 24px; /* Slightly smaller text */
+    white-space: normal; /* Allow title to wrap on very small screens */
+  }
+
+  .header-actions {
+    width: 100%; /* Full width selector on mobile */
+  }
+
+  /* Force the selector component to be full width inside header-actions if needed */
+  .header-actions .quarter-selector-button {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

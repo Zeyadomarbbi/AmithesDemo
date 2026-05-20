@@ -1,0 +1,47 @@
+/* Ensure the app fills the screen and doesn't scroll the body */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Prevents double scrollbars */
+}
+
+/* The container for Header + Main Content */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Fill remaining width next to SidePanel */
+  height: 100%;
+  background-color: #F7FAFC; /* Global background color */
+}
+
+/* The content area scrolls independently */
+.main-content {
+  flex-grow: 1; 
+  overflow-y: auto; 
+  
+  /* --- EXACT FIGMA PADDING --- */
+  /* Top: 32px | Right: 104px | Bottom: 48px | Left: 104px */
+  padding: 32px 104px 48px 104px;
+  
+  /* Background color (Light Grey from design) */
+  background-color: #FFFFFF; 
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.mode-viewer .btn-action,
+.mode-viewer .admin-only,
+.mode-viewer button[type="submit"] {
+  display: none !important;
+}

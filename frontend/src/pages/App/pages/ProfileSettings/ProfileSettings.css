@@ -1,0 +1,97 @@
+/* Main Page Container */
+.profile-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.profile-settings-page-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* HEADER */
+.profile-settings-page-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.profile-settings-page-title {
+  font-family: 'Crimson Pro', serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 30px;
+  line-height: 33px;
+  color: #1C1917;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* TABS */
+.profile-settings-page-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.profile-settings-page-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: border-color 0.2s;
+}
+
+.profile-settings-page-tab:hover {
+  color: #375A89;
+}
+
+.profile-settings-page-tab.active {
+  color: #375A89;
+  border-bottom: 2px solid #F7A93B;
+}
+
+/* CONTENT AREA */
+.profile-settings-page-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 24px;
+  overflow-y: auto;
+}
+
+/* RESPONSIVE HEADER */
+@media (max-width: 600px) {
+  .profile-settings-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .profile-settings-page-title {
+    font-size: 24px;
+    white-space: normal;
+  }
+}

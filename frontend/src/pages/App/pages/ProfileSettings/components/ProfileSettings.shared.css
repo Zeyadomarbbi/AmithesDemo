@@ -1,0 +1,341 @@
+/* ProfileSettings.shared.css
+   Import this in ProfileTab, AccountTab, NotificationsTab:
+   import './ProfileSettings.shared.css';
+   (adjust relative path per component folder depth)
+*/
+
+/* ── Container ── */
+.up-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 680px;
+}
+
+/* ── Section header ── */
+.up-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.up-section-title {
+  margin: 0;
+  /* Text-SM/Medium */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  /* identical to box height, or 143% */
+  letter-spacing: 0.01em;
+
+  color: #375A89;
+
+}
+
+.up-section-desc {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Divider ── */
+.up-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ── Avatar (Profile tab only) ── */
+.up-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.up-avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.up-avatar-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #375A89;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.up-avatar-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.up-avatar-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C1917;
+}
+
+.up-avatar-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ── Form ── */
+.up-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.up-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.up-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.up-label {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #375A89;
+}
+
+.up-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C1917;
+  background: #ffffff;
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input.up-input,
+textarea.up-input {
+  cursor: text;
+}
+
+/* Dropdown triggers */
+.custom-select-trigger.up-input {
+  cursor: pointer;
+}
+
+/* Hover — matches .custom-select-trigger:hover */
+.up-input:hover,
+.custom-select-trigger.up-input:hover {
+  border-color: #375A89;
+}
+
+/* Focus / open — replaces the blue ring with the same border treatment */
+.up-input:focus,
+.custom-select-trigger.up-input.is-open {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+  outline: none;
+}
+
+/* Open state kills bottom radius to connect with dropdown */
+.custom-select-trigger.up-input.is-open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ── Actions ── */
+.up-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.up-save-btn {
+  padding: 9px 20px;
+  background: #375A8933;
+  color: #375A89;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.up-save-btn:hover:not(:disabled) {
+  background: #375A894d;
+}
+
+.up-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Danger button (Account tab) ── */
+.up-danger-btn {
+  padding: 9px 20px;
+  background: #FFF1F2;
+  color: #E11D48;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.up-danger-btn:hover:not(:disabled) {
+  background: #ffe4e6;
+}
+
+.up-danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.up-danger-btn:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+.up-danger-title {
+  color: #dc2626;
+}
+
+/* ── Toggle (Notifications tab) ── */
+.up-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.up-toggle.on  { background: #375A89; }
+.up-toggle.off { background: #d1d5db; }
+
+.up-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.up-toggle.on  .up-toggle-thumb { left: 18px; }
+.up-toggle.off .up-toggle-thumb { left: 2px; }
+
+/* ── Notification table (Notifications tab) ── */
+.up-notif-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.up-notif-header {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px;
+  padding: 10px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.up-notif-col {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.up-notif-group-label {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.up-notif-group:first-of-type .up-notif-group-label {
+  border-top: none;
+}
+
+.up-notif-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px;
+  align-items: center;
+  padding: 14px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  transition: background 0.12s ease;
+}
+
+.up-notif-row:hover {
+  background: #f9fafb;
+}
+
+.up-notif-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.up-notif-row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C1917;
+}
+
+.up-notif-row-desc {
+  font-size: 12px;
+  color: #6b7280;
+}

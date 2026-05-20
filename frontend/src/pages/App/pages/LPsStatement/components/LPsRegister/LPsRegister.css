@@ -1,0 +1,234 @@
+/* src/pages/App/pages/LPsStatement/components/lPsStatement.css */
+
+/* ============= PAGE & TITLE ============= */
+/* ============= CLASS FILTER CHIPS (A1 / B / A2) ============= */
+
+.lp-class-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-chip {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  
+  /* Horizontal padding (12px) handles the side spacing for any text size */
+  padding: 4px 12px;
+  gap: 6px; /* Increased gap for better icon/text separation */
+
+  background: transparent;
+  border-radius: 6px;
+  border: 1px solid rgba(55, 90, 137, 0.2);
+
+  font-family: "Inter", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+
+  color: #7b7d7e;
+  cursor: pointer;
+  
+  /* Critical for flexibility */
+  white-space: nowrap; 
+  width: auto;         /* Ensures it only takes the space it needs */
+  min-width: min-content; 
+  transition: all 0.2s ease; /* Smooth transition for hover/active states */
+}
+
+.lp-chip:hover {
+  background: rgba(55, 90, 137, 0.08);
+}
+
+.lp-chip-active {
+  background: rgba(55, 90, 137, 0.2);
+  border-color: rgba(55, 90, 137, 0.2);
+  color: #7b7d7e;
+}
+
+/* ============= RIGHT SIDE BUTTONS ============= */
+/* ============= TOOLBAR LAYOUT ============= */
+.lp-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 18px 0;
+}
+
+.lp-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lp-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* ============= CLASS FILTER CHIPS ============= */
+.lp-class-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 4px 12px;
+  background: rgba(55, 90, 137, 0.1); /* Soft grey-blue */
+  border: 1px solid #dde3f2;
+  border-radius: 6px;
+  
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: #7b7d7e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.lp-chip:hover {
+  background: #e7ebf5;
+  border-color: #cbd5e1;
+}
+
+/* Active State: Theme Blue with White Text */
+.lp-chip.lp-chip-active {
+  background: #375a89;
+  border-color: #375a89;
+  color: #ffffff;
+}
+
+/* Chip Label */
+.lp-chip-label {
+  line-height: 1;
+}
+
+/* Clear (X) Button */
+.lp-chip-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  margin-right: -4px; /* Pulls X closer to the edge */
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.lp-chip-active .lp-chip-clear {
+  color: #ffffff;
+}
+
+.lp-chip-active .lp-chip-clear:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Add transfer */
+.btn-transfer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background: #fafaf9;
+  font-family: "Inter", sans-serif;
+    font-style: normal;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375a89;
+  cursor: pointer;
+}
+
+/* New LP button */
+
+.btn-newlp {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(55, 90, 137, 0.2);
+  border-radius: 4px;
+  border: none;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+
+  color: #375a89;
+  cursor: pointer;
+}
+
+.btn-newlp:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+/* ============= TAGS ============= */
+
+.tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 24px;
+  width: 65px;
+  padding: 4px 8px;
+  gap: 2px;
+  border-radius: 6px;
+
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* ============= RESPONSIVE ============= */
+
+@media (max-width: 960px) {
+  .lp-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lp-toolbar-right {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+
+  .lp-table-row {
+    flex-direction: column;
+  }
+
+  .side-plus-btn {
+    align-self: flex-end;
+  }
+}

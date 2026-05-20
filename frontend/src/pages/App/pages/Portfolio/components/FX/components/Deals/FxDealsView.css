@@ -1,0 +1,171 @@
+/* ===== Investment Section ===== */
+
+.fx-deals-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.fx-deals-filters-row {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.fx-deals-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fx-deals-shared-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.fx-deals-investment-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: max-content;
+    width: 100%;
+}
+
+.fx-deals-subtitle {
+    margin: 8px 0;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1C1917;
+}
+
+.fx-deals-title {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    color: #1C1917;
+    margin: 0;
+}
+
+/* ===== Table Card & Layout ===== */
+
+.fx-deals-table-card {
+    background: #ffffff;
+    overflow: hidden;
+    overflow-x: auto;
+    border-radius: 4px;
+}
+
+.fx-deals-table-card-top {
+    border-radius: 4px 4px 0 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fx-deals-table-card-bottom {
+    border-radius: 0 0 4px 4px;
+}
+
+.fx-deals-table-card-single {
+    border-radius: 4px;
+}
+
+.fx-deals-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* ===== Column widths ===== */
+.fx-deals-table th:nth-child(1),
+.fx-deals-table td:nth-child(1) { width: 140px; min-width: 140px; }
+
+.fx-deals-table th:nth-child(2),
+.fx-deals-table td:nth-child(2) { width: 160px; min-width: 160px; }
+
+.fx-deals-table th:nth-child(3),
+.fx-deals-table td:nth-child(3) { width: 120px; min-width: 120px; }
+
+.fx-deals-table th:nth-child(n+4),
+.fx-deals-table td:nth-child(n+4) { min-width: 160px; }
+
+/* ===== Table Headers ===== */
+
+.fx-deals-table thead th {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    text-align: center;
+    letter-spacing: 0.01em;
+    color: #1C1917;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fx-deals-table thead th.col-number {
+    text-align: center;
+}
+
+/* ===== Table Body & Striping ===== */
+
+.fx-deals-table tbody td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1C1917;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center
+}
+
+.fx-deals-table tbody tr:nth-child(odd):not(.fx-total-row) {
+    background-color: #FAFAF9;
+}
+
+.fx-deals-table tbody tr:nth-child(even):not(.fx-total-row) {
+    background-color: #FFFFFF;
+}
+
+.fx-deals-table .col-number {
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ===== FX Totals ===== */
+
+.fx-total-row {
+    background-color: #375A89 !important;
+}
+
+.fx-total-row td {
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fx-total-row .col-number {
+    color: #FFFFFF;
+}
+
+.header-currency-hint {
+    color: #9CA3AF;
+    font-size: 12px;
+    font-weight: 400;
+    padding-left: 4px;
+}
+.fx-deals-table thead th:first-child,
+.fx-deals-table tbody td:first-child {
+    text-align: left;
+}
+
+.fx-deals-table thead th.col-number,
+.fx-deals-table tbody td.col-number {
+    text-align: left;
+}

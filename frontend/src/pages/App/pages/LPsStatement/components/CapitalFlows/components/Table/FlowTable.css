@@ -1,0 +1,178 @@
+/* Main capital flows table */
+
+.cf-table-wrapper {
+  margin-top: 8px;
+  width: 100%;
+  overflow-x: auto;              /* ✅ allow horizontal scroll on small screens */
+  -webkit-overflow-scrolling: touch;
+}
+
+.cf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #1b2430;
+  min-width: 720px;              /* ✅ keeps desktop layout, scrolls on mobile */
+}
+
+/* header row */
+.cf-table thead tr {
+  border-bottom: 1px solid #e2e6ef;
+}
+
+.cf-table th {
+  text-align: left;
+  padding: 10px 10px;
+  color: #000000;
+  font-weight: 1000;
+  font-size: 12px;
+}
+
+.cf-table th:nth-child(n + 3),
+.cf-table td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.cf-sort {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  color: #375A89;
+  
+}
+
+/* body rows */
+.cf-table td {
+  padding: 14px 10px;
+  border-bottom: 1px solid #f1f2f6;
+}
+
+
+.cf-table tbody tr:hover:not(.cf-total-row) {
+  background: #f8fafc;
+}
+
+.cf-num {
+  text-align: right;
+}
+
+/* total row */
+.cf-total-row td {
+  background: #1f3c71;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ========================= */
+/*      RESPONSIVE TWEAKS    */
+/* ========================= */
+
+/* Tablets & below */
+@media (max-width: 1024px) {
+  .cf-table {
+    font-size: 13px;
+  }
+
+  .cf-table th,
+  .cf-table td {
+    padding: 10px 8px;
+  }
+}
+
+/* Small tablets / large phones */
+@media (max-width: 768px) {
+  .cf-table {
+    font-size: 12px;
+    min-width: 640px;           /* a bit narrower but still scrollable */
+  }
+
+  .cf-table th,
+  .cf-table td {
+    padding: 8px 6px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .cf-table {
+    font-size: 11px;
+    min-width: 600px;
+  }
+
+  .cf-table-wrapper {
+    margin-top: 4px;
+  }
+}
+
+/* ===================================================== */
+/*        NEW: BREAKDOWN BAR (Operations / LPs / SC)     */
+/* ===================================================== */
+
+.cf-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* row that holds "Breakdown :" and the pills, aligned to the right */
+.cf-breakdown-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.cf-breakdown-label {
+  font-size: 14px;
+  font: Font family/font-body;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center ;
+  color: #375A89; 
+}
+
+/* pill container */
+.cf-breakdown-chips {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #1C1917; /* light grey pill background */
+}
+
+/* individual pill button */
+.cf-breakdown-chip {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font: Font family/font-body;
+  font-weight: 500;
+  line-height: 20px;
+  color: #375A89;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* hover state */
+.cf-breakdown-chip:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* active pill (selected) */
+.cf-breakdown-chip.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
+}
+
+.cf-row--clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.cf-row--clickable:hover {
+    background-color: var(--background-hover, #f9fafb); /* Use your app's hover color */
+}

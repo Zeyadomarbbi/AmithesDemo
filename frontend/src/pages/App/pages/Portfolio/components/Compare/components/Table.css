@@ -1,0 +1,27 @@
+.fx-deals-table .col-number {
+  text-align: center;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.col-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.name-sub {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.col-diff {
+  font-weight: 600;
+  color: #374151;
+}
+
+.col-total-diff {
+  font-weight: 700;
+}

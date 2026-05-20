@@ -1,0 +1,83 @@
+/* Account.css — account-specific styles only.
+   All shared layout (up-container, up-form, up-input etc.)
+   comes from ProfileSettings.shared.css
+*/
+
+/* ── 2FA block ── */
+.account-2fa-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.account-2fa-text {
+  flex: 1;
+}
+
+.account-2fa-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 22px;
+  color: #375A89;
+  margin: 0;
+}
+
+.account-2fa-btn {
+  flex-shrink: 0;
+  padding: 9px 20px;
+  background: #F7A93B;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Inter';
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.account-2fa-btn:hover:not(:disabled) {
+  background: #e09628;
+}
+
+.account-2fa-btn.enabled {
+  background: #375A8933;
+  color: #375A89;
+}
+
+.account-2fa-btn.enabled:hover:not(:disabled) {
+  background: #375A894d;
+}
+
+.account-2fa-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Delete confirm ── */
+.account-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-delete-warning {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #dc2626;
+  margin: 0;
+}
+
+.account-delete-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
