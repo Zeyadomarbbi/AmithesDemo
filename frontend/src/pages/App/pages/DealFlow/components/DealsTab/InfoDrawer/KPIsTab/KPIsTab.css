@@ -64,14 +64,6 @@
   color: #6b7280;
 }
 
-.kpi-creator-card {
-  border: 1px solid #e6e9f1;
-  border-radius: 8px;
-  background: #fbfcfe;
-  padding: 12px;
-}
-
-.kpi-creator-grid,
 .kpi-editor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -197,29 +189,6 @@
   background: rgba(55, 90, 137, 0.28);
 }
 
-.kpi-btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 4px;
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  background: rgba(55, 90, 137, 0.2);
-  color: #375a89;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.kpi-btn-danger:hover {
-  background: rgba(55, 90, 137, 0.28);
-}
 
 .kpi-btn-save {
   display: inline-flex;
@@ -243,7 +212,6 @@
 
 .kpi-btn-outline:disabled,
 .kpi-btn-primary:disabled,
-.kpi-btn-danger:disabled,
 .kpi-btn-save:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -268,7 +236,7 @@
   font-family: "Inter", sans-serif;
   font-size: 13px;
   display: table;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .kpi-table thead,
@@ -320,6 +288,22 @@
 
 .kpi-th--value {
   text-align: right;
+}
+
+.kpi-th--period-col {
+  text-align: center;
+  color: #375a89;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  min-width: 100px;
+}
+
+.kpi-th--category {
+  min-width: 160px;
+}
+
+.kpi-td--category {
+  min-width: 160px;
 }
 
 /* ---- BODY ROWS ---- */
@@ -440,7 +424,6 @@
     justify-content: flex-end;
   }
 
-  .kpi-creator-grid,
   .kpi-editor-grid {
     grid-template-columns: 1fr;
   }

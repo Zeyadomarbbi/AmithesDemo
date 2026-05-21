@@ -1,30 +1,62 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
-import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import { useKpisBackend } from "../../Deals_backend_work";
 import "./KPIsTab.css";
 
+const VIEW_OPTIONS = [
+  { id: "quarterly",      name: "Quarterly" },
+  { id: "semi-annually",  name: "Semi-Annually" },
+  { id: "annually",       name: "Annually" },
+];
+
+const VIEW_COLUMNS = {
+  quarterly:       ["Q1", "Q2", "Q3", "Q4"],
+  "semi-annually": ["H1", "H2"],
+};
+
+function getColumns(viewType, year) {
+  if (viewType === "annually") {
+    const y = Number(year) || new Date().getFullYear();
+    return [String(y - 3), String(y - 2), String(y - 1), String(y)];
+  }
+  return VIEW_COLUMNS[viewType] || VIEW_COLUMNS.quarterly;
+}
+
 function createTempId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function createDraftPeriod(period) {
+  const viewType = period.viewType || "quarterly";
+  const year =
+    period.year ||
+    (period.startDate
+      ? new Date(period.startDate + "T00:00:00").getFullYear()
+      : new Date().getFullYear());
+  const cols = getColumns(viewType, year);
+
   return {
     id: period.id,
     name: period.name || "",
-    startDate: period.startDateObject || null,
-    endDate: period.endDateObject || null,
+    year,
+    viewType,
     currencyId: period.currencyId || null,
     displayOrder: period.displayOrder ?? "",
-    entries: period.entries.map((entry) => ({
-      ...entry,
-      value: entry.value ?? "",
-      unit: entry.unit ?? "",
-      displayOrder: entry.displayOrder ?? "",
-    })),
+    entries: period.entries.map((entry) => {
+      let values = {};
+      try {
+        const parsed = JSON.parse(entry.value || "{}");
+        if (typeof parsed === "object" && parsed !== null) values = parsed;
+      } catch {
+        if (entry.value !== null && entry.value !== undefined && entry.value !== "")
+          values[cols[0]] = entry.value;
+      }
+      cols.forEach((col) => { if (!(col in values)) values[col] = ""; });
+      return { ...entry, values, unit: entry.unit ?? "", displayOrder: entry.displayOrder ?? "" };
+    }),
   };
 }
 
@@ -32,110 +64,46 @@ function normalizeNumericInput(value) {
   return String(value ?? "").replace(/[^\d.,-]/g, "");
 }
 
-function formatPeriodDate(date) {
-  if (!date) return "";
-  const source = date instanceof Date ? date : new Date(date);
-  if (Number.isNaN(source.getTime())) return "";
-  return `${String(source.getDate()).padStart(2, "0")}/${String(source.getMonth() + 1).padStart(2, "0")}/${source.getFullYear()}`;
-}
-
 function periodHasChanges(period, draft) {
   if (!period || !draft) return false;
-  const originalStart = period.startDate || "";
-  const originalEnd = period.endDate || "";
-  const draftStart = draft.startDate instanceof Date && !Number.isNaN(draft.startDate.getTime())
-    ? draft.startDate.toISOString().slice(0, 10)
-    : "";
-  const draftEnd = draft.endDate instanceof Date && !Number.isNaN(draft.endDate.getTime())
-    ? draft.endDate.toISOString().slice(0, 10)
-    : "";
-
-  const originalEntries = JSON.stringify(period.entries.map((entry) => ({
-    id: entry.id,
-    kpiName: entry.kpiName || "",
-    kpiCategoryId: entry.kpiCategoryId || "",
-    value: entry.value ?? "",
-    unit: entry.unit ?? "",
-    displayOrder: entry.displayOrder ?? "",
-  })));
-  const draftEntries = JSON.stringify(draft.entries.map((entry) => ({
-    id: entry.id,
-    kpiName: entry.kpiName || "",
-    kpiCategoryId: entry.kpiCategoryId || "",
-    value: entry.value ?? "",
-    unit: entry.unit ?? "",
-    displayOrder: entry.displayOrder ?? "",
-  })));
-
+  const originalEntries = JSON.stringify(
+    period.entries.map((e) => ({ id: e.id, kpiName: e.kpiName || "", kpiCategoryId: e.kpiCategoryId || "", value: e.value ?? "", unit: e.unit ?? "", displayOrder: e.displayOrder ?? "" }))
+  );
+  const draftEntries = JSON.stringify(
+    draft.entries.map((e) => ({ id: e.id, kpiName: e.kpiName || "", kpiCategoryId: e.kpiCategoryId || "", values: e.values || {}, unit: e.unit ?? "", displayOrder: e.displayOrder ?? "" }))
+  );
   return (
     String(period.name || "") !== String(draft.name || "") ||
     String(period.currencyId || "") !== String(draft.currencyId || "") ||
     String(period.displayOrder ?? "") !== String(draft.displayOrder ?? "") ||
-    String(originalStart) !== String(draftStart) ||
-    String(originalEnd) !== String(draftEnd) ||
     originalEntries !== draftEntries
   );
 }
 
 function displayNumber(value) {
   if (value === "" || value === null || value === undefined || Number.isNaN(Number(value))) return "-";
-  return Number(value).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 export default function KPIsTab({ dealId, onSaveStateChange }) {
   const [activePeriodId, setActivePeriodId] = useState(null);
   const [drafts, setDrafts] = useState({});
-  const [showCreator, setShowCreator] = useState(false);
-  const [creator, setCreator] = useState({
-    name: "",
-    startDate: null,
-    endDate: null,
-    currencyId: null,
-    displayOrder: "",
-  });
   const { toast, showToast, closeToast } = useToast();
 
-  const {
-    periods,
-    kpiCategories,
-    currencies,
-    isLoading,
-    isSaving,
-    error,
-    createPeriod,
-    updatePeriod,
-    deletePeriod,
-    createEntry,
-    updateEntry,
-    deleteEntry,
-  } = useKpisBackend(dealId);
+  const { periods, kpiCategories, currencies, isLoading, isSaving, error, updatePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
 
   useEffect(() => {
-    setDrafts(Object.fromEntries(periods.map((period) => [period.id, createDraftPeriod(period)])));
-    if (periods.length > 0) {
-      setActivePeriodId((prev) => (prev && periods.some((period) => period.id === prev) ? prev : periods[0].id));
-    } else {
-      setActivePeriodId(null);
-    }
+    setDrafts(Object.fromEntries(periods.map((p) => [p.id, createDraftPeriod(p)])));
+    if (periods.length > 0)
+      setActivePeriodId((prev) => (prev && periods.some((p) => p.id === prev) ? prev : periods[0].id));
+    else setActivePeriodId(null);
   }, [periods]);
 
   useEffect(() => {
-    if (error) {
-      showToast({
-        type: "error",
-        title: "KPIs failed",
-        message: error,
-      });
-    }
+    if (error) showToast({ type: "error", title: "KPIs failed", message: error });
   }, [error, showToast]);
 
-  const activePeriod = useMemo(
-    () => periods.find((period) => period.id === activePeriodId) || null,
-    [periods, activePeriodId]
-  );
+  const activePeriod = useMemo(() => periods.find((p) => p.id === activePeriodId) || null, [periods, activePeriodId]);
   const activeDraft = activePeriodId ? drafts[activePeriodId] || null : null;
   const isDirty = activePeriod && activeDraft ? periodHasChanges(activePeriod, activeDraft) : false;
 
@@ -147,13 +115,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   const updateDraftField = (field, value) => {
     if (!activePeriodId) return;
-    setDrafts((prev) => ({
-      ...prev,
-      [activePeriodId]: {
-        ...(prev[activePeriodId] || {}),
-        [field]: value,
-      },
-    }));
+    setDrafts((prev) => ({ ...prev, [activePeriodId]: { ...(prev[activePeriodId] || {}), [field]: value } }));
   };
 
   const updateEntryField = (entryId, field, value) => {
@@ -162,112 +124,77 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
       ...prev,
       [activePeriodId]: {
         ...(prev[activePeriodId] || {}),
-        entries: (prev[activePeriodId]?.entries || []).map((entry) =>
-          entry.id === entryId ? { ...entry, [field]: value } : entry
+        entries: (prev[activePeriodId]?.entries || []).map((e) => (e.id === entryId ? { ...e, [field]: value } : e)),
+      },
+    }));
+  };
+
+  const updateEntryValue = (entryId, col, value) => {
+    if (!activePeriodId) return;
+    setDrafts((prev) => ({
+      ...prev,
+      [activePeriodId]: {
+        ...(prev[activePeriodId] || {}),
+        entries: (prev[activePeriodId]?.entries || []).map((e) =>
+          e.id === entryId ? { ...e, values: { ...e.values, [col]: normalizeNumericInput(value) } } : e
         ),
       },
     }));
   };
 
-  const handleCreatePeriod = async () => {
-    try {
-      const created = await createPeriod(creator);
-      setCreator({ name: "", startDate: null, endDate: null, currencyId: null, displayOrder: "" });
-      setShowCreator(false);
-      setActivePeriodId(created.id);
-      showToast({
-        type: "success",
-        title: "Period created",
-        message: `"${created.name}" has been created successfully.`,
-      });
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "Create failed",
-        message: err.message || "Could not create the KPI period.",
-      });
-    }
-  };
-
-  const handleDeletePeriod = async () => {
-    if (!activePeriod) return;
-    if (!window.confirm(`Delete KPI period "${activePeriod.name}"?`)) return;
-    try {
-      await deletePeriod(activePeriod.id);
-      showToast({
-        type: "success",
-        title: "Period deleted",
-        message: `"${activePeriod.name}" has been deleted successfully.`,
-      });
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "Delete failed",
-        message: err.message || "Could not delete the KPI period.",
-      });
-    }
+  const handleViewTypeChange = (newViewType) => {
+    if (!activePeriodId) return;
+    const cols = getColumns(newViewType, activeDraft?.year);
+    setDrafts((prev) => ({
+      ...prev,
+      [activePeriodId]: {
+        ...(prev[activePeriodId] || {}),
+        viewType: newViewType,
+        entries: (prev[activePeriodId]?.entries || []).map((e) => {
+          const values = {};
+          cols.forEach((col) => { values[col] = e.values?.[col] ?? ""; });
+          return { ...e, values };
+        }),
+      },
+    }));
   };
 
   const handleAddRow = () => {
     if (!activePeriodId) return;
-    const newRow = {
-      id: createTempId("kpi"),
-      kpiName: "",
-      kpiCategoryId: null,
-      value: "",
-      unit: "",
-      displayOrder: "",
-    };
+    const cols = getColumns(activeDraft?.viewType || "quarterly", activeDraft?.year);
+    const values = Object.fromEntries(cols.map((col) => [col, ""]));
+    const newRow = { id: createTempId("kpi"), kpiName: "", kpiCategoryId: null, values, unit: "", displayOrder: "" };
     updateDraftField("entries", [...(activeDraft?.entries || []), newRow]);
   };
 
   const handleRemoveRow = (entryId) => {
-    updateDraftField(
-      "entries",
-      (activeDraft?.entries || []).filter((entry) => entry.id !== entryId)
-    );
+    updateDraftField("entries", (activeDraft?.entries || []).filter((e) => e.id !== entryId));
   };
 
   const handleSave = async () => {
     if (!activePeriod || !activeDraft) return;
     try {
       await updatePeriod(activePeriod.id, activeDraft);
-
-      const originalEntries = activePeriod.entries;
-      const draftEntries = activeDraft.entries;
-      const originalIds = new Set(originalEntries.map((entry) => entry.id));
-      const draftIds = new Set(draftEntries.filter((entry) => !String(entry.id).startsWith("kpi-")).map((entry) => entry.id));
-
-      for (const entry of draftEntries) {
+      const originalIds = new Set(activePeriod.entries.map((e) => e.id));
+      const draftIds = new Set(activeDraft.entries.filter((e) => !String(e.id).startsWith("kpi-")).map((e) => e.id));
+      for (const entry of activeDraft.entries) {
         if (!String(entry.kpiName || "").trim()) continue;
-        if (String(entry.id).startsWith("kpi-")) {
-          await createEntry(activePeriod.id, entry);
-        } else {
-          await updateEntry(entry.id, entry);
-        }
+        const entryForApi = { ...entry, value: JSON.stringify(entry.values || {}) };
+        if (String(entry.id).startsWith("kpi-")) await createEntry(activePeriod.id, entryForApi);
+        else await updateEntry(entry.id, entryForApi);
       }
-
-      for (const originalId of originalIds) {
-        if (!draftIds.has(originalId)) {
-          await deleteEntry(originalId);
-        }
+      for (const id of originalIds) {
+        if (!draftIds.has(id)) await deleteEntry(id);
       }
-
-      showToast({
-        type: "success",
-        title: "Saved",
-        message: `"${activeDraft.name}" has been updated successfully.`,
-      });
+      showToast({ type: "success", title: "Saved", message: `"${activeDraft.name}" has been updated successfully.` });
     } catch (err) {
-      showToast({
-        type: "error",
-        title: "Save failed",
-        message: err.message || "Could not save KPI changes.",
-      });
+      showToast({ type: "error", title: "Save failed", message: err.message || "Could not save KPI changes." });
     }
   };
 
   handleSaveRef.current = handleSave;
+
+  const activeCols = getColumns(activeDraft?.viewType || "quarterly", activeDraft?.year);
 
   return (
     <div className="kpi-wrapper">
@@ -281,66 +208,12 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
             >
               <span className="kpi-period-label">{period.name}</span>
               <span className="kpi-period-date">
-                {formatPeriodDate(period.startDateObject || period.startDate)}
-                {(period.endDateObject || period.endDate) ? ` - ${formatPeriodDate(period.endDateObject || period.endDate)}` : ""}
+                {period.year || (period.startDate ? new Date(period.startDate + "T00:00:00").getFullYear() : "")}
               </span>
             </button>
           ))}
         </div>
-        <div className="kpi-toolbar-right">
-          {activePeriod && (
-            <button className="kpi-btn-danger" onClick={handleDeletePeriod} disabled={isSaving}>
-              <TrashIcon /> Delete period
-            </button>
-          )}
-          <button className="kpi-btn-primary" onClick={() => setShowCreator((prev) => !prev)} disabled={isSaving}>
-            <PlusIcon /> New period
-          </button>
-        </div>
       </div>
-
-      {showCreator && (
-        <div className="kpi-creator-card">
-          <div className="kpi-creator-grid">
-            <input
-              className="kpi-editor-input"
-              value={creator.name}
-              onChange={(e) => setCreator((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Period name"
-            />
-            <DateInputWithPicker
-              initialDate={creator.startDate}
-              onDateChange={(date) => setCreator((prev) => ({ ...prev, startDate: date }))}
-              isSingle={true}
-              dateFormat="DD/MM/YYYY"
-            />
-            <DateInputWithPicker
-              initialDate={creator.endDate}
-              onDateChange={(date) => setCreator((prev) => ({ ...prev, endDate: date }))}
-              isSingle={true}
-              dateFormat="DD/MM/YYYY"
-            />
-            <SimpleDropdown
-              options={currencies}
-              value={creator.currencyId}
-              onChange={(value) => setCreator((prev) => ({ ...prev, currencyId: value }))}
-              placeholder="Select currency"
-              labelKey="name"
-              valueKey="id"
-              disabled={isSaving}
-            />
-            <input
-              className="kpi-editor-input"
-              value={creator.displayOrder}
-              onChange={(e) => setCreator((prev) => ({ ...prev, displayOrder: normalizeNumericInput(e.target.value) }))}
-              placeholder="Display order"
-            />
-            <button className="kpi-btn-primary" onClick={handleCreatePeriod} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Create"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {isLoading && <div className="kpi-empty-state">Loading KPI periods...</div>}
 
@@ -361,21 +234,25 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               />
             </div>
             <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Start date</label>
-              <DateInputWithPicker
-                initialDate={activeDraft.startDate}
-                onDateChange={(date) => updateDraftField("startDate", date)}
-                isSingle={true}
-                dateFormat="DD/MM/YYYY"
+              <label className="kpi-editor-label">Year</label>
+              <input
+                className="kpi-editor-input"
+                type="number"
+                value={activeDraft.year}
+                onChange={(e) => updateDraftField("year", Number(e.target.value))}
+                placeholder="2024"
               />
             </div>
             <div className="kpi-editor-field">
-              <label className="kpi-editor-label">End date</label>
-              <DateInputWithPicker
-                initialDate={activeDraft.endDate}
-                onDateChange={(date) => updateDraftField("endDate", date)}
-                isSingle={true}
-                dateFormat="DD/MM/YYYY"
+              <label className="kpi-editor-label">Period</label>
+              <SimpleDropdown
+                options={VIEW_OPTIONS}
+                value={activeDraft.viewType}
+                onChange={handleViewTypeChange}
+                placeholder="Select period"
+                labelKey="name"
+                valueKey="id"
+                disabled={isSaving}
               />
             </div>
             <div className="kpi-editor-field">
@@ -412,8 +289,10 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               <thead>
                 <tr>
                   <th className="kpi-th kpi-th--label">KPI</th>
-                  <th className="kpi-th">Category</th>
-                  <th className="kpi-th">Value</th>
+                  <th className="kpi-th kpi-th--category">Category</th>
+                  {activeCols.map((col) => (
+                    <th key={col} className="kpi-th kpi-th--period-col">{col}</th>
+                  ))}
                   <th className="kpi-th">Unit</th>
                   <th className="kpi-th">Order</th>
                   <th className="kpi-th">Actions</th>
@@ -422,7 +301,9 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               <tbody>
                 {activeDraft.entries.length === 0 && (
                   <tr className="kpi-row">
-                    <td className="kpi-td kpi-td--value" colSpan={6}>No KPI rows yet. Add the first KPI for this period.</td>
+                    <td className="kpi-td kpi-td--value" colSpan={4 + activeCols.length}>
+                      No KPI rows yet. Add the first KPI for this period.
+                    </td>
                   </tr>
                 )}
                 {activeDraft.entries.map((entry) => (
@@ -435,7 +316,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         placeholder="KPI name"
                       />
                     </td>
-                    <td className="kpi-td kpi-td--value">
+                    <td className="kpi-td kpi-td--category">
                       <SimpleDropdown
                         options={kpiCategories}
                         value={entry.kpiCategoryId}
@@ -446,14 +327,16 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         disabled={isSaving}
                       />
                     </td>
-                    <td className="kpi-td kpi-td--value">
-                      <input
-                        className="kpi-cell-input"
-                        value={entry.value}
-                        onChange={(e) => updateEntryField(entry.id, "value", normalizeNumericInput(e.target.value))}
-                        placeholder="-"
-                      />
-                    </td>
+                    {activeCols.map((col) => (
+                      <td key={col} className="kpi-td kpi-td--value">
+                        <input
+                          className="kpi-cell-input"
+                          value={entry.values?.[col] ?? ""}
+                          onChange={(e) => updateEntryValue(entry.id, col, e.target.value)}
+                          placeholder="-"
+                        />
+                      </td>
+                    ))}
                     <td className="kpi-td kpi-td--value">
                       <input
                         className="kpi-cell-input"
@@ -482,11 +365,11 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                 <tr className="kpi-total-row">
                   <td className="kpi-total-label">Total</td>
                   <td />
-                  <td className="kpi-total-value">
-                    {displayNumber(
-                      activeDraft.entries.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0)
-                    )}
-                  </td>
+                  {activeCols.map((col) => (
+                    <td key={col} className="kpi-total-value">
+                      {displayNumber(activeDraft.entries.reduce((sum, e) => sum + (Number(e.values?.[col]) || 0), 0))}
+                    </td>
+                  ))}
                   <td className="kpi-total-value">-</td>
                   <td className="kpi-total-value">-</td>
                   <td />
@@ -494,19 +377,11 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               </tfoot>
             </table>
           </div>
-
         </div>
       )}
 
       {toast && (
-        <Toast
-          key={toast.key}
-          title={toast.title}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={closeToast}
-        />
+        <Toast key={toast.key} title={toast.title} message={toast.message} type={toast.type} duration={toast.duration} onClose={closeToast} />
       )}
     </div>
   );
