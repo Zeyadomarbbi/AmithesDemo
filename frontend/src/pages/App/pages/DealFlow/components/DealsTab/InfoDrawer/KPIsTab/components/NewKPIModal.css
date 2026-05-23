@@ -1,0 +1,225 @@
+/* ================================
+   NEW KPI MODAL
+   ================================ */
+
+.nkm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.nkm-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 620px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ---- HEADER ---- */
+.nkm-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 16px 0;
+  flex-shrink: 0;
+}
+
+.nkm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.nkm-close:hover {
+  color: #1c1917;
+}
+
+/* ---- BODY ---- */
+.nkm-body {
+  padding: 4px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.nkm-title {
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 4px;
+}
+
+/* ---- ROW ---- */
+.nkm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ---- FIELD ---- */
+.nkm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nkm-label {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375a89;
+}
+
+/* ---- INPUT ---- */
+.nkm-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #1c1917;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  background: #ffffff;
+}
+
+.nkm-input::placeholder {
+  color: #9ca3af;
+}
+
+.nkm-input:focus {
+  border-color: #375a89;
+}
+
+/* ---- FOOTER ---- */
+.nkm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 0.9rem 1.5rem 1.1rem;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.nkm-btn-cancel {
+  min-width: 100px;
+  height: 40px;
+  padding: 0 24px;
+  background: #fafaf9;
+  border: 1px solid rgba(204, 205, 206, 0.6);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7b7d7e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nkm-btn-cancel:hover {
+  background: #efefee;
+}
+
+.nkm-btn-cancel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.nkm-btn-create {
+  min-width: 100px;
+  height: 40px;
+  padding: 0 24px;
+  background: #f7a93b;
+  border: none;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.nkm-btn-create:hover {
+  background: #f59a1a;
+}
+
+.nkm-btn-create:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---- PERIOD VALUES SECTION ---- */
+.nkm-period-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: #f8fafd;
+  border: 1px solid #e6e9f1;
+  border-radius: 8px;
+}
+
+.nkm-period-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e4ef;
+}
+
+.nkm-period-title-label {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #375a89;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nkm-row--third {
+  grid-template-columns: 1fr 2fr;
+}
+
+.nkm-cols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.nkm-col-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nkm-label--col {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nkm-input--col {
+  text-align: center;
+  padding: 0 8px;
+}

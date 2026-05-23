@@ -1,16 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
-import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import { useKpisBackend } from "../../Deals_backend_work";
+import NewKPIModal from "./components/NewKPIModal";
 import "./KPIsTab.css";
-
-const VIEW_OPTIONS = [
-  { id: "quarterly",      name: "Quarterly" },
-  { id: "semi-annually",  name: "Semi-Annually" },
-  { id: "annually",       name: "Annually" },
-];
 
 const VIEW_COLUMNS = {
   quarterly:       ["Q1", "Q2", "Q3", "Q4"],
@@ -25,9 +19,6 @@ function getColumns(viewType, year) {
   return VIEW_COLUMNS[viewType] || VIEW_COLUMNS.quarterly;
 }
 
-function createTempId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 function createDraftPeriod(period) {
   const viewType = period.viewType || "quarterly";
@@ -88,6 +79,7 @@ function displayNumber(value) {
 export default function KPIsTab({ dealId, onSaveStateChange }) {
   const [activePeriodId, setActivePeriodId] = useState(null);
   const [drafts, setDrafts] = useState({});
+  const [showNewKPI, setShowNewKPI] = useState(false);
   const { toast, showToast, closeToast } = useToast();
 
   const { periods, kpiCategories, currencies, isLoading, isSaving, error, updatePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
@@ -118,57 +110,24 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
     setDrafts((prev) => ({ ...prev, [activePeriodId]: { ...(prev[activePeriodId] || {}), [field]: value } }));
   };
 
-  const updateEntryField = (entryId, field, value) => {
+  const handleCreateKPI = async ({ kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, values }) => {
     if (!activePeriodId) return;
-    setDrafts((prev) => ({
-      ...prev,
-      [activePeriodId]: {
-        ...(prev[activePeriodId] || {}),
-        entries: (prev[activePeriodId]?.entries || []).map((e) => (e.id === entryId ? { ...e, [field]: value } : e)),
-      },
-    }));
+    try {
+      await createEntry(activePeriodId, { kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, value: JSON.stringify(values || {}) });
+      setShowNewKPI(false);
+      showToast({ type: "success", title: "KPI created", message: `"${kpiName}" has been added successfully.` });
+    } catch (err) {
+      showToast({ type: "error", title: "Create failed", message: err.message || "Could not create the KPI." });
+    }
   };
 
-  const updateEntryValue = (entryId, col, value) => {
-    if (!activePeriodId) return;
-    setDrafts((prev) => ({
-      ...prev,
-      [activePeriodId]: {
-        ...(prev[activePeriodId] || {}),
-        entries: (prev[activePeriodId]?.entries || []).map((e) =>
-          e.id === entryId ? { ...e, values: { ...e.values, [col]: normalizeNumericInput(value) } } : e
-        ),
-      },
-    }));
-  };
-
-  const handleViewTypeChange = (newViewType) => {
-    if (!activePeriodId) return;
-    const cols = getColumns(newViewType, activeDraft?.year);
-    setDrafts((prev) => ({
-      ...prev,
-      [activePeriodId]: {
-        ...(prev[activePeriodId] || {}),
-        viewType: newViewType,
-        entries: (prev[activePeriodId]?.entries || []).map((e) => {
-          const values = {};
-          cols.forEach((col) => { values[col] = e.values?.[col] ?? ""; });
-          return { ...e, values };
-        }),
-      },
-    }));
-  };
-
-  const handleAddRow = () => {
-    if (!activePeriodId) return;
-    const cols = getColumns(activeDraft?.viewType || "quarterly", activeDraft?.year);
-    const values = Object.fromEntries(cols.map((col) => [col, ""]));
-    const newRow = { id: createTempId("kpi"), kpiName: "", kpiCategoryId: null, values, unit: "", displayOrder: "" };
-    updateDraftField("entries", [...(activeDraft?.entries || []), newRow]);
-  };
-
-  const handleRemoveRow = (entryId) => {
-    updateDraftField("entries", (activeDraft?.entries || []).filter((e) => e.id !== entryId));
+  const handleRemoveRow = async (entryId) => {
+    try {
+      await deleteEntry(entryId);
+      showToast({ type: "success", title: "Deleted", message: "KPI row removed." });
+    } catch (err) {
+      showToast({ type: "error", title: "Delete failed", message: err.message || "Could not remove KPI row." });
+    }
   };
 
   const handleSave = async () => {
@@ -198,6 +157,15 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   return (
     <div className="kpi-wrapper">
+      {showNewKPI && (
+        <NewKPIModal
+          kpiCategories={kpiCategories}
+          currencies={currencies}
+          isSaving={isSaving}
+          onClose={() => setShowNewKPI(false)}
+          onSubmit={handleCreateKPI}
+        />
+      )}
       <div className="kpi-periods-bar">
         <div className="kpi-periods">
           {periods.map((period) => (
@@ -223,63 +191,8 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
       {!isLoading && activeDraft && (
         <div className="kpi-section">
-          <div className="kpi-editor-grid">
-            <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Period name</label>
-              <input
-                className="kpi-editor-input"
-                value={activeDraft.name}
-                onChange={(e) => updateDraftField("name", e.target.value)}
-                placeholder="Enter period name"
-              />
-            </div>
-            <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Year</label>
-              <input
-                className="kpi-editor-input"
-                type="number"
-                value={activeDraft.year}
-                onChange={(e) => updateDraftField("year", Number(e.target.value))}
-                placeholder="2024"
-              />
-            </div>
-            <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Period</label>
-              <SimpleDropdown
-                options={VIEW_OPTIONS}
-                value={activeDraft.viewType}
-                onChange={handleViewTypeChange}
-                placeholder="Select period"
-                labelKey="name"
-                valueKey="id"
-                disabled={isSaving}
-              />
-            </div>
-            <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Currency</label>
-              <SimpleDropdown
-                options={currencies}
-                value={activeDraft.currencyId}
-                onChange={(value) => updateDraftField("currencyId", value)}
-                placeholder="Select currency"
-                labelKey="name"
-                valueKey="id"
-                disabled={isSaving}
-              />
-            </div>
-            <div className="kpi-editor-field">
-              <label className="kpi-editor-label">Display order</label>
-              <input
-                className="kpi-editor-input"
-                value={activeDraft.displayOrder}
-                onChange={(e) => updateDraftField("displayOrder", normalizeNumericInput(e.target.value))}
-                placeholder="Order"
-              />
-            </div>
-          </div>
-
           <div className="kpi-table-header">
-            <button className="kpi-btn-primary" onClick={handleAddRow} disabled={isSaving}>
+            <button className="kpi-btn-primary" onClick={() => setShowNewKPI(true)} disabled={isSaving}>
               <PlusIcon /> New KPI
             </button>
           </div>
@@ -309,49 +222,23 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                 {activeDraft.entries.map((entry) => (
                   <tr key={entry.id} className="kpi-row">
                     <td className="kpi-td kpi-td--label">
-                      <input
-                        className="kpi-cell-input kpi-cell-input--text"
-                        value={entry.kpiName}
-                        onChange={(e) => updateEntryField(entry.id, "kpiName", e.target.value)}
-                        placeholder="KPI name"
-                      />
+                      <span className="kpi-cell-text">{entry.kpiName || "—"}</span>
                     </td>
                     <td className="kpi-td kpi-td--category">
-                      <SimpleDropdown
-                        options={kpiCategories}
-                        value={entry.kpiCategoryId}
-                        onChange={(value) => updateEntryField(entry.id, "kpiCategoryId", value)}
-                        placeholder="Select category"
-                        labelKey="name"
-                        valueKey="id"
-                        disabled={isSaving}
-                      />
+                      <span className="kpi-cell-text">
+                        {kpiCategories.find((c) => String(c.id) === String(entry.kpiCategoryId))?.name || "—"}
+                      </span>
                     </td>
                     {activeCols.map((col) => (
                       <td key={col} className="kpi-td kpi-td--value">
-                        <input
-                          className="kpi-cell-input"
-                          value={entry.values?.[col] ?? ""}
-                          onChange={(e) => updateEntryValue(entry.id, col, e.target.value)}
-                          placeholder="-"
-                        />
+                        <span className="kpi-cell-text">{displayNumber(entry.values?.[col])}</span>
                       </td>
                     ))}
                     <td className="kpi-td kpi-td--value">
-                      <input
-                        className="kpi-cell-input"
-                        value={entry.unit}
-                        onChange={(e) => updateEntryField(entry.id, "unit", e.target.value)}
-                        placeholder="EUR, %, count..."
-                      />
+                      <span className="kpi-cell-text">{entry.unit || "—"}</span>
                     </td>
                     <td className="kpi-td kpi-td--value">
-                      <input
-                        className="kpi-cell-input"
-                        value={entry.displayOrder}
-                        onChange={(e) => updateEntryField(entry.id, "displayOrder", normalizeNumericInput(e.target.value))}
-                        placeholder="-"
-                      />
+                      <span className="kpi-cell-text">{entry.displayOrder || "—"}</span>
                     </td>
                     <td className="kpi-td kpi-td--value">
                       <button className="kpi-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>

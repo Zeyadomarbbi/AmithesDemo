@@ -353,23 +353,44 @@
   color: #374151;
 }
 
-.kpi-cell-input {
+.kpi-cell-text {
+  display: block;
   width: 100%;
-  min-width: 84px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #dbe1ea;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #1c1917;
   font-family: "Inter", sans-serif;
   font-size: 13px;
+  color: #1c1917;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-td--label .kpi-cell-text {
+  text-align: left;
+}
+
+.kpi-cell-input {
+  width: 100%;
+  min-width: 80px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #1c1917;
+  text-align: center;
+  outline: none;
+  padding: 5px 8px;
   box-sizing: border-box;
 }
 
-.kpi-cell-input--text {
-  text-align: left;
+.kpi-cell-input:hover {
+  border-color: #375a89;
+}
+
+.kpi-cell-input:focus {
+  border-color: #375a89;
+  box-shadow: 0 0 0 2px rgba(55, 90, 137, 0.15);
 }
 
 .kpi-row-delete-btn {
