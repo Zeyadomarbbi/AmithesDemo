@@ -631,6 +631,7 @@ export function mapDealDetailToForm(detail, { countries = [], currencies = [], f
       ...member,
       positionOrder: member?.positionOrder ?? "",
     })),
+    externalContacts: toSafeArray(detail.externalContacts),
   };
 }
 

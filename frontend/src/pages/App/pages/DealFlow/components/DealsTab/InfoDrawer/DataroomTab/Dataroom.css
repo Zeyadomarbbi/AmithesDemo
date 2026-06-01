@@ -405,6 +405,23 @@
   color: #dc2626;
 }
 
+.dr-edit-btn--download {
+  color: #375a89;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.dr-edit-btn--download:hover {
+  color: #254a7b;
+  background: rgba(55, 90, 137, 0.08);
+}
+
 /* ---- TOTAL ROW ---- */
 .dr-total-row td {
   background: #254a7b;

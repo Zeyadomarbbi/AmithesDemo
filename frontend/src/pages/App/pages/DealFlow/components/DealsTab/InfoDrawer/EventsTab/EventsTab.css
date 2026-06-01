@@ -172,6 +172,50 @@
   gap: 8px;
 }
 
+.et-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  background: rgba(55, 90, 137, 0.08);
+  border: 1px solid rgba(55, 90, 137, 0.25);
+  border-radius: 5px;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #375a89;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.et-edit-btn:hover {
+  background: rgba(55, 90, 137, 0.16);
+}
+
+.et-edit-btn--cancel {
+  background: transparent;
+  border-color: rgba(122, 124, 125, 0.35);
+  color: #6b7280;
+}
+
+.et-edit-btn--cancel:hover {
+  background: #f3f4f6;
+}
+
+.et-title-input[readonly] {
+  cursor: default;
+  border-color: transparent;
+}
+
+.et-description-input[readonly] {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+  resize: none;
+}
+
 .et-secondary-meta {
   display: flex;
   align-items: center;
@@ -263,27 +307,35 @@
 
 .et-type-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.et-type-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(55, 90, 137, 0.12);
-  color: #375a89;
-  font-family: "Inter", sans-serif;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .et-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 10px;
+}
+
+.et-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid rgba(122, 124, 125, 0.35);
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.et-cancel-btn:hover {
+  background: #f3f4f6;
 }
 
 .et-save-btn {

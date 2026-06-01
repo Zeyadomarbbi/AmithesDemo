@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import SearchBar from "/src/components/SearchBar/SearchBar";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
-import { PlusIcon, FileDownloadIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
+import { PlusIcon, FileDownloadIcon, TrashIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
@@ -9,7 +9,7 @@ import { useDealEventsBackend } from "../../Deals_backend_work";
 import NewEventModal from "./components/NewEventModal";
 import "./EventsTab.css";
 
-function AutoResizeTextarea({ value, onChange, className, placeholder }) {
+function AutoResizeTextarea({ value, onChange, className, placeholder, readOnly }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -17,7 +17,7 @@ function AutoResizeTextarea({ value, onChange, className, placeholder }) {
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
-  return <textarea ref={ref} className={className} value={value} onChange={onChange} placeholder={placeholder} />;
+  return <textarea ref={ref} className={className} value={value} onChange={onChange} placeholder={placeholder} readOnly={readOnly} />;
 }
 
 function createDraftMap(events) {
@@ -49,19 +49,11 @@ function hasDraftChanges(event, draft) {
   );
 }
 
-function EventTypeBadge({ name, color }) {
-  if (!name) return null;
-  return (
-    <span className="et-type-badge" style={color ? { backgroundColor: `${color}22`, color } : undefined}>
-      {name}
-    </span>
-  );
-}
-
 export default function EventsTab({ dealId }) {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [drafts, setDrafts] = useState({});
+  const [editingIds, setEditingIds] = useState(new Set());
   const { toast, showToast, closeToast } = useToast();
 
   const {
@@ -109,6 +101,27 @@ export default function EventsTab({ dealId }) {
     }));
   };
 
+  const startEdit = (eventId) => {
+    setEditingIds((prev) => new Set([...prev, eventId]));
+  };
+
+  const cancelEdit = (event) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [event.id]: {
+        title: event.title || "",
+        description: event.description || "",
+        eventDate: event.eventDateObject || null,
+        eventTypeId: event.eventTypeId || null,
+      },
+    }));
+    setEditingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(event.id);
+      return next;
+    });
+  };
+
   const handleCreate = async (data) => {
     try {
       await createEvent(data);
@@ -132,6 +145,11 @@ export default function EventsTab({ dealId }) {
     if (!draft) return;
     try {
       await updateEvent(event.id, draft);
+      setEditingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(event.id);
+        return next;
+      });
       showToast({
         type: "success",
         title: "Event updated",
@@ -202,7 +220,7 @@ export default function EventsTab({ dealId }) {
               eventTypeId: event.eventTypeId,
             };
             const isDirty = hasDraftChanges(event, draft);
-            const selectedType = eventTypes.find((type) => String(type.id) === String(draft.eventTypeId)) || null;
+            const isCardEditing = editingIds.has(event.id);
 
             return (
               <div key={event.id} className="et-card">
@@ -213,6 +231,7 @@ export default function EventsTab({ dealId }) {
                     onDateChange={(date) => updateDraft(event.id, "eventDate", date)}
                     isSingle={true}
                     dateFormat="DD/MM/YYYY"
+                    disabled={!isCardEditing}
                   />
 
                   <span className="et-meta-label et-docs-label">Type</span>
@@ -224,9 +243,8 @@ export default function EventsTab({ dealId }) {
                       placeholder="Select type"
                       labelKey="name"
                       valueKey="id"
-                      disabled={isSaving}
+                      disabled={isSaving || !isCardEditing}
                     />
-                    <EventTypeBadge name={selectedType?.name || event.eventTypeName} color={selectedType?.color || event.eventTypeColor} />
                   </div>
 
                   <span className="et-meta-label et-docs-label">Documents</span>
@@ -257,10 +275,18 @@ export default function EventsTab({ dealId }) {
                       value={draft.title}
                       onChange={(e) => updateDraft(event.id, "title", e.target.value)}
                       placeholder="Event title"
+                      readOnly={!isCardEditing}
                     />
-                    <button className="et-delete-btn" onClick={() => handleDelete(event)} disabled={isSaving}>
-                      <TrashIcon />
-                    </button>
+                    {!isCardEditing && (
+                      <button className="et-edit-btn" onClick={() => startEdit(event.id)}>
+                        <EditLineIcon /> Edit
+                      </button>
+                    )}
+                    {isCardEditing && (
+                      <button className="et-delete-btn" onClick={() => handleDelete(event)} disabled={isSaving}>
+                        <TrashIcon />
+                      </button>
+                    )}
                   </div>
 
                   <div className="et-secondary-meta">
@@ -273,17 +299,23 @@ export default function EventsTab({ dealId }) {
                     value={draft.description}
                     onChange={(e) => updateDraft(event.id, "description", e.target.value)}
                     placeholder="Event description"
+                    readOnly={!isCardEditing}
                   />
 
-                  <div className="et-actions">
-                    <button
-                      className="et-save-btn"
-                      onClick={() => handleSave(event)}
-                      disabled={isSaving || !isDirty}
-                    >
-                      {isSaving ? "Saving..." : "Save"}
-                    </button>
-                  </div>
+                  {isCardEditing && (
+                    <div className="et-actions">
+                      <button className="et-cancel-btn" onClick={() => cancelEdit(event)}>
+                        Cancel
+                      </button>
+                      <button
+                        className="et-save-btn"
+                        onClick={() => handleSave(event)}
+                        disabled={isSaving || !isDirty}
+                      >
+                        {isSaving ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

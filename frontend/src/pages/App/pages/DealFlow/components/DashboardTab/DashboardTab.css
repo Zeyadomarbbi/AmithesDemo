@@ -19,7 +19,7 @@
   font-size: 14px;
   white-space: nowrap;
   box-sizing: border-box;
-  min-width: 160px;
+  min-width: 200px;
 }
 
 .df-filter-trigger {
@@ -88,7 +88,8 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  min-width: 100%;
+  width: max-content;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -135,6 +136,16 @@
   color: #ef4444;
 }
 
+.df-filter-check {
+  display: inline-block;
+  width: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #375a89;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
 .df-filter-label {
   font-family: "Inter", sans-serif;
   font-size: 14px;
@@ -169,7 +180,7 @@
   display: none;
 }
 
-/* ---- CARDS ROW (3 donut cards) ---- */
+/* ---- CARDS ROW (sector + currency) ---- */
 .df-cards-row {
   display: flex;
   flex-direction: row;
@@ -204,6 +215,18 @@
 
 .df-donut-wrapper {
   flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.df-donut-wrapper .recharts-wrapper,
+.df-sector-chart .recharts-wrapper {
+  overflow: visible !important;
+}
+
+.df-donut-wrapper .recharts-tooltip-wrapper,
+.df-sector-chart .recharts-tooltip-wrapper {
+  z-index: 50;
 }
 
 /* ---- DONUT LEGEND ---- */
@@ -241,6 +264,224 @@
   color: #374151;
 }
 
+/* ---- PIE TOOLTIP ---- */
+.df-pie-tooltip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: "Inter", sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.df-pie-tooltip-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1c1917;
+  margin: 0 0 4px 0;
+}
+
+.df-pie-tooltip-value {
+  font-size: 12px;
+  color: #374151;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.df-pie-tooltip-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- SECTOR PIE CARD ---- */
+.df-sector-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.df-sector-body {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.df-sector-chart {
+  flex-shrink: 0;
+  width: 190px;
+}
+
+.df-sector-legend {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.df-sector-legend::-webkit-scrollbar { width: 4px; }
+.df-sector-legend::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+.df-sector-legend::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.df-sector-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.df-sector-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.df-sector-legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.df-sector-legend-name {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.df-sector-legend-pct {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ---- GEOGRAPHY CARD ---- */
+.df-geo-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.df-geo-body {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  margin-top: 8px;
+  align-items: flex-start;
+}
+
+.df-geo-map {
+  flex: 2;
+  position: relative;
+  border-radius: 6px;
+  background: #eef5fb;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.df-geo-zoom-btns {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.df-geo-zoom-btns button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.1s ease;
+}
+
+.df-geo-zoom-btns button:hover {
+  background: #f1f5f9;
+}
+
+.df-geo-legend {
+  flex: 1;
+  overflow-y: scroll;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 6px;
+}
+
+.df-geo-legend::-webkit-scrollbar { width: 5px; }
+.df-geo-legend::-webkit-scrollbar-track { background: #eef2f7; border-radius: 4px; }
+.df-geo-legend::-webkit-scrollbar-thumb { background: #375a89; border-radius: 4px; }
+.df-geo-legend::-webkit-scrollbar-thumb:hover { background: #254a7b; }
+
+.df-geo-region {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.df-geo-region-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.df-geo-region-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.df-geo-region-name {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.df-geo-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 20px;
+}
+
+.df-geo-legend-country {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  color: #374151;
+}
+
+.df-geo-legend-count {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1c1917;
+}
+
 /* ---- EVOLUTION ROW ---- */
 .df-evolution-row {
   display: flex;
@@ -249,9 +490,9 @@
   align-items: stretch;
 }
 
-/* ---- BAR CHART CARD ---- */
+/* ---- BAR CHART CARD (histogram) ---- */
 .df-bar-card {
-  flex: 1;
+  flex: 2;
   display: flex;
   flex-direction: column;
 }
@@ -270,83 +511,101 @@
   min-height: 200px;
 }
 
-.df-bar-legend {
+/* ---- FUNNEL CHART CARD ---- */
+.df-funnel-card {
+  flex: 2;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin-top: 12px;
+  flex-direction: column;
 }
 
-.df-bar-legend-item {
+.df-funnel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 8px;
+  min-height: 260px;
+}
+
+.df-funnel-chart-area {
+  flex: 2;
+  position: relative;
+  z-index: 0;
+}
+
+.df-funnel-chart-area .recharts-wrapper {
+  overflow: visible !important;
+}
+
+.df-funnel-chart-area .recharts-tooltip-wrapper {
+  z-index: 50;
+}
+
+.df-funnel-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 130px;
+}
+
+.df-funnel-legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.df-bar-legend-dot {
-  width: 10px;
-  height: 10px;
+.df-funnel-legend-dot {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.df-bar-legend-name {
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  color: #374151;
-}
-
-.df-bar-legend-val {
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #1c1917;
-}
-
-/* ---- FUNNEL CHART CARD ---- */
-.df-funnel-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.df-funnel-headers {
-  display: flex;
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-.df-funnel-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.df-funnel-stage-label {
+.df-funnel-legend-name {
   font-family: "Inter", sans-serif;
   font-size: 12px;
-  color: #6b7280;
+  color: #374151;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
 }
 
-.df-funnel-stage-value {
+.df-funnel-legend-count {
   font-family: "Inter", sans-serif;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   color: #1c1917;
-  line-height: 1.2;
-}
-
-.df-funnel-area {
-  flex: 1;
-  min-height: 140px;
 }
 
 /* ---- RESPONSIVE ---- */
+@media (max-width: 1200px) {
+  .df-evolution-row {
+    flex-wrap: wrap;
+  }
+
+  .df-bar-card {
+    flex: 1 1 100%;
+  }
+
+  .df-funnel-card {
+    flex: 1;
+  }
+}
+
 @media (max-width: 1024px) {
   .df-cards-row {
     flex-wrap: wrap;
+  }
+
+  .df-sector-card {
+    flex: 1 1 100%;
+  }
+
+  .df-sector-body {
+    min-height: 220px;
   }
 
   .df-donut-card {
@@ -354,8 +613,25 @@
     min-width: 200px;
   }
 
+  .df-geo-body {
+    flex-direction: column;
+    min-height: unset;
+  }
+
+  .df-geo-map {
+    min-height: 260px;
+  }
+
+  .df-geo-legend {
+    max-height: 200px;
+  }
+
   .df-evolution-row {
     flex-direction: column;
+  }
+
+  .df-funnel-body {
+    min-height: 280px;
   }
 }
 

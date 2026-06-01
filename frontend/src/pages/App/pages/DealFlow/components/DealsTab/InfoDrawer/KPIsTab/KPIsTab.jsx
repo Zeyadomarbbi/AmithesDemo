@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
+import { PlusIcon, TrashIcon, CloseIcon } from "/src/components/Icons/InteractiveIcons";
+import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import { useKpisBackend } from "../../Deals_backend_work";
@@ -18,7 +19,6 @@ function getColumns(viewType, year) {
   }
   return VIEW_COLUMNS[viewType] || VIEW_COLUMNS.quarterly;
 }
-
 
 function createDraftPeriod(period) {
   const viewType = period.viewType || "quarterly";
@@ -51,10 +51,6 @@ function createDraftPeriod(period) {
   };
 }
 
-function normalizeNumericInput(value) {
-  return String(value ?? "").replace(/[^\d.,-]/g, "");
-}
-
 function periodHasChanges(period, draft) {
   if (!period || !draft) return false;
   const originalEntries = JSON.stringify(
@@ -71,18 +67,75 @@ function periodHasChanges(period, draft) {
   );
 }
 
-function displayNumber(value) {
-  if (value === "" || value === null || value === undefined || Number.isNaN(Number(value))) return "-";
-  return Number(value).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+function NewPeriodModal({ currencies, isSaving, onClose, onSubmit }) {
+  const currentYear = new Date().getFullYear();
+  const [name, setName] = useState("");
+  const [year, setYear] = useState(currentYear);
+  const [currencyId, setCurrencyId] = useState(null);
+  const canSubmit = name.trim() !== "" && Number(year) > 1900;
+  return (
+    <div className="kpi-modal-overlay" onClick={onClose}>
+      <div className="kpi-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="kpi-modal-header">
+          <span className="kpi-modal-title">New KPI Period</span>
+          <button className="kpi-modal-close" onClick={onClose}><CloseIcon /></button>
+        </div>
+        <div className="kpi-modal-body">
+          <div className="kpi-modal-field">
+            <label className="kpi-modal-label">Period name *</label>
+            <input
+              className="kpi-modal-input"
+              placeholder="e.g. 2024 KPIs"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="kpi-modal-row">
+            <div className="kpi-modal-field">
+              <label className="kpi-modal-label">Year *</label>
+              <input
+                className="kpi-modal-input"
+                type="number"
+                placeholder={String(currentYear)}
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                disabled={isSaving}
+              />
+            </div>
+            <div className="kpi-modal-field">
+              <label className="kpi-modal-label">Currency</label>
+              <SimpleDropdown
+                options={currencies}
+                value={currencyId}
+                onChange={setCurrencyId}
+                placeholder="Select currency"
+                labelKey="name"
+                valueKey="id"
+                disabled={isSaving}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="kpi-modal-footer">
+          <button className="kpi-modal-btn-cancel" onClick={onClose} disabled={isSaving}>Cancel</button>
+          <button className="kpi-modal-btn-create" onClick={() => canSubmit && onSubmit({ name: name.trim(), startDate: `${year}-01-01`, currencyId })} disabled={!canSubmit || isSaving}>
+            {isSaving ? "Creating…" : "Create"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function KPIsTab({ dealId, onSaveStateChange }) {
   const [activePeriodId, setActivePeriodId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [showNewKPI, setShowNewKPI] = useState(false);
+  const [showNewPeriod, setShowNewPeriod] = useState(false);
   const { toast, showToast, closeToast } = useToast();
 
-  const { periods, kpiCategories, currencies, isLoading, isSaving, error, updatePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
+  const { periods, kpiCategories, currencies, isLoading, isSaving, error, createPeriod, updatePeriod, deletePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
 
   useEffect(() => {
     setDrafts(Object.fromEntries(periods.map((p) => [p.id, createDraftPeriod(p)])));
@@ -108,6 +161,53 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const updateDraftField = (field, value) => {
     if (!activePeriodId) return;
     setDrafts((prev) => ({ ...prev, [activePeriodId]: { ...(prev[activePeriodId] || {}), [field]: value } }));
+  };
+
+  const updateDraftEntry = (entryId, field, value) => {
+    if (!activePeriodId) return;
+    setDrafts((prev) => ({
+      ...prev,
+      [activePeriodId]: {
+        ...prev[activePeriodId],
+        entries: prev[activePeriodId].entries.map((e) =>
+          e.id === entryId ? { ...e, [field]: value } : e
+        ),
+      },
+    }));
+  };
+
+  const updateDraftEntryValue = (entryId, col, value) => {
+    if (!activePeriodId) return;
+    setDrafts((prev) => ({
+      ...prev,
+      [activePeriodId]: {
+        ...prev[activePeriodId],
+        entries: prev[activePeriodId].entries.map((e) =>
+          e.id === entryId ? { ...e, values: { ...e.values, [col]: value.replace(/[^\d.,-]/g, "") } } : e
+        ),
+      },
+    }));
+  };
+
+  const handleCreatePeriod = async (payload) => {
+    try {
+      await createPeriod(payload);
+      setShowNewPeriod(false);
+      showToast({ type: "success", title: "Period created", message: `"${payload.name}" has been created.` });
+    } catch (err) {
+      showToast({ type: "error", title: "Create failed", message: err.message || "Could not create the period." });
+    }
+  };
+
+  const handleDeletePeriod = async () => {
+    if (!activePeriod) return;
+    if (!window.confirm(`Delete period "${activePeriod.name}"?`)) return;
+    try {
+      await deletePeriod(activePeriod.id);
+      showToast({ type: "success", title: "Period deleted", message: `"${activePeriod.name}" has been removed.` });
+    } catch (err) {
+      showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the period." });
+    }
   };
 
   const handleCreateKPI = async ({ kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, values }) => {
@@ -166,6 +266,15 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
           onSubmit={handleCreateKPI}
         />
       )}
+      {showNewPeriod && (
+        <NewPeriodModal
+          currencies={currencies}
+          isSaving={isSaving}
+          onClose={() => setShowNewPeriod(false)}
+          onSubmit={handleCreatePeriod}
+        />
+      )}
+
       <div className="kpi-periods-bar">
         <div className="kpi-periods">
           {periods.map((period) => (
@@ -181,12 +290,22 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
             </button>
           ))}
         </div>
+        <div className="kpi-periods-actions">
+          {activePeriod && (
+            <button className="kpi-btn-outline kpi-btn-danger" onClick={handleDeletePeriod} disabled={isSaving}>
+              <TrashIcon /> Delete period
+            </button>
+          )}
+          <button className="kpi-btn-primary" onClick={() => setShowNewPeriod(true)} disabled={isSaving}>
+            <PlusIcon /> New period
+          </button>
+        </div>
       </div>
 
       {isLoading && <div className="kpi-empty-state">Loading KPI periods...</div>}
 
       {!isLoading && periods.length === 0 && (
-        <div className="kpi-empty-state">No KPI periods yet. Create the first period to start adding KPI rows.</div>
+        <div className="kpi-empty-state">No KPI periods yet. Click "New period" to create the first one.</div>
       )}
 
       {!isLoading && activeDraft && (
@@ -222,23 +341,54 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                 {activeDraft.entries.map((entry) => (
                   <tr key={entry.id} className="kpi-row">
                     <td className="kpi-td kpi-td--label">
-                      <span className="kpi-cell-text">{entry.kpiName || "—"}</span>
+                      <input
+                        className="kpi-cell-input kpi-cell-input--text"
+                        value={entry.kpiName || ""}
+                        onChange={(e) => updateDraftEntry(entry.id, "kpiName", e.target.value)}
+                        placeholder="KPI item"
+                        disabled={isSaving}
+                      />
                     </td>
                     <td className="kpi-td kpi-td--category">
-                      <span className="kpi-cell-text">
-                        {kpiCategories.find((c) => String(c.id) === String(entry.kpiCategoryId))?.name || "—"}
-                      </span>
+                      <SimpleDropdown
+                        options={kpiCategories}
+                        value={entry.kpiCategoryId}
+                        onChange={(val) => updateDraftEntry(entry.id, "kpiCategoryId", val)}
+                        placeholder="—"
+                        labelKey="name"
+                        valueKey="id"
+                        disabled={isSaving}
+                      />
                     </td>
                     {activeCols.map((col) => (
                       <td key={col} className="kpi-td kpi-td--value">
-                        <span className="kpi-cell-text">{displayNumber(entry.values?.[col])}</span>
+                        <input
+                          className="kpi-cell-input"
+                          value={entry.values?.[col] ?? ""}
+                          onChange={(e) => updateDraftEntryValue(entry.id, col, e.target.value)}
+                          placeholder="0"
+                          disabled={isSaving}
+                        />
                       </td>
                     ))}
                     <td className="kpi-td kpi-td--value">
-                      <span className="kpi-cell-text">{entry.unit || "—"}</span>
+                      <input
+                        className="kpi-cell-input"
+                        value={entry.unit || ""}
+                        onChange={(e) => updateDraftEntry(entry.id, "unit", e.target.value)}
+                        placeholder="—"
+                        disabled={isSaving}
+                      />
                     </td>
                     <td className="kpi-td kpi-td--value">
-                      <span className="kpi-cell-text">{entry.displayOrder || "—"}</span>
+                      <input
+                        className="kpi-cell-input"
+                        type="number"
+                        value={entry.displayOrder || ""}
+                        onChange={(e) => updateDraftEntry(entry.id, "displayOrder", e.target.value)}
+                        placeholder="—"
+                        disabled={isSaving}
+                      />
                     </td>
                     <td className="kpi-td kpi-td--value">
                       <button className="kpi-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>
@@ -248,20 +398,6 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="kpi-total-row">
-                  <td className="kpi-total-label">Total</td>
-                  <td />
-                  {activeCols.map((col) => (
-                    <td key={col} className="kpi-total-value">
-                      {displayNumber(activeDraft.entries.reduce((sum, e) => sum + (Number(e.values?.[col]) || 0), 0))}
-                    </td>
-                  ))}
-                  <td className="kpi-total-value">-</td>
-                  <td className="kpi-total-value">-</td>
-                  <td />
-                </tr>
-              </tfoot>
             </table>
           </div>
         </div>

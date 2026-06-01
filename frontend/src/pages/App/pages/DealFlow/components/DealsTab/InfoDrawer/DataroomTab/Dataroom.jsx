@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import SearchBar from "/src/components/SearchBar/SearchBar";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
-import { DownloadIcon, EditLineIcon, CloseIcon, DoneIcon, TrashIcon, PlusIcon } from "/src/components/Icons/InteractiveIcons";
+import { DownloadIcon, FileDownloadIcon, EditLineIcon, CloseIcon, DoneIcon, TrashIcon, PlusIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import { useDataroomBackend } from "../../Deals_backend_work";
 import { exportRowsToExcel } from "../../exportUtils";
 import FilterModal from "./components/FilterModal";
+import UploadModal from "./components/UploadModal";
 import "./Dataroom.css";
 
 function formatDocumentDate(date) {
@@ -42,6 +43,7 @@ export default function Dataroom({ dealId }) {
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState({});
   const [showFilter, setShowFilter] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
   const [activeTypes, setActiveTypes] = useState([]);
   const fileInputRef = useRef(null);
   const { toast, showToast, closeToast } = useToast();
@@ -120,21 +122,21 @@ export default function Dataroom({ dealId }) {
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
-  const handleFileSelected = async (event) => {
+  const handleFileSelected = (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    setPendingFile(file);
+  };
+
+  const handleUploadConfirm = async ({ file, name, docTypeId, documentDate }) => {
     try {
-      await createDocument({
-        file,
-        name: file.name,
-        docTypeId: null,
-        documentDate: new Date(),
-      });
+      await createDocument({ file, name, docTypeId, documentDate });
+      setPendingFile(null);
       showToast({
         type: "success",
         title: "Document added",
-        message: `"${file.name}" has been added to the dataroom.`,
+        message: `"${name}" has been added to the dataroom.`,
       });
     } catch (err) {
       showToast({
@@ -237,6 +239,16 @@ export default function Dataroom({ dealId }) {
           onClose={() => setShowFilter(false)}
           onApply={({ types }) => setActiveTypes(types)}
           typeOptions={documentTypes.map((type) => type.name)}
+        />
+      )}
+
+      {pendingFile && (
+        <UploadModal
+          file={pendingFile}
+          documentTypes={documentTypes}
+          isSaving={isSaving}
+          onConfirm={handleUploadConfirm}
+          onCancel={() => setPendingFile(null)}
         />
       )}
 
@@ -352,6 +364,18 @@ export default function Dataroom({ dealId }) {
                         </div>
                       ) : (
                         <div className="dr-edit-actions">
+                          {doc.fileUrl && (
+                            <a
+                              className="dr-edit-btn dr-edit-btn--download"
+                              href={doc.fileUrl}
+                              download={doc.fileName || doc.name}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Download file"
+                            >
+                              <FileDownloadIcon />
+                            </a>
+                          )}
                           <button className="dr-edit-btn" onClick={() => startEdit(doc)}><EditLineIcon /></button>
                           <button className="dr-edit-btn dr-edit-btn--cancel" onClick={() => handleDelete(doc)}><TrashIcon /></button>
                         </div>

@@ -76,10 +76,10 @@ function NewKPIModal({ kpiCategories = [], currencies = [], isSaving = false, on
 
           <div className="nkm-row">
             <div className="nkm-field">
-              <label className="nkm-label">KPI name *</label>
+              <label className="nkm-label">KPI item *</label>
               <input
                 className="nkm-input"
-                placeholder="Enter KPI name"
+                placeholder="Enter KPI item"
                 value={kpiName}
                 onChange={(e) => setKpiName(e.target.value)}
               />

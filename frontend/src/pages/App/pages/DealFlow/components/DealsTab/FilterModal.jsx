@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from "../../../../../../components/Icons/Di
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import "./FilterModal.css";
 
-const FILTER_SECTIONS = [
+const STATIC_SECTIONS = [
   {
     key: "status",
     label: "Status",
@@ -22,21 +22,15 @@ const FILTER_SECTIONS = [
     options: ["Amethis MENA II", "Amethis Fund II", "Amethis Europe Expansion", "Amethis Fund III"],
     defaultOpen: true,
   },
-  {
-    key: "sector",
-    label: "Sector",
-    options: [],
-    defaultOpen: false,
-  },
-  {
-    key: "country",
-    label: "Country",
-    options: [],
-    defaultOpen: false,
-  },
 ];
 
-function FilterModal({ onClose, onApply }) {
+function FilterModal({ onClose, onApply, sectorOptions = [], countryOptions = [] }) {
+  const FILTER_SECTIONS = [
+    ...STATIC_SECTIONS,
+    { key: "sector",  label: "Sector",  options: sectorOptions,  defaultOpen: sectorOptions.length > 0 },
+    { key: "country", label: "Country", options: countryOptions, defaultOpen: countryOptions.length > 0 },
+  ];
+
   const [openSections, setOpenSections] = useState(
     Object.fromEntries(FILTER_SECTIONS.map((s) => [s.key, s.defaultOpen]))
   );
@@ -68,6 +62,11 @@ function FilterModal({ onClose, onApply }) {
       };
     });
   };
+
+  const clearAll = () =>
+    setSelected(Object.fromEntries(FILTER_SECTIONS.map((s) => [s.key, []])));
+
+  const hasAnySelected = FILTER_SECTIONS.some((s) => selected[s.key].length > 0);
 
   return (
     <div className="fm-overlay" onClick={onClose}>
@@ -132,6 +131,11 @@ function FilterModal({ onClose, onApply }) {
 
         {/* Footer */}
         <div className="fm-footer">
+          {hasAnySelected && (
+            <button className="fm-btn-clear" onClick={clearAll}>
+              Clear Filters
+            </button>
+          )}
           <button className="fm-btn-cancel" onClick={onClose}>
             Cancel
           </button>

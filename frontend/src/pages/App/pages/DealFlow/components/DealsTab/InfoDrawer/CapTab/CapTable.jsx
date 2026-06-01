@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PlusIcon, TrashIcon } from "/src/components/Icons/InteractiveIcons";
+import { PlusIcon, TrashIcon, DuplicateIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
@@ -7,7 +7,8 @@ import { useCapTableBackend } from "../../Deals_backend_work";
 import NewCapModal from "./components/NewCapModal";
 import "./CapTable.css";
 
-const SHARE_COLUMNS = [
+// Pool of backend-supported share column slots
+const COLUMN_POOL = [
   { key: "seriesA", label: "Series A" },
   { key: "seriesB", label: "Series B" },
   { key: "common", label: "Common" },
@@ -21,15 +22,36 @@ const PERCENTAGE_COLUMNS = [
   { key: "fullyDilutedPercentage", label: "f.d (%)" },
 ];
 
+// Keys used in n.f.d and f.d formula (based on Excel: SUM(SeriesA:Seed) / total; f.d additionally includes ESOP)
+const NFD_KEYS = ["seriesA", "seriesB", "common", "preferred", "seed"];
+const FD_KEYS = [...NFD_KEYS, "esop"];
+
+function loadColumnConfig(snapshotId) {
+  try {
+    const stored = localStorage.getItem(`ct_cols_${snapshotId}`);
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+}
+
+function saveColumnConfig(snapshotId, columns) {
+  try {
+    localStorage.setItem(`ct_cols_${snapshotId}`, JSON.stringify(columns));
+  } catch {}
+}
+
 function createTempId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+const DEFAULT_COLUMNS = COLUMN_POOL.slice(0, 3); // Series A, Series B, Common — leave room to add more
+
 function createDraftSnapshot(snapshot) {
+  const savedCols = loadColumnConfig(snapshot.id);
   return {
     id: snapshot.id,
     name: snapshot.name || "",
     snapshotDate: snapshot.snapshotDateObject || null,
+    columns: savedCols || DEFAULT_COLUMNS.map((c) => ({ ...c })),
     entries: snapshot.entries.map((entry) => ({
       ...entry,
       seriesA: entry.seriesA ?? "",
@@ -105,26 +127,21 @@ function snapshotHasChanges(snapshot, draft) {
   );
 }
 
-function buildTotals(entries) {
-  const sumKey = (key) =>
-    entries.reduce((total, entry) => total + (Number(entry[key]) || 0), 0);
-
-  return {
-    seriesA: sumKey("seriesA"),
-    seriesB: sumKey("seriesB"),
-    common: sumKey("common"),
-    preferred: sumKey("preferred"),
-    seed: sumKey("seed"),
-    esop: sumKey("esop"),
-    nonFullyDilutedPercentage: sumKey("nonFullyDilutedPercentage"),
-    fullyDilutedPercentage: sumKey("fullyDilutedPercentage"),
-  };
+function buildTotals(entries, columns) {
+  const allKeys = [
+    ...columns.map((c) => c.key),
+    ...PERCENTAGE_COLUMNS.map((c) => c.key),
+  ];
+  return Object.fromEntries(
+    allKeys.map((key) => [key, entries.reduce((sum, e) => sum + (Number(e[key]) || 0), 0)])
+  );
 }
 
 export default function CapTable({ dealId, onSaveStateChange }) {
   const [showModal, setShowModal] = useState(false);
   const [activeSnapshotId, setActiveSnapshotId] = useState(null);
   const [drafts, setDrafts] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
   const { toast, showToast, closeToast } = useToast();
 
   const {
@@ -151,11 +168,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
 
   useEffect(() => {
     if (error) {
-      showToast({
-        type: "error",
-        title: "Cap table failed",
-        message: error,
-      });
+      showToast({ type: "error", title: "Cap table failed", message: error });
     }
   }, [error, showToast]);
 
@@ -164,23 +177,39 @@ export default function CapTable({ dealId, onSaveStateChange }) {
     [snapshots, activeSnapshotId]
   );
   const activeDraft = activeSnapshotId ? drafts[activeSnapshotId] || null : null;
-  const totals = useMemo(() => buildTotals(activeDraft?.entries || []), [activeDraft]);
+  const activeColumns = activeDraft?.columns || DEFAULT_COLUMNS;
+  const totals = useMemo(
+    () => buildTotals(activeDraft?.entries || [], activeDraft?.columns || DEFAULT_COLUMNS),
+    [activeDraft]
+  );
   const isDirty = activeSnapshot && activeDraft ? snapshotHasChanges(activeSnapshot, activeDraft) : false;
 
+  const entryPcts = useMemo(() => {
+    const entries = activeDraft?.entries || [];
+    const nfdTotal = entries.reduce((sum, e) => sum + NFD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
+    const fdTotal = entries.reduce((sum, e) => sum + FD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
+    return Object.fromEntries(entries.map((e) => {
+      const nfd = NFD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0);
+      const fd = FD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0);
+      return [e.id, {
+        nonFullyDilutedPercentage: nfdTotal > 0 ? nfd / nfdTotal * 100 : null,
+        fullyDilutedPercentage: fdTotal > 0 ? fd / fdTotal * 100 : null,
+      }];
+    }));
+  }, [activeDraft]);
+
   const handleSaveRef = useRef(null);
+  const handleCancelRef = useRef(null);
   useEffect(() => {
     if (!onSaveStateChange) return;
-    onSaveStateChange({ fn: () => handleSaveRef.current?.(), isDirty, isSaving });
-  }, [isDirty, isSaving, onSaveStateChange]);
+    onSaveStateChange({ fn: () => handleSaveRef.current?.(), cancelFn: () => handleCancelRef.current?.(), isDirty, isSaving, isEditing });
+  }, [isDirty, isSaving, isEditing, onSaveStateChange]);
 
   const updateDraftField = (field, value) => {
     if (!activeSnapshotId) return;
     setDrafts((prev) => ({
       ...prev,
-      [activeSnapshotId]: {
-        ...(prev[activeSnapshotId] || {}),
-        [field]: value,
-      },
+      [activeSnapshotId]: { ...(prev[activeSnapshotId] || {}), [field]: value },
     }));
   };
 
@@ -197,22 +226,54 @@ export default function CapTable({ dealId, onSaveStateChange }) {
     }));
   };
 
+  const updateActiveColumns = (newColumns) => {
+    if (!activeSnapshotId) return;
+    saveColumnConfig(activeSnapshotId, newColumns);
+    updateDraftField("columns", newColumns);
+  };
+
+  const handleAddColumn = () => {
+    const usedKeys = new Set(activeColumns.map((c) => c.key));
+    const next = COLUMN_POOL.find((c) => !usedKeys.has(c.key));
+    if (!next) return;
+    updateActiveColumns([...activeColumns, { ...next }]);
+  };
+
+  const handleDeleteColumn = (key) => {
+    updateActiveColumns(activeColumns.filter((c) => c.key !== key));
+  };
+
+  const handleRenameColumn = (key, label) => {
+    updateActiveColumns(activeColumns.map((c) => (c.key === key ? { ...c, label } : c)));
+  };
+
   const handleCreateSnapshot = async ({ name, date }) => {
     try {
       const created = await createSnapshot({ name, snapshotDate: date });
       setActiveSnapshotId(created.id);
       setShowModal(false);
-      showToast({
-        type: "success",
-        title: "Snapshot created",
-        message: `"${created.name}" has been created successfully.`,
-      });
+      showToast({ type: "success", title: "Snapshot created", message: `"${created.name}" has been created successfully.` });
     } catch (err) {
-      showToast({
-        type: "error",
-        title: "Create failed",
-        message: err.message || "Could not create the cap table snapshot.",
+      showToast({ type: "error", title: "Create failed", message: err.message || "Could not create the cap table snapshot." });
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!activeSnapshot || !activeDraft) return;
+    try {
+      const created = await createSnapshot({
+        name: activeDraft.name,
+        snapshotDate: activeDraft.snapshotDate,
       });
+      saveColumnConfig(created.id, activeColumns);
+      for (const entry of activeDraft.entries) {
+        if (!String(entry.shareholderName || "").trim()) continue;
+        await createEntry(created.id, entry);
+      }
+      setActiveSnapshotId(created.id);
+      showToast({ type: "success", title: "Snapshot duplicated", message: `"${created.name}" created from "${activeDraft.name}".` });
+    } catch (err) {
+      showToast({ type: "error", title: "Duplicate failed", message: err.message || "Could not duplicate the snapshot." });
     }
   };
 
@@ -222,12 +283,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
       id: createTempId("entry"),
       shareholderName: "",
       comment: "",
-      seriesA: "",
-      seriesB: "",
-      common: "",
-      preferred: "",
-      seed: "",
-      esop: "",
+      ...Object.fromEntries(COLUMN_POOL.map((c) => [c.key, ""])),
       nonFullyDilutedPercentage: "",
       fullyDilutedPercentage: "",
     };
@@ -236,10 +292,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
 
   const handleRemoveRow = (entryId) => {
     if (!activeSnapshotId) return;
-    updateDraftField(
-      "entries",
-      (activeDraft?.entries || []).filter((entry) => entry.id !== entryId)
-    );
+    updateDraftField("entries", (activeDraft?.entries || []).filter((entry) => entry.id !== entryId));
   };
 
   const handleDeleteSnapshot = async () => {
@@ -247,17 +300,9 @@ export default function CapTable({ dealId, onSaveStateChange }) {
     if (!window.confirm(`Delete snapshot "${activeSnapshot.name}"?`)) return;
     try {
       await deleteSnapshot(activeSnapshot.id);
-      showToast({
-        type: "success",
-        title: "Snapshot deleted",
-        message: `"${activeSnapshot.name}" has been deleted successfully.`,
-      });
+      showToast({ type: "success", title: "Snapshot deleted", message: `"${activeSnapshot.name}" has been deleted successfully.` });
     } catch (err) {
-      showToast({
-        type: "error",
-        title: "Delete failed",
-        message: err.message || "Could not delete the snapshot.",
-      });
+      showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the snapshot." });
     }
   };
 
@@ -276,10 +321,16 @@ export default function CapTable({ dealId, onSaveStateChange }) {
 
       for (const entry of draftEntries) {
         if (!String(entry.shareholderName || "").trim()) continue;
+        const pct = entryPcts[entry.id] || {};
+        const entryWithPct = {
+          ...entry,
+          nonFullyDilutedPercentage: pct.nonFullyDilutedPercentage != null ? Number(pct.nonFullyDilutedPercentage.toFixed(4)) : "",
+          fullyDilutedPercentage: pct.fullyDilutedPercentage != null ? Number(pct.fullyDilutedPercentage.toFixed(4)) : "",
+        };
         if (String(entry.id).startsWith("entry-")) {
-          await createEntry(activeSnapshot.id, entry);
+          await createEntry(activeSnapshot.id, entryWithPct);
         } else {
-          await updateEntry(entry.id, entry);
+          await updateEntry(entry.id, entryWithPct);
         }
       }
 
@@ -289,21 +340,28 @@ export default function CapTable({ dealId, onSaveStateChange }) {
         }
       }
 
-      showToast({
-        type: "success",
-        title: "Saved",
-        message: `"${updatedSnapshot.name}" has been updated successfully.`,
-      });
+      setIsEditing(false);
+      showToast({ type: "success", title: "Saved", message: `"${updatedSnapshot.name}" has been updated successfully.` });
     } catch (err) {
-      showToast({
-        type: "error",
-        title: "Save failed",
-        message: err.message || "Could not save the cap table.",
-      });
+      showToast({ type: "error", title: "Save failed", message: err.message || "Could not save the cap table." });
     }
   };
 
+  const handleCancelEdit = () => {
+    if (activeSnapshot) {
+      setDrafts((prev) => ({
+        ...prev,
+        [activeSnapshot.id]: createDraftSnapshot(activeSnapshot),
+      }));
+    }
+    setIsEditing(false);
+  };
+
   handleSaveRef.current = handleSave;
+  handleCancelRef.current = handleCancelEdit;
+
+  const canAddColumn = activeColumns.length < COLUMN_POOL.length;
+  const totalColSpan = activeColumns.length + (isEditing && canAddColumn ? 1 : 0) + PERCENTAGE_COLUMNS.length + (isEditing ? 3 : 2);
 
   return (
     <div className="ct-wrapper">
@@ -323,12 +381,22 @@ export default function CapTable({ dealId, onSaveStateChange }) {
           ))}
         </div>
         <div className="ct-top-actions">
-          {activeSnapshot && (
-            <button className="ct-delete-snapshot-btn" onClick={handleDeleteSnapshot} disabled={isSaving}>
-              <TrashIcon /> Delete snapshot
+          {activeSnapshot && !isEditing && (
+            <button className="ct-action-btn ct-action-btn--ghost" onClick={() => setIsEditing(true)}>
+              <EditLineIcon /> Edit
             </button>
           )}
-          <button className="ct-new-btn" onClick={() => setShowModal(true)} disabled={isSaving}>
+          {activeSnapshot && isEditing && (
+            <>
+              <button className="ct-action-btn ct-action-btn--ghost" onClick={handleDuplicate} disabled={isSaving}>
+                <DuplicateIcon /> Duplicate
+              </button>
+              <button className="ct-action-btn ct-action-btn--danger" onClick={handleDeleteSnapshot} disabled={isSaving}>
+                <TrashIcon /> Delete
+              </button>
+            </>
+          )}
+          <button className="ct-action-btn ct-action-btn--primary" onClick={() => setShowModal(true)} disabled={isSaving}>
             <PlusIcon /> New cap table
           </button>
         </div>
@@ -337,7 +405,9 @@ export default function CapTable({ dealId, onSaveStateChange }) {
       {isLoading && <div className="ct-empty-state">Loading cap table...</div>}
 
       {!isLoading && snapshots.length === 0 && (
-        <div className="ct-empty-state">No cap table snapshots yet. Create the first one to start adding rounds and shareholders.</div>
+        <div className="ct-empty-state">
+          No cap table snapshots yet. Create the first one to start adding rounds and shareholders.
+        </div>
       )}
 
       {!isLoading && activeDraft && (
@@ -350,6 +420,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                 value={activeDraft.name}
                 onChange={(e) => updateDraftField("name", e.target.value)}
                 placeholder="Enter snapshot name"
+                readOnly={!isEditing}
               />
             </div>
             <div className="ct-editor-field ct-editor-field--date">
@@ -359,14 +430,9 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                 onDateChange={(date) => updateDraftField("snapshotDate", date)}
                 isSingle={true}
                 dateFormat="DD/MM/YYYY"
+                disabled={!isEditing}
               />
             </div>
-          </div>
-
-          <div className="ct-table-header">
-            <button className="ct-add-row-btn" onClick={handleAddRow} disabled={isSaving}>
-              <PlusIcon /> Add row
-            </button>
           </div>
 
           <div className="ct-table-container">
@@ -374,20 +440,53 @@ export default function CapTable({ dealId, onSaveStateChange }) {
               <thead>
                 <tr>
                   <th className="ct-th ct-th--left">Shareholder</th>
-                  {SHARE_COLUMNS.map((column) => (
-                    <th key={column.key} className="ct-th">{column.label}</th>
+
+                  {activeColumns.map((col) => (
+                    <th key={col.key} className="ct-th ct-th--col-editable">
+                      <div className="ct-col-header">
+                        <input
+                          className="ct-col-label-input"
+                          value={col.label}
+                          onChange={(e) => handleRenameColumn(col.key, e.target.value)}
+                          title={isEditing ? "Click to rename" : col.label}
+                          readOnly={!isEditing}
+                        />
+                        {isEditing && (
+                          <button
+                            className="ct-col-remove-btn"
+                            onClick={() => handleDeleteColumn(col.key)}
+                            disabled={isSaving}
+                            aria-label={`Remove ${col.label}`}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </th>
                   ))}
+
+                  {isEditing && canAddColumn && (
+                    <th
+                      className="ct-th ct-th--add-col"
+                      onClick={!isSaving ? handleAddColumn : undefined}
+                      title="Add column"
+                    >
+                      <span className="ct-add-col-icon">+</span>
+                    </th>
+                  )}
+
                   {PERCENTAGE_COLUMNS.map((column) => (
                     <th key={column.key} className="ct-th ct-th--highlight">{column.label}</th>
                   ))}
                   <th className="ct-th ct-th--left">Comment</th>
-                  <th className="ct-th">Actions</th>
+                  {isEditing && <th className="ct-th">Actions</th>}
                 </tr>
               </thead>
+
               <tbody>
                 {activeDraft.entries.length === 0 && (
                   <tr className="ct-row">
-                    <td className="ct-td ct-td--center" colSpan={SHARE_COLUMNS.length + PERCENTAGE_COLUMNS.length + 3}>
+                    <td className="ct-td ct-td--center" colSpan={totalColSpan}>
                       No shareholder rows yet. Add the first row to start filling this snapshot.
                     </td>
                   </tr>
@@ -400,60 +499,86 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                         value={entry.shareholderName}
                         onChange={(e) => updateEntryField(entry.id, "shareholderName", e.target.value)}
                         placeholder="Shareholder name"
+                        readOnly={!isEditing}
                       />
                     </td>
-                    {SHARE_COLUMNS.map((column) => (
+                    {activeColumns.map((column) => (
                       <td key={column.key} className="ct-td ct-td--center">
                         <input
                           className="ct-cell-input"
                           value={entry[column.key]}
                           onChange={(e) => updateEntryField(entry.id, column.key, normalizeNumericInput(e.target.value))}
                           placeholder="-"
+                          readOnly={!isEditing}
                         />
                       </td>
                     ))}
-                    {PERCENTAGE_COLUMNS.map((column) => (
-                      <td key={column.key} className="ct-td ct-td--center ct-td--highlight">
-                        <input
-                          className="ct-cell-input ct-cell-input--highlight"
-                          value={entry[column.key]}
-                          onChange={(e) => updateEntryField(entry.id, column.key, normalizeNumericInput(e.target.value))}
-                          placeholder="-"
-                        />
-                      </td>
-                    ))}
+                    {isEditing && canAddColumn && <td className="ct-td ct-td--add-col-body" />}
+                    {PERCENTAGE_COLUMNS.map((column) => {
+                      const pct = entryPcts[entry.id]?.[column.key];
+                      return (
+                        <td key={column.key} className="ct-td ct-td--center ct-td--highlight">
+                          <span className="ct-pct-display">
+                            {pct != null ? `${pct.toFixed(2)}%` : "-"}
+                          </span>
+                        </td>
+                      );
+                    })}
                     <td className="ct-td">
                       <input
                         className="ct-cell-input ct-cell-input--text"
                         value={entry.comment}
                         onChange={(e) => updateEntryField(entry.id, "comment", e.target.value)}
                         placeholder="Comment"
+                        readOnly={!isEditing}
                       />
                     </td>
-                    <td className="ct-td ct-td--center">
-                      <button className="ct-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>
-                        <TrashIcon />
-                      </button>
-                    </td>
+                    {isEditing && (
+                      <td className="ct-td ct-td--center">
+                        <button className="ct-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>
+                          <TrashIcon />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
+                {isEditing && (
+                  <tr
+                    className="ct-row ct-add-row-ghost"
+                    onClick={!isSaving ? handleAddRow : undefined}
+                    role="button"
+                    title="Add row"
+                  >
+                    <td colSpan={totalColSpan} className="ct-add-row-ghost-cell">
+                      <span className="ct-add-row-ghost-inner">
+                        <PlusIcon /> Add row
+                      </span>
+                    </td>
+                  </tr>
+                )}
               </tbody>
+
               <tfoot>
                 <tr className="ct-total-row">
                   <td className="ct-td--total-label">Total</td>
-                  {SHARE_COLUMNS.map((column) => (
-                    <td key={column.key} className="ct-td--total-center">{displayNumber(totals[column.key])}</td>
+                  {activeColumns.map((col) => (
+                    <td key={col.key} className="ct-td--total-center">{displayNumber(totals[col.key])}</td>
                   ))}
-                  {PERCENTAGE_COLUMNS.map((column) => (
-                    <td key={column.key} className="ct-td--total-center">{displayNumber(totals[column.key], 4)}</td>
-                  ))}
+                  {isEditing && canAddColumn && <td />}
+                  {PERCENTAGE_COLUMNS.map((col) => {
+                    const pctSum = Object.values(entryPcts).reduce((sum, v) => sum + (v[col.key] || 0), 0);
+                    return (
+                      <td key={col.key} className="ct-td--total-center">
+                        {pctSum > 0 ? `${pctSum.toFixed(2)}%` : "-"}
+                      </td>
+                    );
+                  })}
                   <td className="ct-td--total-label">-</td>
-                  <td className="ct-td--total-center">-</td>
+                  {isEditing && <td className="ct-td--total-center">-</td>}
                 </tr>
               </tfoot>
             </table>
           </div>
-
         </>
       )}
 

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import useApi from "../../../../../../hooks/api/useApi";
 
 const DEALFLOW_SETUP_ENDPOINT = "/api/dealflow/setup/";
+const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
+
+export const DEAL_TEAM_KEY = "deal_team";
 
 export const SETUP_CATEGORIES = [
   { key: "status", label: "Status", itemLabel: "status", taxonomyType: "status", hasColor: false },
@@ -161,5 +164,103 @@ export function useSetupBackend(activeType) {
       toggleItemActive,
     }),
     [items, isLoading, isSaving, error, loadItems, createItem, updateItem, toggleItemActive]
+  );
+}
+
+function normalizeUser(row) {
+  return {
+    id: row?.id ?? null,
+    name: row?.name ?? row?.full_name ?? row?.username ?? "",
+    email: row?.email ?? "",
+  };
+}
+
+export function useDealTeamBackend() {
+  const api = useApi();
+  const [members, setMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadMembers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const payload = await api.get(DEALFLOW_USERS_ENDPOINT);
+      setMembers(toSafeArray(payload).map(normalizeUser).filter((u) => u.id));
+    } catch (err) {
+      setError(err.message || "Failed to load team members.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api]);
+
+  const createMember = useCallback(async (payload) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.post(DEALFLOW_USERS_ENDPOINT, {
+        name: String(payload?.name || "").trim(),
+        email: String(payload?.email || "").trim(),
+      });
+      const normalized = normalizeUser(response);
+      setMembers((prev) =>
+        [...prev.filter((m) => m.id !== normalized.id), normalized].sort((a, b) =>
+          String(a.name).localeCompare(String(b.name))
+        )
+      );
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to add team member.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
+  const updateMember = useCallback(async (memberId, payload) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.patch(`${DEALFLOW_USERS_ENDPOINT}${memberId}/`, {
+        name: String(payload?.name || "").trim(),
+        email: String(payload?.email || "").trim(),
+      });
+      const normalized = normalizeUser(response);
+      setMembers((prev) =>
+        prev
+          .map((m) => (m.id === normalized.id ? normalized : m))
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      );
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to update team member.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
+  const deleteMember = useCallback(async (memberId) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.delete(`${DEALFLOW_USERS_ENDPOINT}${memberId}/`);
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (err) {
+      setError(err.message || "Failed to remove team member.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    loadMembers().catch(() => {});
+  }, [loadMembers]);
+
+  return useMemo(
+    () => ({ members, isLoading, isSaving, error, createMember, updateMember, deleteMember }),
+    [members, isLoading, isSaving, error, createMember, updateMember, deleteMember]
   );
 }

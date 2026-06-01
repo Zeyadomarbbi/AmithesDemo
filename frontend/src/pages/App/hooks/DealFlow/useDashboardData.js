@@ -37,6 +37,7 @@ function mapDonutData(rows) {
     value: Number(row?.value ?? 0),
     color: row?.color || "#375A89",
     totalTicketAmount: Number(row?.total_ticket_amount ?? 0),
+    iso2: row?.iso2 || row?.code || "",
   }));
 }
 
@@ -73,7 +74,7 @@ function mapFundSeries(rows) {
   }));
 }
 
-export function useDashboardData({ status, stage, fund } = {}) {
+export function useDashboardData({ stages = [], fund } = {}) {
   const api = useApi();
   const [data, setData] = useState({
     filtersData: {
@@ -105,8 +106,7 @@ export function useDashboardData({ status, stage, fund } = {}) {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (status) params.set("status_id", status);
-      if (stage) params.set("stage_id", stage);
+      if (Array.isArray(stages)) stages.forEach((id) => params.append("stage_id", id));
       if (fund) params.set("fund_id", fund);
       const query = params.toString() ? `?${params.toString()}` : "";
       const payload = await api.get(`${DEALFLOW_DASHBOARD_ENDPOINT}${query}`);
@@ -134,7 +134,7 @@ export function useDashboardData({ status, stage, fund } = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [api, status, stage, fund]);
+  }, [api, stages, fund]);
 
   useEffect(() => {
     loadDashboard().catch(() => {});
@@ -142,7 +142,6 @@ export function useDashboardData({ status, stage, fund } = {}) {
 
   return useMemo(
     () => ({
-      statusOptions: toFilterOptions(data.filtersData.statuses),
       stageOptions: toFilterOptions(data.filtersData.stages),
       fundOptions: toFilterOptions(data.filtersData.funds),
       sectorData: mapDonutData(data.bySector),

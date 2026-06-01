@@ -8,7 +8,7 @@ import {
 } from "/src/components/Icons/InteractiveIcons";
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
-import { SETUP_CATEGORIES, buildSetupCode, useSetupBackend } from "./setupbackend.jsx";
+import { SETUP_CATEGORIES, DEAL_TEAM_KEY, buildSetupCode, useSetupBackend, useDealTeamBackend } from "./setupbackend.jsx";
 import "./SetupTab.css";
 
 const COLOR_PALETTE = [
@@ -297,13 +297,147 @@ function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdat
   );
 }
 
+function buildInitials(name) {
+  return String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join("") || "?";
+}
+
+function DealTeamPanel({ onSuccessToast, onErrorToast }) {
+  const { members, isLoading, isSaving, createMember, updateMember } = useDealTeamBackend();
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ name: "", email: "" });
+
+  const startCreate = () => {
+    setEditingId("__new__");
+    setDraft({ name: "", email: "" });
+  };
+
+  const startEdit = (member) => {
+    setEditingId(member.id);
+    setDraft({ name: member.name, email: member.email });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft({ name: "", email: "" });
+  };
+
+  const handleSave = async (memberId) => {
+    if (!draft.name.trim()) { onErrorToast("Name is required."); return; }
+    try {
+      if (memberId === "__new__") {
+        const created = await createMember(draft);
+        onSuccessToast(`"${created.name}" added to the deal team.`);
+      } else {
+        const updated = await updateMember(memberId, draft);
+        onSuccessToast(`"${updated.name}" updated.`);
+      }
+      cancelEdit();
+    } catch {
+      onErrorToast("Could not save. Please try again.");
+    }
+  };
+
+  return (
+    <div className="setup-panel">
+      <div className="setup-panel-header">
+        <h2 className="setup-panel-title">Deal team &amp; support</h2>
+        <button className="setup-add-btn" onClick={startCreate} disabled={editingId === "__new__" || isSaving}>
+          <PlusIcon /> New member
+        </button>
+      </div>
+
+      <div className="setup-table-wrap">
+        <table className="setup-table">
+          <thead>
+            <tr>
+              <th className="setup-th setup-th--name">Member</th>
+              <th className="setup-th">Email</th>
+              <th className="setup-th setup-th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {editingId === "__new__" && (
+              <tr className="setup-row setup-row--editing">
+                <td className="setup-td">
+                  <input autoFocus className="setup-input" placeholder="Full name" value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} />
+                </td>
+                <td className="setup-td">
+                  <input className="setup-input" type="email" placeholder="email@example.com" value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} />
+                </td>
+                <td className="setup-td setup-td--actions">
+                  <div className="setup-actions">
+                    <button className="setup-icon-btn setup-icon-btn--save" onClick={() => handleSave("__new__")}><DoneIcon /></button>
+                    <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {isLoading && (
+              <tr><td className="setup-empty" colSpan={3}>Loading team members...</td></tr>
+            )}
+
+            {!isLoading && members.map((member) => {
+              const isEditing = editingId === member.id;
+              return (
+                <tr key={member.id} className={`setup-row${isEditing ? " setup-row--editing" : ""}`}>
+                  <td className="setup-td">
+                    <div className="setup-team-member-cell">
+                      <span className="setup-team-avatar">{buildInitials(isEditing ? draft.name : member.name)}</span>
+                      {isEditing ? (
+                        <input autoFocus className="setup-input" value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} />
+                      ) : (
+                        <span>{member.name}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input className="setup-input" type="email" value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} />
+                    ) : (
+                      <span className="setup-team-email">{member.email || "—"}</span>
+                    )}
+                  </td>
+                  <td className="setup-td setup-td--actions">
+                    <div className="setup-actions">
+                      {isEditing ? (
+                        <>
+                          <button className="setup-icon-btn setup-icon-btn--save" onClick={() => handleSave(member.id)}><DoneIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
+                        </>
+                      ) : (
+                        <button className="setup-icon-btn" onClick={() => startEdit(member)} disabled={isSaving} aria-label="Edit"><EditLineIcon /></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {!isLoading && editingId !== "__new__" && members.length === 0 && (
+              <tr><td className="setup-empty" colSpan={3}>No team members yet. Click "New member" to add one.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function SetupTab() {
   const [activeKey, setActiveKey] = useState(SETUP_CATEGORIES[0].key);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast, showToast, closeToast } = useToast();
 
+  const isDealTeam = activeKey === DEAL_TEAM_KEY;
   const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
-  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive } = useSetupBackend(activeCategory.taxonomyType);
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive } = useSetupBackend(isDealTeam ? null : activeCategory.taxonomyType);
 
   useEffect(() => {
     if (error) {
@@ -378,19 +512,32 @@ export default function SetupTab() {
             <span className="setup-subtab-count">{countsByKey[category.key] ?? "-"}</span>
           </button>
         ))}
+        <button
+          className={`setup-subtab${activeKey === DEAL_TEAM_KEY ? " active" : ""}`}
+          onClick={() => setActiveKey(DEAL_TEAM_KEY)}
+        >
+          Deal team & Support
+        </button>
       </div>
 
-      <CategoryPanel
-        category={activeCategory}
-        items={items}
-        isLoading={isLoading}
-        isSaving={isSaving}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        onToggleActive={handleToggleActive}
-        onErrorToast={handleErrorToast}
-        searchQuery={searchQuery}
-      />
+      {isDealTeam ? (
+        <DealTeamPanel
+          onSuccessToast={(msg) => showToast({ type: "success", title: "Team updated", message: msg })}
+          onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
+        />
+      ) : (
+        <CategoryPanel
+          category={activeCategory}
+          items={items}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          onToggleActive={handleToggleActive}
+          onErrorToast={handleErrorToast}
+          searchQuery={searchQuery}
+        />
+      )}
 
       {toast && (
         <Toast

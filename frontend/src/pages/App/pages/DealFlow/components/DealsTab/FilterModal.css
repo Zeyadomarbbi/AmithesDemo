@@ -146,6 +146,25 @@
   flex-shrink: 0;
 }
 
+.fm-btn-clear {
+  height: 40px;
+  padding: 0 4px;
+  margin-right: auto;
+  background: none;
+  border: none;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.fm-btn-clear:hover {
+  color: #b91c1c;
+}
+
 .fm-btn-cancel {
   height: 40px;
   flex: 1;
