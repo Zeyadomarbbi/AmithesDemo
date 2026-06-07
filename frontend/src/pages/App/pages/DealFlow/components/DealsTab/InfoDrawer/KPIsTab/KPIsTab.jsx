@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PlusIcon, TrashIcon, CloseIcon } from "/src/components/Icons/InteractiveIcons";
+import { PlusIcon, TrashIcon, CloseIcon, EditLineIcon, DoneIcon } from "/src/components/Icons/InteractiveIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
@@ -133,6 +133,8 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const [drafts, setDrafts] = useState({});
   const [showNewKPI, setShowNewKPI] = useState(false);
   const [showNewPeriod, setShowNewPeriod] = useState(false);
+  const [editingRowIds, setEditingRowIds] = useState(new Set());
+  const [rowSnapshots, setRowSnapshots] = useState({});
   const { toast, showToast, closeToast } = useToast();
 
   const { periods, kpiCategories, currencies, isLoading, isSaving, error, createPeriod, updatePeriod, deletePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
@@ -142,6 +144,8 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
     if (periods.length > 0)
       setActivePeriodId((prev) => (prev && periods.some((p) => p.id === prev) ? prev : periods[0].id));
     else setActivePeriodId(null);
+    setEditingRowIds(new Set());
+    setRowSnapshots({});
   }, [periods]);
 
   useEffect(() => {
@@ -187,6 +191,31 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
         ),
       },
     }));
+  };
+
+  const startRowEdit = (entry) => {
+    setEditingRowIds((prev) => new Set([...prev, entry.id]));
+    setRowSnapshots((prev) => ({ ...prev, [entry.id]: { ...entry, values: { ...entry.values } } }));
+  };
+
+  const confirmRowEdit = (id) => {
+    setEditingRowIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    setRowSnapshots((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  };
+
+  const cancelRowEdit = (id) => {
+    const snapshot = rowSnapshots[id];
+    if (snapshot && activePeriodId) {
+      setDrafts((prev) => ({
+        ...prev,
+        [activePeriodId]: {
+          ...prev[activePeriodId],
+          entries: prev[activePeriodId].entries.map((e) => e.id === id ? snapshot : e),
+        },
+      }));
+    }
+    setEditingRowIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    setRowSnapshots((prev) => { const n = { ...prev }; delete n[id]; return n; });
   };
 
   const handleCreatePeriod = async (payload) => {
@@ -255,12 +284,35 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   const activeCols = getColumns(activeDraft?.viewType || "quarterly", activeDraft?.year);
 
+  const activeViewType = activeDraft?.viewType || "quarterly";
+  const fromYear = activeViewType === "annually"
+    ? (Number(activeDraft?.year) || new Date().getFullYear()) - 3
+    : (Number(activeDraft?.year) || new Date().getFullYear());
+  const toYear = Number(activeDraft?.year) || new Date().getFullYear();
+
+  const handleFromYearChange = (val) => {
+    const v = parseInt(val);
+    if (isNaN(v) || v < 1900) return;
+    updateDraftField("year", activeViewType === "annually" ? v + 3 : v);
+  };
+
+  const handleToYearChange = (val) => {
+    const v = parseInt(val);
+    if (isNaN(v) || v < 1900) return;
+    updateDraftField("year", v);
+  };
+
+  const viewTypeBadgeLabel = activeViewType === "quarterly" ? "Quarterly"
+    : activeViewType === "semi-annually" ? "Semi-Annual"
+    : "Annual";
+
   return (
     <div className="kpi-wrapper">
       {showNewKPI && (
         <NewKPIModal
           kpiCategories={kpiCategories}
           currencies={currencies}
+          year={activeDraft?.year}
           isSaving={isSaving}
           onClose={() => setShowNewKPI(false)}
           onSubmit={handleCreateKPI}
@@ -316,6 +368,28 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
             </button>
           </div>
 
+          <div className="kpi-year-row">
+            <span className="kpi-year-row-label">Year</span>
+            <div className="kpi-year-row-inputs">
+              <input
+                className="kpi-year-input"
+                type="number"
+                value={fromYear}
+                onChange={(e) => handleFromYearChange(e.target.value)}
+                disabled={isSaving}
+              />
+              <span className="kpi-year-row-sep">–</span>
+              <input
+                className="kpi-year-input"
+                type="number"
+                value={toYear}
+                onChange={(e) => handleToYearChange(e.target.value)}
+                disabled={isSaving}
+              />
+            </div>
+            <span className="kpi-year-viewtype-badge">{viewTypeBadgeLabel}</span>
+          </div>
+
           <div className="kpi-table-container">
             <table className="kpi-table">
               <thead>
@@ -338,14 +412,17 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                     </td>
                   </tr>
                 )}
-                {activeDraft.entries.map((entry) => (
-                  <tr key={entry.id} className="kpi-row">
+                {activeDraft.entries.map((entry) => {
+                  const isRowEditing = editingRowIds.has(entry.id);
+                  return (
+                  <tr key={entry.id} className={`kpi-row${isRowEditing ? " kpi-row--editing" : ""}`}>
                     <td className="kpi-td kpi-td--label">
                       <input
                         className="kpi-cell-input kpi-cell-input--text"
                         value={entry.kpiName || ""}
                         onChange={(e) => updateDraftEntry(entry.id, "kpiName", e.target.value)}
                         placeholder="KPI item"
+                        readOnly={!isRowEditing}
                         disabled={isSaving}
                       />
                     </td>
@@ -357,7 +434,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         placeholder="—"
                         labelKey="name"
                         valueKey="id"
-                        disabled={isSaving}
+                        disabled={!isRowEditing || isSaving}
                       />
                     </td>
                     {activeCols.map((col) => (
@@ -367,6 +444,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                           value={entry.values?.[col] ?? ""}
                           onChange={(e) => updateDraftEntryValue(entry.id, col, e.target.value)}
                           placeholder="0"
+                          readOnly={!isRowEditing}
                           disabled={isSaving}
                         />
                       </td>
@@ -377,6 +455,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         value={entry.unit || ""}
                         onChange={(e) => updateDraftEntry(entry.id, "unit", e.target.value)}
                         placeholder="—"
+                        readOnly={!isRowEditing}
                         disabled={isSaving}
                       />
                     </td>
@@ -387,16 +466,34 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         value={entry.displayOrder || ""}
                         onChange={(e) => updateDraftEntry(entry.id, "displayOrder", e.target.value)}
                         placeholder="—"
+                        readOnly={!isRowEditing}
                         disabled={isSaving}
                       />
                     </td>
                     <td className="kpi-td kpi-td--value">
-                      <button className="kpi-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>
-                        <TrashIcon />
-                      </button>
+                      {isRowEditing ? (
+                        <div className="kpi-row-actions">
+                          <button className="kpi-row-action-btn kpi-row-action-btn--save" onClick={() => confirmRowEdit(entry.id)} title="Confirm" disabled={isSaving}>
+                            <DoneIcon />
+                          </button>
+                          <button className="kpi-row-action-btn kpi-row-action-btn--cancel" onClick={() => cancelRowEdit(entry.id)} title="Cancel" disabled={isSaving}>
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="kpi-row-actions">
+                          <button className="kpi-row-action-btn" onClick={() => startRowEdit(entry)} title="Edit row" disabled={isSaving}>
+                            <EditLineIcon />
+                          </button>
+                          <button className="kpi-row-action-btn kpi-row-action-btn--delete" onClick={() => handleRemoveRow(entry.id)} title="Delete row" disabled={isSaving}>
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -4,6 +4,7 @@ import { ChevronDoubleLeftIcon } from "/src/components/Icons/DirectionIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
+import useApi from "/src/hooks/api/useApi";
 import {
   mapDealDetailToForm,
   mapInfoFormToPayload,
@@ -31,6 +32,7 @@ const createInitialForm = (deal) => ({
   currency: deal?.currencyId || null,
   dealType: null,
   relevantInfo: "",
+  teamMembers: [],
   externalContacts: [],
   legalForm: null,
   countryOfIncorporation: null,
@@ -75,6 +77,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   const [form, setForm] = useState(createInitialForm(deal));
   const [tabSave, setTabSave] = useState({ fn: null, cancelFn: null, isDirty: false, isSaving: false, isEditing: false });
   const { toast, showToast, closeToast } = useToast();
+  const api = useApi();
 
   const {
     detail,
@@ -94,6 +97,8 @@ function InfoTab({ deal, onClose, onSaved }) {
     countries,
     currencies,
     funds,
+    teamRoles,
+    dealflowUsers,
     isLoading: areLookupsLoading,
     error: lookupError,
   } = useDealflowLookupOptions();
@@ -164,6 +169,27 @@ function InfoTab({ deal, onClose, onSaved }) {
       [key]: value,
     }));
 
+  const addTeamMember = () =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: [
+        ...prev.teamMembers,
+        { id: `tm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, userId: null, roleId: null, positionOrder: "" },
+      ],
+    }));
+
+  const updateTeamMember = (rowId, key, value) =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: prev.teamMembers.map((m) => (m.id === rowId ? { ...m, [key]: value } : m)),
+    }));
+
+  const removeTeamMember = (rowId) =>
+    setForm((prev) => ({
+      ...prev,
+      teamMembers: prev.teamMembers.filter((m) => m.id !== rowId),
+    }));
+
   const addExternalContact = () =>
     setForm((prev) => ({
       ...prev,
@@ -188,6 +214,13 @@ function InfoTab({ deal, onClose, onSaved }) {
     }));
 
   const handleSave = async () => {
+    const prevStageId = loadedReferenceForm.stage;
+    const nextStageId = form.stage;
+    const stageChanged = prevStageId !== nextStageId && nextStageId;
+    const newStageName = stageChanged
+      ? stages.find((s) => s.id === nextStageId)?.name || null
+      : null;
+
     try {
       const saved = await saveDealDetail(form, lookupOptions);
       setForm(mapDealDetailToForm(saved, lookupOptions));
@@ -197,6 +230,15 @@ function InfoTab({ deal, onClose, onSaved }) {
         title: "Saved",
         message: `"${saved.dealName}" has been updated successfully.`,
       });
+      if (newStageName && deal?.id) {
+        const today = new Date().toISOString().slice(0, 10);
+        api.post(`/api/dealflow/deals/${deal.id}/events/`, {
+          title: `Stage changed to ${newStageName}`,
+          description: "",
+          event_date: today,
+          event_type_id: null,
+        }).catch(() => {});
+      }
       await onSaved?.(saved);
     } catch (err) {
       showToast({
@@ -287,18 +329,6 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-grid-3">
-                <div className="it-field">
-                  <label className="it-label">Status</label>
-                  <SimpleDropdown
-                    options={statuses}
-                    value={form.status}
-                    onChange={updateDirect("status")}
-                    placeholder="Please select a status"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
                 <div className="it-field">
                   <label className="it-label">Stage</label>
                   <SimpleDropdown
@@ -513,6 +543,77 @@ function InfoTab({ deal, onClose, onSaved }) {
                     disabled={areLookupsLoading || !isEditing}
                   />
                 </div>
+              </div>
+
+              <SectionHeader label="Deal team & Support" />
+
+              <div className="it-team-container">
+                <table className="it-team-table">
+                  <thead>
+                    <tr>
+                      <th className="it-team-th">Name</th>
+                      <th className="it-team-th">Position</th>
+                      {isEditing && <th className="it-team-th it-team-th--actions" />}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.teamMembers.map((member) => (
+                      <tr key={member.id} className="it-team-row">
+                        <td className="it-team-td">
+                          <SimpleDropdown
+                            options={dealflowUsers}
+                            value={member.userId}
+                            onChange={(v) => updateTeamMember(member.id, "userId", v)}
+                            placeholder="Select a person"
+                            labelKey="name"
+                            valueKey="id"
+                            disabled={areLookupsLoading || !isEditing}
+                          />
+                        </td>
+                        <td className="it-team-td">
+                          <SimpleDropdown
+                            options={teamRoles}
+                            value={member.roleId}
+                            onChange={(v) => updateTeamMember(member.id, "roleId", v)}
+                            placeholder="Select a position"
+                            labelKey="name"
+                            valueKey="id"
+                            disabled={areLookupsLoading || !isEditing}
+                          />
+                        </td>
+                        {isEditing && (
+                          <td className="it-team-td it-team-td--actions">
+                            <button
+                              type="button"
+                              className="it-team-icon-btn"
+                              onClick={() => removeTeamMember(member.id)}
+                              aria-label="Remove member"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                    {form.teamMembers.length === 0 && (
+                      <tr className="it-team-row">
+                        <td className="it-team-td it-team-empty" colSpan={isEditing ? 3 : 2}>
+                          No deal team members added yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="it-team-footer-row">
+                      <td colSpan={isEditing ? 3 : 2} />
+                    </tr>
+                  </tfoot>
+                </table>
+                {isEditing && (
+                  <button type="button" className="it-new-user-btn" onClick={addTeamMember}>
+                    <PlusIcon /> Add member
+                  </button>
+                )}
               </div>
 
               <SectionHeader label="External contacts" />

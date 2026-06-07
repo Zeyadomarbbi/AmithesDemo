@@ -7,7 +7,6 @@ const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
 export const DEAL_TEAM_KEY = "deal_team";
 
 export const SETUP_CATEGORIES = [
-  { key: "status", label: "Status", itemLabel: "status", taxonomyType: "status", hasColor: false },
   { key: "stage", label: "Stage", itemLabel: "stage", taxonomyType: "stage", hasColor: true },
   { key: "source", label: "Source", itemLabel: "source type", taxonomyType: "source_type", hasColor: false },
   { key: "doctype", label: "Type of document", itemLabel: "type of document", taxonomyType: "doc_type", hasColor: true },

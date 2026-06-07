@@ -19,7 +19,8 @@ function getColsForViewType(viewType, year) {
   return ["Q1", "Q2", "Q3", "Q4"];
 }
 
-function NewKPIModal({ kpiCategories = [], currencies = [], isSaving = false, onClose, onSubmit }) {
+function NewKPIModal({ kpiCategories = [], currencies = [], year: periodYear, isSaving = false, onClose, onSubmit }) {
+  const resolvedYear = periodYear || new Date().getFullYear();
   const [kpiName, setKpiName]             = useState("");
   const [kpiCategoryId, setKpiCategoryId] = useState(null);
   const [viewType, setViewType]           = useState(null);
@@ -27,18 +28,12 @@ function NewKPIModal({ kpiCategories = [], currencies = [], isSaving = false, on
   const [unit, setUnit]                   = useState("");
   const [order, setOrder]                 = useState("");
   const [displayOrder, setDisplayOrder]   = useState("");
-  const [year, setYear]                   = useState(new Date().getFullYear());
   const [values, setValues]               = useState({});
 
-  const cols = useMemo(() => getColsForViewType(viewType, year), [viewType, year]);
+  const cols = useMemo(() => getColsForViewType(viewType, resolvedYear), [viewType, resolvedYear]);
 
   const handleViewTypeChange = (vt) => {
     setViewType(vt);
-    setValues({});
-  };
-
-  const handleYearChange = (y) => {
-    setYear(y);
     setValues({});
   };
 
@@ -58,7 +53,7 @@ function NewKPIModal({ kpiCategories = [], currencies = [], isSaving = false, on
       unit: unit.trim(),
       order,
       displayOrder,
-      year,
+      year: resolvedYear,
       values,
     });
   };
@@ -165,22 +160,6 @@ function NewKPIModal({ kpiCategories = [], currencies = [], isSaving = false, on
               <div className="nkm-period-header">
                 <span className="nkm-period-title-label">Period Values</span>
               </div>
-
-              {viewType === "annually" && (
-                <div className="nkm-row nkm-row--third">
-                  <div className="nkm-field">
-                    <label className="nkm-label">Year</label>
-                    <input
-                      className="nkm-input"
-                      type="number"
-                      placeholder={String(new Date().getFullYear())}
-                      value={year}
-                      onChange={(e) => handleYearChange(e.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-                </div>
-              )}
 
               <div className="nkm-cols-grid">
                 {cols.map((col) => (

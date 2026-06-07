@@ -315,17 +315,19 @@
 }
 
 .df-sector-chart {
-  flex-shrink: 0;
-  width: 190px;
+  flex: 1;
+  min-width: 0;
+  height: 190px;
 }
 
 .df-sector-legend {
-  flex: 1;
+  flex-shrink: 0;
+  width: 120px;
   overflow-y: auto;
   max-height: 200px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
   padding-right: 4px;
 }
 
@@ -356,14 +358,17 @@
 
 .df-sector-legend-name {
   font-family: "Inter", sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .df-sector-legend-pct {
   font-family: "Inter", sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   color: #9ca3af;
 }
 

@@ -194,11 +194,9 @@ function SidePanel() {
 
       <div className="frame-3">
         <div className="footer-links">
-          {hasActiveFund && (
-            <NavLink to={`/funds/${activeFundId}/dealflow`} className="footer-item">
-              <DealflowIcon /> <span>Dealflow</span>
-            </NavLink>
-          )}
+          <NavLink to="/dealflow" className="footer-item">
+            <DealflowIcon /> <span>Dealflow</span>
+          </NavLink>
           <NavLink to="/all-funds" className="footer-item">
             <AllFundsIcons /> <span>All funds</span>
           </NavLink>

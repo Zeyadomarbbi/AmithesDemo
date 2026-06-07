@@ -203,16 +203,9 @@
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
+  background: #f2f3f4;
+  color: #4b5563;
 }
-
-.stage-briefing    { background: #d3f2ff; color: #4c6977; }
-.stage-dropped     { background: #ffe4e6; color: #be123c; }
-.stage-in-portfolio{ background: #ede9fe; color: #6d28d9; }
-.stage-sourcing    { background: #cffafe; color: #0e7490; }
-.stage-ic1         { background: #fef3c7; color: #92400e; }
-.stage-ic2         { background: #fef3c7; color: #92400e; }
-.stage-invested    { background: #d1fae5; color: #065f46; }
-.stage-default     { background: #f2f3f4; color: #4b5563; }
 
 /* ---- GEOGRAPHY ---- */
 .deals-geography {

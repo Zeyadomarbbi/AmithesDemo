@@ -237,6 +237,87 @@
   cursor: not-allowed;
 }
 
+/* ---- YEAR ROW ---- */
+.kpi-year-row {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(55, 90, 137, 0.04);
+  border: 1px solid #dce5f0;
+  border-left: 3px solid #375a89;
+  border-radius: 6px;
+}
+
+.kpi-year-row-label {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #375a89;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kpi-year-row-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kpi-year-input {
+  width: 72px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1917;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  box-sizing: border-box;
+}
+
+.kpi-year-input::-webkit-outer-spin-button,
+.kpi-year-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.kpi-year-input:focus {
+  border-color: #375a89;
+  box-shadow: 0 0 0 2px rgba(55, 90, 137, 0.12);
+}
+
+.kpi-year-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.kpi-year-row-sep {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #9ca3af;
+  user-select: none;
+}
+
+.kpi-year-viewtype-badge {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #375a89;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(55, 90, 137, 0.1);
+}
+
 /* ---- TABLE HEADER ---- */
 .kpi-table-header {
   display: flex;
@@ -413,18 +494,72 @@
   box-shadow: 0 0 0 2px rgba(55, 90, 137, 0.15);
 }
 
-.kpi-row-delete-btn {
+.kpi-row--editing {
+  background: #f6f9fd !important;
+}
+
+.kpi-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.kpi-row-action-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #9ca3af;
+  transition: color 0.15s, background 0.15s;
 }
 
-.kpi-row-delete-btn:hover {
-  color: #b42318;
+.kpi-row-action-btn:hover:not(:disabled) {
+  color: #375a89;
+  background: #eef3fb;
+}
+
+.kpi-row-action-btn--save {
+  color: #059669;
+}
+
+.kpi-row-action-btn--save:hover:not(:disabled) {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.kpi-row-action-btn--cancel {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kpi-row-action-btn--cancel:hover:not(:disabled) {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.kpi-row-action-btn--delete:hover:not(:disabled) {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.kpi-row-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kpi-cell-input[readonly] {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
 }
 
 

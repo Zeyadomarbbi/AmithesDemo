@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   PieChart,
@@ -314,12 +315,12 @@ const SectorPieCard = ({ title, data }) => {
       <div className="df-card-title">{title}</div>
       <div className="df-sector-body">
         <div className="df-sector-chart">
-          <ResponsiveContainer width="100%" height={190}>
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%" cy="50%"
-                innerRadius={28} outerRadius={80}
+                innerRadius={28} outerRadius={82}
                 dataKey="value"
                 labelLine={false}
                 startAngle={90} endAngle={-270}
@@ -384,7 +385,7 @@ const SectorPieCard = ({ title, data }) => {
 // ─── GeographyCard ───────────────────────────────────────────────────────────
 
 const GeographyCard = ({ data }) => {
-  const [scale, setScale] = useState(150);
+  const [scale, setScale] = useState(380);
 
   const enriched = useMemo(() => {
     return data
@@ -413,10 +414,10 @@ const GeographyCard = ({ data }) => {
       <div className="df-geo-body">
         <div className="df-geo-map">
           <ComposableMap
-            projection="geoNaturalEarth1"
-            projectionConfig={{ scale, center: [20, 20] }}
+            projection="geoMercator"
+            projectionConfig={{ scale, center: [22, 15] }}
             width={800}
-            height={420}
+            height={520}
             style={{ width: "100%", height: "auto" }}
           >
             <Geographies geography={worldData}>
@@ -447,8 +448,8 @@ const GeographyCard = ({ data }) => {
             ))}
           </ComposableMap>
           <div className="df-geo-zoom-btns">
-            <button onClick={() => setScale((s) => Math.min(600, Math.round(s * 1.5)))}>+</button>
-            <button onClick={() => setScale((s) => Math.max(80,  Math.round(s / 1.5)))}>−</button>
+            <button onClick={() => setScale((s) => Math.min(900, Math.round(s * 1.5)))}>+</button>
+            <button onClick={() => setScale((s) => Math.max(150, Math.round(s / 1.5)))}>−</button>
           </div>
         </div>
         <div className="df-geo-legend">
@@ -664,7 +665,7 @@ function DashboardTab() {
 
         {/* Deal Flow Funnel */}
         <FunnelCard data={funnelData} />
-
+1
       </div>
 
       {toast && (

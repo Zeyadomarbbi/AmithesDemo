@@ -1,15 +1,9 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight } from "../../../../../../components/Icons/DirectionIcons";
+import { ChevronDown, ChevronRight } from "/src/components/Icons/DirectionIcons";
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import "./FilterModal.css";
 
 const STATIC_SECTIONS = [
-  {
-    key: "status",
-    label: "Status",
-    options: ["Live", "Invested", "Dropped"],
-    defaultOpen: true,
-  },
   {
     key: "stage",
     label: "Stage",

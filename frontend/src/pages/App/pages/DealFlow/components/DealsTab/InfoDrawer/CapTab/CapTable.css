@@ -480,6 +480,68 @@
   background: #f0f5fb;
 }
 
+.ct-row--editing {
+  background: #f6f9fd !important;
+}
+
+.ct-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.ct-row-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #9ca3af;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ct-row-action-btn:hover:not(:disabled) {
+  color: #375a89;
+  background: #eef3fb;
+}
+
+.ct-row-action-btn--save {
+  color: #059669;
+}
+
+.ct-row-action-btn--save:hover:not(:disabled) {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.ct-row-action-btn--cancel {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ct-row-action-btn--cancel:hover:not(:disabled) {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.ct-row-action-btn--delete:hover:not(:disabled) {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.ct-row-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .ct-row-delete-btn {
   background: none;
   border: none;

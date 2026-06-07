@@ -83,6 +83,7 @@ const router = createBrowserRouter([
             element: <AppLayout />, 
             children: [
               { path: 'all-funds', element: <AllFundsPage /> },
+              { path: 'dealflow', element: <DealflowPage /> },
               {
                 element: <StaffRoute />,
                 children: [

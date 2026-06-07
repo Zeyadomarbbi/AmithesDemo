@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PlusIcon, TrashIcon, DuplicateIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
+import { PlusIcon, TrashIcon, DuplicateIcon, EditLineIcon, DoneIcon } from "/src/components/Icons/InteractiveIcons";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
@@ -29,13 +29,17 @@ const FD_KEYS = [...NFD_KEYS, "esop"];
 function loadColumnConfig(snapshotId) {
   try {
     const stored = localStorage.getItem(`ct_cols_${snapshotId}`);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.left)) return parsed;
+    if (Array.isArray(parsed)) return { left: parsed, middle: [] }; // backward compat
+    return null;
   } catch { return null; }
 }
 
-function saveColumnConfig(snapshotId, columns) {
+function saveColumnConfig(snapshotId, left, middle = []) {
   try {
-    localStorage.setItem(`ct_cols_${snapshotId}`, JSON.stringify(columns));
+    localStorage.setItem(`ct_cols_${snapshotId}`, JSON.stringify({ left, middle }));
   } catch {}
 }
 
@@ -51,7 +55,8 @@ function createDraftSnapshot(snapshot) {
     id: snapshot.id,
     name: snapshot.name || "",
     snapshotDate: snapshot.snapshotDateObject || null,
-    columns: savedCols || DEFAULT_COLUMNS.map((c) => ({ ...c })),
+    columns: savedCols?.left || DEFAULT_COLUMNS.map((c) => ({ ...c })),
+    middleColumns: savedCols?.middle || [],
     entries: snapshot.entries.map((entry) => ({
       ...entry,
       seriesA: entry.seriesA ?? "",
@@ -142,6 +147,8 @@ export default function CapTable({ dealId, onSaveStateChange }) {
   const [activeSnapshotId, setActiveSnapshotId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editingRowIds, setEditingRowIds] = useState(new Set());
+  const [rowSnapshots, setRowSnapshots] = useState({});
   const { toast, showToast, closeToast } = useToast();
 
   const {
@@ -178,25 +185,28 @@ export default function CapTable({ dealId, onSaveStateChange }) {
   );
   const activeDraft = activeSnapshotId ? drafts[activeSnapshotId] || null : null;
   const activeColumns = activeDraft?.columns || DEFAULT_COLUMNS;
+  const middleColumns = activeDraft?.middleColumns || [];
   const totals = useMemo(
-    () => buildTotals(activeDraft?.entries || [], activeDraft?.columns || DEFAULT_COLUMNS),
+    () => buildTotals(activeDraft?.entries || [], [...(activeDraft?.columns || DEFAULT_COLUMNS), ...(activeDraft?.middleColumns || [])]),
     [activeDraft]
   );
   const isDirty = activeSnapshot && activeDraft ? snapshotHasChanges(activeSnapshot, activeDraft) : false;
 
   const entryPcts = useMemo(() => {
     const entries = activeDraft?.entries || [];
-    const nfdTotal = entries.reduce((sum, e) => sum + NFD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
-    const fdTotal = entries.reduce((sum, e) => sum + FD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
+    const nfdKeys = activeColumns.map((c) => c.key);
+    const fdKeys = [...nfdKeys, ...middleColumns.map((c) => c.key)];
+    const nfdTotal = entries.reduce((sum, e) => sum + nfdKeys.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
+    const fdTotal = entries.reduce((sum, e) => sum + fdKeys.reduce((s, k) => s + (Number(e[k]) || 0), 0), 0);
     return Object.fromEntries(entries.map((e) => {
-      const nfd = NFD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0);
-      const fd = FD_KEYS.reduce((s, k) => s + (Number(e[k]) || 0), 0);
+      const nfd = nfdKeys.reduce((s, k) => s + (Number(e[k]) || 0), 0);
+      const fd = fdKeys.reduce((s, k) => s + (Number(e[k]) || 0), 0);
       return [e.id, {
         nonFullyDilutedPercentage: nfdTotal > 0 ? nfd / nfdTotal * 100 : null,
         fullyDilutedPercentage: fdTotal > 0 ? fd / fdTotal * 100 : null,
       }];
     }));
-  }, [activeDraft]);
+  }, [activeDraft, activeColumns, middleColumns]);
 
   const handleSaveRef = useRef(null);
   const handleCancelRef = useRef(null);
@@ -228,13 +238,20 @@ export default function CapTable({ dealId, onSaveStateChange }) {
 
   const updateActiveColumns = (newColumns) => {
     if (!activeSnapshotId) return;
-    saveColumnConfig(activeSnapshotId, newColumns);
+    saveColumnConfig(activeSnapshotId, newColumns, middleColumns);
     updateDraftField("columns", newColumns);
   };
 
+  const updateMiddleColumns = (newMiddleColumns) => {
+    if (!activeSnapshotId) return;
+    saveColumnConfig(activeSnapshotId, activeColumns, newMiddleColumns);
+    updateDraftField("middleColumns", newMiddleColumns);
+  };
+
+  const allUsedKeys = new Set([...activeColumns.map((c) => c.key), ...middleColumns.map((c) => c.key)]);
+
   const handleAddColumn = () => {
-    const usedKeys = new Set(activeColumns.map((c) => c.key));
-    const next = COLUMN_POOL.find((c) => !usedKeys.has(c.key));
+    const next = COLUMN_POOL.find((c) => !allUsedKeys.has(c.key));
     if (!next) return;
     updateActiveColumns([...activeColumns, { ...next }]);
   };
@@ -245,6 +262,20 @@ export default function CapTable({ dealId, onSaveStateChange }) {
 
   const handleRenameColumn = (key, label) => {
     updateActiveColumns(activeColumns.map((c) => (c.key === key ? { ...c, label } : c)));
+  };
+
+  const handleAddMiddleColumn = () => {
+    const next = COLUMN_POOL.find((c) => !allUsedKeys.has(c.key));
+    if (!next) return;
+    updateMiddleColumns([...middleColumns, { ...next }]);
+  };
+
+  const handleDeleteMiddleColumn = (key) => {
+    updateMiddleColumns(middleColumns.filter((c) => c.key !== key));
+  };
+
+  const handleRenameMiddleColumn = (key, label) => {
+    updateMiddleColumns(middleColumns.map((c) => (c.key === key ? { ...c, label } : c)));
   };
 
   const handleCreateSnapshot = async ({ name, date }) => {
@@ -265,7 +296,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
         name: activeDraft.name,
         snapshotDate: activeDraft.snapshotDate,
       });
-      saveColumnConfig(created.id, activeColumns);
+      saveColumnConfig(created.id, activeColumns, middleColumns);
       for (const entry of activeDraft.entries) {
         if (!String(entry.shareholderName || "").trim()) continue;
         await createEntry(created.id, entry);
@@ -340,11 +371,38 @@ export default function CapTable({ dealId, onSaveStateChange }) {
         }
       }
 
+      setEditingRowIds(new Set());
+      setRowSnapshots({});
       setIsEditing(false);
       showToast({ type: "success", title: "Saved", message: `"${updatedSnapshot.name}" has been updated successfully.` });
     } catch (err) {
       showToast({ type: "error", title: "Save failed", message: err.message || "Could not save the cap table." });
     }
+  };
+
+  const startRowEdit = (entry) => {
+    setEditingRowIds((prev) => new Set([...prev, entry.id]));
+    setRowSnapshots((prev) => ({ ...prev, [entry.id]: { ...entry } }));
+  };
+
+  const confirmRowEdit = (id) => {
+    setEditingRowIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    setRowSnapshots((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  };
+
+  const cancelRowEdit = (id) => {
+    const snapshot = rowSnapshots[id];
+    if (snapshot && activeSnapshotId) {
+      setDrafts((prev) => ({
+        ...prev,
+        [activeSnapshotId]: {
+          ...prev[activeSnapshotId],
+          entries: prev[activeSnapshotId].entries.map((e) => e.id === id ? snapshot : e),
+        },
+      }));
+    }
+    setEditingRowIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    setRowSnapshots((prev) => { const n = { ...prev }; delete n[id]; return n; });
   };
 
   const handleCancelEdit = () => {
@@ -354,14 +412,25 @@ export default function CapTable({ dealId, onSaveStateChange }) {
         [activeSnapshot.id]: createDraftSnapshot(activeSnapshot),
       }));
     }
+    setEditingRowIds(new Set());
+    setRowSnapshots({});
     setIsEditing(false);
   };
 
   handleSaveRef.current = handleSave;
   handleCancelRef.current = handleCancelEdit;
 
-  const canAddColumn = activeColumns.length < COLUMN_POOL.length;
-  const totalColSpan = activeColumns.length + (isEditing && canAddColumn ? 1 : 0) + PERCENTAGE_COLUMNS.length + (isEditing ? 3 : 2);
+  const canAddColumn = allUsedKeys.size < COLUMN_POOL.length;
+  const canAddMiddleColumn = allUsedKeys.size < COLUMN_POOL.length;
+  const totalColSpan =
+    1 + // Shareholder
+    activeColumns.length +
+    1 + // nfd%
+    middleColumns.length +
+    (isEditing && canAddMiddleColumn ? 1 : 0) +
+    1 + // fd%
+    1 + // Comment
+    1; // Actions (always visible)
 
   return (
     <div className="ct-wrapper">
@@ -465,21 +534,45 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                     </th>
                   ))}
 
-                  {isEditing && canAddColumn && (
+                  <th className="ct-th ct-th--highlight">n.f.d (%)</th>
+
+                  {middleColumns.map((col) => (
+                    <th key={col.key} className="ct-th ct-th--col-editable ct-th--highlight">
+                      <div className="ct-col-header">
+                        <input
+                          className="ct-col-label-input"
+                          value={col.label}
+                          onChange={(e) => handleRenameMiddleColumn(col.key, e.target.value)}
+                          title={isEditing ? "Click to rename" : col.label}
+                          readOnly={!isEditing}
+                        />
+                        {isEditing && (
+                          <button
+                            className="ct-col-remove-btn"
+                            onClick={() => handleDeleteMiddleColumn(col.key)}
+                            disabled={isSaving}
+                            aria-label={`Remove ${col.label}`}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+
+                  {isEditing && canAddMiddleColumn && (
                     <th
-                      className="ct-th ct-th--add-col"
-                      onClick={!isSaving ? handleAddColumn : undefined}
-                      title="Add column"
+                      className="ct-th ct-th--add-col ct-th--highlight"
+                      onClick={!isSaving ? handleAddMiddleColumn : undefined}
+                      title="Add column between n.f.d and f.d"
                     >
                       <span className="ct-add-col-icon">+</span>
                     </th>
                   )}
 
-                  {PERCENTAGE_COLUMNS.map((column) => (
-                    <th key={column.key} className="ct-th ct-th--highlight">{column.label}</th>
-                  ))}
+                  <th className="ct-th ct-th--highlight">f.d (%)</th>
                   <th className="ct-th ct-th--left">Comment</th>
-                  {isEditing && <th className="ct-th">Actions</th>}
+                  <th className="ct-th"></th>
                 </tr>
               </thead>
 
@@ -492,14 +585,14 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                   </tr>
                 )}
                 {activeDraft.entries.map((entry) => (
-                  <tr key={entry.id} className="ct-row">
+                  <tr key={entry.id} className={`ct-row${editingRowIds.has(entry.id) ? " ct-row--editing" : ""}`}>
                     <td className="ct-td ct-td--name">
                       <input
                         className="ct-cell-input ct-cell-input--text"
                         value={entry.shareholderName}
                         onChange={(e) => updateEntryField(entry.id, "shareholderName", e.target.value)}
                         placeholder="Shareholder name"
-                        readOnly={!isEditing}
+                        readOnly={!editingRowIds.has(entry.id) && !isEditing}
                       />
                     </td>
                     {activeColumns.map((column) => (
@@ -509,37 +602,72 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                           value={entry[column.key]}
                           onChange={(e) => updateEntryField(entry.id, column.key, normalizeNumericInput(e.target.value))}
                           placeholder="-"
-                          readOnly={!isEditing}
+                          readOnly={!editingRowIds.has(entry.id) && !isEditing}
                         />
                       </td>
                     ))}
-                    {isEditing && canAddColumn && <td className="ct-td ct-td--add-col-body" />}
-                    {PERCENTAGE_COLUMNS.map((column) => {
-                      const pct = entryPcts[entry.id]?.[column.key];
-                      return (
-                        <td key={column.key} className="ct-td ct-td--center ct-td--highlight">
-                          <span className="ct-pct-display">
-                            {pct != null ? `${pct.toFixed(2)}%` : "-"}
-                          </span>
-                        </td>
-                      );
-                    })}
+                    <td className="ct-td ct-td--center ct-td--highlight">
+                      <span className="ct-pct-display">
+                        {entryPcts[entry.id]?.nonFullyDilutedPercentage != null
+                          ? `${entryPcts[entry.id].nonFullyDilutedPercentage.toFixed(2)}%`
+                          : "-"}
+                      </span>
+                    </td>
+
+                    {middleColumns.map((column) => (
+                      <td key={column.key} className="ct-td ct-td--center ct-td--highlight">
+                        <input
+                          className="ct-cell-input ct-cell-input--highlight"
+                          value={entry[column.key] ?? ""}
+                          onChange={(e) => updateEntryField(entry.id, column.key, normalizeNumericInput(e.target.value))}
+                          placeholder="-"
+                          readOnly={!editingRowIds.has(entry.id) && !isEditing}
+                        />
+                      </td>
+                    ))}
+                    {isEditing && canAddMiddleColumn && <td className="ct-td ct-td--add-col-body ct-td--highlight" />}
+
+                    <td className="ct-td ct-td--center ct-td--highlight">
+                      <span className="ct-pct-display">
+                        {entryPcts[entry.id]?.fullyDilutedPercentage != null
+                          ? `${entryPcts[entry.id].fullyDilutedPercentage.toFixed(2)}%`
+                          : "-"}
+                      </span>
+                    </td>
                     <td className="ct-td">
                       <input
                         className="ct-cell-input ct-cell-input--text"
                         value={entry.comment}
                         onChange={(e) => updateEntryField(entry.id, "comment", e.target.value)}
                         placeholder="Comment"
-                        readOnly={!isEditing}
+                        readOnly={!editingRowIds.has(entry.id) && !isEditing}
                       />
                     </td>
-                    {isEditing && (
-                      <td className="ct-td ct-td--center">
+                    <td className="ct-td ct-td--center">
+                      {isEditing ? (
                         <button className="ct-row-delete-btn" onClick={() => handleRemoveRow(entry.id)} disabled={isSaving}>
                           <TrashIcon />
                         </button>
-                      </td>
-                    )}
+                      ) : editingRowIds.has(entry.id) ? (
+                        <div className="ct-row-actions">
+                          <button className="ct-row-action-btn ct-row-action-btn--save" onClick={() => confirmRowEdit(entry.id)} title="Confirm" disabled={isSaving}>
+                            <DoneIcon />
+                          </button>
+                          <button className="ct-row-action-btn ct-row-action-btn--cancel" onClick={() => cancelRowEdit(entry.id)} title="Cancel" disabled={isSaving}>
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="ct-row-actions">
+                          <button className="ct-row-action-btn" onClick={() => startRowEdit(entry)} title="Edit row" disabled={isSaving}>
+                            <EditLineIcon />
+                          </button>
+                          <button className="ct-row-action-btn ct-row-action-btn--delete" onClick={() => handleRemoveRow(entry.id)} title="Delete row" disabled={isSaving}>
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {isEditing && (
@@ -564,17 +692,24 @@ export default function CapTable({ dealId, onSaveStateChange }) {
                   {activeColumns.map((col) => (
                     <td key={col.key} className="ct-td--total-center">{displayNumber(totals[col.key])}</td>
                   ))}
-                  {isEditing && canAddColumn && <td />}
-                  {PERCENTAGE_COLUMNS.map((col) => {
-                    const pctSum = Object.values(entryPcts).reduce((sum, v) => sum + (v[col.key] || 0), 0);
-                    return (
-                      <td key={col.key} className="ct-td--total-center">
-                        {pctSum > 0 ? `${pctSum.toFixed(2)}%` : "-"}
-                      </td>
-                    );
-                  })}
+                  <td className="ct-td--total-center">
+                    {(() => {
+                      const s = Object.values(entryPcts).reduce((sum, v) => sum + (v.nonFullyDilutedPercentage || 0), 0);
+                      return s > 0 ? `${s.toFixed(2)}%` : "-";
+                    })()}
+                  </td>
+                  {middleColumns.map((col) => (
+                    <td key={col.key} className="ct-td--total-center">{displayNumber(totals[col.key])}</td>
+                  ))}
+                  {isEditing && canAddMiddleColumn && <td />}
+                  <td className="ct-td--total-center">
+                    {(() => {
+                      const s = Object.values(entryPcts).reduce((sum, v) => sum + (v.fullyDilutedPercentage || 0), 0);
+                      return s > 0 ? `${s.toFixed(2)}%` : "-";
+                    })()}
+                  </td>
                   <td className="ct-td--total-label">-</td>
-                  {isEditing && <td className="ct-td--total-center">-</td>}
+                  <td />
                 </tr>
               </tfoot>
             </table>

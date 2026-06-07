@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import DashboardTab from "./components/DashboardTab/DashboardTab";
-import Deals from "./components/DealsTab/Deals";
+import Deals from "./components/DealsTab/DealsOperations/Deals";
 import SetupTab from "./components/SetupTab/SetupTab";
 import "./Dealflowpage.css";
 
