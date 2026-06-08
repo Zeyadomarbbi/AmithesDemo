@@ -3,6 +3,7 @@ import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./NewKPIModal.css";
 
+
 const VIEW_OPTIONS = [
   { id: "quarterly",     name: "Quarterly" },
   { id: "semi-annually", name: "Semi-Annually" },
