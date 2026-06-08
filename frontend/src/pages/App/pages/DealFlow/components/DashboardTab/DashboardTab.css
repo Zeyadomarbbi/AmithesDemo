@@ -649,3 +649,30 @@
     flex: 1;
   }
 }
+
+/* ---- GEO + CALENDAR ROW ---- */
+.df-geo-calendar-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.df-geo-calendar-row .df-geo-card {
+  flex: 1.5;
+  min-height: unset;
+}
+
+.df-geo-calendar-row .df-calendar-card {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- CALENDAR CARD ---- */
+.df-calendar-card { padding: 16px 20px; }
+
+@media (max-width: 1100px) {
+  .df-geo-calendar-row {
+    flex-direction: column;
+  }
+}

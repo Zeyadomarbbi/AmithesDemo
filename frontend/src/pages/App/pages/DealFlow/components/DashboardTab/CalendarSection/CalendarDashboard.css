@@ -1,0 +1,400 @@
+/* ====================================================
+   CALENDAR DASHBOARD WRAPPER
+   ==================================================== */
+.calendar-dashboard {
+  position: relative;
+  padding: 8px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ====================================================
+   CUSTOM TOOLBAR
+   ==================================================== */
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 16px 0;
+}
+
+.cal-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.cal-nav-btn:hover {
+  background: #e4ebf6;
+}
+
+.cal-toolbar-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1C1917;
+  margin-left: 8px;
+  letter-spacing: 0.01em;
+}
+
+.cal-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(55, 90, 137, 0.2);
+  border: none;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #375A89;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cal-add-btn:hover {
+  background: rgba(55, 90, 137, 0.28);
+}
+
+/* ====================================================
+   REACT-BIG-CALENDAR OVERRIDES
+   ==================================================== */
+
+.calendar-dashboard .rbc-toolbar {
+  display: none;
+}
+
+.calendar-dashboard .rbc-calendar {
+  font-family: 'Inter', sans-serif;
+}
+
+.calendar-dashboard .rbc-month-view {
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-dashboard .rbc-header {
+  background-color: #e4ebf6;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5);
+  padding: 10px 8px;
+}
+
+.calendar-dashboard .rbc-header span,
+.calendar-dashboard .rbc-header a {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #375A89;
+  text-decoration: none;
+}
+
+.calendar-dashboard .rbc-month-row {
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+  overflow: visible;
+}
+
+.calendar-dashboard .rbc-row-content {
+  overflow: visible;
+}
+
+.calendar-dashboard .rbc-row-segment {
+  overflow: visible;
+}
+
+.calendar-dashboard .rbc-event-content {
+  overflow: visible !important;
+  white-space: normal !important;
+  height: auto !important;
+}
+
+.calendar-dashboard .rbc-month-row + .rbc-month-row {
+  border-top: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.calendar-dashboard .rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.calendar-dashboard .rbc-header + .rbc-header {
+  border-left: 1px solid rgba(204, 205, 206, 0.5);
+}
+
+.calendar-dashboard .rbc-off-range-bg {
+  background-color: #f8fafc;
+}
+
+.calendar-dashboard .rbc-off-range .rbc-button-link {
+  color: #b0bec5;
+}
+
+.calendar-dashboard .rbc-today {
+  background-color: rgba(55, 90, 137, 0.22) !important;
+}
+
+.calendar-dashboard .rbc-today .rbc-button-link,
+.calendar-dashboard .rbc-today .rbc-date-cell a,
+.calendar-dashboard .rbc-today .rbc-date-cell span {
+  color: #375A89 !important;
+  font-weight: 700;
+}
+
+.calendar-dashboard .rbc-date-cell {
+  padding: 6px 8px 4px;
+  text-align: right;
+}
+
+.calendar-dashboard .rbc-date-cell .rbc-button-link {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1C1917;
+  text-decoration: none;
+}
+
+/* ====================================================
+   FORCE FULL TEXT — override rbc default truncation
+   ==================================================== */
+.calendar-dashboard .rbc-event,
+.calendar-dashboard .rbc-event-content,
+.calendar-dashboard .rbc-event-content *,
+.calendar-dashboard .cal-event,
+.calendar-dashboard .cal-event * {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  height: auto !important;
+}
+
+/* ====================================================
+   EVENTS
+   ==================================================== */
+.calendar-dashboard .cal-event {
+  background-color: #e4ebf6 !important;
+  border: none !important;
+  border-left: 3px solid #375A89 !important;
+  border-radius: 4px !important;
+  color: #375A89 !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  width: calc(100% - 40px) !important;
+  margin: 2px auto !important;
+  padding: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.calendar-dashboard .cal-event:hover {
+  background-color: #d5dcec !important;
+  cursor: pointer;
+}
+
+.cal-event-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 5px 4px 5px 5px;
+  gap: 4px;
+}
+
+.cal-event-text {
+  font-size: 11px;
+  color: #375A89;
+  font-weight: 500;
+  flex: 1;
+  word-break: break-word;
+}
+
+.cal-event-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  pointer-events: all;
+  position: relative;
+  z-index: 10;
+}
+
+.cal-event-del-btn:hover {
+  color: #F43F5E;
+}
+
+/* ====================================================
+   OVERFLOW POPUP ("+X more") — global, overlay may be portaled
+   ==================================================== */
+.rbc-overlay {
+  background: #ffffff !important;
+  border: 1px solid rgba(204, 205, 206, 0.5) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14) !important;
+  padding: 8px !important;
+  z-index: 200 !important;
+}
+
+.rbc-overlay-header {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1C1917 !important;
+  padding: 4px 4px 8px !important;
+  border-bottom: 1px solid rgba(204, 205, 206, 0.5) !important;
+  margin-bottom: 6px !important;
+}
+
+.rbc-overlay .rbc-event {
+  background-color: #e4ebf6 !important;
+  border: none !important;
+  border-left: 3px solid #375A89 !important;
+  border-radius: 4px !important;
+  color: #375A89 !important;
+  margin: 3px 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+  width: 100% !important;
+}
+
+.rbc-overlay .rbc-event:hover {
+  background-color: #d5dcec !important;
+}
+
+.rbc-overlay .rbc-event .cal-event-text {
+  color: #375A89 !important;
+}
+
+.rbc-overlay .rbc-event .cal-event-del-btn {
+  color: #94A3B8 !important;
+}
+
+.calendar-dashboard .rbc-show-more {
+  color: #375A89;
+  font-size: 11px;
+  font-weight: 500;
+  background: none;
+}
+
+.calendar-dashboard .rbc-selected {
+  background-color: #d5dcec !important;
+}
+
+.calendar-dashboard .rbc-slot-selection {
+  background-color: rgba(55, 90, 137, 0.12);
+}
+
+/* ====================================================
+   EVENT POPUP (detail card)
+   ==================================================== */
+.cal-event-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border: 1px solid rgba(204, 205, 206, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
+  padding: 20px;
+  min-width: 260px;
+  max-width: 320px;
+  z-index: 50;
+}
+
+.cal-popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.cal-popup-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1C1917;
+  line-height: 1.4;
+}
+
+.cal-popup-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #94A3B8;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cal-popup-close:hover {
+  color: #375A89;
+}
+
+.cal-popup-time {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #64748B;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.cal-popup-notes {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #374151;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.cal-popup-reminder {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #64748B;
+  margin-bottom: 12px;
+}
+
+.cal-popup-delete-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid #F43F5E;
+  color: #F43F5E;
+  border-radius: 7px;
+  padding: 7px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.cal-popup-delete-btn:hover {
+  background: #fff1f4;
+}

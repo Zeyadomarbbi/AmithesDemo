@@ -1,0 +1,250 @@
+/* ====================================================
+   BACKDROP
+   ==================================================== */
+.ae-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 20px;
+}
+
+/* ====================================================
+   MODAL PANEL
+   ==================================================== */
+.ae-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* ====================================================
+   HEADER
+   ==================================================== */
+.ae-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.ae-title {
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.ae-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  color: #9ca3af;
+  line-height: 1;
+}
+
+.ae-close:hover {
+  color: #375A89;
+}
+
+/* ====================================================
+   BODY
+   ==================================================== */
+.ae-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ae-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ae-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ae-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #375A89;
+}
+
+.ae-required {
+  color: #F43F5E;
+  margin-left: 2px;
+}
+
+.ae-input {
+  height: 40px;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 0 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ae-input:hover {
+  border-color: #375A89;
+}
+
+.ae-input:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+.ae-select-wrapper {
+  position: relative;
+}
+
+.ae-select-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #375A89;
+  display: flex;
+  align-items: center;
+}
+
+.ae-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 32px;
+  width: 100%;
+}
+
+.ae-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+  outline: none;
+  resize: vertical;
+  min-height: 72px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ae-textarea:hover {
+  border-color: #375A89;
+}
+
+.ae-textarea:focus {
+  border-color: #375A89;
+  box-shadow: 0 0 0 1px #375A89;
+}
+
+.ae-info-note {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #94A3B8;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+/* ====================================================
+   FOOTER
+   ==================================================== */
+.ae-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.ae-btn {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.ae-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ae-btn-secondary {
+  background: rgba(231, 239, 248, 0.5);
+  color: #7b7d7e;
+}
+
+.ae-btn-secondary:hover:not(:disabled) {
+  border: 1px solid #375A89;
+  background: #ffffff;
+  color: #375A89;
+}
+
+.ae-btn-primary {
+  background: #F7A93B;
+  color: #ffffff;
+}
+
+.ae-btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+/* ====================================================
+   MOBILE
+   ==================================================== */
+@media (max-width: 480px) {
+  .ae-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .ae-modal {
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .ae-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ae-footer {
+    flex-direction: column-reverse;
+  }
+}
