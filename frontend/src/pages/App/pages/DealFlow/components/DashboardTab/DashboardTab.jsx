@@ -22,6 +22,7 @@ import { ChevronDownIcon } from "../../../../../../components/Icons/DirectionIco
 import { useDashboardData } from "/src/pages/App/hooks/DealFlow/useDashboardData";
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
+import CalendarDashboard from "./CalendarSection/CalendarDashboard";
 import "./DashboardTab.css";
 
 const ISO2_META = {
@@ -631,6 +632,11 @@ function DashboardTab() {
 
       <GeographyCard data={countryData} />
 
+      <div className="df-card df-calendar-card">
+        <div className="df-card-title">Event Calendar</div>
+        <CalendarDashboard height={560} />
+      </div>
+
       {/* ── EVOLUTION ── */}
       <div className="df-section-header">
         <span className="df-section-label">Evolution</span>
@@ -665,7 +671,6 @@ function DashboardTab() {
 
         {/* Deal Flow Funnel */}
         <FunnelCard data={funnelData} />
-1
       </div>
 
       {toast && (
