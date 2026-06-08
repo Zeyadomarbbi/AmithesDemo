@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CloseIcon, PlusIcon, TrashIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
 import { ChevronDoubleLeftIcon } from "/src/components/Icons/DirectionIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
@@ -76,6 +76,8 @@ function InfoTab({ deal, onClose, onSaved }) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState(createInitialForm(deal));
   const [tabSave, setTabSave] = useState({ fn: null, cancelFn: null, isDirty: false, isSaving: false, isEditing: false });
+  const [isCreatingTeamUser, setIsCreatingTeamUser] = useState(false);
+  const [isCreatingTeamRole, setIsCreatingTeamRole] = useState(false);
   const { toast, showToast, closeToast } = useToast();
   const api = useApi();
 
@@ -100,7 +102,10 @@ function InfoTab({ deal, onClose, onSaved }) {
     teamRoles,
     dealflowUsers,
     isLoading: areLookupsLoading,
+    isSaving: areLookupsSaving,
     error: lookupError,
+    createDealflowUser,
+    createTeamRole,
   } = useDealflowLookupOptions();
 
   useEffect(() => {
@@ -217,9 +222,6 @@ function InfoTab({ deal, onClose, onSaved }) {
     const prevStageId = loadedReferenceForm.stage;
     const nextStageId = form.stage;
     const stageChanged = prevStageId !== nextStageId && nextStageId;
-    const newStageName = stageChanged
-      ? stages.find((s) => s.id === nextStageId)?.name || null
-      : null;
 
     try {
       const saved = await saveDealDetail(form, lookupOptions);
@@ -230,13 +232,11 @@ function InfoTab({ deal, onClose, onSaved }) {
         title: "Saved",
         message: `"${saved.dealName}" has been updated successfully.`,
       });
-      if (newStageName && deal?.id) {
+      if (stageChanged && deal?.id) {
         const today = new Date().toISOString().slice(0, 10);
-        api.post(`/api/dealflow/deals/${deal.id}/events/`, {
-          title: `Stage changed to ${newStageName}`,
-          description: "",
+        await api.post(`/api/dealflow/deals/${deal.id}/stage-log/`, {
+          stage_id: nextStageId,
           event_date: today,
-          event_type_id: null,
         }).catch(() => {});
       }
       await onSaved?.(saved);
@@ -248,6 +248,69 @@ function InfoTab({ deal, onClose, onSaved }) {
       });
     }
   };
+
+  const handleCreateTeamUser = useCallback(async (payload) => {
+    const normalizedName = String(payload?.name || "").trim();
+    const normalizedEmail = String(payload?.email || "").trim();
+    if (!normalizedName) return null;
+    if (!normalizedEmail) {
+      showToast({
+        type: "error",
+        title: "Email required",
+        message: "Please enter an email for the new user.",
+      });
+      return null;
+    }
+
+    setIsCreatingTeamUser(true);
+    try {
+      const created = await createDealflowUser({
+        name: normalizedName,
+        email: normalizedEmail,
+        role: "Member",
+      });
+      showToast({
+        type: "success",
+        title: "User created",
+        message: `"${created.name}" has been added successfully.`,
+      });
+      return created.id;
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "User creation failed",
+        message: err.message || "Could not create the user.",
+      });
+      return null;
+    } finally {
+      setIsCreatingTeamUser(false);
+    }
+  }, [createDealflowUser, showToast]);
+
+  const handleCreateTeamRole = useCallback(async (payload) => {
+    const normalizedName = String(payload?.name || payload || "").trim();
+    if (!normalizedName) return null;
+
+    setIsCreatingTeamRole(true);
+    try {
+      const created = await createTeamRole(normalizedName);
+      showToast({
+        type: "success",
+        title: "Position created",
+        message: `"${created.name}" has been added successfully.`,
+      });
+      return created.id;
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Position creation failed",
+        message: err.message || "Could not create the position.",
+      });
+      return null;
+    } finally {
+      setIsCreatingTeamRole(false);
+    }
+  }, [createTeamRole, showToast]);
 
   return (
     <div className="it-overlay" onClick={onClose}>
@@ -567,7 +630,14 @@ function InfoTab({ deal, onClose, onSaved }) {
                             placeholder="Select a person"
                             labelKey="name"
                             valueKey="id"
-                            disabled={areLookupsLoading || !isEditing}
+                            disabled={(areLookupsLoading || areLookupsSaving) || !isEditing}
+                            createOptionLabel="Add user"
+                            onCreateOption={handleCreateTeamUser}
+                            isCreatingOption={isCreatingTeamUser}
+                            createFields={[
+                              { key: "name", label: "Name", placeholder: "Full name", required: true },
+                              { key: "email", label: "Email", placeholder: "Email address", required: true, type: "email" },
+                            ]}
                           />
                         </td>
                         <td className="it-team-td">
@@ -578,7 +648,13 @@ function InfoTab({ deal, onClose, onSaved }) {
                             placeholder="Select a position"
                             labelKey="name"
                             valueKey="id"
-                            disabled={areLookupsLoading || !isEditing}
+                            disabled={(areLookupsLoading || areLookupsSaving) || !isEditing}
+                            createOptionLabel="Add position"
+                            onCreateOption={handleCreateTeamRole}
+                            isCreatingOption={isCreatingTeamRole}
+                            createFields={[
+                              { key: "name", label: "Position", placeholder: "Position name", required: true },
+                            ]}
                           />
                         </td>
                         {isEditing && (

@@ -1,7 +1,11 @@
 from uuid import UUID, uuid4
 from collections import defaultdict
 from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 from rest_framework import status
@@ -12,8 +16,13 @@ from rest_framework.views import APIView
 from ..models.core import Fund
 from ..models.reference import Country, Currency
 
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
 
-SETUP_ALLOWED_TYPES = {"status", "stage", "source_type", "doc_type", "sector"}
+
+SETUP_ALLOWED_TYPES = {"status", "stage", "source_type", "doc_type", "sector", "team_role"}
 
 
 def dictfetchall(cursor):
@@ -349,6 +358,7 @@ def serialize_deal_row(row):
         "created_by": row.get("created_by"),
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
+        "stage_log": row.get("stage_log") or [],
     }
 
 
@@ -452,6 +462,251 @@ def serialize_deal_detail_row(row):
     }
 
 
+def normalize_keyword_query(value):
+    return str(value or "").strip()
+
+
+def build_ilike_term(value):
+    normalized = normalize_keyword_query(value).lower()
+    return f"%{normalized}%" if normalized else ""
+
+
+def fetch_deal_list_rows(cursor, deal_ids=None, keyword=None):
+    where_clauses = [
+        "d.deleted_at IS NULL",
+        "(c.deleted_at IS NULL OR c.id IS NULL)",
+    ]
+    params = []
+
+    normalized_deal_ids = []
+    for value in deal_ids or []:
+        normalized = normalize_uuid(value)
+        if normalized:
+            normalized_deal_ids.append(normalized)
+    if deal_ids is not None:
+        if not normalized_deal_ids:
+            return []
+        where_clauses.append("d.id = ANY(%s::uuid[])")
+        params.append(normalized_deal_ids)
+
+    keyword_term = build_ilike_term(keyword)
+    if keyword_term:
+        where_clauses.append(
+            """
+            (
+                LOWER(CONCAT_WS(' ',
+                    d.name,
+                    d.code,
+                    c.name,
+                    c.code,
+                    f.name,
+                    st.name,
+                    ss.name,
+                    cur.name,
+                    cur.code,
+                    sec.name,
+                    geo.name,
+                    d.sourcing_relevant_information,
+                    d.exit_relevant_information,
+                    c.business_activity,
+                    c.website,
+                    c.registration_number,
+                    c.sponsor,
+                    c.address,
+                    c.city,
+                    ct.name
+                )) LIKE %s
+                OR EXISTS (
+                    SELECT 1
+                    FROM dealflow.df_events e
+                    WHERE e.deal_id = d.id
+                      AND e.deleted_at IS NULL
+                      AND LOWER(CONCAT_WS(' ', e.title, e.description)) LIKE %s
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM dealflow.df_documents doc
+                    WHERE doc.deal_id = d.id
+                      AND doc.deleted_at IS NULL
+                      AND LOWER(CONCAT_WS(' ', doc.name, doc.file_name, doc.file_extension, doc.file_url)) LIKE %s
+                )
+            )
+            """
+        )
+        params.extend([keyword_term, keyword_term, keyword_term])
+
+    where_sql = "\n                  AND ".join(where_clauses)
+    cursor.execute(
+        f"""
+        SELECT
+            d.id AS deal_id,
+            d.name AS deal_name,
+            d.code AS deal_code,
+            d.company_id,
+            d.fund_id,
+            d.stage_id,
+            d.status_id,
+            d.currency_id,
+            d.ticket_amount,
+            d.created_by,
+            d.created_at,
+            d.updated_at,
+
+            c.name AS company_name,
+            c.code AS company_code,
+            c.sector_id,
+            c.country_of_main_operation_id,
+            c.country_of_incorporation_id,
+
+            ct.name AS contact_name,
+
+            f.name AS fund_name,
+
+            st.name AS stage_name,
+            st.color AS stage_color,
+
+            ss.name AS status_name,
+            ss.color AS status_color,
+
+            cur.name AS currency_name,
+            cur.code AS currency_code,
+
+            sec.name AS sector_name,
+            sec.color AS sector_color,
+
+            geo.id AS country_id,
+            geo.name AS country_name,
+            geo.code AS country_code
+
+        FROM dealflow.df_deals d
+        LEFT JOIN dealflow.df_companies c
+            ON c.id = d.company_id
+        LEFT JOIN dealflow.df_contacts ct
+            ON ct.id = d.contact_id
+        LEFT JOIN dealflow.df_funds f
+            ON f.id = d.fund_id
+        LEFT JOIN dealflow.df_taxonomy_items st
+            ON st.id = d.stage_id
+        LEFT JOIN dealflow.df_taxonomy_items ss
+            ON ss.id = d.status_id
+        LEFT JOIN dealflow.df_taxonomy_items cur
+            ON cur.id = d.currency_id
+        LEFT JOIN dealflow.df_taxonomy_items sec
+            ON sec.id = c.sector_id
+        LEFT JOIN dealflow.df_taxonomy_items geo
+            ON geo.id = COALESCE(
+                c.country_of_main_operation_id,
+                c.country_of_incorporation_id,
+                c.address_country_id
+            )
+        WHERE {where_sql}
+        ORDER BY d.updated_at DESC NULLS LAST, d.created_at DESC NULLS LAST
+        """,
+        params,
+    )
+    return dictfetchall(cursor)
+
+
+def resolve_dealflow_document_path(file_url):
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    normalized_candidates = []
+
+    raw_value = str(file_url or "").strip()
+    if raw_value:
+        parsed = urlparse(raw_value)
+        candidate = parsed.path if parsed.scheme else raw_value
+        normalized_candidates.append(candidate)
+
+    for candidate in normalized_candidates:
+        cleaned = str(candidate or "").replace("\\", "/").strip()
+        if not cleaned:
+            continue
+        if settings.MEDIA_URL and cleaned.startswith(settings.MEDIA_URL):
+            cleaned = cleaned[len(settings.MEDIA_URL):]
+        elif settings.MEDIA_URL:
+            media_marker = settings.MEDIA_URL.rstrip("/")
+            if media_marker and media_marker in cleaned:
+                cleaned = cleaned.split(media_marker, 1)[-1]
+
+        cleaned = cleaned.lstrip("/").strip()
+        if not cleaned:
+            continue
+
+        candidate_path = Path(cleaned)
+        resolved = candidate_path.resolve() if candidate_path.is_absolute() else (media_root / candidate_path).resolve()
+        try:
+            resolved.relative_to(media_root)
+        except ValueError:
+            continue
+        if resolved.is_file():
+            return resolved
+
+    return None
+
+
+@lru_cache(maxsize=128)
+def read_pdf_text_cached(file_path, modified_at_ns):
+    del modified_at_ns
+
+    if PdfReader is None:
+        return ""
+
+    try:
+        reader = PdfReader(file_path)
+    except Exception:
+        return ""
+
+    extracted_pages = []
+    for page in reader.pages:
+        try:
+            extracted_pages.append(page.extract_text() or "")
+        except Exception:
+            continue
+
+    return "\n".join(extracted_pages).lower()
+
+
+def fetch_pdf_keyword_match_ids(cursor, keyword):
+    normalized_keyword = normalize_keyword_query(keyword).lower()
+    if not normalized_keyword or PdfReader is None:
+        return set()
+
+    cursor.execute(
+        """
+        SELECT DISTINCT
+            d.deal_id,
+            d.file_url,
+            d.file_name,
+            d.file_extension
+        FROM dealflow.df_documents d
+        INNER JOIN dealflow.df_deals deal
+            ON deal.id = d.deal_id
+        WHERE d.deleted_at IS NULL
+          AND deal.deleted_at IS NULL
+          AND (
+              lower(COALESCE(d.file_extension, '')) = 'pdf'
+              OR lower(COALESCE(d.file_name, '')) LIKE '%%.pdf'
+          )
+        """
+    )
+
+    matched_deal_ids = set()
+    for row in dictfetchall(cursor):
+        file_path = resolve_dealflow_document_path(row.get("file_url"))
+        if not file_path:
+            continue
+
+        try:
+            extracted_text = read_pdf_text_cached(str(file_path), file_path.stat().st_mtime_ns)
+        except OSError:
+            continue
+
+        if normalized_keyword in extracted_text:
+            matched_deal_ids.add(str(row.get("deal_id")))
+
+    return matched_deal_ids
+
+
 def serialize_deal_team_member_row(row):
     return {
         "id": row.get("id"),
@@ -529,6 +784,119 @@ def serialize_event_row(row):
         "documents_count": int(row.get("documents_count") or 0),
         "documents": row.get("documents") or [],
     }
+
+
+def parse_stage_name_from_event_title(title):
+    normalized = str(title or "").strip()
+    prefixes = ("Stage changed to ", "Stage updated to ")
+    for prefix in prefixes:
+        if normalized.startswith(prefix):
+            return normalized[len(prefix):].strip()
+    return ""
+
+
+def format_stage_log_display_date(value):
+    if not value:
+        return ""
+    if hasattr(value, "strftime"):
+        return value.strftime("%b %d, %Y")
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed.strftime("%b %d, %Y")
+    except Exception:
+        return str(value)
+
+
+def fetch_stage_log_map(cursor, deal_ids):
+    normalized_deal_ids = [normalize_uuid(value) for value in (deal_ids or [])]
+    normalized_deal_ids = [value for value in normalized_deal_ids if value]
+    if not normalized_deal_ids:
+        return {}
+
+    cursor.execute(
+        """
+        SELECT
+            e.id AS event_id,
+            e.deal_id,
+            e.title,
+            e.event_date,
+            e.created_by,
+            e.created_at,
+            e.updated_at,
+            u.name AS created_by_name
+        FROM dealflow.df_events e
+        LEFT JOIN dealflow.df_users u
+            ON u.id = e.created_by
+        WHERE e.deal_id = ANY(%s::uuid[])
+          AND e.deleted_at IS NULL
+          AND (
+              e.title LIKE 'Stage changed to %%'
+              OR e.title LIKE 'Stage updated to %%'
+          )
+        ORDER BY e.event_date ASC NULLS LAST, e.created_at ASC NULLS LAST, e.updated_at ASC NULLS LAST
+        """,
+        [normalized_deal_ids],
+    )
+
+    stage_log_map = defaultdict(list)
+    for row in dictfetchall(cursor):
+        stage_name = parse_stage_name_from_event_title(row.get("title"))
+        if not stage_name:
+            continue
+        deal_id = str(row.get("deal_id"))
+        stage_log_map[deal_id].append(
+            {
+                "id": row.get("event_id"),
+                "stage": stage_name,
+                "date": format_stage_log_display_date(row.get("event_date")),
+                "rawDate": row.get("event_date"),
+                "changedBy": row.get("created_by_name") or "",
+            }
+        )
+    return stage_log_map
+
+
+def sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=None):
+    cursor.execute(
+        """
+        SELECT
+            e.title,
+            e.event_date,
+            e.created_at
+        FROM dealflow.df_events e
+        WHERE e.deal_id = %s
+          AND e.deleted_at IS NULL
+          AND (
+              e.title LIKE 'Stage changed to %%'
+              OR e.title LIKE 'Stage updated to %%'
+          )
+        ORDER BY e.event_date DESC NULLS LAST, e.created_at DESC NULLS LAST
+        LIMIT 1
+        """,
+        [str(deal_id)],
+    )
+    row = cursor.fetchone()
+
+    next_stage_id = fallback_stage_id
+    if row:
+        stage_name = parse_stage_name_from_event_title(row[0])
+        if stage_name:
+            resolved_stage_id = resolve_taxonomy_item_id(cursor, "stage", names=(stage_name,))
+            if resolved_stage_id:
+                next_stage_id = resolved_stage_id
+
+    if next_stage_id:
+        cursor.execute(
+            """
+            UPDATE dealflow.df_deals
+            SET
+                stage_id = %s,
+                updated_at = %s
+            WHERE id = %s
+              AND deleted_at IS NULL
+            """,
+            [next_stage_id, timezone.now(), str(deal_id)],
+        )
 
 
 def fetch_deal_events(cursor, deal_id):
@@ -1432,72 +1800,20 @@ class DealflowDealListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        keyword = normalize_keyword_query(request.GET.get("keyword"))
+
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    d.id AS deal_id,
-                    d.name AS deal_name,
-                    d.code AS deal_code,
-                    d.company_id,
-                    d.fund_id,
-                    d.stage_id,
-                    d.status_id,
-                    d.currency_id,
-                    d.ticket_amount,
-                    d.created_by,
-                    d.created_at,
-                    d.updated_at,
+            rows = fetch_deal_list_rows(cursor, keyword=keyword)
 
-                    c.name AS company_name,
-                    c.code AS company_code,
-                    c.sector_id,
-                    c.country_of_main_operation_id,
-                    c.country_of_incorporation_id,
-
-                    f.name AS fund_name,
-
-                    st.name AS stage_name,
-                    st.color AS stage_color,
-
-                    ss.name AS status_name,
-                    ss.color AS status_color,
-
-                    cur.name AS currency_name,
-                    cur.code AS currency_code,
-
-                    sec.name AS sector_name,
-                    sec.color AS sector_color,
-
-                    geo.id AS country_id,
-                    geo.name AS country_name,
-                    geo.code AS country_code
-
-                FROM dealflow.df_deals d
-                LEFT JOIN dealflow.df_companies c
-                    ON c.id = d.company_id
-                LEFT JOIN dealflow.df_funds f
-                    ON f.id = d.fund_id
-                LEFT JOIN dealflow.df_taxonomy_items st
-                    ON st.id = d.stage_id
-                LEFT JOIN dealflow.df_taxonomy_items ss
-                    ON ss.id = d.status_id
-                LEFT JOIN dealflow.df_taxonomy_items cur
-                    ON cur.id = d.currency_id
-                LEFT JOIN dealflow.df_taxonomy_items sec
-                    ON sec.id = c.sector_id
-                LEFT JOIN dealflow.df_taxonomy_items geo
-                    ON geo.id = COALESCE(
-                        c.country_of_main_operation_id,
-                        c.country_of_incorporation_id,
-                        c.address_country_id
-                    )
-                WHERE d.deleted_at IS NULL
-                  AND (c.deleted_at IS NULL OR c.id IS NULL)
-                ORDER BY d.updated_at DESC NULLS LAST, d.created_at DESC NULLS LAST
-                """
-            )
-            rows = dictfetchall(cursor)
+            if keyword:
+                existing_ids = {str(row.get("deal_id")) for row in rows if row.get("deal_id")}
+                pdf_match_ids = fetch_pdf_keyword_match_ids(cursor, keyword)
+                missing_pdf_match_ids = [deal_id for deal_id in pdf_match_ids if deal_id not in existing_ids]
+                if missing_pdf_match_ids:
+                    rows.extend(fetch_deal_list_rows(cursor, deal_ids=missing_pdf_match_ids))
+            stage_log_map = fetch_stage_log_map(cursor, [row.get("deal_id") for row in rows])
+            for row in rows:
+                row["stage_log"] = stage_log_map.get(str(row.get("deal_id")), [])
 
         return Response([serialize_deal_row(row) for row in rows], status=status.HTTP_200_OK)
 
@@ -1718,6 +2034,75 @@ class DealflowUserListView(APIView):
             )
             rows = dictfetchall(cursor)
         return Response(rows, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        email = str(payload.get("email") or "").strip() or None
+        role = str(payload.get("role") or "").strip() or "Member"
+
+        if not name:
+            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not role:
+            return Response({"error": "Role is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        user_id = uuid4()
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    if email:
+                        cursor.execute(
+                            """
+                            SELECT id
+                            FROM dealflow.df_users
+                            WHERE lower(email) = lower(%s)
+                            LIMIT 1
+                            """,
+                            [email],
+                        )
+                        if cursor.fetchone():
+                            return Response(
+                                {"error": "A user with this email already exists."},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
+
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_users (
+                            id,
+                            name,
+                            email,
+                            role,
+                            is_active,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, TRUE, %s, %s)
+                        """,
+                        [str(user_id), name, email, role, now, now],
+                    )
+
+                    cursor.execute(
+                        """
+                        SELECT id, name, email, role, is_active, created_at, updated_at
+                        FROM dealflow.df_users
+                        WHERE id = %s
+                        LIMIT 1
+                        """,
+                        [str(user_id)],
+                    )
+                    row = cursor.fetchone()
+                    created = dict(zip([col[0] for col in cursor.description], row)) if row else None
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(created or {}, status=status.HTTP_201_CREATED)
 
 
 class DealflowSetupItemsView(APIView):
@@ -2417,6 +2802,178 @@ class DealflowDealEventDetailView(APIView):
                 )
                 if cursor.rowcount == 0:
                     return Response({"error": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealflowDealStageLogView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, deal_id):
+        payload = request.data or {}
+        stage_id = normalize_uuid(payload.get("stage_id"))
+        event_date = payload.get("event_date")
+
+        if not stage_id:
+            return Response({"error": "Stage is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not event_date:
+            return Response({"error": "Effective date is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        created_by = resolve_dealflow_user_id(getattr(request.user, "email", None))
+        now = timezone.now()
+        event_id = uuid4()
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    current_deal = fetch_deal_detail(cursor, deal_id)
+                    if not current_deal:
+                        return Response({"error": "Deal not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    cursor.execute(
+                        """
+                        SELECT id, name
+                        FROM dealflow.df_taxonomy_items
+                        WHERE id = %s
+                          AND type = 'stage'
+                          AND is_active = TRUE
+                        LIMIT 1
+                        """,
+                        [stage_id],
+                    )
+                    stage_row = cursor.fetchone()
+                    if not stage_row:
+                        return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    stage_name = stage_row[1]
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_events (
+                            id,
+                            deal_id,
+                            title,
+                            description,
+                            event_date,
+                            event_type_id,
+                            created_by,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [
+                            str(event_id),
+                            str(deal_id),
+                            f"Stage changed to {stage_name}",
+                            "",
+                            event_date,
+                            None,
+                            created_by,
+                            now,
+                            now,
+                        ],
+                    )
+                    sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
+                    events = fetch_deal_events(cursor, deal_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        created = next((event for event in events if str(event.get("id")) == str(event_id)), None)
+        return Response(created or {}, status=status.HTTP_201_CREATED)
+
+
+class DealflowDealStageLogDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, deal_id, event_id):
+        payload = request.data or {}
+        stage_id = normalize_uuid(payload.get("stage_id"))
+        event_date = payload.get("event_date")
+
+        if not stage_id:
+            return Response({"error": "Stage is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not event_date:
+            return Response({"error": "Effective date is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, name
+                        FROM dealflow.df_taxonomy_items
+                        WHERE id = %s
+                          AND type = 'stage'
+                          AND is_active = TRUE
+                        LIMIT 1
+                        """,
+                        [stage_id],
+                    )
+                    stage_row = cursor.fetchone()
+                    if not stage_row:
+                        return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    stage_name = stage_row[1]
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_events
+                        SET
+                            title = %s,
+                            description = %s,
+                            event_date = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                          AND deal_id = %s
+                          AND deleted_at IS NULL
+                          AND (
+                              title LIKE 'Stage changed to %%'
+                              OR title LIKE 'Stage updated to %%'
+                          )
+                        """,
+                        [f"Stage changed to {stage_name}", "", event_date, now, str(event_id), str(deal_id)],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
+                    events = fetch_deal_events(cursor, deal_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        updated = next((event for event in events if str(event.get("id")) == str(event_id)), None)
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+    def delete(self, request, deal_id, event_id):
+        now = timezone.now()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_events
+                        SET
+                            deleted_at = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                          AND deal_id = %s
+                          AND deleted_at IS NULL
+                          AND (
+                              title LIKE 'Stage changed to %%'
+                              OR title LIKE 'Stage updated to %%'
+                          )
+                        """,
+                        [now, now, str(event_id), str(deal_id)],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    sync_deal_stage_from_stage_log(cursor, deal_id)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

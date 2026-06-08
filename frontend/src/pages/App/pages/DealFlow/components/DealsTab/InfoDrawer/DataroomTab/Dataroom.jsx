@@ -37,6 +37,16 @@ function typeBadgeStyle(color) {
   return color ? { backgroundColor: `${color}22`, color } : undefined;
 }
 
+function resolveDownloadUrl(fileUrl) {
+  const normalized = String(fileUrl || "").trim();
+  if (!normalized) return "";
+  try {
+    return new URL(normalized, window.location.origin).toString();
+  } catch {
+    return normalized;
+  }
+}
+
 export default function Dataroom({ dealId }) {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
@@ -232,6 +242,43 @@ export default function Dataroom({ dealId }) {
     }
   };
 
+  const handleDocumentDownload = async (doc) => {
+    const downloadUrl = resolveDownloadUrl(doc?.fileUrl);
+    const fileLabel = doc?.fileName || doc?.name || "document";
+
+    if (!downloadUrl) {
+      showToast({
+        type: "error",
+        title: "File missing",
+        message: `No file was found for "${fileLabel}".`,
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(downloadUrl, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(response.status === 404 ? "File not found." : "Could not download the file.");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = doc?.fileName || doc?.name || "download";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Download failed",
+        message: err.message || `Could not find the file for "${fileLabel}".`,
+      });
+    }
+  };
+
   return (
     <div className="dr-wrapper">
       {showFilter && (
@@ -321,7 +368,14 @@ export default function Dataroom({ dealId }) {
                         <input className="dr-inline-input" value={editDraft.name} onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))} />
                       ) : (
                         <div className="dr-doc-main">
-                          <span>{doc.name}</span>
+                          <button
+                            type="button"
+                            className="dr-doc-download"
+                            onClick={() => handleDocumentDownload(doc)}
+                            title={`Download ${doc.name || doc.fileName || "document"}`}
+                          >
+                            {doc.name}
+                          </button>
                           <span className="dr-doc-sub">{doc.fileName}{formatFileSize(doc.fileSize) ? ` • ${formatFileSize(doc.fileSize)}` : ""}</span>
                         </div>
                       )}
@@ -364,18 +418,14 @@ export default function Dataroom({ dealId }) {
                         </div>
                       ) : (
                         <div className="dr-edit-actions">
-                          {doc.fileUrl && (
-                            <a
-                              className="dr-edit-btn dr-edit-btn--download"
-                              href={doc.fileUrl}
-                              download={doc.fileName || doc.name}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Download file"
-                            >
-                              <FileDownloadIcon />
-                            </a>
-                          )}
+                          <button
+                            type="button"
+                            className="dr-edit-btn dr-edit-btn--download"
+                            onClick={() => handleDocumentDownload(doc)}
+                            title="Download file"
+                          >
+                            <FileDownloadIcon />
+                          </button>
                           <button className="dr-edit-btn" onClick={() => startEdit(doc)}><EditLineIcon /></button>
                           <button className="dr-edit-btn dr-edit-btn--cancel" onClick={() => handleDelete(doc)}><TrashIcon /></button>
                         </div>

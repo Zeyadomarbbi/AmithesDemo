@@ -304,6 +304,21 @@
   gap: 2px;
 }
 
+.dr-doc-download {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #1f2937;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dr-doc-download:hover {
+  color: #375a89;
+  text-decoration: underline;
+}
+
 .dr-doc-sub {
   font-family: "Inter", sans-serif;
   font-size: 12px;

@@ -1,7 +1,6 @@
 // SimpleDropdown.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import SearchBar from '../SearchBar';
 import { CheckMarkIcon } from '../../Icons/InteractiveIcons';
 import './SimpleDropdown.css';
 
@@ -19,13 +18,22 @@ function SimpleDropdown({
     isSearchBar = true,
     searchLabel = "Search...",
     variant = "default",
-    icon = null
+    icon = null,
+    createOptionLabel = "",
+    onCreateOption = null,
+    isCreatingOption = false,
+    createFields = null
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+    const [createValue, setCreateValue] = useState("");
+    const [createFormValues, setCreateFormValues] = useState({});
     const [dropdownStyle, setDropdownStyle] = useState({});
     const triggerRef = useRef(null);
     const dropdownRef = useRef(null);
+    const createInputRef = useRef(null);
+    const hasCustomCreateFields = Array.isArray(createFields) && createFields.length > 0;
 
     const validSelection = isSingle
         ? value
@@ -99,6 +107,19 @@ function SimpleDropdown({
         };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setIsCreateFormOpen(false);
+            setCreateValue("");
+            setCreateFormValues({});
+            return;
+        }
+        if (isCreateFormOpen && createInputRef.current) {
+            createInputRef.current.focus();
+            createInputRef.current.select();
+        }
+    }, [isOpen, isCreateFormOpen]);
+
     let label = placeholder || "Select";
 
     if (isSingle) {
@@ -128,11 +149,16 @@ function SimpleDropdown({
     const dropdown = (
         <div ref={dropdownRef} className="sd-dropdown" style={dropdownStyle}>
             {isSearchBar && (
-                <SearchBar
-                    placeholder={searchLabel}
-                    onSearch={setSearchTerm}
-                    containerClassName="sd-search"
-                />
+                <div className="sd-search-wrap" onMouseDown={(e) => e.stopPropagation()}>
+                    <input
+                        type="text"
+                        className="sd-search-input"
+                        placeholder={searchLabel}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        autoFocus
+                    />
+                </div>
             )}
 
             <div className="sd-list">
@@ -205,6 +231,146 @@ function SimpleDropdown({
                     })
                 ) : (
                     <div className="sd-empty">No results found</div>
+                )}
+
+                {typeof onCreateOption === "function" && (
+                    <>
+                        {!isCreateFormOpen ? (
+                            <button
+                                type="button"
+                                className="sd-create-option"
+                                onClick={() => {
+                                    setCreateValue(String(searchTerm || "").trim());
+                                    if (hasCustomCreateFields) {
+                                        const nextValues = {};
+                                        createFields.forEach((field, index) => {
+                                            nextValues[field.key] =
+                                                index === 0 ? String(searchTerm || "").trim() : "";
+                                        });
+                                        setCreateFormValues(nextValues);
+                                    }
+                                    setIsCreateFormOpen(true);
+                                }}
+                                disabled={isCreatingOption}
+                            >
+                                {createOptionLabel || "Add new"}
+                            </button>
+                        ) : (
+                            <div className="sd-create-form" onMouseDown={(e) => e.stopPropagation()}>
+                                {hasCustomCreateFields ? (
+                                    <>
+                                        {createFields.map((field, index) => (
+                                            <input
+                                                key={field.key}
+                                                ref={index === 0 ? createInputRef : null}
+                                                type={field.type || "text"}
+                                                className="sd-create-input"
+                                                placeholder={field.placeholder || field.label || "Type a value"}
+                                                value={createFormValues[field.key] || ""}
+                                                onChange={(e) =>
+                                                    setCreateFormValues((prev) => ({
+                                                        ...prev,
+                                                        [field.key]: e.target.value,
+                                                    }))
+                                                }
+                                                onKeyDown={async (e) => {
+                                                    const hasMissingRequiredField = createFields.some(
+                                                        (item) => item.required && !String(createFormValues[item.key] || "").trim()
+                                                    );
+                                                    if (e.key === "Enter" && !isCreatingOption && !hasMissingRequiredField) {
+                                                        const createdValue = await onCreateOption(createFormValues);
+                                                        if (createdValue !== undefined && createdValue !== null) {
+                                                            onChange(createdValue);
+                                                            setIsOpen(false);
+                                                        }
+                                                        setSearchTerm("");
+                                                        setCreateValue("");
+                                                        setCreateFormValues({});
+                                                        setIsCreateFormOpen(false);
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                        setCreateValue("");
+                                                        setCreateFormValues({});
+                                                        setIsCreateFormOpen(false);
+                                                    }
+                                                }}
+                                            />
+                                        ))}
+                                    </>
+                                ) : (
+                                    <input
+                                        ref={createInputRef}
+                                        type="text"
+                                        className="sd-create-input"
+                                        placeholder="Type a new value"
+                                        value={createValue}
+                                        onChange={(e) => setCreateValue(e.target.value)}
+                                        onKeyDown={async (e) => {
+                                            if (e.key === "Enter" && !isCreatingOption && String(createValue || "").trim()) {
+                                                const createdValue = await onCreateOption(String(createValue || "").trim());
+                                                if (createdValue !== undefined && createdValue !== null) {
+                                                    onChange(createdValue);
+                                                    setIsOpen(false);
+                                                }
+                                                setSearchTerm("");
+                                                setCreateValue("");
+                                                setIsCreateFormOpen(false);
+                                            }
+                                            if (e.key === "Escape") {
+                                                setCreateValue("");
+                                                setIsCreateFormOpen(false);
+                                            }
+                                        }}
+                                    />
+                                )}
+                                <div className="sd-create-actions">
+                                    <button
+                                        type="button"
+                                        className="sd-create-action sd-create-action--ghost"
+                                        onClick={() => {
+                                            setCreateValue("");
+                                            setCreateFormValues({});
+                                            setIsCreateFormOpen(false);
+                                        }}
+                                        disabled={isCreatingOption}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="sd-create-action sd-create-action--primary"
+                                        onClick={async () => {
+                                            const nextPayload = hasCustomCreateFields ? createFormValues : String(createValue || "").trim();
+                                            if (
+                                                (hasCustomCreateFields &&
+                                                    createFields.some((field) => field.required && !String(createFormValues[field.key] || "").trim())) ||
+                                                (!hasCustomCreateFields && !nextPayload)
+                                            ) {
+                                                return;
+                                            }
+                                            const createdValue = await onCreateOption(nextPayload);
+                                            if (createdValue !== undefined && createdValue !== null) {
+                                                onChange(createdValue);
+                                                setIsOpen(false);
+                                            }
+                                            setSearchTerm("");
+                                            setCreateValue("");
+                                            setCreateFormValues({});
+                                            setIsCreateFormOpen(false);
+                                        }}
+                                        disabled={
+                                            isCreatingOption ||
+                                            (hasCustomCreateFields
+                                                ? createFields.some((field) => field.required && !String(createFormValues[field.key] || "").trim())
+                                                : !String(createValue || "").trim())
+                                        }
+                                    >
+                                        {isCreatingOption ? "Saving..." : "Save"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTableSort, SortableHeaderRenderer } from "../../../../../../../components/Sort/TableSort";
 import { TrashIcon, DownloadIcon, PlusIcon, MinusIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
 import SearchBar from "/src/components/SearchBar/SearchBar";
@@ -8,7 +8,6 @@ import FilterModal from "./components/FilterModal";
 import NewCompanyModal from "./components/NewCompanyModal";
 import InfoTab from "../InfoDrawer/InfoTab/InfoTab";
 import { useDealsBackend, useDealflowLookupOptions } from "../Deals_backend_work";
-import { useAuth } from "/src/hooks/Auth/AuthContext";
 import useApi from "/src/hooks/api/useApi";
 import { exportRowsToExcel } from "../exportUtils";
 import StageLogModal, { toRawDate } from "./components/StageLogModal";
@@ -17,9 +16,9 @@ import "./Deals.css";
 const DUMMY_STAGE_LOG = [
   { stage: "Sourcing", date: "Jan 10, 2024", changedBy: "Hadeel" },
   { stage: "Briefing", date: "Feb 03, 2024", changedBy: "Ziad Omar" },
-  { stage: "IC 1",    date: "Mar 15, 2024", changedBy: "Ahmed Amer" },
-  { stage: "IC 2",    date: "Apr 22, 2024", changedBy: "Ziad Omar" },
-  { stage: "Invested",date: "May 30, 2024", changedBy: "Hadeel" },
+  { stage: "IC 1", date: "Mar 15, 2024", changedBy: "Ahmed Amer" },
+  { stage: "IC 2", date: "Apr 22, 2024", changedBy: "Ziad Omar" },
+  { stage: "Invested", date: "May 30, 2024", changedBy: "Hadeel" },
 ];
 
 const COLS = [
@@ -47,12 +46,13 @@ function getStageBadgeStyle(color) {
 
 function Deals() {
   const [search, setSearch] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [expandedDeals, setExpandedDeals] = useState(new Set());
-  const [stageLogOverrides, setStageLogOverrides] = useState({});
   const [stageLogModal, setStageLogModal] = useState(null);
 
   const toggleExpand = (id) =>
@@ -62,16 +62,20 @@ function Deals() {
       return next;
     });
 
-  const { user } = useAuth();
-  const currentUserName = user
-    ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || ""
-    : "";
-
   const { toast, showToast, closeToast } = useToast();
   const api = useApi();
-  const { deals, isLoading, isCreating, isDeleting, error, createDeal, deleteDeals, loadDeals } = useDealsBackend();
+  const { deals, isLoading, isCreating, isDeleting, error, createDeal, deleteDeals, loadDeals } = useDealsBackend({
+    keyword: debouncedKeyword,
+  });
   const { stages } = useDealflowLookupOptions();
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedKeyword(keyword.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [keyword]);
   const stageColorMap = useMemo(
     () => Object.fromEntries(stages.filter((s) => s.color).map((s) => [s.name, s.color])),
     [stages]
@@ -79,6 +83,10 @@ function Deals() {
 
   const sourceDeals = useMemo(() => (Array.isArray(deals) ? deals : []), [deals]);
   const { sorted, sortKey, toggleSort } = useTableSort(sourceDeals, "name");
+  const selectedDealRecord = useMemo(() => {
+    if (!selectedDeal?.id) return null;
+    return sourceDeals.find((deal) => deal.id === selectedDeal.id) || selectedDeal;
+  }, [sourceDeals, selectedDeal]);
 
   const sectorOptions = useMemo(
     () => [...new Set(sourceDeals.map((d) => d.sector).filter(Boolean))].sort(),
@@ -90,63 +98,99 @@ function Deals() {
   );
 
   const getStageLog = useCallback(
-    (deal) => stageLogOverrides[deal.id] ?? (deal.stageLog || DUMMY_STAGE_LOG),
-    [stageLogOverrides]
+    (deal) => (Array.isArray(deal.stageLog) && deal.stageLog.length > 0 ? deal.stageLog : DUMMY_STAGE_LOG),
+    []
   );
 
-  const recordStageEvent = useCallback(async (dealId, title, rawDate, description) => {
-    try {
-      await api.post(`/api/dealflow/deals/${dealId}/events/`, {
-        title,
-        description: description || "",
-        event_date: rawDate || null,
-        event_type_id: null,
-      });
-    } catch {
-      // fire-and-forget: event recording failure should not block the stage log update
-    }
-  }, [api]);
-
-  const handleSaveStageEntry = useCallback(({ stage, date, rawDate }) => {
+  const handleSaveStageEntry = useCallback(async ({ stage, rawDate }) => {
     if (!stageLogModal) return;
     const { dealId, editIndex } = stageLogModal;
     const isEdit = editIndex !== null && editIndex !== undefined;
-
     const deal = sourceDeals.find((d) => d.id === dealId);
-    const current = [...(stageLogOverrides[dealId] ?? (deal?.stageLog || DUMMY_STAGE_LOG))];
-    const oldStage = isEdit ? current[editIndex]?.stage : null;
-    const entry = { stage, date, rawDate, changedBy: currentUserName || undefined };
-    current.push(entry);
-    setStageLogOverrides((prev) => ({ ...prev, [dealId]: current }));
-    setStageLogModal(null);
+    const current = deal ? getStageLog(deal) : [];
+    const currentEntry = isEdit ? current[editIndex] : null;
+    const stageOption = stages.find((item) => item.name === stage);
 
-    if (isEdit) {
-      recordStageEvent(dealId, `Stage updated to ${stage}`, rawDate, oldStage && oldStage !== stage ? `Previously: ${oldStage}` : "");
-    } else {
-      recordStageEvent(dealId, `Stage changed to ${stage}`, rawDate, "");
+    if (!stageOption?.id) {
+      showToast({ type: "error", title: "Stage missing", message: "Please select a valid stage." });
+      return;
     }
-  }, [stageLogModal, sourceDeals, stageLogOverrides, currentUserName, recordStageEvent]);
 
-  const handleDeleteStageEntry = useCallback((dealId, entryIndex) => {
+    try {
+      if (isEdit && currentEntry?.id) {
+        await api.patch(`/api/dealflow/deals/${dealId}/stage-log/${currentEntry.id}/`, {
+          stage_id: stageOption.id,
+          event_date: rawDate || null,
+        });
+      } else {
+        await api.post(`/api/dealflow/deals/${dealId}/stage-log/`, {
+          stage_id: stageOption.id,
+          event_date: rawDate || null,
+        });
+      }
+      const reloadedDeals = await loadDeals();
+      const refreshedDeal = Array.isArray(reloadedDeals)
+        ? reloadedDeals.find((item) => item.id === dealId)
+        : null;
+      if (refreshedDeal && selectedDeal?.id === dealId) {
+        setSelectedDeal(refreshedDeal);
+      }
+      setStageLogModal(null);
+      showToast({
+        type: "success",
+        title: isEdit ? "Stage updated" : "Stage added",
+        message: isEdit
+          ? `The stage log entry was updated to "${stage}".`
+          : `A new stage entry for "${stage}" was added successfully.`,
+      });
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: isEdit ? "Update failed" : "Add failed",
+        message: err.message || "Could not save and reload the stage entry.",
+      });
+    }
+  }, [stageLogModal, sourceDeals, stages, api, loadDeals, showToast, getStageLog, selectedDeal]);
+
+  const handleDeleteStageEntry = useCallback(async (dealId, entryIndex) => {
     const deal = sourceDeals.find((d) => d.id === dealId);
-    const current = [...(stageLogOverrides[dealId] ?? (deal?.stageLog || DUMMY_STAGE_LOG))];
+    const current = deal ? getStageLog(deal) : [];
     const removed = current[entryIndex];
-    current.splice(entryIndex, 1);
-    setStageLogOverrides((prev) => ({ ...prev, [dealId]: current }));
-    if (removed?.stage) {
-      recordStageEvent(dealId, `Stage removed: ${removed.stage}`, removed.rawDate || null, "");
+    if (!removed?.id) {
+      showToast({
+        type: "error",
+        title: "Delete unavailable",
+        message: "Only saved stage entries can be deleted.",
+      });
+      return;
     }
-  }, [sourceDeals, stageLogOverrides, recordStageEvent]);
+
+    try {
+      await api.delete(`/api/dealflow/deals/${dealId}/stage-log/${removed.id}/`);
+      await loadDeals().catch(() => {});
+      showToast({
+        type: "success",
+        title: "Stage removed",
+        message: `The stage "${removed.stage}" was removed successfully.`,
+      });
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: "Delete failed",
+        message: err.message || "Could not delete the stage entry.",
+      });
+    }
+  }, [sourceDeals, api, loadDeals, showToast, getStageLog]);
 
   const stageLogModalInitialEntry = useMemo(() => {
     if (!stageLogModal || stageLogModal.editIndex === null) return null;
     const deal = sourceDeals.find((d) => d.id === stageLogModal.dealId);
     if (!deal) return null;
-    const log = stageLogOverrides[deal.id] ?? (deal.stageLog || DUMMY_STAGE_LOG);
+    const log = getStageLog(deal);
     const entry = log[stageLogModal.editIndex];
     if (!entry) return null;
     return { stage: entry.stage, rawDate: entry.rawDate || toRawDate(entry.date) };
-  }, [stageLogModal, sourceDeals, stageLogOverrides]);
+  }, [stageLogModal, sourceDeals, getStageLog]);
 
   const filtered = sorted.filter((deal) => {
     const q = search.trim().toLowerCase();
@@ -237,16 +281,19 @@ function Deals() {
       {showNewCompany && (
         <NewCompanyModal onClose={() => setShowNewCompany(false)} onNext={handleCreateDeal} />
       )}
-      {selectedDeal && (
+      {selectedDealRecord && (
         <InfoTab
-          deal={selectedDeal}
+          deal={selectedDealRecord}
           onClose={() => setSelectedDeal(null)}
           onSaved={async () => { await loadDeals().catch(() => {}); }}
         />
       )}
 
       <div className="deals-toolbar">
-        <SearchBar placeholder="Search deals..." onSearch={setSearch} />
+        <div className="deals-toolbar-searches">
+          <SearchBar placeholder="Search deals..." onSearch={setSearch} />
+          <SearchBar placeholder="Keyword search..." onSearch={setKeyword} />
+        </div>
         <div className="deals-toolbar-actions">
           <button className="deals-btn-outline" onClick={handleDelete} disabled={selectedIds.length === 0 || isDeleting}>
             <TrashIcon />

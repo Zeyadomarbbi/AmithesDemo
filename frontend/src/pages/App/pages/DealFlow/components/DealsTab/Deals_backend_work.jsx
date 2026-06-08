@@ -7,6 +7,7 @@ const DEALFLOW_DEALS_ENDPOINT = "/api/dealflow/deals/";
 const DEALFLOW_TAXONOMY_ENDPOINT = "/api/dealflow/taxonomy/";
 const DEALFLOW_FUNDS_ENDPOINT = "/api/dealflow/funds/";
 const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
+const DEALFLOW_SETUP_ENDPOINT = "/api/dealflow/setup/";
 const SHARED_FUNDS_ENDPOINT = "/api/funds/";
 
 function toSafeArray(value) {
@@ -160,6 +161,13 @@ function normalizeDealRow(row) {
     createdBy: row?.created_by ?? row?.createdBy ?? null,
     createdAt: row?.created_at ?? row?.createdAt ?? null,
     updatedAt: row?.updated_at ?? row?.updatedAt ?? null,
+    stageLog: toSafeArray(row?.stage_log).map((entry) => ({
+      id: entry?.id ?? null,
+      stage: entry?.stage ?? "",
+      date: entry?.date ?? "",
+      rawDate: entry?.rawDate ?? entry?.raw_date ?? "",
+      changedBy: entry?.changedBy ?? entry?.changed_by ?? "",
+    })),
     rawDeal: row,
     rawCompany: row?.company ?? null,
   };
@@ -211,6 +219,15 @@ function formatDropdownOptions(rows, { labelBuilder = null } = {}) {
     dealflowId: row?.dealflowId ?? row?.raw?.dealflowId ?? null,
     raw: row,
   }));
+}
+
+function buildLookupCode(name) {
+  return String(name || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_")
+    .toUpperCase();
 }
 
 function normalizeLookupText(value) {
@@ -674,7 +691,7 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
   };
 }
 
-export function useDealsBackend() {
+export function useDealsBackend({ keyword = "" } = {}) {
   const api = useApi();
   const { countries: lookupCountries, currencies: lookupCurrencies } = useDealflowLookupOptions();
   const [deals, setDeals] = useState([]);
@@ -687,7 +704,13 @@ export function useDealsBackend() {
     setIsLoading(true);
     setError(null);
     try {
-      const payload = await api.get(DEALFLOW_DEALS_ENDPOINT);
+      const query = new URLSearchParams();
+      if (String(keyword || "").trim()) {
+        query.set("keyword", String(keyword).trim());
+      }
+      const payload = await api.get(
+        query.toString() ? `${DEALFLOW_DEALS_ENDPOINT}?${query.toString()}` : DEALFLOW_DEALS_ENDPOINT
+      );
       const normalized = enrichDealListRows(
         normalizeDealList(payload),
         lookupCountries,
@@ -701,7 +724,7 @@ export function useDealsBackend() {
     } finally {
       setIsLoading(false);
     }
-  }, [api, lookupCountries, lookupCurrencies]);
+  }, [api, keyword, lookupCountries, lookupCurrencies]);
 
   const createDeal = useCallback(async ({ companyName, codeName }) => {
     const name = String(companyName || "").trim();
@@ -1676,6 +1699,7 @@ export function useDealflowLookupOptions() {
     dealflowFunds: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const loadOptions = useCallback(async () => {
@@ -1747,6 +1771,73 @@ export function useDealflowLookupOptions() {
     loadOptions().catch(() => {});
   }, [loadOptions]);
 
+  const createDealflowUser = useCallback(async ({ name, email = "", role = "Member" }) => {
+    const normalizedName = String(name || "").trim();
+    if (!normalizedName) throw new Error("User name is required.");
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      const created = await api.post(DEALFLOW_USERS_ENDPOINT, {
+        name: normalizedName,
+        email: String(email || "").trim(),
+        role: String(role || "").trim() || "Member",
+      });
+
+      const formatted = formatDropdownOptions([created], {
+        labelBuilder: (row) => {
+          const rowName = row?.name || "";
+          const rowRole = row?.role || "";
+          return rowRole ? `${rowName} (${rowRole})` : rowName;
+        },
+      })[0];
+
+      setOptions((prev) => ({
+        ...prev,
+        dealflowUsers: [...prev.dealflowUsers.filter((item) => item.id !== formatted.id), formatted]
+          .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))),
+      }));
+
+      return formatted;
+    } catch (err) {
+      setError(err.message || "Failed to create user.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
+  const createTeamRole = useCallback(async (name) => {
+    const normalizedName = String(name || "").trim();
+    if (!normalizedName) throw new Error("Position name is required.");
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      const created = await api.post(`${DEALFLOW_SETUP_ENDPOINT}team_role/`, {
+        name: normalizedName,
+        code: buildLookupCode(normalizedName),
+        display_order: null,
+        color: null,
+        is_active: true,
+      });
+
+      const formatted = formatDropdownOptions([created])[0];
+      setOptions((prev) => ({
+        ...prev,
+        teamRoles: [...prev.teamRoles.filter((item) => item.id !== formatted.id), formatted]
+          .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))),
+      }));
+
+      return formatted;
+    } catch (err) {
+      setError(err.message || "Failed to create position.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
   const mappedCountries = useMemo(
     () =>
       formatDropdownOptions(
@@ -1775,9 +1866,24 @@ export function useDealflowLookupOptions() {
       countries: mappedCountries,
       currencies: mappedCurrencies,
       isLoading: isLoading || countriesLoading || currenciesLoading,
+      isSaving,
       error,
+      createDealflowUser,
+      createTeamRole,
       reload: loadOptions,
     }),
-    [options, mappedCountries, mappedCurrencies, isLoading, countriesLoading, currenciesLoading, error, loadOptions]
+    [
+      options,
+      mappedCountries,
+      mappedCurrencies,
+      isLoading,
+      isSaving,
+      countriesLoading,
+      currenciesLoading,
+      error,
+      createDealflowUser,
+      createTeamRole,
+      loadOptions,
+    ]
   );
 }

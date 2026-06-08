@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
+import useApi from "/src/hooks/api/useApi";
 import "./StageLogModal.css";
+
+const DEALFLOW_TAXONOMY_ENDPOINT = "/api/dealflow/taxonomy/";
 
 export function toRawDate(displayDate) {
   if (!displayDate) return "";
@@ -12,13 +15,41 @@ export function toRawDate(displayDate) {
 }
 
 function StageLogModal({ stages, initialEntry, onSave, onClose }) {
+  const api = useApi();
+  const [stageOptions, setStageOptions] = useState(Array.isArray(stages) ? stages : []);
   const [selectedStage, setSelectedStage] = useState(initialEntry?.stage || null);
   const [selectedDate, setSelectedDate] = useState(() => {
     if (!initialEntry?.rawDate) return null;
     const [y, m, d] = initialEntry.rawDate.split("-").map(Number);
     return new Date(y, m - 1, d);
   });
+  const normalizedStageOptions = useMemo(
+    () => (Array.isArray(stageOptions) ? stageOptions.filter((item) => item?.name) : []),
+    [stageOptions]
+  );
   const isValid = selectedStage && selectedDate;
+
+  useEffect(() => {
+    if (Array.isArray(stages) && stages.length > 0) {
+      setStageOptions(stages);
+      return;
+    }
+
+    let isMounted = true;
+    api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=stage`)
+      .then((payload) => {
+        if (!isMounted) return;
+        setStageOptions(Array.isArray(payload) ? payload : []);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setStageOptions([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [api, stages]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,7 +72,7 @@ function StageLogModal({ stages, initialEntry, onSave, onClose }) {
           <div className="sl-modal-field">
             <label className="sl-modal-label">Stage</label>
             <SimpleDropdown
-              options={stages}
+              options={normalizedStageOptions}
               value={selectedStage}
               onChange={setSelectedStage}
               placeholder="Select a stage..."
