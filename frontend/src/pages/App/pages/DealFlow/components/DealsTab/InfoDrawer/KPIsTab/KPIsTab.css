@@ -498,6 +498,7 @@
   background: #f6f9fd !important;
 }
 
+
 .kpi-row-actions {
   display: flex;
   align-items: center;
@@ -734,4 +735,12 @@
   .kpi-editor-actions {
     justify-content: flex-start;
   }
+}
+
+/* ---- TOTAL ROW ---- */
+.kpi-total-row td {
+  background: #254a7b;
+  height: 36px;
+  border: none;
+  padding: 0;
 }

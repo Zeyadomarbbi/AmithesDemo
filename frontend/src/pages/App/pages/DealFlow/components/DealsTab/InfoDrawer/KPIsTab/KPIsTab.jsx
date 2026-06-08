@@ -20,8 +20,39 @@ function getColumns(viewType, year) {
   return VIEW_COLUMNS[viewType] || VIEW_COLUMNS.quarterly;
 }
 
+const lsVtKey = (id) => `amethis-kpi-vt-${id}`;
+function saveViewType(id, vt) { try { if (vt) localStorage.setItem(lsVtKey(id), vt); } catch {} }
+function loadViewType(id) { try { return localStorage.getItem(lsVtKey(id)) || null; } catch { return null; } }
+
+function toSafeArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+}
+
+function parseEntryValue(raw) {
+  if (raw && typeof raw === "object") return raw;
+  if (typeof raw === "string") { try { return JSON.parse(raw || "{}"); } catch { return {}; } }
+  return {};
+}
+
+function inferViewType(period) {
+  if (period.viewType) return period.viewType;
+  const stored = loadViewType(period.id);
+  if (stored) return stored;
+  const entries = toSafeArray(period.entries);
+  for (const entry of entries) {
+    const vals = entry.values && typeof entry.values === "object" ? entry.values : parseEntryValue(entry.value);
+    const keys = Object.keys(vals);
+    if (keys.some((k) => /^H\d/.test(k))) return "semi-annually";
+    if (keys.some((k) => /^Q\d/.test(k))) return "quarterly";
+    if (keys.some((k) => /^\d{4}$/.test(k))) return "annually";
+  }
+  return null;
+}
+
 function createDraftPeriod(period) {
-  const viewType = period.viewType || "quarterly";
+  const viewType = inferViewType(period);
   const year =
     period.year ||
     (period.startDate
@@ -33,18 +64,13 @@ function createDraftPeriod(period) {
     id: period.id,
     name: period.name || "",
     year,
+    startYear: period.startYear || year,
     viewType,
     currencyId: period.currencyId || null,
     displayOrder: period.displayOrder ?? "",
     entries: period.entries.map((entry) => {
-      let values = {};
-      try {
-        const parsed = JSON.parse(entry.value || "{}");
-        if (typeof parsed === "object" && parsed !== null) values = parsed;
-      } catch {
-        if (entry.value !== null && entry.value !== undefined && entry.value !== "")
-          values[cols[0]] = entry.value;
-      }
+      const parsed = parseEntryValue(entry.value);
+      const values = typeof parsed === "object" && parsed !== null ? { ...parsed } : {};
       cols.forEach((col) => { if (!(col in values)) values[col] = ""; });
       return { ...entry, values, unit: entry.unit ?? "", displayOrder: entry.displayOrder ?? "" };
     }),
@@ -140,7 +166,30 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const { periods, kpiCategories, currencies, isLoading, isSaving, error, createPeriod, updatePeriod, deletePeriod, createEntry, updateEntry, deleteEntry } = useKpisBackend(dealId);
 
   useEffect(() => {
-    setDrafts(Object.fromEntries(periods.map((p) => [p.id, createDraftPeriod(p)])));
+    setDrafts((prevDrafts) =>
+      Object.fromEntries(
+        periods.map((p) => {
+          const draft = createDraftPeriod(p);
+          if (!p.viewType && prevDrafts[p.id]?.viewType) {
+            draft.viewType = prevDrafts[p.id].viewType;
+          }
+          // Merge modal values that the backend may not have stored yet
+          const pending = pendingEntryValues.current;
+          if (Object.keys(pending).length > 0) {
+            draft.entries = draft.entries.map((entry) => {
+              const pv = pending[entry.id];
+              if (!pv) return entry;
+              const merged = { ...entry.values };
+              Object.entries(pv).forEach(([col, val]) => {
+                if (val !== "" && (merged[col] === "" || merged[col] === undefined)) merged[col] = val;
+              });
+              return { ...entry, values: merged };
+            });
+          }
+          return [p.id, draft];
+        })
+      )
+    );
     if (periods.length > 0)
       setActivePeriodId((prev) => (prev && periods.some((p) => p.id === prev) ? prev : periods[0].id));
     else setActivePeriodId(null);
@@ -157,6 +206,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const isDirty = activePeriod && activeDraft ? periodHasChanges(activePeriod, activeDraft) : false;
 
   const handleSaveRef = useRef(null);
+  const pendingEntryValues = useRef({});
   useEffect(() => {
     if (!onSaveStateChange) return;
     onSaveStateChange({ fn: () => handleSaveRef.current?.(), isDirty, isSaving });
@@ -242,7 +292,15 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const handleCreateKPI = async ({ kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, values }) => {
     if (!activePeriodId) return;
     try {
-      await createEntry(activePeriodId, { kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, value: JSON.stringify(values || {}) });
+      const created = await createEntry(activePeriodId, { kpiName, kpiCategoryId, viewType, currencyId, unit, order, displayOrder, year, value: JSON.stringify(values || {}) });
+      if (viewType) {
+        updateDraftField("viewType", viewType);
+        saveViewType(activePeriodId, viewType);
+      }
+      // Store modal values in ref so the useEffect can merge them even if backend returns empty
+      if (created?.id && values && Object.keys(values).length > 0) {
+        pendingEntryValues.current[created.id] = values;
+      }
       setShowNewKPI(false);
       showToast({ type: "success", title: "KPI created", message: `"${kpiName}" has been added successfully.` });
     } catch (err) {
@@ -282,29 +340,43 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   handleSaveRef.current = handleSave;
 
-  const activeCols = getColumns(activeDraft?.viewType || "quarterly", activeDraft?.year);
-
-  const activeViewType = activeDraft?.viewType || "quarterly";
+  const isAnyRowEditing = editingRowIds.size > 0;
+  const activeViewType = activeDraft?.viewType || null;
+  const activeCols = activeViewType ? getColumns(activeViewType, activeDraft?.year) : [];
+  const toYear   = Number(activeDraft?.year)      || new Date().getFullYear();
   const fromYear = activeViewType === "annually"
-    ? (Number(activeDraft?.year) || new Date().getFullYear()) - 3
-    : (Number(activeDraft?.year) || new Date().getFullYear());
-  const toYear = Number(activeDraft?.year) || new Date().getFullYear();
+    ? toYear - 3
+    : (Number(activeDraft?.startYear) || toYear);
 
-  const handleFromYearChange = (val) => {
-    const v = parseInt(val);
-    if (isNaN(v) || v < 1900) return;
-    updateDraftField("year", activeViewType === "annually" ? v + 3 : v);
+  const [fromYearRaw, setFromYearRaw] = useState(String(fromYear));
+  const [toYearRaw, setToYearRaw]     = useState(String(toYear));
+
+  useEffect(() => { setFromYearRaw(String(fromYear)); }, [fromYear]);
+  useEffect(() => { setToYearRaw(String(toYear)); }, [toYear]);
+
+  const commitFromYear = () => {
+    const v = parseInt(fromYearRaw);
+    if (!isNaN(v) && v >= 1900) {
+      if (activeViewType === "annually") {
+        updateDraftField("year", v + 3);
+      } else {
+        updateDraftField("startYear", v);
+      }
+    } else {
+      setFromYearRaw(String(fromYear));
+    }
   };
 
-  const handleToYearChange = (val) => {
-    const v = parseInt(val);
-    if (isNaN(v) || v < 1900) return;
-    updateDraftField("year", v);
+  const commitToYear = () => {
+    const v = parseInt(toYearRaw);
+    if (!isNaN(v) && v >= 1900) updateDraftField("year", v);
+    else setToYearRaw(String(toYear));
   };
 
   const viewTypeBadgeLabel = activeViewType === "quarterly" ? "Quarterly"
     : activeViewType === "semi-annually" ? "Semi-Annual"
-    : "Annual";
+    : activeViewType === "annually" ? "Annual"
+    : null;
 
   return (
     <div className="kpi-wrapper">
@@ -374,20 +446,26 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               <input
                 className="kpi-year-input"
                 type="number"
-                value={fromYear}
-                onChange={(e) => handleFromYearChange(e.target.value)}
+                value={fromYearRaw}
+                onChange={(e) => setFromYearRaw(e.target.value)}
+                onBlur={commitFromYear}
+                onKeyDown={(e) => e.key === "Enter" && commitFromYear()}
                 disabled={isSaving}
               />
               <span className="kpi-year-row-sep">–</span>
               <input
                 className="kpi-year-input"
                 type="number"
-                value={toYear}
-                onChange={(e) => handleToYearChange(e.target.value)}
+                value={toYearRaw}
+                onChange={(e) => setToYearRaw(e.target.value)}
+                onBlur={commitToYear}
+                onKeyDown={(e) => e.key === "Enter" && commitToYear()}
                 disabled={isSaving}
               />
             </div>
-            <span className="kpi-year-viewtype-badge">{viewTypeBadgeLabel}</span>
+            {viewTypeBadgeLabel && (
+              <span className="kpi-year-viewtype-badge">{viewTypeBadgeLabel}</span>
+            )}
           </div>
 
           <div className="kpi-table-container">
@@ -395,20 +473,22 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               <thead>
                 <tr>
                   <th className="kpi-th kpi-th--label">KPI</th>
-                  <th className="kpi-th kpi-th--category">Category</th>
+                  {isAnyRowEditing && <th className="kpi-th kpi-th--category">Category</th>}
                   {activeCols.map((col) => (
                     <th key={col} className="kpi-th kpi-th--period-col">{col}</th>
                   ))}
-                  <th className="kpi-th">Unit</th>
-                  <th className="kpi-th">Order</th>
+                  {isAnyRowEditing && <th className="kpi-th">Unit</th>}
+                  {isAnyRowEditing && <th className="kpi-th">Order</th>}
                   <th className="kpi-th">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {activeDraft.entries.length === 0 && (
                   <tr className="kpi-row">
-                    <td className="kpi-td kpi-td--value" colSpan={4 + activeCols.length}>
-                      No KPI rows yet. Add the first KPI for this period.
+                    <td className="kpi-td kpi-td--value" colSpan={2 + activeCols.length}>
+                      {activeViewType
+                        ? "No KPI rows yet. Add the first KPI for this period."
+                        : "No KPIs yet. Click \"+ New KPI\" and select a period type (Quarterly, Semi-Annual, or Annual)."}
                     </td>
                   </tr>
                 )}
@@ -426,17 +506,19 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         disabled={isSaving}
                       />
                     </td>
-                    <td className="kpi-td kpi-td--category">
-                      <SimpleDropdown
-                        options={kpiCategories}
-                        value={entry.kpiCategoryId}
-                        onChange={(val) => updateDraftEntry(entry.id, "kpiCategoryId", val)}
-                        placeholder="—"
-                        labelKey="name"
-                        valueKey="id"
-                        disabled={!isRowEditing || isSaving}
-                      />
-                    </td>
+                    {isAnyRowEditing && (
+                      <td className="kpi-td kpi-td--category">
+                        <SimpleDropdown
+                          options={kpiCategories}
+                          value={entry.kpiCategoryId}
+                          onChange={(val) => updateDraftEntry(entry.id, "kpiCategoryId", val)}
+                          placeholder="—"
+                          labelKey="name"
+                          valueKey="id"
+                          disabled={!isRowEditing || isSaving}
+                        />
+                      </td>
+                    )}
                     {activeCols.map((col) => (
                       <td key={col} className="kpi-td kpi-td--value">
                         <input
@@ -449,27 +531,31 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                         />
                       </td>
                     ))}
-                    <td className="kpi-td kpi-td--value">
-                      <input
-                        className="kpi-cell-input"
-                        value={entry.unit || ""}
-                        onChange={(e) => updateDraftEntry(entry.id, "unit", e.target.value)}
-                        placeholder="—"
-                        readOnly={!isRowEditing}
-                        disabled={isSaving}
-                      />
-                    </td>
-                    <td className="kpi-td kpi-td--value">
-                      <input
-                        className="kpi-cell-input"
-                        type="number"
-                        value={entry.displayOrder || ""}
-                        onChange={(e) => updateDraftEntry(entry.id, "displayOrder", e.target.value)}
-                        placeholder="—"
-                        readOnly={!isRowEditing}
-                        disabled={isSaving}
-                      />
-                    </td>
+                    {isAnyRowEditing && (
+                      <td className="kpi-td kpi-td--value">
+                        <input
+                          className="kpi-cell-input"
+                          value={entry.unit || ""}
+                          onChange={(e) => updateDraftEntry(entry.id, "unit", e.target.value)}
+                          placeholder="—"
+                          readOnly={!isRowEditing}
+                          disabled={isSaving}
+                        />
+                      </td>
+                    )}
+                    {isAnyRowEditing && (
+                      <td className="kpi-td kpi-td--value">
+                        <input
+                          className="kpi-cell-input"
+                          type="number"
+                          value={entry.displayOrder || ""}
+                          onChange={(e) => updateDraftEntry(entry.id, "displayOrder", e.target.value)}
+                          placeholder="—"
+                          readOnly={!isRowEditing}
+                          disabled={isSaving}
+                        />
+                      </td>
+                    )}
                     <td className="kpi-td kpi-td--value">
                       {isRowEditing ? (
                         <div className="kpi-row-actions">
@@ -495,6 +581,11 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr className="kpi-total-row">
+                  <td colSpan={isAnyRowEditing ? 5 + activeCols.length : 2 + activeCols.length} />
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
