@@ -33,7 +33,7 @@ import Limits from './pages/App/pages/LPsStatement/components/Limits/Limits.jsx'
 import LPsRegister from './pages/App/pages/LPsStatement/components/LPsRegister/LPsRegister.jsx';
 
 /* --- DEALFLOW --- */
-import DealflowPage from './pages/App/pages/dealflow/Dealflowpage';
+import DealflowPage from './pages/App/pages/DealFlow/Dealflowpage';
 
 /* --- FINANCIALS --- */
 import FinancialsPage from './pages/App/pages/Financials/FinancialsPage';
