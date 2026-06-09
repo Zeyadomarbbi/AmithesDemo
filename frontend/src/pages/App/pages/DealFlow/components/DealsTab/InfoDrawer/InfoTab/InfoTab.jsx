@@ -8,6 +8,7 @@ import useApi from "/src/hooks/api/useApi";
 import {
   mapDealDetailToForm,
   mapInfoFormToPayload,
+  useDealExternalContactsBackend,
   useDealInfoBackend,
   useDealflowLookupOptions,
 } from "../../Deals_backend_work";
@@ -63,10 +64,26 @@ function normalizeNumericInput(value) {
   return String(value ?? "").replace(/[^\d.,-]/g, "");
 }
 
+function normalizeExternalContactsForCompare(contacts) {
+  return (Array.isArray(contacts) ? contacts : [])
+    .map((contact, index) => ({
+      id: contact?.id ?? null,
+      name: String(contact?.name ?? "").trim(),
+      role: String(contact?.role ?? "").trim(),
+      email: String(contact?.email ?? "").trim(),
+      phone: String(contact?.phone ?? "").trim(),
+      notes: String(contact?.notes ?? "").trim(),
+      displayOrder: contact?.displayOrder ?? contact?.display_order ?? index + 1,
+    }))
+    .filter((contact) => contact.name || contact.role || contact.email || contact.phone || contact.notes);
+}
+
 function hasFormChanges(currentForm, loadedForm, lookupOptions) {
   return (
     JSON.stringify(mapInfoFormToPayload(currentForm, lookupOptions)) !==
-    JSON.stringify(mapInfoFormToPayload(loadedForm, lookupOptions))
+      JSON.stringify(mapInfoFormToPayload(loadedForm, lookupOptions)) ||
+    JSON.stringify(normalizeExternalContactsForCompare(currentForm?.externalContacts)) !==
+      JSON.stringify(normalizeExternalContactsForCompare(loadedForm?.externalContacts))
   );
 }
 
@@ -86,8 +103,20 @@ function InfoTab({ deal, onClose, onSaved }) {
     isLoading: isDetailLoading,
     isSaving,
     error: detailError,
+    loadDealDetail,
     saveDealDetail,
   } = useDealInfoBackend(deal?.id);
+
+  const {
+    contacts: externalContacts,
+    isLoading: areExternalContactsLoading,
+    isSaving: areExternalContactsSaving,
+    error: externalContactsError,
+    loadExternalContacts,
+    createExternalContact,
+    updateExternalContact,
+    deleteExternalContact,
+  } = useDealExternalContactsBackend(deal?.id);
 
   const {
     sectors,
@@ -125,6 +154,13 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [detail, deal?.id, countries, currencies, funds]);
 
   useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      externalContacts: Array.isArray(externalContacts) ? externalContacts : [],
+    }));
+  }, [externalContacts]);
+
+  useEffect(() => {
     if (detailError) {
       showToast({
         type: "error",
@@ -144,12 +180,28 @@ function InfoTab({ deal, onClose, onSaved }) {
     }
   }, [lookupError, showToast]);
 
+  useEffect(() => {
+    if (externalContactsError) {
+      showToast({
+        type: "error",
+        title: "External contacts failed",
+        message: externalContactsError,
+      });
+    }
+  }, [externalContactsError, showToast]);
+
   const currentTitle = useMemo(() => form.dealName || deal?.name || "Deal", [form.dealName, deal?.name]);
-  const isBusy = isDetailLoading || areLookupsLoading || isSaving;
+  const isBusy = isDetailLoading || areLookupsLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
   const lookupOptions = useMemo(() => ({ countries, currencies, funds }), [countries, currencies, funds]);
-  const loadedReferenceForm = detail
-    ? mapDealDetailToForm(detail, lookupOptions)
-    : createInitialForm(deal);
+  const loadedReferenceForm = useMemo(() => {
+    const base = detail
+      ? mapDealDetailToForm(detail, lookupOptions)
+      : createInitialForm(deal);
+    return {
+      ...base,
+      externalContacts: Array.isArray(externalContacts) ? externalContacts : [],
+    };
+  }, [detail, lookupOptions, deal, externalContacts]);
   const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
 
   const handleCancelEdit = () => {
@@ -200,11 +252,19 @@ function InfoTab({ deal, onClose, onSaved }) {
       ...prev,
       externalContacts: [
         ...prev.externalContacts,
-        { id: `ec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: "", role: "", email: "", phone: "" },
+        {
+          id: `ec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: "",
+          role: "",
+          email: "",
+          phone: "",
+          notes: "",
+          displayOrder: prev.externalContacts.length + 1,
+        },
       ],
     }));
 
-  const updateExternalContact = (rowId, key, value) =>
+  const updateExternalContactField = (rowId, key, value) =>
     setForm((prev) => ({
       ...prev,
       externalContacts: prev.externalContacts.map((c) =>
@@ -218,6 +278,41 @@ function InfoTab({ deal, onClose, onSaved }) {
       externalContacts: prev.externalContacts.filter((c) => c.id !== rowId),
     }));
 
+  const syncExternalContacts = useCallback(async (nextContacts, previousContacts) => {
+    const previousById = new Map(
+      normalizeExternalContactsForCompare(previousContacts)
+        .filter((contact) => contact.id)
+        .map((contact) => [String(contact.id), contact])
+    );
+    const nextNormalized = normalizeExternalContactsForCompare(nextContacts);
+    const nextIds = new Set(nextNormalized.filter((contact) => contact.id).map((contact) => String(contact.id)));
+
+    for (let index = 0; index < nextNormalized.length; index += 1) {
+      const contact = nextNormalized[index];
+      const payload = {
+        name: contact.name,
+        role: contact.role,
+        email: contact.email,
+        phone: contact.phone,
+        notes: contact.notes,
+        display_order: index + 1,
+      };
+
+      if (contact.id && previousById.has(String(contact.id))) {
+        await updateExternalContact(contact.id, payload);
+      } else {
+        await createExternalContact(payload);
+      }
+    }
+
+    for (const previousContact of normalizeExternalContactsForCompare(previousContacts)) {
+      if (!previousContact.id || nextIds.has(String(previousContact.id))) continue;
+      await deleteExternalContact(previousContact.id);
+    }
+
+    return loadExternalContacts();
+  }, [createExternalContact, updateExternalContact, deleteExternalContact, loadExternalContacts]);
+
   const handleSave = async () => {
     const prevStageId = loadedReferenceForm.stage;
     const nextStageId = form.stage;
@@ -225,7 +320,13 @@ function InfoTab({ deal, onClose, onSaved }) {
 
     try {
       const saved = await saveDealDetail(form, lookupOptions);
-      setForm(mapDealDetailToForm(saved, lookupOptions));
+      const syncedExternalContacts = await syncExternalContacts(form.externalContacts, loadedReferenceForm.externalContacts);
+      const refreshed = await loadDealDetail().catch(() => saved);
+      const nextForm = mapDealDetailToForm(refreshed || saved, lookupOptions);
+      setForm({
+        ...nextForm,
+        externalContacts: Array.isArray(syncedExternalContacts) ? syncedExternalContacts : nextForm.externalContacts,
+      });
       setIsEditing(false);
       showToast({
         type: "success",
@@ -234,12 +335,12 @@ function InfoTab({ deal, onClose, onSaved }) {
       });
       if (stageChanged && deal?.id) {
         const today = new Date().toISOString().slice(0, 10);
-        await api.post(`/api/dealflow/deals/${deal.id}/stage-log/`, {
+        await api.post(`/api/dealflow/deals/${deal.id}/stage-logs/`, {
           stage_id: nextStageId,
           event_date: today,
         }).catch(() => {});
       }
-      await onSaved?.(saved);
+      await onSaved?.(refreshed || saved);
     } catch (err) {
       showToast({
         type: "error",
@@ -712,7 +813,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                           <input
                             className="it-input"
                             value={contact.name}
-                            onChange={(e) => updateExternalContact(contact.id, "name", e.target.value)}
+                            onChange={(e) => updateExternalContactField(contact.id, "name", e.target.value)}
                             placeholder="Full name"
                             readOnly={!isEditing}
                           />
@@ -721,7 +822,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                           <input
                             className="it-input"
                             value={contact.role}
-                            onChange={(e) => updateExternalContact(contact.id, "role", e.target.value)}
+                            onChange={(e) => updateExternalContactField(contact.id, "role", e.target.value)}
                             placeholder="e.g. CFO, CEO"
                             readOnly={!isEditing}
                           />
@@ -731,7 +832,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                             className="it-input"
                             type="email"
                             value={contact.email}
-                            onChange={(e) => updateExternalContact(contact.id, "email", e.target.value)}
+                            onChange={(e) => updateExternalContactField(contact.id, "email", e.target.value)}
                             placeholder="email@example.com"
                             readOnly={!isEditing}
                           />
@@ -741,7 +842,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                             className="it-input"
                             type="tel"
                             value={contact.phone}
-                            onChange={(e) => updateExternalContact(contact.id, "phone", e.target.value)}
+                            onChange={(e) => updateExternalContactField(contact.id, "phone", e.target.value)}
                             placeholder="+1 234 567 890"
                             readOnly={!isEditing}
                           />

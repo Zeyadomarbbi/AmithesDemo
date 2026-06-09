@@ -1,13 +1,18 @@
+import json
+import os
 from uuid import UUID, uuid4
 from collections import defaultdict
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+import re
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.db import IntegrityError, connection, transaction
+from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from psycopg2.extras import Json
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -55,6 +60,20 @@ def resolve_dealflow_user_id(email):
         )
         row = cursor.fetchone()
         return row[0] if row else None
+
+
+@lru_cache(maxsize=1)
+def get_deal_stage_log_columns():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'dealflow'
+              AND table_name = 'df_deal_stage_logs'
+            """
+        )
+        return {row[0] for row in cursor.fetchall()}
 
 
 def resolve_default_taxonomy_id(cursor, taxonomy_type, preferred_codes=(), preferred_names=()):
@@ -459,6 +478,7 @@ def serialize_deal_detail_row(row):
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
         "team_members": row.get("team_members") or [],
+        "external_contacts": row.get("external_contacts") or [],
     }
 
 
@@ -761,6 +781,44 @@ def fetch_deal_team_members(cursor, deal_id):
     return [serialize_deal_team_member_row(row) for row in dictfetchall(cursor)]
 
 
+def serialize_deal_external_contact_row(row):
+    return {
+        "id": row.get("id"),
+        "deal_id": row.get("deal_id"),
+        "name": row.get("name") or "",
+        "role": row.get("role") or "",
+        "email": row.get("email") or "",
+        "phone": row.get("phone") or "",
+        "notes": row.get("notes") or "",
+        "display_order": row.get("display_order"),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
+
+
+def fetch_deal_external_contacts(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT
+            id,
+            deal_id,
+            name,
+            role,
+            email,
+            phone,
+            notes,
+            display_order,
+            created_at,
+            updated_at
+        FROM dealflow.df_deal_external_contacts
+        WHERE deal_id = %s
+        ORDER BY display_order ASC NULLS LAST, name ASC
+        """,
+        [str(deal_id)],
+    )
+    return [serialize_deal_external_contact_row(row) for row in dictfetchall(cursor)]
+
+
 def serialize_event_row(row):
     return {
         "id": row.get("event_id"),
@@ -786,25 +844,331 @@ def serialize_event_row(row):
     }
 
 
-def parse_stage_name_from_event_title(title):
-    normalized = str(title or "").strip()
-    prefixes = ("Stage changed to ", "Stage updated to ")
-    for prefix in prefixes:
-        if normalized.startswith(prefix):
-            return normalized[len(prefix):].strip()
-    return ""
+def parse_boolean_query(value, default=False):
+    if value is None:
+        return default
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
+def parse_calendar_datetime_value(value):
+    if value in (None, ""):
+        return None
+
+    parsed = parse_datetime(str(value).strip())
+    if parsed is None:
+        return None
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
+
+
+def normalize_calendar_attendees(value):
+    if value in (None, ""):
+        return []
+
+    if isinstance(value, str):
+        raw_items = re.split(r"[\n,;]+", value)
+    elif isinstance(value, (list, tuple)):
+        raw_items = value
+    else:
+        raw_items = [value]
+
+    attendees = []
+    for item in raw_items:
+        normalized = str(item or "").strip()
+        if normalized:
+            attendees.append(normalized)
+    return attendees
+
+
+def fetch_deal_brief(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT id, name, code
+        FROM dealflow.df_deals
+        WHERE id = %s
+          AND deleted_at IS NULL
+        LIMIT 1
+        """,
+        [str(deal_id)],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1] or "",
+        "code": row[2] or "",
+    }
+
+
+def serialize_calendar_event_row(row):
+    attendees = row.get("attendees")
+    if isinstance(attendees, str):
+        try:
+            attendees = json.loads(attendees)
+        except Exception:
+            attendees = [attendees] if attendees.strip() else []
+    elif attendees is None:
+        attendees = []
+
+    return {
+        "id": row.get("id"),
+        "provider": row.get("provider") or "",
+        "external_event_id": row.get("external_event_id") or "",
+        "subject": row.get("subject") or "",
+        "body_preview": row.get("body_preview") or "",
+        "start_datetime": row.get("start_datetime"),
+        "end_datetime": row.get("end_datetime"),
+        "timezone": row.get("timezone") or "",
+        "location": row.get("location") or "",
+        "meeting_link": row.get("meeting_link") or "",
+        "organizer_name": row.get("organizer_name") or "",
+        "organizer_email": row.get("organizer_email") or "",
+        "attendees": attendees if isinstance(attendees, list) else [],
+        "status": row.get("status") or "",
+        "is_cancelled": bool(row.get("is_cancelled")),
+        "deal_id": row.get("deal_id"),
+        "deal": {
+            "id": row.get("deal_id"),
+            "name": row.get("deal_name") or "",
+        } if row.get("deal_id") else None,
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
+
+
+def fetch_calendar_events(cursor, start_dt=None, end_dt=None, deal_id=None, provider=None, include_cancelled=False):
+    where_clauses = ["1 = 1"]
+    params = []
+
+    if not include_cancelled:
+        where_clauses.append("COALESCE(e.is_cancelled, FALSE) = FALSE")
+    if deal_id:
+        where_clauses.append("e.deal_id = %s")
+        params.append(str(deal_id))
+    if provider:
+        where_clauses.append("UPPER(COALESCE(e.provider, '')) = UPPER(%s)")
+        params.append(str(provider).strip())
+    if start_dt and end_dt:
+        where_clauses.append(
+            """
+            COALESCE(e.end_datetime, e.start_datetime) >= %s
+            AND e.start_datetime <= %s
+            """
+        )
+        params.extend([start_dt, end_dt])
+    elif start_dt:
+        where_clauses.append("COALESCE(e.end_datetime, e.start_datetime) >= %s")
+        params.append(start_dt)
+    elif end_dt:
+        where_clauses.append("e.start_datetime <= %s")
+        params.append(end_dt)
+
+    where_sql = "\n          AND ".join(where_clauses)
+    cursor.execute(
+        f"""
+        SELECT
+            e.id,
+            e.connection_id,
+            e.provider,
+            e.external_event_id,
+            e.subject,
+            e.body_preview,
+            e.start_datetime,
+            e.end_datetime,
+            e.timezone,
+            e.location,
+            e.meeting_link,
+            e.organizer_name,
+            e.organizer_email,
+            e.attendees,
+            e.status,
+            e.is_cancelled,
+            e.deal_id,
+            e.created_at,
+            e.updated_at,
+            d.name AS deal_name
+        FROM dealflow.df_calendar_events e
+        LEFT JOIN dealflow.df_deals d
+            ON d.id = e.deal_id
+           AND d.deleted_at IS NULL
+        WHERE {where_sql}
+        ORDER BY e.start_datetime ASC NULLS LAST, e.created_at ASC NULLS LAST
+        """,
+        params,
+    )
+    return [serialize_calendar_event_row(row) for row in dictfetchall(cursor)]
+
+
+def fetch_calendar_event(cursor, event_id):
+    cursor.execute(
+        """
+        SELECT
+            e.id,
+            e.connection_id,
+            e.provider,
+            e.external_event_id,
+            e.subject,
+            e.body_preview,
+            e.start_datetime,
+            e.end_datetime,
+            e.timezone,
+            e.location,
+            e.meeting_link,
+            e.organizer_name,
+            e.organizer_email,
+            e.attendees,
+            e.status,
+            e.is_cancelled,
+            e.deal_id,
+            e.created_at,
+            e.updated_at,
+            d.name AS deal_name
+        FROM dealflow.df_calendar_events e
+        LEFT JOIN dealflow.df_deals d
+            ON d.id = e.deal_id
+           AND d.deleted_at IS NULL
+        WHERE e.id = %s
+        LIMIT 1
+        """,
+        [str(event_id)],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    columns = [col[0] for col in cursor.description]
+    return serialize_calendar_event_row(dict(zip(columns, row)))
+
+
+@lru_cache(maxsize=1)
+def get_calendar_connection_columns():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'dealflow'
+              AND table_name = 'df_calendar_connections'
+            """
+        )
+        return {row[0] for row in cursor.fetchall()}
+
+
+def microsoft_calendar_is_configured():
+    required_keys = [
+        "MICROSOFT_TENANT_ID",
+        "MICROSOFT_CLIENT_ID",
+        "MICROSOFT_CLIENT_SECRET",
+        "MICROSOFT_REDIRECT_URI",
+    ]
+    return all(str(os.getenv(key) or "").strip() for key in required_keys)
+
+
+def fetch_active_microsoft_calendar_connection(cursor):
+    columns = get_calendar_connection_columns()
+    if "provider" not in columns:
+        return None
+
+    where_clauses = ["UPPER(COALESCE(provider, '')) = 'MICROSOFT'"]
+    if "deleted_at" in columns:
+        where_clauses.append("deleted_at IS NULL")
+    if "is_active" in columns:
+        where_clauses.append("is_active = TRUE")
+    elif "connected" in columns:
+        where_clauses.append("connected = TRUE")
+    elif "status" in columns:
+        where_clauses.append("LOWER(COALESCE(status, '')) IN ('active', 'connected')")
+
+    cursor.execute(
+        f"""
+        SELECT id
+        FROM dealflow.df_calendar_connections
+        WHERE {' AND '.join(where_clauses)}
+        ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST
+        LIMIT 1
+        """
+    )
+    row = cursor.fetchone()
+    return str(row[0]) if row else None
 
 
 def format_stage_log_display_date(value):
     if not value:
         return ""
     if hasattr(value, "strftime"):
-        return value.strftime("%b %d, %Y")
+        return value.strftime("%b %d, %Y, %I:%M %p")
     try:
         parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed.strftime("%b %d, %Y")
+        return parsed.strftime("%b %d, %Y, %I:%M %p")
     except Exception:
         return str(value)
+
+
+def serialize_stage_log_row(row):
+    display_source = row.get("changed_at") or row.get("created_at")
+    return {
+        "id": row.get("id"),
+        "deal_id": row.get("deal_id"),
+        "old_stage": {
+            "id": row.get("old_stage_id"),
+            "name": row.get("old_stage_name") or "",
+            "color": row.get("old_stage_color"),
+        } if row.get("old_stage_id") else None,
+        "new_stage": {
+            "id": row.get("new_stage_id"),
+            "name": row.get("new_stage_name") or "",
+            "color": row.get("new_stage_color"),
+        } if row.get("new_stage_id") else None,
+        "changed_by": {
+            "id": row.get("changed_by"),
+            "name": row.get("changed_by_name") or "",
+        } if row.get("changed_by") or row.get("changed_by_name") else None,
+        "changed_at": row.get("changed_at"),
+        "created_at": row.get("created_at"),
+        "note": row.get("note") or "",
+        "display_date": format_stage_log_display_date(display_source),
+    }
+
+
+def fetch_deal_stage_logs(cursor, deal_id):
+    stage_log_columns = get_deal_stage_log_columns()
+    deleted_filter = "AND log.deleted_at IS NULL" if "deleted_at" in stage_log_columns else ""
+    cursor.execute(
+        f"""
+        SELECT
+            log.id,
+            log.deal_id,
+            log.old_stage_id,
+            old_stage.name AS old_stage_name,
+            old_stage.color AS old_stage_color,
+            log.new_stage_id,
+            new_stage.name AS new_stage_name,
+            new_stage.color AS new_stage_color,
+            log.changed_by,
+            u.name AS changed_by_name,
+            log.changed_at,
+            log.created_at,
+            log.note
+        FROM dealflow.df_deal_stage_logs log
+        LEFT JOIN dealflow.df_taxonomy_items old_stage
+            ON old_stage.id = log.old_stage_id
+        LEFT JOIN dealflow.df_taxonomy_items new_stage
+            ON new_stage.id = log.new_stage_id
+        LEFT JOIN dealflow.df_users u
+            ON u.id = log.changed_by
+        WHERE log.deal_id = %s
+          {deleted_filter}
+        ORDER BY COALESCE(log.changed_at, log.created_at) ASC, log.created_at ASC
+        """,
+        [str(deal_id)],
+    )
+    return [serialize_stage_log_row(row) for row in dictfetchall(cursor)]
 
 
 def fetch_stage_log_map(cursor, deal_ids):
@@ -813,77 +1177,63 @@ def fetch_stage_log_map(cursor, deal_ids):
     if not normalized_deal_ids:
         return {}
 
+    stage_log_columns = get_deal_stage_log_columns()
+    deleted_filter = "AND log.deleted_at IS NULL" if "deleted_at" in stage_log_columns else ""
     cursor.execute(
-        """
+        f"""
         SELECT
-            e.id AS event_id,
-            e.deal_id,
-            e.title,
-            e.event_date,
-            e.created_by,
-            e.created_at,
-            e.updated_at,
-            u.name AS created_by_name
-        FROM dealflow.df_events e
+            log.id,
+            log.deal_id,
+            log.old_stage_id,
+            old_stage.name AS old_stage_name,
+            old_stage.color AS old_stage_color,
+            log.new_stage_id,
+            new_stage.name AS new_stage_name,
+            new_stage.color AS new_stage_color,
+            log.changed_by,
+            u.name AS changed_by_name,
+            log.changed_at,
+            log.created_at,
+            log.note
+        FROM dealflow.df_deal_stage_logs log
+        LEFT JOIN dealflow.df_taxonomy_items old_stage
+            ON old_stage.id = log.old_stage_id
+        LEFT JOIN dealflow.df_taxonomy_items new_stage
+            ON new_stage.id = log.new_stage_id
         LEFT JOIN dealflow.df_users u
-            ON u.id = e.created_by
-        WHERE e.deal_id = ANY(%s::uuid[])
-          AND e.deleted_at IS NULL
-          AND (
-              e.title LIKE 'Stage changed to %%'
-              OR e.title LIKE 'Stage updated to %%'
-          )
-        ORDER BY e.event_date ASC NULLS LAST, e.created_at ASC NULLS LAST, e.updated_at ASC NULLS LAST
+            ON u.id = log.changed_by
+        WHERE log.deal_id = ANY(%s::uuid[])
+          {deleted_filter}
+        ORDER BY COALESCE(log.changed_at, log.created_at) ASC, log.created_at ASC
         """,
         [normalized_deal_ids],
     )
 
     stage_log_map = defaultdict(list)
     for row in dictfetchall(cursor):
-        stage_name = parse_stage_name_from_event_title(row.get("title"))
-        if not stage_name:
-            continue
         deal_id = str(row.get("deal_id"))
-        stage_log_map[deal_id].append(
-            {
-                "id": row.get("event_id"),
-                "stage": stage_name,
-                "date": format_stage_log_display_date(row.get("event_date")),
-                "rawDate": row.get("event_date"),
-                "changedBy": row.get("created_by_name") or "",
-            }
-        )
+        stage_log_map[deal_id].append(serialize_stage_log_row(row))
     return stage_log_map
 
 
 def sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=None):
+    stage_log_columns = get_deal_stage_log_columns()
+    deleted_filter = "AND deleted_at IS NULL" if "deleted_at" in stage_log_columns else ""
     cursor.execute(
-        """
+        f"""
         SELECT
-            e.title,
-            e.event_date,
-            e.created_at
-        FROM dealflow.df_events e
-        WHERE e.deal_id = %s
-          AND e.deleted_at IS NULL
-          AND (
-              e.title LIKE 'Stage changed to %%'
-              OR e.title LIKE 'Stage updated to %%'
-          )
-        ORDER BY e.event_date DESC NULLS LAST, e.created_at DESC NULLS LAST
+            new_stage_id
+        FROM dealflow.df_deal_stage_logs
+        WHERE deal_id = %s
+          {deleted_filter}
+        ORDER BY COALESCE(changed_at, created_at) DESC, created_at DESC
         LIMIT 1
         """,
         [str(deal_id)],
     )
     row = cursor.fetchone()
 
-    next_stage_id = fallback_stage_id
-    if row:
-        stage_name = parse_stage_name_from_event_title(row[0])
-        if stage_name:
-            resolved_stage_id = resolve_taxonomy_item_id(cursor, "stage", names=(stage_name,))
-            if resolved_stage_id:
-                next_stage_id = resolved_stage_id
+    next_stage_id = row[0] if row and row[0] else fallback_stage_id
 
     if next_stage_id:
         cursor.execute(
@@ -1231,6 +1581,40 @@ def normalize_numeric_or_none(value):
         return None
 
 
+CAP_TABLE_DEFAULT_COLUMNS = [
+    {"name": "Series A", "code": "SERIES_A", "column_type": "NUMBER", "is_percentage": False, "is_system": True, "display_order": 1},
+    {"name": "Series B", "code": "SERIES_B", "column_type": "NUMBER", "is_percentage": False, "is_system": True, "display_order": 2},
+    {"name": "Common", "code": "COMMON", "column_type": "NUMBER", "is_percentage": False, "is_system": True, "display_order": 3},
+    {"name": "n.f.d (%)", "code": "NFD_PERCENTAGE", "column_type": "PERCENTAGE", "is_percentage": True, "is_system": True, "display_order": 4},
+    {"name": "f.d (%)", "code": "FD_PERCENTAGE", "column_type": "PERCENTAGE", "is_percentage": True, "is_system": True, "display_order": 5},
+    {"name": "Comment", "code": "COMMENT", "column_type": "TEXT", "is_percentage": False, "is_system": True, "display_order": 6},
+]
+
+LEGACY_CAP_TABLE_CODE_MAP = {
+    "SERIES_A": ("series_a_shares", "NUMBER"),
+    "SERIES_B": ("series_b_shares", "NUMBER"),
+    "COMMON": ("common_shares", "NUMBER"),
+    "PREFERRED": ("preferred_shares", "NUMBER"),
+    "SEED": ("seed_shares", "NUMBER"),
+    "ESOP": ("esop_shares", "NUMBER"),
+    "NFD_PERCENTAGE": ("non_fully_diluted_percentage", "NUMBER"),
+    "FD_PERCENTAGE": ("fully_diluted_percentage", "NUMBER"),
+    "COMMENT": ("comment", "TEXT"),
+}
+
+
+def normalize_cap_table_column_type(value):
+    normalized = str(value or "").strip().upper()
+    return normalized if normalized in {"TEXT", "NUMBER", "PERCENTAGE"} else ""
+
+
+def build_cap_table_column_code(name):
+    normalized = str(name or "").strip().upper()
+    normalized = re.sub(r"[^A-Z0-9]+", "_", normalized)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    return normalized or "COLUMN"
+
+
 def serialize_cap_table_snapshot(row):
     return {
         "id": row.get("snapshot_id"),
@@ -1241,31 +1625,84 @@ def serialize_cap_table_snapshot(row):
         "created_by": row.get("created_by"),
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
+        "columns": row.get("columns") or [],
         "entries": row.get("entries") or [],
+        "totals": row.get("totals") or {},
     }
 
 
-def serialize_cap_table_entry(row):
-    def numeric_value(key):
-        value = row.get(key)
-        return float(value) if value is not None else None
-
+def serialize_cap_table_column(row):
     return {
-        "id": row.get("entry_id"),
+        "id": row.get("column_id") or row.get("id"),
         "snapshot_id": row.get("snapshot_id"),
-        "shareholder_name": row.get("shareholder_name") or "",
-        "comment": row.get("comment") or "",
-        "series_a_shares": numeric_value("series_a_shares"),
-        "series_b_shares": numeric_value("series_b_shares"),
-        "common_shares": numeric_value("common_shares"),
-        "preferred_shares": numeric_value("preferred_shares"),
-        "seed_shares": numeric_value("seed_shares"),
-        "esop_shares": numeric_value("esop_shares"),
-        "non_fully_diluted_percentage": numeric_value("non_fully_diluted_percentage"),
-        "fully_diluted_percentage": numeric_value("fully_diluted_percentage"),
+        "name": row.get("name") or "",
+        "code": row.get("code") or "",
+        "column_type": row.get("column_type") or "TEXT",
+        "is_percentage": bool(row.get("is_percentage")),
+        "is_system": bool(row.get("is_system")),
+        "display_order": row.get("display_order"),
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
+
+
+def legacy_cap_table_value_for_column(entry_row, column):
+    code = str(column.get("code") or "").strip().upper()
+    mapping = LEGACY_CAP_TABLE_CODE_MAP.get(code)
+    if not mapping:
+        return None
+    field_name, field_type = mapping
+    value = entry_row.get(field_name)
+    if value in ("", None):
+        return None
+    if field_type == "TEXT":
+        return {"value_text": str(value), "value_number": None}
+    try:
+        return {"value_text": None, "value_number": float(value)}
+    except (TypeError, ValueError):
+        return {"value_text": None, "value_number": None}
+
+
+def serialize_cap_table_entry(row, columns=None, values_by_column=None):
+    normalized_values = {}
+    for column in (columns or []):
+        column_id = str(column.get("id"))
+        current_value = (values_by_column or {}).get(column_id)
+        if current_value is None:
+            current_value = legacy_cap_table_value_for_column(row, column) or {"value_text": None, "value_number": None}
+        normalized_values[column_id] = {
+            "value_text": current_value.get("value_text"),
+            "value_number": float(current_value.get("value_number")) if current_value.get("value_number") is not None else None,
+        }
+
+    return {
+        "id": row.get("entry_id") or row.get("id"),
+        "snapshot_id": row.get("snapshot_id"),
+        "shareholder_name": row.get("shareholder_name") or "",
+        "comment": row.get("comment") or "",
+        "values": normalized_values,
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
+
+
+def build_cap_table_totals(columns, entries):
+    totals = {}
+    for column in columns:
+        column_id = str(column.get("id"))
+        if column.get("column_type") != "NUMBER":
+            totals[column_id] = None
+            continue
+        total = 0.0
+        has_value = False
+        for entry in entries:
+            value_number = ((entry.get("values") or {}).get(column_id) or {}).get("value_number")
+            if value_number is None:
+                continue
+            has_value = True
+            total += float(value_number)
+        totals[column_id] = total if has_value else None
+    return totals
 
 
 def fetch_cap_table_with_entries(cursor, deal_id):
@@ -1288,9 +1725,33 @@ def fetch_cap_table_with_entries(cursor, deal_id):
     )
     snapshot_rows = dictfetchall(cursor)
     if not snapshot_rows:
-        return []
+        return {"snapshots": []}
 
     snapshot_ids = [str(row["snapshot_id"]) for row in snapshot_rows if row.get("snapshot_id")]
+    cursor.execute(
+        """
+        SELECT
+            c.id AS column_id,
+            c.snapshot_id,
+            c.name,
+            c.code,
+            c.column_type,
+            c.is_percentage,
+            c.is_system,
+            c.display_order,
+            c.created_at,
+            c.updated_at
+        FROM dealflow.df_cap_table_columns c
+        WHERE c.snapshot_id = ANY(%s::uuid[])
+        ORDER BY c.display_order ASC NULLS LAST, c.created_at ASC NULLS LAST
+        """,
+        [snapshot_ids],
+    )
+    column_rows = dictfetchall(cursor)
+    columns_by_snapshot = defaultdict(list)
+    for column in column_rows:
+        columns_by_snapshot[str(column.get("snapshot_id"))].append(serialize_cap_table_column(column))
+
     cursor.execute(
         """
         SELECT
@@ -1315,16 +1776,47 @@ def fetch_cap_table_with_entries(cursor, deal_id):
         [snapshot_ids],
     )
     entry_rows = dictfetchall(cursor)
-    entries_by_snapshot = {}
+    entry_ids = [str(row["entry_id"]) for row in entry_rows if row.get("entry_id")]
+    values_by_entry = defaultdict(dict)
+    if entry_ids:
+        cursor.execute(
+            """
+            SELECT
+                v.id,
+                v.entry_id,
+                v.column_id,
+                v.value_text,
+                v.value_number,
+                v.created_at,
+                v.updated_at
+            FROM dealflow.df_cap_table_entry_values v
+            WHERE v.entry_id = ANY(%s::uuid[])
+            """,
+            [entry_ids],
+        )
+        for value_row in dictfetchall(cursor):
+            values_by_entry[str(value_row.get("entry_id"))][str(value_row.get("column_id"))] = {
+                "id": value_row.get("id"),
+                "value_text": value_row.get("value_text"),
+                "value_number": float(value_row.get("value_number")) if value_row.get("value_number") is not None else None,
+            }
+
+    entries_by_snapshot = defaultdict(list)
     for entry in entry_rows:
         snapshot_id = str(entry.get("snapshot_id"))
-        entries_by_snapshot.setdefault(snapshot_id, []).append(serialize_cap_table_entry(entry))
+        snapshot_columns = columns_by_snapshot.get(snapshot_id, [])
+        entries_by_snapshot[snapshot_id].append(
+            serialize_cap_table_entry(entry, snapshot_columns, values_by_entry.get(str(entry.get("entry_id")), {}))
+        )
 
     snapshots = []
     for row in snapshot_rows:
-        row["entries"] = entries_by_snapshot.get(str(row.get("snapshot_id")), [])
+        snapshot_id = str(row.get("snapshot_id"))
+        row["columns"] = columns_by_snapshot.get(snapshot_id, [])
+        row["entries"] = entries_by_snapshot.get(snapshot_id, [])
+        row["totals"] = build_cap_table_totals(row["columns"], row["entries"])
         snapshots.append(serialize_cap_table_snapshot(row))
-    return snapshots
+    return {"snapshots": snapshots}
 
 
 def cap_table_snapshot_belongs_to_deal(cursor, deal_id, snapshot_id):
@@ -1358,6 +1850,118 @@ def cap_table_entry_belongs_to_deal(cursor, deal_id, entry_id):
     if not row:
         return None
     return {"id": str(row[0]), "snapshot_id": str(row[1])}
+
+
+def cap_table_column_belongs_to_snapshot(cursor, deal_id, snapshot_id, column_id):
+    cursor.execute(
+        """
+        SELECT c.id, c.is_system
+        FROM dealflow.df_cap_table_columns c
+        INNER JOIN dealflow.df_cap_table_snapshots s
+            ON s.id = c.snapshot_id
+        WHERE c.id = %s
+          AND c.snapshot_id = %s
+          AND s.deal_id = %s
+        LIMIT 1
+        """,
+        [str(column_id), str(snapshot_id), str(deal_id)],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {"id": str(row[0]), "is_system": bool(row[1])}
+
+
+def cap_table_entry_belongs_to_snapshot(cursor, deal_id, snapshot_id, entry_id):
+    cursor.execute(
+        """
+        SELECT e.id
+        FROM dealflow.df_cap_table_entries e
+        INNER JOIN dealflow.df_cap_table_snapshots s
+            ON s.id = e.snapshot_id
+        WHERE e.id = %s
+          AND e.snapshot_id = %s
+          AND s.deal_id = %s
+        LIMIT 1
+        """,
+        [str(entry_id), str(snapshot_id), str(deal_id)],
+    )
+    row = cursor.fetchone()
+    return str(row[0]) if row else None
+
+
+def create_default_cap_table_columns(cursor, snapshot_id, now):
+    for column in CAP_TABLE_DEFAULT_COLUMNS:
+        cursor.execute(
+            """
+            INSERT INTO dealflow.df_cap_table_columns (
+                id,
+                snapshot_id,
+                name,
+                code,
+                column_type,
+                is_percentage,
+                is_system,
+                display_order,
+                created_at,
+                updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            [
+                str(uuid4()),
+                str(snapshot_id),
+                column["name"],
+                column["code"],
+                column["column_type"],
+                column["is_percentage"],
+                column["is_system"],
+                column["display_order"],
+                now,
+                now,
+            ],
+        )
+
+
+def build_cap_table_values_payload(cursor, snapshot_id, payload):
+    payload_values = payload.get("values") if isinstance(payload.get("values"), dict) else {}
+    cursor.execute(
+        """
+        SELECT
+            id,
+            name,
+            code,
+            column_type,
+            is_percentage
+        FROM dealflow.df_cap_table_columns
+        WHERE snapshot_id = %s
+        ORDER BY display_order ASC NULLS LAST, created_at ASC NULLS LAST
+        """,
+        [str(snapshot_id)],
+    )
+    columns = [serialize_cap_table_column(row) for row in dictfetchall(cursor)]
+    normalized = []
+    for column in columns:
+        column_id = str(column["id"])
+        code = str(column.get("code") or "").strip().upper()
+        raw_value = payload_values.get(column_id, payload_values.get(code))
+        if raw_value is None and code in LEGACY_CAP_TABLE_CODE_MAP:
+            legacy_field = LEGACY_CAP_TABLE_CODE_MAP[code][0]
+            raw_value = payload.get(legacy_field)
+        if raw_value == "" and column.get("column_type") in {"NUMBER", "PERCENTAGE"}:
+            raw_value = None
+        if column.get("column_type") == "TEXT":
+            value_text = None if raw_value in (None, "") else str(raw_value)
+            value_number = None
+        else:
+            value_text = None
+            value_number = normalize_numeric_or_none(raw_value)
+        normalized.append({
+            "column": column,
+            "value_text": value_text,
+            "value_number": value_number,
+        })
+    return normalized
 
 
 def serialize_document_row(row):
@@ -1435,14 +2039,33 @@ def fetch_deal_documents(cursor, deal_id):
     return [serialize_document_row(row) for row in dictfetchall(cursor)]
 
 
+KPI_PERIOD_TYPES = {"QUARTERLY", "SEMI_ANNUALLY", "ANNUALLY"}
+KPI_RAW_VALUE_KEYS = [
+    "q1_value",
+    "q2_value",
+    "q3_value",
+    "q4_value",
+    "h1_value",
+    "h2_value",
+    "annual_y1_value",
+    "annual_y2_value",
+    "annual_y3_value",
+    "annual_y4_value",
+]
+
+
+def normalize_kpi_period_type(value, fallback="QUARTERLY"):
+    normalized = str(value or "").strip().upper()
+    return normalized if normalized in KPI_PERIOD_TYPES else fallback
+
+
 def serialize_kpi_period(row):
     return {
-        "id": row.get("period_id"),
+        "id": row.get("period_id") or row.get("id"),
         "deal_id": row.get("deal_id"),
         "company_id": row.get("company_id"),
         "name": row.get("name") or "",
-        "start_date": row.get("start_date"),
-        "end_date": row.get("end_date"),
+        "year": row.get("year"),
         "currency_id": row.get("currency_id"),
         "currency": {
             "id": row.get("currency_id"),
@@ -1452,33 +2075,159 @@ def serialize_kpi_period(row):
         "display_order": row.get("display_order"),
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
-        "entries": row.get("entries") or [],
     }
 
 
-def serialize_kpi_entry(row):
-    value = row.get("value")
+def build_kpi_raw_values(row):
     return {
-        "id": row.get("entry_id"),
+        key: float(row.get(key)) if row.get(key) is not None else None
+        for key in KPI_RAW_VALUE_KEYS
+    }
+
+
+def build_kpi_display_columns(period_year, display_period_type):
+    normalized = normalize_kpi_period_type(display_period_type)
+    if normalized == "SEMI_ANNUALLY":
+        return [
+            {"key": "h1_value", "label": "H1"},
+            {"key": "h2_value", "label": "H2"},
+        ]
+    if normalized == "ANNUALLY":
+        year = int(period_year or timezone.now().year)
+        return [
+            {"key": "annual_y1_value", "label": str(year - 3)},
+            {"key": "annual_y2_value", "label": str(year - 2)},
+            {"key": "annual_y3_value", "label": str(year - 1)},
+            {"key": "annual_y4_value", "label": str(year)},
+        ]
+    return [
+        {"key": "q1_value", "label": "Q1"},
+        {"key": "q2_value", "label": "Q2"},
+        {"key": "q3_value", "label": "Q3"},
+        {"key": "q4_value", "label": "Q4"},
+    ]
+
+
+def build_kpi_display_values(row, display_period_type):
+    period_type = normalize_kpi_period_type(row.get("period_type"))
+    display_type = normalize_kpi_period_type(display_period_type)
+    raw_values = build_kpi_raw_values(row)
+    cannot_disaggregate = False
+
+    if display_type == "QUARTERLY":
+        if period_type == "QUARTERLY":
+            return (
+                {
+                    "q1_value": raw_values["q1_value"],
+                    "q2_value": raw_values["q2_value"],
+                    "q3_value": raw_values["q3_value"],
+                    "q4_value": raw_values["q4_value"],
+                },
+                False,
+            )
+        return (
+            {
+                "q1_value": None,
+                "q2_value": None,
+                "q3_value": None,
+                "q4_value": None,
+            },
+            True,
+        )
+
+    if display_type == "SEMI_ANNUALLY":
+        if period_type == "SEMI_ANNUALLY":
+            return (
+                {
+                    "h1_value": raw_values["h1_value"],
+                    "h2_value": raw_values["h2_value"],
+                },
+                False,
+            )
+        if period_type == "QUARTERLY":
+            h1 = None if raw_values["q1_value"] is None and raw_values["q2_value"] is None else float(raw_values["q1_value"] or 0) + float(raw_values["q2_value"] or 0)
+            h2 = None if raw_values["q3_value"] is None and raw_values["q4_value"] is None else float(raw_values["q3_value"] or 0) + float(raw_values["q4_value"] or 0)
+            return (
+                {
+                    "h1_value": h1,
+                    "h2_value": h2,
+                },
+                False,
+            )
+        return (
+            {
+                "h1_value": None,
+                "h2_value": None,
+            },
+            True,
+        )
+
+    if period_type == "ANNUALLY":
+        return (
+            {
+                "annual_y1_value": raw_values["annual_y1_value"],
+                "annual_y2_value": raw_values["annual_y2_value"],
+                "annual_y3_value": raw_values["annual_y3_value"],
+                "annual_y4_value": raw_values["annual_y4_value"],
+            },
+            False,
+        )
+
+    if period_type == "QUARTERLY":
+        annual_total = sum(float(raw_values[key] or 0) for key in ["q1_value", "q2_value", "q3_value", "q4_value"])
+        annual_total = annual_total if any(raw_values[key] is not None for key in ["q1_value", "q2_value", "q3_value", "q4_value"]) else None
+    elif period_type == "SEMI_ANNUALLY":
+        annual_total = sum(float(raw_values[key] or 0) for key in ["h1_value", "h2_value"])
+        annual_total = annual_total if any(raw_values[key] is not None for key in ["h1_value", "h2_value"]) else None
+    else:
+        annual_total = None
+
+    return (
+        {
+            "annual_y1_value": None,
+            "annual_y2_value": None,
+            "annual_y3_value": None,
+            "annual_y4_value": annual_total,
+            "annual_value": annual_total,
+        },
+        False,
+    )
+
+
+def serialize_kpi_entry(row, display_period_type):
+    raw_values = build_kpi_raw_values(row)
+    display_values, cannot_disaggregate = build_kpi_display_values(row, display_period_type)
+    return {
+        "id": row.get("entry_id") or row.get("id"),
         "period_id": row.get("period_id"),
         "deal_id": row.get("deal_id"),
         "company_id": row.get("company_id"),
         "kpi_name": row.get("kpi_name") or "",
+        "period_type": normalize_kpi_period_type(row.get("period_type")),
         "kpi_category_id": row.get("kpi_category_id"),
-        "kpi_category": {
+        "category": {
             "id": row.get("kpi_category_id"),
             "name": row.get("kpi_category_name") or "",
             "color": row.get("kpi_category_color"),
         } if row.get("kpi_category_id") else None,
-        "value": float(value) if value is not None else None,
+        "currency_id": row.get("currency_id"),
+        "currency": {
+            "id": row.get("entry_currency_id"),
+            "name": row.get("entry_currency_name") or "",
+            "code": row.get("entry_currency_code") or "",
+        } if row.get("entry_currency_id") else None,
         "unit": row.get("unit") or "",
+        "kpi_order": row.get("kpi_order"),
         "display_order": row.get("display_order"),
+        "raw_values": raw_values,
+        "display_values": display_values,
+        "cannot_disaggregate": cannot_disaggregate,
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
     }
 
 
-def fetch_kpis_with_entries(cursor, deal_id):
+def fetch_kpi_periods(cursor, deal_id):
     cursor.execute(
         """
         SELECT
@@ -1486,8 +2235,7 @@ def fetch_kpis_with_entries(cursor, deal_id):
             p.deal_id,
             p.company_id,
             p.name,
-            p.start_date,
-            p.end_date,
+            p.year,
             p.currency_id,
             p.display_order,
             p.created_at,
@@ -1498,15 +2246,46 @@ def fetch_kpis_with_entries(cursor, deal_id):
         LEFT JOIN dealflow.df_taxonomy_items cur
             ON cur.id = p.currency_id
         WHERE p.deal_id = %s
-        ORDER BY p.display_order ASC NULLS LAST, p.start_date ASC NULLS LAST, p.created_at ASC
+        ORDER BY p.display_order ASC NULLS LAST, p.created_at ASC
         """,
         [str(deal_id)],
     )
+    return [serialize_kpi_period(row) for row in dictfetchall(cursor)]
+
+
+def fetch_kpi_period_entry_payload(cursor, deal_id, period_id, display_period_type="QUARTERLY"):
+    cursor.execute(
+        """
+        SELECT
+            p.id AS period_id,
+            p.deal_id,
+            p.company_id,
+            p.name,
+            p.year,
+            p.currency_id,
+            p.display_order,
+            p.created_at,
+            p.updated_at,
+            cur.name AS currency_name,
+            cur.code AS currency_code
+        FROM dealflow.df_kpi_periods p
+        LEFT JOIN dealflow.df_taxonomy_items cur
+            ON cur.id = p.currency_id
+        WHERE p.id = %s
+          AND p.deal_id = %s
+        LIMIT 1
+        """,
+        [str(period_id), str(deal_id)],
+    )
     period_rows = dictfetchall(cursor)
     if not period_rows:
-        return []
+        return None
+    period_row = period_rows[0]
 
-    period_ids = [str(row["period_id"]) for row in period_rows if row.get("period_id")]
+    normalized_display_type = normalize_kpi_period_type(display_period_type)
+    period = serialize_kpi_period(period_row)
+    columns = build_kpi_display_columns(period.get("year"), normalized_display_type)
+
     cursor.execute(
         """
         SELECT
@@ -1516,33 +2295,53 @@ def fetch_kpis_with_entries(cursor, deal_id):
             e.company_id,
             e.kpi_name,
             e.kpi_category_id,
-            e.value,
+            e.period_type,
+            e.currency_id AS entry_currency_id,
             e.unit,
+            e.kpi_order,
             e.display_order,
+            e.q1_value,
+            e.q2_value,
+            e.q3_value,
+            e.q4_value,
+            e.h1_value,
+            e.h2_value,
+            e.annual_y1_value,
+            e.annual_y2_value,
+            e.annual_y3_value,
+            e.annual_y4_value,
             e.created_at,
             e.updated_at,
             kc.name AS kpi_category_name,
-            kc.color AS kpi_category_color
+            kc.color AS kpi_category_color,
+            cur.name AS entry_currency_name,
+            cur.code AS entry_currency_code
         FROM dealflow.df_kpi_entries e
         LEFT JOIN dealflow.df_taxonomy_items kc
             ON kc.id = e.kpi_category_id
-        WHERE e.period_id = ANY(%s::uuid[])
+        LEFT JOIN dealflow.df_taxonomy_items cur
+            ON cur.id = e.currency_id
+        WHERE e.period_id = %s
           AND e.deal_id = %s
-        ORDER BY e.display_order ASC NULLS LAST, e.created_at ASC NULLS LAST, e.kpi_name ASC
+        ORDER BY e.display_order ASC NULLS LAST, e.kpi_order ASC NULLS LAST, e.created_at ASC NULLS LAST, e.kpi_name ASC
         """,
-        [period_ids, str(deal_id)],
+        [str(period_id), str(deal_id)],
     )
-    entry_rows = dictfetchall(cursor)
-    entries_by_period = {}
-    for entry in entry_rows:
-      period_id = str(entry.get("period_id"))
-      entries_by_period.setdefault(period_id, []).append(serialize_kpi_entry(entry))
+    entries = [serialize_kpi_entry(row, normalized_display_type) for row in dictfetchall(cursor)]
+    totals = {}
+    for column in columns:
+        key = column["key"]
+        numeric_values = [entry.get("display_values", {}).get(key) for entry in entries]
+        numeric_values = [float(value) for value in numeric_values if value is not None]
+        totals[key] = sum(numeric_values) if numeric_values else None
 
-    periods = []
-    for row in period_rows:
-        row["entries"] = entries_by_period.get(str(row.get("period_id")), [])
-        periods.append(serialize_kpi_period(row))
-    return periods
+    return {
+        "period": period,
+        "display_period_type": normalized_display_type,
+        "columns": columns,
+        "entries": entries,
+        "totals": totals,
+    }
 
 
 def kpi_period_belongs_to_deal(cursor, deal_id, period_id):
@@ -1557,6 +2356,23 @@ def kpi_period_belongs_to_deal(cursor, deal_id, period_id):
         [str(period_id), str(deal_id)],
     )
     return cursor.fetchone() is not None
+
+
+def fetch_kpi_period_relation(cursor, deal_id, period_id):
+    cursor.execute(
+        """
+        SELECT id, company_id, year
+        FROM dealflow.df_kpi_periods
+        WHERE id = %s
+          AND deal_id = %s
+        LIMIT 1
+        """,
+        [str(period_id), str(deal_id)],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {"id": str(row[0]), "company_id": str(row[1]) if row[1] else None, "year": row[2]}
 
 
 def kpi_entry_belongs_to_deal(cursor, deal_id, entry_id):
@@ -1574,6 +2390,24 @@ def kpi_entry_belongs_to_deal(cursor, deal_id, entry_id):
     if not row:
         return None
     return {"id": str(row[0]), "period_id": str(row[1])}
+
+
+def kpi_entry_belongs_to_period(cursor, deal_id, period_id, entry_id):
+    cursor.execute(
+        """
+        SELECT e.id
+        FROM dealflow.df_kpi_entries e
+        INNER JOIN dealflow.df_kpi_periods p
+            ON p.id = e.period_id
+        WHERE e.id = %s
+          AND e.period_id = %s
+          AND p.deal_id = %s
+        LIMIT 1
+        """,
+        [str(entry_id), str(period_id), str(deal_id)],
+    )
+    row = cursor.fetchone()
+    return str(row[0]) if row else None
 
 
 def serialize_board_snapshot(row):
@@ -1793,6 +2627,7 @@ def fetch_deal_detail(cursor, deal_id):
         return None
     data = dict(zip([col[0] for col in cursor.description], row))
     data["team_members"] = fetch_deal_team_members(cursor, deal_id)
+    data["external_contacts"] = fetch_deal_external_contacts(cursor, deal_id)
     return data
 
 
@@ -2808,23 +3643,425 @@ class DealflowDealEventDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class CalendarEventsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        start_dt = parse_calendar_datetime_value(request.query_params.get("start"))
+        end_dt = parse_calendar_datetime_value(request.query_params.get("end"))
+        deal_id = normalize_uuid(request.query_params.get("deal_id"))
+        provider = str(request.query_params.get("provider") or "").strip() or None
+        include_cancelled = parse_boolean_query(request.query_params.get("include_cancelled"), default=False)
+
+        with connection.cursor() as cursor:
+            events = fetch_calendar_events(
+                cursor,
+                start_dt=start_dt,
+                end_dt=end_dt,
+                deal_id=deal_id,
+                provider=provider,
+                include_cancelled=include_cancelled,
+            )
+        return Response({"events": events}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        payload = request.data or {}
+        subject = str(payload.get("subject") or "").strip()
+        body_preview = str(payload.get("body_preview") or "").strip()
+        start_dt = parse_calendar_datetime_value(payload.get("start_datetime"))
+        end_dt = parse_calendar_datetime_value(payload.get("end_datetime"))
+        timezone_name = str(payload.get("timezone") or "UTC").strip() or "UTC"
+        location = str(payload.get("location") or "").strip()
+        meeting_link = str(payload.get("meeting_link") or "").strip()
+        organizer_name = str(payload.get("organizer_name") or "Internal").strip() or "Internal"
+        organizer_email = str(payload.get("organizer_email") or "").strip()
+        attendees = normalize_calendar_attendees(payload.get("attendees"))
+        deal_id = normalize_uuid(payload.get("deal_id"))
+
+        if not subject:
+            return Response({"error": "Subject is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if start_dt is None:
+            return Response({"error": "Start datetime is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if end_dt is None:
+            return Response({"error": "End datetime is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if end_dt <= start_dt:
+            return Response({"error": "End datetime must be after start datetime."}, status=status.HTTP_400_BAD_REQUEST)
+
+        event_id = str(uuid4())
+        external_event_id = f"manual:{uuid4()}"
+        now = timezone.now()
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    if deal_id and not fetch_deal_brief(cursor, deal_id):
+                        return Response({"error": "Deal not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_calendar_events (
+                            id,
+                            connection_id,
+                            provider,
+                            external_event_id,
+                            subject,
+                            body_preview,
+                            start_datetime,
+                            end_datetime,
+                            timezone,
+                            location,
+                            meeting_link,
+                            organizer_name,
+                            organizer_email,
+                            attendees,
+                            status,
+                            is_cancelled,
+                            deal_id,
+                            raw_payload,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [
+                            event_id,
+                            None,
+                            "MANUAL",
+                            external_event_id,
+                            subject,
+                            body_preview,
+                            start_dt,
+                            end_dt,
+                            timezone_name,
+                            location,
+                            meeting_link,
+                            organizer_name,
+                            organizer_email,
+                            Json(attendees),
+                            "confirmed",
+                            False,
+                            deal_id,
+                            Json(payload),
+                            now,
+                            now,
+                        ],
+                    )
+                    created = fetch_calendar_event(cursor, event_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(created or {}, status=status.HTTP_201_CREATED)
+
+
+class CalendarEventDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, event_id):
+        payload = request.data or {}
+        allowed_fields = {
+            "subject",
+            "body_preview",
+            "start_datetime",
+            "end_datetime",
+            "timezone",
+            "location",
+            "meeting_link",
+            "organizer_name",
+            "organizer_email",
+            "attendees",
+            "deal_id",
+            "status",
+        }
+        update_keys = {key for key in payload.keys() if key in allowed_fields}
+        if not update_keys:
+            return Response({"error": "No valid fields provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id, provider, start_datetime, end_datetime
+                        FROM dealflow.df_calendar_events
+                        WHERE id = %s
+                        LIMIT 1
+                        """,
+                        [str(event_id)],
+                    )
+                    row = cursor.fetchone()
+                    if not row:
+                        return Response({"error": "Calendar event not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    provider = str(row[1] or "").upper()
+                    current_start = row[2]
+                    current_end = row[3]
+
+                    if provider != "MANUAL":
+                        if update_keys - {"deal_id"}:
+                            return Response(
+                                {"error": "Only deal linking is allowed for Microsoft-synced events right now."},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
+
+                    next_start = parse_calendar_datetime_value(payload.get("start_datetime")) if "start_datetime" in update_keys else current_start
+                    next_end = parse_calendar_datetime_value(payload.get("end_datetime")) if "end_datetime" in update_keys else current_end
+                    if "start_datetime" in update_keys and payload.get("start_datetime") not in (None, "") and next_start is None:
+                        return Response({"error": "Invalid start datetime."}, status=status.HTTP_400_BAD_REQUEST)
+                    if "end_datetime" in update_keys and payload.get("end_datetime") not in (None, "") and next_end is None:
+                        return Response({"error": "Invalid end datetime."}, status=status.HTTP_400_BAD_REQUEST)
+                    if next_start and next_end and next_end <= next_start:
+                        return Response({"error": "End datetime must be after start datetime."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    deal_id = normalize_uuid(payload.get("deal_id")) if "deal_id" in update_keys else None
+                    if "deal_id" in update_keys and payload.get("deal_id") not in (None, "") and not deal_id:
+                        return Response({"error": "Invalid deal id."}, status=status.HTTP_400_BAD_REQUEST)
+                    if "deal_id" in update_keys and deal_id and not fetch_deal_brief(cursor, deal_id):
+                        return Response({"error": "Deal not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    field_map = {
+                        "subject": str(payload.get("subject") or "").strip(),
+                        "body_preview": str(payload.get("body_preview") or "").strip(),
+                        "start_datetime": next_start,
+                        "end_datetime": next_end,
+                        "timezone": str(payload.get("timezone") or "").strip() or "UTC",
+                        "location": str(payload.get("location") or "").strip(),
+                        "meeting_link": str(payload.get("meeting_link") or "").strip(),
+                        "organizer_name": str(payload.get("organizer_name") or "").strip(),
+                        "organizer_email": str(payload.get("organizer_email") or "").strip(),
+                        "attendees": Json(normalize_calendar_attendees(payload.get("attendees"))),
+                        "deal_id": deal_id,
+                        "status": str(payload.get("status") or "").strip(),
+                    }
+
+                    if "subject" in update_keys and not field_map["subject"]:
+                        return Response({"error": "Subject is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    set_clauses = []
+                    params = []
+                    for key in update_keys:
+                        set_clauses.append(f"{key} = %s")
+                        if key == "deal_id" and payload.get("deal_id") in (None, ""):
+                            params.append(None)
+                        else:
+                            params.append(field_map[key])
+                    set_clauses.append("updated_at = %s")
+                    params.append(timezone.now())
+                    params.append(str(event_id))
+
+                    cursor.execute(
+                        f"""
+                        UPDATE dealflow.df_calendar_events
+                        SET {', '.join(set_clauses)}
+                        WHERE id = %s
+                        """,
+                        params,
+                    )
+                    updated = fetch_calendar_event(cursor, event_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+    def delete(self, request, event_id):
+        now = timezone.now()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE dealflow.df_calendar_events
+                    SET
+                        is_cancelled = TRUE,
+                        status = 'cancelled',
+                        updated_at = %s
+                    WHERE id = %s
+                    """,
+                    [now, str(event_id)],
+                )
+                if cursor.rowcount == 0:
+                    return Response({"error": "Calendar event not found."}, status=status.HTTP_404_NOT_FOUND)
+                cancelled = fetch_calendar_event(cursor, event_id)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(cancelled or {"success": True}, status=status.HTTP_200_OK)
+
+
+class CalendarEventLinkDealView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, event_id):
+        payload = request.data or {}
+        raw_deal_id = payload.get("deal_id")
+        deal_id = normalize_uuid(raw_deal_id)
+
+        if raw_deal_id not in (None, "") and not deal_id:
+            return Response({"error": "Invalid deal id."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id
+                        FROM dealflow.df_calendar_events
+                        WHERE id = %s
+                        LIMIT 1
+                        """,
+                        [str(event_id)],
+                    )
+                    if not cursor.fetchone():
+                        return Response({"error": "Calendar event not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    if deal_id and not fetch_deal_brief(cursor, deal_id):
+                        return Response({"error": "Deal not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_calendar_events
+                        SET
+                            deal_id = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                        """,
+                        [deal_id, timezone.now(), str(event_id)],
+                    )
+                    updated = fetch_calendar_event(cursor, event_id)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+
+class CalendarOptionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, name, code
+                FROM dealflow.df_deals
+                WHERE deleted_at IS NULL
+                ORDER BY name ASC
+                """
+            )
+            deals = [
+                {
+                    "id": row[0],
+                    "name": row[1] or "",
+                    "code": row[2] or "",
+                }
+                for row in cursor.fetchall()
+            ]
+
+        return Response(
+            {
+                "deals": deals,
+                "providers": ["MANUAL", "MICROSOFT"],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class CalendarMicrosoftStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        configured = microsoft_calendar_is_configured()
+        if not configured:
+            return Response(
+                {
+                    "configured": False,
+                    "connected": False,
+                    "message": "Microsoft Calendar integration is not configured yet.",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        with connection.cursor() as cursor:
+            connected = bool(fetch_active_microsoft_calendar_connection(cursor))
+
+        return Response(
+            {
+                "configured": True,
+                "connected": connected,
+                "message": "Microsoft Calendar integration is available." if connected else "No Microsoft calendar connection found.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class CalendarMicrosoftConnectView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not microsoft_calendar_is_configured():
+            return Response(
+                {"error": "Microsoft Calendar integration is not configured yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"error": "Microsoft Calendar connection flow is not enabled yet."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class CalendarMicrosoftSyncView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not microsoft_calendar_is_configured():
+            return Response(
+                {"error": "Microsoft Calendar integration is not configured yet."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with connection.cursor() as cursor:
+            connection_id = fetch_active_microsoft_calendar_connection(cursor)
+
+        if not connection_id:
+            return Response(
+                {"error": "No Microsoft calendar connection found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"message": "Microsoft calendar sync will be added next."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class DealflowDealStageLogView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, deal_id):
+        with connection.cursor() as cursor:
+            stage_logs = fetch_deal_stage_logs(cursor, deal_id)
+        return Response(stage_logs, status=status.HTTP_200_OK)
 
     def post(self, request, deal_id):
         payload = request.data or {}
         stage_id = normalize_uuid(payload.get("stage_id"))
         event_date = payload.get("event_date")
+        note = str(payload.get("note") or "").strip()
 
         if not stage_id:
             return Response({"error": "Stage is required."}, status=status.HTTP_400_BAD_REQUEST)
         if not event_date:
             return Response({"error": "Effective date is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        created_by = resolve_dealflow_user_id(getattr(request.user, "email", None))
+        changed_by = resolve_dealflow_user_id(getattr(request.user, "email", None))
         now = timezone.now()
-        event_id = uuid4()
+        log_id = uuid4()
 
+        stage_log_columns = get_deal_stage_log_columns()
+        supports_updated_at = "updated_at" in stage_log_columns
+        supports_note = "note" in stage_log_columns
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
@@ -2847,42 +4084,46 @@ class DealflowDealStageLogView(APIView):
                     if not stage_row:
                         return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-                    stage_name = stage_row[1]
+                    insert_columns = [
+                        "id",
+                        "deal_id",
+                        "old_stage_id",
+                        "new_stage_id",
+                        "changed_by",
+                        "changed_at",
+                        "created_at",
+                    ]
+                    insert_values = [
+                        str(log_id),
+                        str(deal_id),
+                        str(current_deal.get("stage_id")) if current_deal.get("stage_id") else None,
+                        stage_id,
+                        changed_by,
+                        event_date,
+                        now,
+                    ]
+                    if supports_updated_at:
+                        insert_columns.append("updated_at")
+                        insert_values.append(now)
+                    if supports_note:
+                        insert_columns.append("note")
+                        insert_values.append(note)
+
                     cursor.execute(
-                        """
-                        INSERT INTO dealflow.df_events (
-                            id,
-                            deal_id,
-                            title,
-                            description,
-                            event_date,
-                            event_type_id,
-                            created_by,
-                            created_at,
-                            updated_at
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        f"""
+                        INSERT INTO dealflow.df_deal_stage_logs ({", ".join(insert_columns)})
+                        VALUES ({", ".join(["%s"] * len(insert_values))})
                         """,
-                        [
-                            str(event_id),
-                            str(deal_id),
-                            f"Stage changed to {stage_name}",
-                            "",
-                            event_date,
-                            None,
-                            created_by,
-                            now,
-                            now,
-                        ],
+                        insert_values,
                     )
                     sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
-                    events = fetch_deal_events(cursor, deal_id)
+                    stage_logs = fetch_deal_stage_logs(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        created = next((event for event in events if str(event.get("id")) == str(event_id)), None)
+        created = next((log for log in stage_logs if str(log.get("id")) == str(log_id)), None)
         return Response(created or {}, status=status.HTTP_201_CREATED)
 
 
@@ -2893,6 +4134,7 @@ class DealflowDealStageLogDetailView(APIView):
         payload = request.data or {}
         stage_id = normalize_uuid(payload.get("stage_id"))
         event_date = payload.get("event_date")
+        note = str(payload.get("note") or "").strip()
 
         if not stage_id:
             return Response({"error": "Stage is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -2900,6 +4142,10 @@ class DealflowDealStageLogDetailView(APIView):
             return Response({"error": "Effective date is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
+        stage_log_columns = get_deal_stage_log_columns()
+        supports_updated_at = "updated_at" in stage_log_columns
+        supports_note = "note" in stage_log_columns
+        deleted_filter = "AND deleted_at IS NULL" if "deleted_at" in stage_log_columns else ""
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
@@ -2918,62 +4164,242 @@ class DealflowDealStageLogDetailView(APIView):
                     if not stage_row:
                         return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-                    stage_name = stage_row[1]
+                    set_clauses = [
+                        "new_stage_id = %s",
+                        "changed_at = %s",
+                    ]
+                    params = [stage_id, event_date]
+                    if supports_note:
+                        set_clauses.append("note = %s")
+                        params.append(note)
+                    if supports_updated_at:
+                        set_clauses.append("updated_at = %s")
+                        params.append(now)
+
                     cursor.execute(
-                        """
-                        UPDATE dealflow.df_events
-                        SET
-                            title = %s,
-                            description = %s,
-                            event_date = %s,
-                            updated_at = %s
+                        f"""
+                        UPDATE dealflow.df_deal_stage_logs
+                        SET {", ".join(set_clauses)}
                         WHERE id = %s
                           AND deal_id = %s
-                          AND deleted_at IS NULL
-                          AND (
-                              title LIKE 'Stage changed to %%'
-                              OR title LIKE 'Stage updated to %%'
-                          )
+                          {deleted_filter}
                         """,
-                        [f"Stage changed to {stage_name}", "", event_date, now, str(event_id), str(deal_id)],
+                        [*params, str(event_id), str(deal_id)],
                     )
                     if cursor.rowcount == 0:
                         return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
 
                     sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
-                    events = fetch_deal_events(cursor, deal_id)
+                    stage_logs = fetch_deal_stage_logs(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        updated = next((event for event in events if str(event.get("id")) == str(event_id)), None)
+        updated = next((log for log in stage_logs if str(log.get("id")) == str(event_id)), None)
         return Response(updated or {}, status=status.HTTP_200_OK)
 
     def delete(self, request, deal_id, event_id):
         now = timezone.now()
+        stage_log_columns = get_deal_stage_log_columns()
+        supports_deleted_at = "deleted_at" in stage_log_columns
+        supports_updated_at = "updated_at" in stage_log_columns
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    if supports_deleted_at:
+                        set_clauses = ["deleted_at = %s"]
+                        params = [now]
+                        if supports_updated_at:
+                            set_clauses.append("updated_at = %s")
+                            params.append(now)
+                        cursor.execute(
+                            f"""
+                            UPDATE dealflow.df_deal_stage_logs
+                            SET {", ".join(set_clauses)}
+                            WHERE id = %s
+                              AND deal_id = %s
+                              AND deleted_at IS NULL
+                            """,
+                            [*params, str(event_id), str(deal_id)],
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            DELETE FROM dealflow.df_deal_stage_logs
+                            WHERE id = %s
+                              AND deal_id = %s
+                            """,
+                            [str(event_id), str(deal_id)],
+                        )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    sync_deal_stage_from_stage_log(cursor, deal_id)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealflowDealExternalContactsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, deal_id):
+        with connection.cursor() as cursor:
+            contacts = fetch_deal_external_contacts(cursor, deal_id)
+        return Response({"contacts": contacts}, status=status.HTTP_200_OK)
+
+    def post(self, request, deal_id):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        role = str(payload.get("role") or "").strip()
+        email = str(payload.get("email") or "").strip()
+        phone = str(payload.get("phone") or "").strip()
+        notes = str(payload.get("notes") or "").strip()
+        display_order = payload.get("display_order")
+
+        if not name:
+            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            display_order_value = int(display_order) if display_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        contact_id = uuid4()
+        now = timezone.now()
+
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
                     cursor.execute(
                         """
-                        UPDATE dealflow.df_events
+                        SELECT id
+                        FROM dealflow.df_deals
+                        WHERE id = %s
+                          AND deleted_at IS NULL
+                        LIMIT 1
+                        """,
+                        [str(deal_id)],
+                    )
+                    if not cursor.fetchone():
+                        return Response({"error": "Deal not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_deal_external_contacts (
+                            id,
+                            deal_id,
+                            name,
+                            role,
+                            email,
+                            phone,
+                            notes,
+                            display_order,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [
+                            str(contact_id),
+                            str(deal_id),
+                            name,
+                            role,
+                            email,
+                            phone,
+                            notes,
+                            display_order_value,
+                            now,
+                            now,
+                        ],
+                    )
+                    contacts = fetch_deal_external_contacts(cursor, deal_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        created = next((contact for contact in contacts if str(contact.get("id")) == str(contact_id)), None)
+        return Response(created or {}, status=status.HTTP_201_CREATED)
+
+
+class DealflowDealExternalContactDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, deal_id, contact_id):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        role = str(payload.get("role") or "").strip()
+        email = str(payload.get("email") or "").strip()
+        phone = str(payload.get("phone") or "").strip()
+        notes = str(payload.get("notes") or "").strip()
+        display_order = payload.get("display_order")
+
+        if not name:
+            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            display_order_value = int(display_order) if display_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_deal_external_contacts
                         SET
-                            deleted_at = %s,
+                            name = %s,
+                            role = %s,
+                            email = %s,
+                            phone = %s,
+                            notes = %s,
+                            display_order = %s,
                             updated_at = %s
                         WHERE id = %s
                           AND deal_id = %s
-                          AND deleted_at IS NULL
-                          AND (
-                              title LIKE 'Stage changed to %%'
-                              OR title LIKE 'Stage updated to %%'
-                          )
                         """,
-                        [now, now, str(event_id), str(deal_id)],
+                        [
+                            name,
+                            role,
+                            email,
+                            phone,
+                            notes,
+                            display_order_value,
+                            now,
+                            str(contact_id),
+                            str(deal_id),
+                        ],
                     )
                     if cursor.rowcount == 0:
-                        return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
-                    sync_deal_stage_from_stage_log(cursor, deal_id)
+                        return Response({"error": "External contact not found."}, status=status.HTTP_404_NOT_FOUND)
+                    contacts = fetch_deal_external_contacts(cursor, deal_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        updated = next((contact for contact in contacts if str(contact.get("id")) == str(contact_id)), None)
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+    def delete(self, request, deal_id, contact_id):
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_deal_external_contacts
+                        WHERE id = %s
+                          AND deal_id = %s
+                        """,
+                        [str(contact_id), str(deal_id)],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "External contact not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -3032,13 +4458,14 @@ class DealflowCapTableView(APIView):
                             now,
                         ],
                     )
+                    create_default_cap_table_columns(cursor, snapshot_id, now)
                     snapshots = fetch_cap_table_with_entries(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        created = next((snapshot for snapshot in snapshots if str(snapshot.get("id")) == str(snapshot_id)), None)
+        created = next((snapshot for snapshot in snapshots.get("snapshots", []) if str(snapshot.get("id")) == str(snapshot_id)), None)
         return Response(created or {}, status=status.HTTP_201_CREATED)
 
 
@@ -3078,7 +4505,7 @@ class DealflowCapTableSnapshotDetailView(APIView):
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        updated = next((snapshot for snapshot in snapshots if str(snapshot.get("id")) == str(snapshot_id)), None)
+        updated = next((snapshot for snapshot in snapshots.get("snapshots", []) if str(snapshot.get("id")) == str(snapshot_id)), None)
         return Response(updated or {}, status=status.HTTP_200_OK)
 
     def delete(self, request, deal_id, snapshot_id):
@@ -3089,7 +4516,25 @@ class DealflowCapTableSnapshotDetailView(APIView):
                         return Response({"error": "Snapshot not found."}, status=status.HTTP_404_NOT_FOUND)
                     cursor.execute(
                         """
+                        DELETE FROM dealflow.df_cap_table_entry_values
+                        WHERE entry_id IN (
+                            SELECT id
+                            FROM dealflow.df_cap_table_entries
+                            WHERE snapshot_id = %s
+                        )
+                        """,
+                        [str(snapshot_id)],
+                    )
+                    cursor.execute(
+                        """
                         DELETE FROM dealflow.df_cap_table_entries
+                        WHERE snapshot_id = %s
+                        """,
+                        [str(snapshot_id)],
+                    )
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_cap_table_columns
                         WHERE snapshot_id = %s
                         """,
                         [str(snapshot_id)],
@@ -3127,6 +4572,20 @@ class DealflowCapTableEntriesView(APIView):
                 with connection.cursor() as cursor:
                     if not cap_table_snapshot_belongs_to_deal(cursor, deal_id, snapshot_id):
                         return Response({"error": "Snapshot not found."}, status=status.HTTP_404_NOT_FOUND)
+                    value_payloads = build_cap_table_values_payload(cursor, snapshot_id, payload)
+                    legacy_fields = {field: None for field, _ in LEGACY_CAP_TABLE_CODE_MAP.values() if field != "comment"}
+                    entry_comment = comment
+                    for item in value_payloads:
+                        code = str(item["column"].get("code") or "").strip().upper()
+                        mapping = LEGACY_CAP_TABLE_CODE_MAP.get(code)
+                        if not mapping:
+                            continue
+                        field_name, field_type = mapping
+                        if field_name == "comment":
+                            if item["value_text"] not in (None, ""):
+                                entry_comment = item["value_text"]
+                        elif field_type == "NUMBER":
+                            legacy_fields[field_name] = item["value_number"]
                     cursor.execute(
                         """
                         INSERT INTO dealflow.df_cap_table_entries (
@@ -3151,26 +4610,50 @@ class DealflowCapTableEntriesView(APIView):
                             str(entry_id),
                             str(snapshot_id),
                             shareholder_name,
-                            comment,
-                            normalize_numeric_or_none(payload.get("series_a_shares")),
-                            normalize_numeric_or_none(payload.get("series_b_shares")),
-                            normalize_numeric_or_none(payload.get("common_shares")),
-                            normalize_numeric_or_none(payload.get("preferred_shares")),
-                            normalize_numeric_or_none(payload.get("seed_shares")),
-                            normalize_numeric_or_none(payload.get("esop_shares")),
-                            normalize_numeric_or_none(payload.get("non_fully_diluted_percentage")),
-                            normalize_numeric_or_none(payload.get("fully_diluted_percentage")),
+                            entry_comment,
+                            legacy_fields.get("series_a_shares"),
+                            legacy_fields.get("series_b_shares"),
+                            legacy_fields.get("common_shares"),
+                            legacy_fields.get("preferred_shares"),
+                            legacy_fields.get("seed_shares"),
+                            legacy_fields.get("esop_shares"),
+                            legacy_fields.get("non_fully_diluted_percentage"),
+                            legacy_fields.get("fully_diluted_percentage"),
                             now,
                             now,
                         ],
                     )
+                    for item in value_payloads:
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_cap_table_entry_values (
+                                id,
+                                entry_id,
+                                column_id,
+                                value_text,
+                                value_number,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            [
+                                str(uuid4()),
+                                str(entry_id),
+                                str(item["column"]["id"]),
+                                item["value_text"],
+                                item["value_number"],
+                                now,
+                                now,
+                            ],
+                        )
                     snapshots = fetch_cap_table_with_entries(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        created_snapshot = next((snapshot for snapshot in snapshots if str(snapshot.get("id")) == str(snapshot_id)), None)
+        created_snapshot = next((snapshot for snapshot in snapshots.get("snapshots", []) if str(snapshot.get("id")) == str(snapshot_id)), None)
         created_entry = next((entry for entry in (created_snapshot or {}).get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
         return Response(created_entry or {}, status=status.HTTP_201_CREATED)
 
@@ -3178,7 +4661,7 @@ class DealflowCapTableEntriesView(APIView):
 class DealflowCapTableEntryDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request, deal_id, entry_id):
+    def patch(self, request, deal_id, entry_id, snapshot_id=None):
         payload = request.data or {}
         shareholder_name = str(payload.get("shareholder_name") or "").strip()
         comment = str(payload.get("comment") or "").strip()
@@ -3194,6 +4677,22 @@ class DealflowCapTableEntryDetailView(APIView):
                     relation = cap_table_entry_belongs_to_deal(cursor, deal_id, entry_id)
                     if not relation:
                         return Response({"error": "Entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if snapshot_id and not cap_table_entry_belongs_to_snapshot(cursor, deal_id, snapshot_id, entry_id):
+                        return Response({"error": "Entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    value_payloads = build_cap_table_values_payload(cursor, relation["snapshot_id"], payload)
+                    legacy_fields = {field: None for field, _ in LEGACY_CAP_TABLE_CODE_MAP.values() if field != "comment"}
+                    entry_comment = comment
+                    for item in value_payloads:
+                        code = str(item["column"].get("code") or "").strip().upper()
+                        mapping = LEGACY_CAP_TABLE_CODE_MAP.get(code)
+                        if not mapping:
+                            continue
+                        field_name, field_type = mapping
+                        if field_name == "comment":
+                            if item["value_text"] not in (None, ""):
+                                entry_comment = item["value_text"]
+                        elif field_type == "NUMBER":
+                            legacy_fields[field_name] = item["value_number"]
                     cursor.execute(
                         """
                         UPDATE dealflow.df_cap_table_entries
@@ -3213,19 +4712,48 @@ class DealflowCapTableEntryDetailView(APIView):
                         """,
                         [
                             shareholder_name,
-                            comment,
-                            normalize_numeric_or_none(payload.get("series_a_shares")),
-                            normalize_numeric_or_none(payload.get("series_b_shares")),
-                            normalize_numeric_or_none(payload.get("common_shares")),
-                            normalize_numeric_or_none(payload.get("preferred_shares")),
-                            normalize_numeric_or_none(payload.get("seed_shares")),
-                            normalize_numeric_or_none(payload.get("esop_shares")),
-                            normalize_numeric_or_none(payload.get("non_fully_diluted_percentage")),
-                            normalize_numeric_or_none(payload.get("fully_diluted_percentage")),
+                            entry_comment,
+                            legacy_fields.get("series_a_shares"),
+                            legacy_fields.get("series_b_shares"),
+                            legacy_fields.get("common_shares"),
+                            legacy_fields.get("preferred_shares"),
+                            legacy_fields.get("seed_shares"),
+                            legacy_fields.get("esop_shares"),
+                            legacy_fields.get("non_fully_diluted_percentage"),
+                            legacy_fields.get("fully_diluted_percentage"),
                             now,
                             str(entry_id),
                         ],
                     )
+                    for item in value_payloads:
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_cap_table_entry_values (
+                                id,
+                                entry_id,
+                                column_id,
+                                value_text,
+                                value_number,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (entry_id, column_id)
+                            DO UPDATE SET
+                                value_text = EXCLUDED.value_text,
+                                value_number = EXCLUDED.value_number,
+                                updated_at = EXCLUDED.updated_at
+                            """,
+                            [
+                                str(uuid4()),
+                                str(entry_id),
+                                str(item["column"]["id"]),
+                                item["value_text"],
+                                item["value_number"],
+                                now,
+                                now,
+                            ],
+                        )
                     snapshots = fetch_cap_table_with_entries(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -3233,19 +4761,28 @@ class DealflowCapTableEntryDetailView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         updated_entry = None
-        for snapshot in snapshots:
+        for snapshot in snapshots.get("snapshots", []):
             updated_entry = next((entry for entry in snapshot.get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
             if updated_entry:
                 break
         return Response(updated_entry or {}, status=status.HTTP_200_OK)
 
-    def delete(self, request, deal_id, entry_id):
+    def delete(self, request, deal_id, entry_id, snapshot_id=None):
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
                     relation = cap_table_entry_belongs_to_deal(cursor, deal_id, entry_id)
                     if not relation:
                         return Response({"error": "Entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if snapshot_id and not cap_table_entry_belongs_to_snapshot(cursor, deal_id, snapshot_id, entry_id):
+                        return Response({"error": "Entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_cap_table_entry_values
+                        WHERE entry_id = %s
+                        """,
+                        [str(entry_id)],
+                    )
                     cursor.execute(
                         """
                         DELETE FROM dealflow.df_cap_table_entries
@@ -3257,6 +4794,250 @@ class DealflowCapTableEntryDetailView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealflowCapTableColumnsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, deal_id, snapshot_id):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        column_type = normalize_cap_table_column_type(payload.get("column_type"))
+        is_percentage = bool(payload.get("is_percentage")) or column_type == "PERCENTAGE"
+        code = str(payload.get("code") or "").strip() or build_cap_table_column_code(name)
+        display_order = payload.get("display_order")
+
+        if not name:
+            return Response({"error": "Column name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not column_type:
+            return Response({"error": "Column type must be TEXT, NUMBER, or PERCENTAGE."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            display_order_value = int(display_order) if display_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        column_id = uuid4()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    if not cap_table_snapshot_belongs_to_deal(cursor, deal_id, snapshot_id):
+                        return Response({"error": "Snapshot not found."}, status=status.HTTP_404_NOT_FOUND)
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_cap_table_columns (
+                            id,
+                            snapshot_id,
+                            name,
+                            code,
+                            column_type,
+                            is_percentage,
+                            is_system,
+                            display_order,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [str(column_id), str(snapshot_id), name, code, column_type, is_percentage, False, display_order_value, now, now],
+                    )
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(
+            {
+                "id": str(column_id),
+                "snapshot_id": str(snapshot_id),
+                "name": name,
+                "code": code,
+                "column_type": column_type,
+                "is_percentage": is_percentage,
+                "is_system": False,
+                "display_order": display_order_value,
+                "created_at": now,
+                "updated_at": now,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class DealflowCapTableColumnDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, deal_id, snapshot_id, column_id):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        code = str(payload.get("code") or "").strip() or build_cap_table_column_code(name)
+        column_type = normalize_cap_table_column_type(payload.get("column_type"))
+        is_percentage = bool(payload.get("is_percentage")) or column_type == "PERCENTAGE"
+        display_order = payload.get("display_order")
+
+        if not name:
+            return Response({"error": "Column name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not column_type:
+            return Response({"error": "Column type must be TEXT, NUMBER, or PERCENTAGE."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            display_order_value = int(display_order) if display_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    relation = cap_table_column_belongs_to_snapshot(cursor, deal_id, snapshot_id, column_id)
+                    if not relation:
+                        return Response({"error": "Column not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if relation["is_system"]:
+                        return Response({"error": "System columns cannot be modified."}, status=status.HTTP_400_BAD_REQUEST)
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_cap_table_columns
+                        SET
+                            name = %s,
+                            code = %s,
+                            column_type = %s,
+                            is_percentage = %s,
+                            display_order = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                          AND snapshot_id = %s
+                        """,
+                        [name, code, column_type, is_percentage, display_order_value, now, str(column_id), str(snapshot_id)],
+                    )
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"id": str(column_id), "snapshot_id": str(snapshot_id), "name": name, "code": code, "column_type": column_type, "is_percentage": is_percentage, "is_system": False, "display_order": display_order_value, "updated_at": now}, status=status.HTTP_200_OK)
+
+    def delete(self, request, deal_id, snapshot_id, column_id):
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    relation = cap_table_column_belongs_to_snapshot(cursor, deal_id, snapshot_id, column_id)
+                    if not relation:
+                        return Response({"error": "Column not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if relation["is_system"]:
+                        return Response({"error": "System columns cannot be deleted."}, status=status.HTTP_400_BAD_REQUEST)
+                    cursor.execute("DELETE FROM dealflow.df_cap_table_entry_values WHERE column_id = %s", [str(column_id)])
+                    cursor.execute("DELETE FROM dealflow.df_cap_table_columns WHERE id = %s AND snapshot_id = %s", [str(column_id), str(snapshot_id)])
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealflowCapTableDuplicateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, deal_id, snapshot_id):
+        payload = request.data or {}
+        now = timezone.now()
+        new_snapshot_id = uuid4()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    if not cap_table_snapshot_belongs_to_deal(cursor, deal_id, snapshot_id):
+                        return Response({"error": "Snapshot not found."}, status=status.HTTP_404_NOT_FOUND)
+                    cursor.execute(
+                        """
+                        SELECT company_id, name, snapshot_date, created_by
+                        FROM dealflow.df_cap_table_snapshots
+                        WHERE id = %s
+                          AND deal_id = %s
+                        LIMIT 1
+                        """,
+                        [str(snapshot_id), str(deal_id)],
+                    )
+                    source_row = cursor.fetchone()
+                    source_name = str(payload.get("name") or source_row[1] or "").strip() or "Cap table copy"
+                    source_date = payload.get("snapshot_date") or source_row[2]
+                    cursor.execute(
+                        """
+                        INSERT INTO dealflow.df_cap_table_snapshots (
+                            id, deal_id, company_id, name, snapshot_date, created_by, created_at, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [str(new_snapshot_id), str(deal_id), source_row[0], source_name, source_date, source_row[3], now, now],
+                    )
+                    cursor.execute(
+                        """
+                        SELECT id, name, code, column_type, is_percentage, is_system, display_order
+                        FROM dealflow.df_cap_table_columns
+                        WHERE snapshot_id = %s
+                        ORDER BY display_order ASC NULLS LAST, created_at ASC NULLS LAST
+                        """,
+                        [str(snapshot_id)],
+                    )
+                    column_map = {}
+                    for row in dictfetchall(cursor):
+                        new_column_id = str(uuid4())
+                        column_map[str(row["id"])] = new_column_id
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_cap_table_columns (
+                                id, snapshot_id, name, code, column_type, is_percentage, is_system, display_order, created_at, updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            [new_column_id, str(new_snapshot_id), row["name"], row["code"], row["column_type"], row["is_percentage"], row["is_system"], row["display_order"], now, now],
+                        )
+                    cursor.execute(
+                        """
+                        SELECT id, shareholder_name, comment, series_a_shares, series_b_shares, common_shares, preferred_shares, seed_shares, esop_shares, non_fully_diluted_percentage, fully_diluted_percentage
+                        FROM dealflow.df_cap_table_entries
+                        WHERE snapshot_id = %s
+                        ORDER BY created_at ASC NULLS LAST, shareholder_name ASC
+                        """,
+                        [str(snapshot_id)],
+                    )
+                    entry_map = {}
+                    for row in dictfetchall(cursor):
+                        new_entry_id = str(uuid4())
+                        entry_map[str(row["id"])] = new_entry_id
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_cap_table_entries (
+                                id, snapshot_id, shareholder_name, comment, series_a_shares, series_b_shares, common_shares,
+                                preferred_shares, seed_shares, esop_shares, non_fully_diluted_percentage, fully_diluted_percentage, created_at, updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            [new_entry_id, str(new_snapshot_id), row["shareholder_name"], row["comment"], row["series_a_shares"], row["series_b_shares"], row["common_shares"], row["preferred_shares"], row["seed_shares"], row["esop_shares"], row["non_fully_diluted_percentage"], row["fully_diluted_percentage"], now, now],
+                        )
+                    if entry_map and column_map:
+                        cursor.execute(
+                            """
+                            SELECT entry_id, column_id, value_text, value_number
+                            FROM dealflow.df_cap_table_entry_values
+                            WHERE entry_id = ANY(%s::uuid[])
+                            """,
+                            [list(entry_map.keys())],
+                        )
+                        for row in dictfetchall(cursor):
+                            cursor.execute(
+                                """
+                                INSERT INTO dealflow.df_cap_table_entry_values (
+                                    id, entry_id, column_id, value_text, value_number, created_at, updated_at
+                                )
+                                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                """,
+                                [str(uuid4()), entry_map[str(row["entry_id"])], column_map[str(row["column_id"])], row["value_text"], row["value_number"], now, now],
+                            )
+                    snapshots = fetch_cap_table_with_entries(cursor, deal_id)
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        duplicated = next((snapshot for snapshot in snapshots.get("snapshots", []) if str(snapshot.get("id")) == str(new_snapshot_id)), None)
+        return Response(duplicated or {}, status=status.HTTP_201_CREATED)
 
 
 class DealflowDealDocumentsView(APIView):
@@ -3419,19 +5200,22 @@ class DealflowKpisView(APIView):
 
     def get(self, request, deal_id):
         with connection.cursor() as cursor:
-            periods = fetch_kpis_with_entries(cursor, deal_id)
-        return Response(periods, status=status.HTTP_200_OK)
+            periods = fetch_kpi_periods(cursor, deal_id)
+        return Response({"periods": periods}, status=status.HTTP_200_OK)
 
     def post(self, request, deal_id):
         payload = request.data or {}
         name = str(payload.get("name") or "").strip()
-        start_date = payload.get("start_date")
-        end_date = payload.get("end_date")
+        year = payload.get("year")
         currency_id = normalize_uuid(payload.get("currency_id"))
         display_order = payload.get("display_order")
 
         if not name:
             return Response({"error": "KPI period name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return Response({"error": "Year is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         period_id = uuid4()
@@ -3454,29 +5238,27 @@ class DealflowKpisView(APIView):
                             deal_id,
                             company_id,
                             name,
-                            start_date,
-                            end_date,
+                            year,
                             currency_id,
                             display_order,
                             created_at,
                             updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
                             str(period_id),
                             str(deal_id),
                             company_id,
                             name,
-                            start_date,
-                            end_date,
+                            year,
                             currency_id,
                             display_order,
                             now,
                             now,
                         ],
                     )
-                    periods = fetch_kpis_with_entries(cursor, deal_id)
+                    periods = fetch_kpi_periods(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
@@ -3492,13 +5274,16 @@ class DealflowKpiPeriodDetailView(APIView):
     def patch(self, request, deal_id, period_id):
         payload = request.data or {}
         name = str(payload.get("name") or "").strip()
-        start_date = payload.get("start_date")
-        end_date = payload.get("end_date")
+        year = payload.get("year")
         currency_id = normalize_uuid(payload.get("currency_id"))
         display_order = payload.get("display_order")
 
         if not name:
             return Response({"error": "KPI period name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return Response({"error": "Year is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         try:
@@ -3514,19 +5299,18 @@ class DealflowKpiPeriodDetailView(APIView):
                         UPDATE dealflow.df_kpi_periods
                         SET
                             name = %s,
-                            start_date = %s,
-                            end_date = %s,
+                            year = %s,
                             currency_id = %s,
                             display_order = %s,
                             updated_at = %s
                         WHERE id = %s
                           AND deal_id = %s
                         """,
-                        [name, start_date, end_date, currency_id, display_order, now, str(period_id), str(deal_id)],
+                        [name, year, currency_id, display_order, now, str(period_id), str(deal_id)],
                     )
                     if cursor.rowcount == 0:
                         return Response({"error": "KPI period not found."}, status=status.HTTP_404_NOT_FOUND)
-                    periods = fetch_kpis_with_entries(cursor, deal_id)
+                    periods = fetch_kpi_periods(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
@@ -3565,12 +5349,22 @@ class DealflowKpiPeriodDetailView(APIView):
 class DealflowKpiEntriesView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, deal_id, period_id):
+        display_period_type = request.query_params.get("display_period_type") or "QUARTERLY"
+        with connection.cursor() as cursor:
+            payload = fetch_kpi_period_entry_payload(cursor, deal_id, period_id, display_period_type)
+        if not payload:
+            return Response({"error": "KPI period not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(payload, status=status.HTTP_200_OK)
+
     def post(self, request, deal_id, period_id):
         payload = request.data or {}
         kpi_name = str(payload.get("kpi_name") or "").strip()
         kpi_category_id = normalize_uuid(payload.get("kpi_category_id"))
-        value = normalize_numeric_or_none(payload.get("value"))
+        period_type = normalize_kpi_period_type(payload.get("period_type"))
+        currency_id = normalize_uuid(payload.get("currency_id"))
         unit = str(payload.get("unit") or "").strip()
+        kpi_order = payload.get("kpi_order")
         display_order = payload.get("display_order")
 
         if not kpi_name:
@@ -3579,16 +5373,20 @@ class DealflowKpiEntriesView(APIView):
         now = timezone.now()
         entry_id = uuid4()
         try:
+            kpi_order = int(kpi_order) if kpi_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
             display_order = int(display_order) if display_order not in ("", None) else None
         except (TypeError, ValueError):
-            display_order = None
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
-                    if not kpi_period_belongs_to_deal(cursor, deal_id, period_id):
+                    period_relation = fetch_kpi_period_relation(cursor, deal_id, period_id)
+                    if not period_relation:
                         return Response({"error": "KPI period not found."}, status=status.HTTP_404_NOT_FOUND)
-                    company_id = fetch_deal_company_id(cursor, deal_id)
                     cursor.execute(
                         """
                         INSERT INTO dealflow.df_kpi_entries (
@@ -3598,51 +5396,73 @@ class DealflowKpiEntriesView(APIView):
                             period_id,
                             kpi_name,
                             kpi_category_id,
-                            value,
+                            period_type,
+                            currency_id,
                             unit,
+                            kpi_order,
                             display_order,
+                            q1_value,
+                            q2_value,
+                            q3_value,
+                            q4_value,
+                            h1_value,
+                            h2_value,
+                            annual_y1_value,
+                            annual_y2_value,
+                            annual_y3_value,
+                            annual_y4_value,
                             created_at,
                             updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
                             str(entry_id),
                             str(deal_id),
-                            company_id,
+                            period_relation["company_id"] or fetch_deal_company_id(cursor, deal_id),
                             str(period_id),
                             kpi_name,
                             kpi_category_id,
-                            value,
+                            period_type,
+                            currency_id,
                             unit,
+                            kpi_order,
                             display_order,
+                            normalize_numeric_or_none(payload.get("q1_value")),
+                            normalize_numeric_or_none(payload.get("q2_value")),
+                            normalize_numeric_or_none(payload.get("q3_value")),
+                            normalize_numeric_or_none(payload.get("q4_value")),
+                            normalize_numeric_or_none(payload.get("h1_value")),
+                            normalize_numeric_or_none(payload.get("h2_value")),
+                            normalize_numeric_or_none(payload.get("annual_y1_value")),
+                            normalize_numeric_or_none(payload.get("annual_y2_value")),
+                            normalize_numeric_or_none(payload.get("annual_y3_value")),
+                            normalize_numeric_or_none(payload.get("annual_y4_value")),
                             now,
                             now,
                         ],
                     )
-                    periods = fetch_kpis_with_entries(cursor, deal_id)
+                    period_payload = fetch_kpi_period_entry_payload(cursor, deal_id, period_id, period_type)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        created_entry = None
-        for period in periods:
-            created_entry = next((entry for entry in period.get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
-            if created_entry:
-                break
+        created_entry = next((entry for entry in (period_payload or {}).get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
         return Response(created_entry or {}, status=status.HTTP_201_CREATED)
 
 
 class DealflowKpiEntryDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request, deal_id, entry_id):
+    def patch(self, request, deal_id, entry_id, period_id=None):
         payload = request.data or {}
         kpi_name = str(payload.get("kpi_name") or "").strip()
         kpi_category_id = normalize_uuid(payload.get("kpi_category_id"))
-        value = normalize_numeric_or_none(payload.get("value"))
+        period_type = normalize_kpi_period_type(payload.get("period_type"))
+        currency_id = normalize_uuid(payload.get("currency_id"))
         unit = str(payload.get("unit") or "").strip()
+        kpi_order = payload.get("kpi_order")
         display_order = payload.get("display_order")
 
         if not kpi_name:
@@ -3650,9 +5470,13 @@ class DealflowKpiEntryDetailView(APIView):
 
         now = timezone.now()
         try:
+            kpi_order = int(kpi_order) if kpi_order not in ("", None) else None
+        except (TypeError, ValueError):
+            return Response({"error": "Order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
             display_order = int(display_order) if display_order not in ("", None) else None
         except (TypeError, ValueError):
-            display_order = None
+            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
@@ -3660,40 +5484,73 @@ class DealflowKpiEntryDetailView(APIView):
                     relation = kpi_entry_belongs_to_deal(cursor, deal_id, entry_id)
                     if not relation:
                         return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if period_id and not kpi_entry_belongs_to_period(cursor, deal_id, period_id, entry_id):
+                        return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
                     cursor.execute(
                         """
                         UPDATE dealflow.df_kpi_entries
                         SET
                             kpi_name = %s,
                             kpi_category_id = %s,
-                            value = %s,
+                            period_type = %s,
+                            currency_id = %s,
                             unit = %s,
+                            kpi_order = %s,
                             display_order = %s,
+                            q1_value = %s,
+                            q2_value = %s,
+                            q3_value = %s,
+                            q4_value = %s,
+                            h1_value = %s,
+                            h2_value = %s,
+                            annual_y1_value = %s,
+                            annual_y2_value = %s,
+                            annual_y3_value = %s,
+                            annual_y4_value = %s,
                             updated_at = %s
                         WHERE id = %s
                           AND deal_id = %s
                         """,
-                        [kpi_name, kpi_category_id, value, unit, display_order, now, str(entry_id), str(deal_id)],
+                        [
+                            kpi_name,
+                            kpi_category_id,
+                            period_type,
+                            currency_id,
+                            unit,
+                            kpi_order,
+                            display_order,
+                            normalize_numeric_or_none(payload.get("q1_value")),
+                            normalize_numeric_or_none(payload.get("q2_value")),
+                            normalize_numeric_or_none(payload.get("q3_value")),
+                            normalize_numeric_or_none(payload.get("q4_value")),
+                            normalize_numeric_or_none(payload.get("h1_value")),
+                            normalize_numeric_or_none(payload.get("h2_value")),
+                            normalize_numeric_or_none(payload.get("annual_y1_value")),
+                            normalize_numeric_or_none(payload.get("annual_y2_value")),
+                            normalize_numeric_or_none(payload.get("annual_y3_value")),
+                            normalize_numeric_or_none(payload.get("annual_y4_value")),
+                            now,
+                            str(entry_id),
+                            str(deal_id),
+                        ],
                     )
-                    periods = fetch_kpis_with_entries(cursor, deal_id)
+                    period_payload = fetch_kpi_period_entry_payload(cursor, deal_id, relation["period_id"], period_type)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        updated_entry = None
-        for period in periods:
-            updated_entry = next((entry for entry in period.get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
-            if updated_entry:
-                break
+        updated_entry = next((entry for entry in (period_payload or {}).get("entries", []) if str(entry.get("id")) == str(entry_id)), None)
         return Response(updated_entry or {}, status=status.HTTP_200_OK)
 
-    def delete(self, request, deal_id, entry_id):
+    def delete(self, request, deal_id, entry_id, period_id=None):
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
                     relation = kpi_entry_belongs_to_deal(cursor, deal_id, entry_id)
                     if not relation:
+                        return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if period_id and not kpi_entry_belongs_to_period(cursor, deal_id, period_id, entry_id):
                         return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
                     cursor.execute(
                         """
@@ -3707,6 +5564,62 @@ class DealflowKpiEntryDetailView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DealflowKpiOptionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, name, code, color
+                FROM dealflow.df_taxonomy_items
+                WHERE type = 'kpi_category'
+                  AND is_active = TRUE
+                ORDER BY display_order ASC NULLS LAST, name ASC
+                """
+            )
+            categories = [
+                {
+                    "id": row.get("id"),
+                    "name": row.get("name") or "",
+                    "code": row.get("code") or "",
+                    "color": row.get("color"),
+                }
+                for row in dictfetchall(cursor)
+            ]
+
+            cursor.execute(
+                """
+                SELECT id, name, code
+                FROM dealflow.df_taxonomy_items
+                WHERE type = 'currency'
+                  AND is_active = TRUE
+                ORDER BY display_order ASC NULLS LAST, name ASC
+                """
+            )
+            currencies = [
+                {
+                    "id": row.get("id"),
+                    "name": row.get("name") or "",
+                    "code": row.get("code") or "",
+                }
+                for row in dictfetchall(cursor)
+            ]
+
+        return Response(
+            {
+                "period_types": [
+                    {"value": "QUARTERLY", "label": "Quarterly"},
+                    {"value": "SEMI_ANNUALLY", "label": "Semi-Annually"},
+                    {"value": "ANNUALLY", "label": "Annually"},
+                ],
+                "categories": categories,
+                "currencies": currencies,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class DealflowBoardView(APIView):

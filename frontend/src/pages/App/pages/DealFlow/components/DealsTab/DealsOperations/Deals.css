@@ -206,6 +206,20 @@
   white-space: nowrap;
 }
 
+.deals-status-log-by-content {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.deals-status-log-meta {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
 /* ---- STAGE BADGE ---- */
 .deals-stage-badge {
   display: inline-flex;

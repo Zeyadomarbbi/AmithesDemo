@@ -32,14 +32,14 @@ function NewCompanyModal({ onClose, onNext }) {
 
         {/* Body */}
         <div className="ncm-body">
-          <h2 className="ncm-title">Create a company</h2>
+          <h2 className="ncm-title">Create a deal</h2>
 
           <div className="ncm-field">
-            <label className="ncm-label">Company name*</label>
+            <label className="ncm-label">Deal name*</label>
             <input
               type="text"
               className="ncm-input"
-              placeholder="placeholder"
+              placeholder="Enter deal name"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
@@ -50,7 +50,7 @@ function NewCompanyModal({ onClose, onNext }) {
             <input
               type="text"
               className="ncm-input"
-              placeholder="placeholder"
+              placeholder="Enter code name"
               value={codeName}
               onChange={(e) => setCodeName(e.target.value)}
             />
@@ -61,7 +61,7 @@ function NewCompanyModal({ onClose, onNext }) {
         <div className="ncm-footer">
           <button className="ncm-btn-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
           <button className="ncm-btn-next" onClick={handleNext} disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Next"}
+            {isSubmitting ? "Creating..." : "Create"}
           </button>
         </div>
 

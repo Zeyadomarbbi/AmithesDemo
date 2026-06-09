@@ -8,6 +8,7 @@ const DEALFLOW_TAXONOMY_ENDPOINT = "/api/dealflow/taxonomy/";
 const DEALFLOW_FUNDS_ENDPOINT = "/api/dealflow/funds/";
 const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
 const DEALFLOW_SETUP_ENDPOINT = "/api/dealflow/setup/";
+const DEALFLOW_EXTERNAL_CONTACTS_SUFFIX = "/external-contacts/";
 const SHARED_FUNDS_ENDPOINT = "/api/funds/";
 
 function toSafeArray(value) {
@@ -127,6 +128,30 @@ function formatTicketAmount(value) {
   });
 }
 
+function formatStageLogDate(value) {
+  if (!value) return "";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatStageLogTimestamp(value) {
+  if (!value) return "";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function normalizeDealRow(row) {
   const country = pickCountryInfo(row);
   const ticketAmount =
@@ -163,10 +188,17 @@ function normalizeDealRow(row) {
     updatedAt: row?.updated_at ?? row?.updatedAt ?? null,
     stageLog: toSafeArray(row?.stage_log).map((entry) => ({
       id: entry?.id ?? null,
-      stage: entry?.stage ?? "",
-      date: entry?.date ?? "",
-      rawDate: entry?.rawDate ?? entry?.raw_date ?? "",
-      changedBy: entry?.changedBy ?? entry?.changed_by ?? "",
+      dealId: entry?.deal_id ?? row?.id ?? row?.deal_id ?? null,
+      stage: entry?.new_stage?.name ?? entry?.stage ?? "",
+      date: formatStageLogDate(entry?.changed_at || entry?.rawDate || entry?.raw_date || entry?.date),
+      rawDate: entry?.changed_at || entry?.rawDate || entry?.raw_date || "",
+      changedBy: entry?.changed_by?.name ?? entry?.changedBy ?? entry?.changed_by ?? "",
+      oldStage: entry?.old_stage ?? null,
+      newStage: entry?.new_stage ?? null,
+      changedAt: entry?.changed_at ?? null,
+      createdAt: entry?.created_at ?? null,
+      createdAtLabel: formatStageLogTimestamp(entry?.created_at),
+      note: entry?.note ?? "",
     })),
     rawDeal: row,
     rawCompany: row?.company ?? null,
@@ -393,6 +425,7 @@ function normalizeDealDetail(payload) {
     city: row?.company?.city ?? "",
     country: row?.company?.address_country_id ?? row?.address_country?.id ?? null,
     teamMembers: toSafeArray(row?.team_members).map(normalizeDealTeamMember),
+    externalContacts: toSafeArray(row?.external_contacts ?? row?.externalContacts).map(normalizeDealExternalContact),
     raw: row,
   };
 }
@@ -448,19 +481,38 @@ function normalizeDealEvents(payload) {
 }
 
 function normalizeCapTableEntry(row) {
+  const normalizedValues = {};
+  const values = row?.values && typeof row.values === "object" ? row.values : {};
+
+  Object.entries(values).forEach(([columnId, value]) => {
+    if (!columnId) return;
+    normalizedValues[String(columnId)] = {
+      valueText: value?.value_text ?? value?.valueText ?? "",
+      valueNumber: value?.value_number ?? value?.valueNumber ?? null,
+    };
+  });
+
   return {
     id: row?.id ?? null,
     snapshotId: row?.snapshot_id ?? null,
     shareholderName: row?.shareholder_name ?? "",
     comment: row?.comment ?? "",
-    seriesA: row?.series_a_shares ?? "",
-    seriesB: row?.series_b_shares ?? "",
-    common: row?.common_shares ?? "",
-    preferred: row?.preferred_shares ?? "",
-    seed: row?.seed_shares ?? "",
-    esop: row?.esop_shares ?? "",
-    nonFullyDilutedPercentage: row?.non_fully_diluted_percentage ?? "",
-    fullyDilutedPercentage: row?.fully_diluted_percentage ?? "",
+    values: normalizedValues,
+    createdAt: row?.created_at ?? null,
+    updatedAt: row?.updated_at ?? null,
+  };
+}
+
+function normalizeCapTableColumn(row) {
+  return {
+    id: row?.id ?? row?.column_id ?? null,
+    snapshotId: row?.snapshot_id ?? row?.snapshotId ?? null,
+    name: row?.name ?? "",
+    code: row?.code ?? "",
+    columnType: row?.column_type ?? row?.columnType ?? "TEXT",
+    isPercentage: Boolean(row?.is_percentage ?? row?.isPercentage),
+    isSystem: Boolean(row?.is_system ?? row?.isSystem),
+    displayOrder: row?.display_order ?? row?.displayOrder ?? null,
     createdAt: row?.created_at ?? null,
     updatedAt: row?.updated_at ?? null,
   };
@@ -474,14 +526,16 @@ function normalizeCapTableSnapshot(row) {
     name: row?.name ?? "",
     snapshotDate: row?.snapshot_date ?? "",
     snapshotDateObject: parseApiDate(row?.snapshot_date),
+    columns: toSafeArray(row?.columns).map(normalizeCapTableColumn),
     entries: toSafeArray(row?.entries).map(normalizeCapTableEntry),
+    totals: row?.totals && typeof row.totals === "object" ? row.totals : {},
     createdAt: row?.created_at ?? null,
     updatedAt: row?.updated_at ?? null,
   };
 }
 
 function normalizeCapTableSnapshots(payload) {
-  return toSafeArray(payload).map(normalizeCapTableSnapshot).filter((snapshot) => snapshot.id);
+  return toSafeArray(payload?.snapshots ?? payload).map(normalizeCapTableSnapshot).filter((snapshot) => snapshot.id);
 }
 
 function normalizeDealDocument(row) {
@@ -518,12 +572,19 @@ function normalizeKpiEntry(row) {
     dealId: row?.deal_id ?? null,
     companyId: row?.company_id ?? null,
     kpiName: row?.kpi_name ?? "",
-    kpiCategoryId: row?.kpi_category?.id ?? row?.kpi_category_id ?? null,
-    kpiCategoryName: row?.kpi_category?.name ?? "",
-    kpiCategoryColor: row?.kpi_category?.color ?? "",
-    value: row?.value ?? "",
+    kpiCategoryId: row?.category?.id ?? row?.kpi_category?.id ?? row?.kpi_category_id ?? null,
+    kpiCategoryName: row?.category?.name ?? row?.kpi_category?.name ?? "",
+    kpiCategoryColor: row?.category?.color ?? row?.kpi_category?.color ?? "",
+    periodType: row?.period_type ?? row?.periodType ?? "QUARTERLY",
+    currencyId: row?.currency?.id ?? row?.currency_id ?? null,
+    currencyName: row?.currency?.name ?? "",
+    currencyCode: row?.currency?.code ?? "",
     unit: row?.unit ?? "",
+    kpiOrder: row?.kpi_order ?? row?.kpiOrder ?? "",
     displayOrder: row?.display_order ?? "",
+    rawValues: row?.raw_values && typeof row.raw_values === "object" ? row.raw_values : {},
+    displayValues: row?.display_values && typeof row.display_values === "object" ? row.display_values : {},
+    cannotDisaggregate: Boolean(row?.cannot_disaggregate ?? row?.cannotDisaggregate),
     createdAt: row?.created_at ?? null,
     updatedAt: row?.updated_at ?? null,
   };
@@ -535,22 +596,31 @@ function normalizeKpiPeriod(row) {
     dealId: row?.deal_id ?? null,
     companyId: row?.company_id ?? null,
     name: row?.name ?? "",
-    startDate: row?.start_date ?? "",
-    endDate: row?.end_date ?? "",
-    startDateObject: parseApiDate(row?.start_date),
-    endDateObject: parseApiDate(row?.end_date),
+    year: row?.year ?? null,
     currencyId: row?.currency?.id ?? row?.currency_id ?? null,
     currencyName: row?.currency?.name ?? "",
     currencyCode: row?.currency?.code ?? "",
     displayOrder: row?.display_order ?? "",
     createdAt: row?.created_at ?? null,
     updatedAt: row?.updated_at ?? null,
-    entries: toSafeArray(row?.entries).map(normalizeKpiEntry),
   };
 }
 
 function normalizeKpiPeriods(payload) {
-  return toSafeArray(payload).map(normalizeKpiPeriod).filter((period) => period.id);
+  return toSafeArray(payload?.periods ?? payload).map(normalizeKpiPeriod).filter((period) => period.id);
+}
+
+function normalizeKpiPeriodEntriesPayload(payload) {
+  return {
+    period: payload?.period ? normalizeKpiPeriod(payload.period) : null,
+    displayPeriodType: payload?.display_period_type ?? payload?.displayPeriodType ?? "QUARTERLY",
+    columns: toSafeArray(payload?.columns).map((column) => ({
+      key: column?.key ?? "",
+      label: column?.label ?? "",
+    })),
+    entries: toSafeArray(payload?.entries).map(normalizeKpiEntry),
+    totals: payload?.totals && typeof payload.totals === "object" ? payload.totals : {},
+  };
 }
 
 function normalizeBoardMember(row) {
@@ -601,6 +671,21 @@ function normalizeDealTeamMember(row) {
   };
 }
 
+function normalizeDealExternalContact(row, index = 0) {
+  return {
+    id: row?.id ?? null,
+    dealId: row?.deal_id ?? row?.dealId ?? null,
+    name: row?.name ?? "",
+    role: row?.role ?? "",
+    email: row?.email ?? "",
+    phone: row?.phone ?? "",
+    notes: row?.notes ?? "",
+    displayOrder: row?.display_order ?? row?.displayOrder ?? index + 1,
+    createdAt: row?.created_at ?? row?.createdAt ?? null,
+    updatedAt: row?.updated_at ?? row?.updatedAt ?? null,
+  };
+}
+
 function extractDocumentMetadata(file) {
   if (!file) return null;
   const fileName = String(file.name || "").trim();
@@ -648,7 +733,7 @@ export function mapDealDetailToForm(detail, { countries = [], currencies = [], f
       ...member,
       positionOrder: member?.positionOrder ?? "",
     })),
-    externalContacts: toSafeArray(detail.externalContacts),
+    externalContacts: toSafeArray(detail.externalContacts).map(normalizeDealExternalContact),
   };
 }
 
@@ -855,6 +940,101 @@ export function useDealInfoBackend(dealId) {
   );
 }
 
+export function useDealExternalContactsBackend(dealId) {
+  const api = useApi();
+  const [contacts, setContacts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const endpoint = dealId ? `${DEALFLOW_DEALS_ENDPOINT}${dealId}${DEALFLOW_EXTERNAL_CONTACTS_SUFFIX}` : null;
+
+  const loadExternalContacts = useCallback(async () => {
+    if (!endpoint) return [];
+    setIsLoading(true);
+    setError(null);
+    try {
+      const payload = await api.get(endpoint);
+      const normalized = toSafeArray(payload?.contacts ?? payload).map(normalizeDealExternalContact);
+      setContacts(normalized);
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to load external contacts.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, endpoint]);
+
+  const createExternalContact = useCallback(async (contact) => {
+    if (!endpoint) throw new Error("Missing deal id.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      const payload = await api.post(endpoint, contact);
+      const normalized = normalizeDealExternalContact(payload);
+      setContacts((prev) => [...prev, normalized]);
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to create external contact.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, endpoint]);
+
+  const updateExternalContact = useCallback(async (contactId, contact) => {
+    if (!endpoint) throw new Error("Missing deal id.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      const payload = await api.patch(`${endpoint}${contactId}/`, contact);
+      const normalized = normalizeDealExternalContact(payload);
+      setContacts((prev) => prev.map((item) => (String(item.id) === String(contactId) ? normalized : item)));
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to update external contact.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, endpoint]);
+
+  const deleteExternalContact = useCallback(async (contactId) => {
+    if (!endpoint) throw new Error("Missing deal id.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.delete(`${endpoint}${contactId}/`);
+      setContacts((prev) => prev.filter((item) => String(item.id) !== String(contactId)));
+      return contactId;
+    } catch (err) {
+      setError(err.message || "Failed to delete external contact.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, endpoint]);
+
+  useEffect(() => {
+    loadExternalContacts().catch(() => {});
+  }, [loadExternalContacts]);
+
+  return useMemo(
+    () => ({
+      contacts,
+      isLoading,
+      isSaving,
+      error,
+      loadExternalContacts,
+      createExternalContact,
+      updateExternalContact,
+      deleteExternalContact,
+    }),
+    [contacts, isLoading, isSaving, error, loadExternalContacts, createExternalContact, updateExternalContact, deleteExternalContact]
+  );
+}
+
 export function useDealEventsBackend(dealId) {
   const api = useApi();
   const [events, setEvents] = useState([]);
@@ -984,13 +1164,14 @@ export function useCapTableBackend(dealId) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+  const capTablesEndpoint = dealId ? `${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-tables/` : null;
 
   const loadCapTable = useCallback(async () => {
-    if (!dealId) return [];
+    if (!capTablesEndpoint) return [];
     setIsLoading(true);
     setError(null);
     try {
-      const payload = await api.get(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/`);
+      const payload = await api.get(capTablesEndpoint);
       const normalized = normalizeCapTableSnapshots(payload);
       setSnapshots(normalized);
       return normalized;
@@ -1000,14 +1181,14 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsLoading(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
   const createSnapshot = useCallback(async ({ name, snapshotDate }) => {
-    if (!dealId) throw new Error("Missing deal id.");
+    if (!capTablesEndpoint) throw new Error("Missing deal id.");
     setIsSaving(true);
     setError(null);
     try {
-      const payload = await api.post(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/`, {
+      const payload = await api.post(capTablesEndpoint, {
         name: String(name || "").trim(),
         snapshot_date: formatDateForApi(snapshotDate),
       });
@@ -1020,14 +1201,14 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
   const updateSnapshot = useCallback(async (snapshotId, { name, snapshotDate }) => {
-    if (!dealId || !snapshotId) throw new Error("Missing snapshot information.");
+    if (!capTablesEndpoint || !snapshotId) throw new Error("Missing snapshot information.");
     setIsSaving(true);
     setError(null);
     try {
-      const payload = await api.patch(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/${snapshotId}/`, {
+      const payload = await api.patch(`${capTablesEndpoint}${snapshotId}/`, {
         name: String(name || "").trim(),
         snapshot_date: formatDateForApi(snapshotDate),
       });
@@ -1040,14 +1221,14 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
   const deleteSnapshot = useCallback(async (snapshotId) => {
-    if (!dealId || !snapshotId) throw new Error("Missing snapshot information.");
+    if (!capTablesEndpoint || !snapshotId) throw new Error("Missing snapshot information.");
     setIsSaving(true);
     setError(null);
     try {
-      await api.delete(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/${snapshotId}/`);
+      await api.delete(`${capTablesEndpoint}${snapshotId}/`);
       setSnapshots((prev) => prev.filter((snapshot) => snapshot.id !== snapshotId));
       return true;
     } catch (err) {
@@ -1056,24 +1237,128 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
-  const createEntry = useCallback(async (snapshotId, payload) => {
-    if (!dealId || !snapshotId) throw new Error("Missing snapshot information.");
+  const duplicateSnapshot = useCallback(async (snapshotId, { name, snapshotDate } = {}) => {
+    if (!capTablesEndpoint || !snapshotId) throw new Error("Missing snapshot information.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.post(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/${snapshotId}/entries/`, {
+      const payload = await api.post(`${capTablesEndpoint}${snapshotId}/duplicate/`, {
+        name: String(name || "").trim() || undefined,
+        snapshot_date: formatDateForApi(snapshotDate),
+      });
+      const normalized = normalizeCapTableSnapshot(payload);
+      setSnapshots((prev) => [...prev, normalized].sort((a, b) => String(a.snapshotDate || "").localeCompare(String(b.snapshotDate || ""))));
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to duplicate cap table snapshot.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, capTablesEndpoint]);
+
+  const createColumn = useCallback(async (snapshotId, payload) => {
+    if (!capTablesEndpoint || !snapshotId) throw new Error("Missing snapshot information.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.post(`${capTablesEndpoint}${snapshotId}/columns/`, {
+        name: String(payload?.name || "").trim(),
+        code: String(payload?.code || "").trim() || undefined,
+        column_type: String(payload?.columnType || payload?.column_type || "TEXT").trim().toUpperCase(),
+        is_percentage: Boolean(payload?.isPercentage ?? payload?.is_percentage),
+        display_order: payload?.displayOrder ?? payload?.display_order ?? undefined,
+      });
+      const normalized = normalizeCapTableColumn(response);
+      setSnapshots((prev) =>
+        prev.map((snapshot) =>
+          snapshot.id === snapshotId
+            ? { ...snapshot, columns: [...snapshot.columns, normalized] }
+            : snapshot
+        )
+      );
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to create cap table column.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, capTablesEndpoint]);
+
+  const updateColumn = useCallback(async (snapshotId, columnId, payload) => {
+    if (!capTablesEndpoint || !snapshotId || !columnId) throw new Error("Missing column information.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.patch(`${capTablesEndpoint}${snapshotId}/columns/${columnId}/`, {
+        name: String(payload?.name || "").trim(),
+        code: String(payload?.code || "").trim() || undefined,
+        column_type: String(payload?.columnType || payload?.column_type || "TEXT").trim().toUpperCase(),
+        is_percentage: Boolean(payload?.isPercentage ?? payload?.is_percentage),
+        display_order: payload?.displayOrder ?? payload?.display_order ?? undefined,
+      });
+      const normalized = normalizeCapTableColumn(response);
+      setSnapshots((prev) =>
+        prev.map((snapshot) =>
+          snapshot.id === snapshotId
+            ? {
+                ...snapshot,
+                columns: snapshot.columns.map((column) => (column.id === columnId ? { ...column, ...normalized } : column)),
+              }
+            : snapshot
+        )
+      );
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to update cap table column.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, capTablesEndpoint]);
+
+  const deleteColumn = useCallback(async (snapshotId, columnId) => {
+    if (!capTablesEndpoint || !snapshotId || !columnId) throw new Error("Missing column information.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.delete(`${capTablesEndpoint}${snapshotId}/columns/${columnId}/`);
+      setSnapshots((prev) =>
+        prev.map((snapshot) =>
+          snapshot.id === snapshotId
+            ? {
+                ...snapshot,
+                columns: snapshot.columns.filter((column) => column.id !== columnId),
+                entries: snapshot.entries.map((entry) => {
+                  const nextValues = { ...(entry.values || {}) };
+                  delete nextValues[columnId];
+                  return { ...entry, values: nextValues };
+                }),
+              }
+            : snapshot
+        )
+      );
+      return true;
+    } catch (err) {
+      setError(err.message || "Failed to delete cap table column.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, capTablesEndpoint]);
+
+  const createEntry = useCallback(async (snapshotId, payload) => {
+    if (!capTablesEndpoint || !snapshotId) throw new Error("Missing snapshot information.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.post(`${capTablesEndpoint}${snapshotId}/entries/`, {
         shareholder_name: payload.shareholderName,
         comment: payload.comment,
-        series_a_shares: payload.seriesA,
-        series_b_shares: payload.seriesB,
-        common_shares: payload.common,
-        preferred_shares: payload.preferred,
-        seed_shares: payload.seed,
-        esop_shares: payload.esop,
-        non_fully_diluted_percentage: payload.nonFullyDilutedPercentage,
-        fully_diluted_percentage: payload.fullyDilutedPercentage,
+        values: payload.values || {},
       });
       const normalized = normalizeCapTableEntry(response);
       setSnapshots((prev) =>
@@ -1090,24 +1375,17 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
-  const updateEntry = useCallback(async (entryId, payload) => {
-    if (!dealId || !entryId) throw new Error("Missing entry information.");
+  const updateEntry = useCallback(async (snapshotId, entryId, payload) => {
+    if (!capTablesEndpoint || !snapshotId || !entryId) throw new Error("Missing entry information.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.patch(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/entries/${entryId}/`, {
+      const response = await api.patch(`${capTablesEndpoint}${snapshotId}/entries/${entryId}/`, {
         shareholder_name: payload.shareholderName,
         comment: payload.comment,
-        series_a_shares: payload.seriesA,
-        series_b_shares: payload.seriesB,
-        common_shares: payload.common,
-        preferred_shares: payload.preferred,
-        seed_shares: payload.seed,
-        esop_shares: payload.esop,
-        non_fully_diluted_percentage: payload.nonFullyDilutedPercentage,
-        fully_diluted_percentage: payload.fullyDilutedPercentage,
+        values: payload.values || {},
       });
       const normalized = normalizeCapTableEntry(response);
       setSnapshots((prev) =>
@@ -1123,14 +1401,14 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
-  const deleteEntry = useCallback(async (entryId) => {
-    if (!dealId || !entryId) throw new Error("Missing entry information.");
+  const deleteEntry = useCallback(async (snapshotId, entryId) => {
+    if (!capTablesEndpoint || !snapshotId || !entryId) throw new Error("Missing entry information.");
     setIsSaving(true);
     setError(null);
     try {
-      await api.delete(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/cap-table/entries/${entryId}/`);
+      await api.delete(`${capTablesEndpoint}${snapshotId}/entries/${entryId}/`);
       setSnapshots((prev) =>
         prev.map((snapshot) => ({
           ...snapshot,
@@ -1144,7 +1422,7 @@ export function useCapTableBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, capTablesEndpoint]);
 
   useEffect(() => {
     loadCapTable().catch(() => {});
@@ -1160,11 +1438,15 @@ export function useCapTableBackend(dealId) {
       createSnapshot,
       updateSnapshot,
       deleteSnapshot,
+      duplicateSnapshot,
+      createColumn,
+      updateColumn,
+      deleteColumn,
       createEntry,
       updateEntry,
       deleteEntry,
     }),
-    [snapshots, isLoading, isSaving, error, loadCapTable, createSnapshot, updateSnapshot, deleteSnapshot, createEntry, updateEntry, deleteEntry]
+    [snapshots, isLoading, isSaving, error, loadCapTable, createSnapshot, updateSnapshot, deleteSnapshot, duplicateSnapshot, createColumn, updateColumn, deleteColumn, createEntry, updateEntry, deleteEntry]
   );
 }
 
@@ -1295,18 +1577,21 @@ export function useDataroomBackend(dealId) {
 export function useKpisBackend(dealId) {
   const api = useApi();
   const [periods, setPeriods] = useState([]);
+  const [periodEntries, setPeriodEntries] = useState({});
   const [kpiCategories, setKpiCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [periodTypes, setPeriodTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+  const kpiPeriodsEndpoint = dealId ? `${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpi-periods/` : null;
 
   const loadKpis = useCallback(async () => {
-    if (!dealId) return [];
+    if (!kpiPeriodsEndpoint) return [];
     setIsLoading(true);
     setError(null);
     try {
-      const payload = await api.get(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/`);
+      const payload = await api.get(kpiPeriodsEndpoint);
       const normalized = normalizeKpiPeriods(payload);
       setPeriods(normalized);
       return normalized;
@@ -1316,16 +1601,38 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsLoading(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
+
+  const loadPeriodEntries = useCallback(async (periodId, displayPeriodType = "QUARTERLY") => {
+    if (!kpiPeriodsEndpoint || !periodId) return null;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const query = new URLSearchParams();
+      query.set("display_period_type", displayPeriodType);
+      const payload = await api.get(`${kpiPeriodsEndpoint}${periodId}/entries/?${query.toString()}`);
+      const normalized = normalizeKpiPeriodEntriesPayload(payload);
+      setPeriodEntries((prev) => ({ ...prev, [periodId]: normalized }));
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to load KPI entries.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, kpiPeriodsEndpoint]);
 
   const loadKpiLookups = useCallback(async () => {
     try {
-      const [categoriesPayload, currenciesPayload] = await Promise.all([
-        api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=kpi_category`),
-        api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=currency`),
-      ]);
-      setKpiCategories(formatDropdownOptions(categoriesPayload));
-      setCurrencies(formatDropdownOptions(currenciesPayload, {
+      const payload = await api.get(`/api/kpis/options/`);
+      setPeriodTypes(
+        toSafeArray(payload?.period_types).map((row) => ({
+          id: row?.value ?? "",
+          name: row?.label ?? "",
+        }))
+      );
+      setKpiCategories(formatDropdownOptions(payload?.categories ?? []));
+      setCurrencies(formatDropdownOptions(payload?.currencies ?? [], {
         labelBuilder: (row) => {
           const name = row?.name || "";
           const code = row?.code || "";
@@ -1339,14 +1646,13 @@ export function useKpisBackend(dealId) {
   }, [api]);
 
   const createPeriod = useCallback(async (payload) => {
-    if (!dealId) throw new Error("Missing deal id.");
+    if (!kpiPeriodsEndpoint) throw new Error("Missing deal id.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.post(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/`, {
+      const response = await api.post(kpiPeriodsEndpoint, {
         name: String(payload?.name || "").trim(),
-        start_date: formatDateForApi(payload?.startDate),
-        end_date: formatDateForApi(payload?.endDate),
+        year: payload?.year,
         currency_id: payload?.currencyId || null,
         display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
       });
@@ -1359,17 +1665,16 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
   const updatePeriod = useCallback(async (periodId, payload) => {
-    if (!dealId || !periodId) throw new Error("Missing KPI period information.");
+    if (!kpiPeriodsEndpoint || !periodId) throw new Error("Missing KPI period information.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.patch(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/${periodId}/`, {
+      const response = await api.patch(`${kpiPeriodsEndpoint}${periodId}/`, {
         name: String(payload?.name || "").trim(),
-        start_date: formatDateForApi(payload?.startDate),
-        end_date: formatDateForApi(payload?.endDate),
+        year: payload?.year,
         currency_id: payload?.currencyId || null,
         display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
       });
@@ -1382,15 +1687,20 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
   const deletePeriod = useCallback(async (periodId) => {
-    if (!dealId || !periodId) throw new Error("Missing KPI period information.");
+    if (!kpiPeriodsEndpoint || !periodId) throw new Error("Missing KPI period information.");
     setIsSaving(true);
     setError(null);
     try {
-      await api.delete(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/${periodId}/`);
+      await api.delete(`${kpiPeriodsEndpoint}${periodId}/`);
       setPeriods((prev) => prev.filter((period) => period.id !== periodId));
+      setPeriodEntries((prev) => {
+        const next = { ...prev };
+        delete next[periodId];
+        return next;
+      });
       return true;
     } catch (err) {
       setError(err.message || "Failed to delete KPI period.");
@@ -1398,26 +1708,44 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
   const createEntry = useCallback(async (periodId, payload) => {
-    if (!dealId || !periodId) throw new Error("Missing KPI period information.");
+    if (!kpiPeriodsEndpoint || !periodId) throw new Error("Missing KPI period information.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.post(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/${periodId}/entries/`, {
+      const response = await api.post(`${kpiPeriodsEndpoint}${periodId}/entries/`, {
         kpi_name: String(payload?.kpiName || "").trim(),
         kpi_category_id: payload?.kpiCategoryId || null,
-        value: payload?.value === "" ? null : payload?.value,
+        period_type: payload?.periodType || "QUARTERLY",
+        currency_id: payload?.currencyId || null,
         unit: String(payload?.unit || "").trim(),
+        kpi_order: payload?.kpiOrder === "" ? null : payload?.kpiOrder ?? null,
         display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
+        q1_value: payload?.q1Value ?? null,
+        q2_value: payload?.q2Value ?? null,
+        q3_value: payload?.q3Value ?? null,
+        q4_value: payload?.q4Value ?? null,
+        h1_value: payload?.h1Value ?? null,
+        h2_value: payload?.h2Value ?? null,
+        annual_y1_value: payload?.annualY1Value ?? null,
+        annual_y2_value: payload?.annualY2Value ?? null,
+        annual_y3_value: payload?.annualY3Value ?? null,
+        annual_y4_value: payload?.annualY4Value ?? null,
       });
       const normalized = normalizeKpiEntry(response);
-      setPeriods((prev) =>
-        prev.map((period) =>
-          period.id === periodId ? { ...period, entries: [...period.entries, normalized] } : period
-        )
-      );
+      setPeriodEntries((prev) => {
+        const current = prev[periodId];
+        if (!current) return prev;
+        return {
+          ...prev,
+          [periodId]: {
+            ...current,
+            entries: [...current.entries, normalized],
+          },
+        };
+      });
       return normalized;
     } catch (err) {
       setError(err.message || "Failed to create KPI entry.");
@@ -1425,27 +1753,44 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
-  const updateEntry = useCallback(async (entryId, payload) => {
-    if (!dealId || !entryId) throw new Error("Missing KPI entry information.");
+  const updateEntry = useCallback(async (periodId, entryId, payload) => {
+    if (!kpiPeriodsEndpoint || !periodId || !entryId) throw new Error("Missing KPI entry information.");
     setIsSaving(true);
     setError(null);
     try {
-      const response = await api.patch(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/entries/${entryId}/`, {
+      const response = await api.patch(`${kpiPeriodsEndpoint}${periodId}/entries/${entryId}/`, {
         kpi_name: String(payload?.kpiName || "").trim(),
         kpi_category_id: payload?.kpiCategoryId || null,
-        value: payload?.value === "" ? null : payload?.value,
+        period_type: payload?.periodType || "QUARTERLY",
+        currency_id: payload?.currencyId || null,
         unit: String(payload?.unit || "").trim(),
+        kpi_order: payload?.kpiOrder === "" ? null : payload?.kpiOrder ?? null,
         display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
+        q1_value: payload?.q1Value ?? null,
+        q2_value: payload?.q2Value ?? null,
+        q3_value: payload?.q3Value ?? null,
+        q4_value: payload?.q4Value ?? null,
+        h1_value: payload?.h1Value ?? null,
+        h2_value: payload?.h2Value ?? null,
+        annual_y1_value: payload?.annualY1Value ?? null,
+        annual_y2_value: payload?.annualY2Value ?? null,
+        annual_y3_value: payload?.annualY3Value ?? null,
+        annual_y4_value: payload?.annualY4Value ?? null,
       });
       const normalized = normalizeKpiEntry(response);
-      setPeriods((prev) =>
-        prev.map((period) => ({
-          ...period,
-          entries: period.entries.map((entry) => (entry.id === normalized.id ? normalized : entry)),
-        }))
-      );
+      setPeriodEntries((prev) => {
+        const current = prev[periodId];
+        if (!current) return prev;
+        return {
+          ...prev,
+          [periodId]: {
+            ...current,
+            entries: current.entries.map((entry) => (entry.id === normalized.id ? normalized : entry)),
+          },
+        };
+      });
       return normalized;
     } catch (err) {
       setError(err.message || "Failed to update KPI entry.");
@@ -1453,20 +1798,25 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
-  const deleteEntry = useCallback(async (entryId) => {
-    if (!dealId || !entryId) throw new Error("Missing KPI entry information.");
+  const deleteEntry = useCallback(async (periodId, entryId) => {
+    if (!kpiPeriodsEndpoint || !periodId || !entryId) throw new Error("Missing KPI entry information.");
     setIsSaving(true);
     setError(null);
     try {
-      await api.delete(`${DEALFLOW_DEALS_ENDPOINT}${dealId}/kpis/entries/${entryId}/`);
-      setPeriods((prev) =>
-        prev.map((period) => ({
-          ...period,
-          entries: period.entries.filter((entry) => entry.id !== entryId),
-        }))
-      );
+      await api.delete(`${kpiPeriodsEndpoint}${periodId}/entries/${entryId}/`);
+      setPeriodEntries((prev) => {
+        const current = prev[periodId];
+        if (!current) return prev;
+        return {
+          ...prev,
+          [periodId]: {
+            ...current,
+            entries: current.entries.filter((entry) => entry.id !== entryId),
+          },
+        };
+      });
       return true;
     } catch (err) {
       setError(err.message || "Failed to delete KPI entry.");
@@ -1474,7 +1824,7 @@ export function useKpisBackend(dealId) {
     } finally {
       setIsSaving(false);
     }
-  }, [api, dealId]);
+  }, [api, kpiPeriodsEndpoint]);
 
   useEffect(() => {
     loadKpiLookups().catch(() => {});
@@ -1487,12 +1837,15 @@ export function useKpisBackend(dealId) {
   return useMemo(
     () => ({
       periods,
+      periodEntries,
       kpiCategories,
       currencies,
+      periodTypes,
       isLoading,
       isSaving,
       error,
       loadKpis,
+      loadPeriodEntries,
       createPeriod,
       updatePeriod,
       deletePeriod,
@@ -1500,7 +1853,7 @@ export function useKpisBackend(dealId) {
       updateEntry,
       deleteEntry,
     }),
-    [periods, kpiCategories, currencies, isLoading, isSaving, error, loadKpis, createPeriod, updatePeriod, deletePeriod, createEntry, updateEntry, deleteEntry]
+    [periods, periodEntries, kpiCategories, currencies, periodTypes, isLoading, isSaving, error, loadKpis, loadPeriodEntries, createPeriod, updatePeriod, deletePeriod, createEntry, updateEntry, deleteEntry]
   );
 }
 

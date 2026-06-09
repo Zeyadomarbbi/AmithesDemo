@@ -63,6 +63,14 @@
   margin: 0 0 4px;
 }
 
+.ncap-copy {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
 /* ---- FIELD ---- */
 .ncap-field {
   display: flex;
@@ -149,4 +157,12 @@
 
 .ncap-btn-next:hover {
   background: #f59a1a;
+}
+
+.ncap-btn-danger {
+  background: #c24141;
+}
+
+.ncap-btn-danger:hover {
+  background: #a93434;
 }

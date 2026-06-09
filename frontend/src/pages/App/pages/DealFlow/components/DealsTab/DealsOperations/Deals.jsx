@@ -13,14 +13,6 @@ import { exportRowsToExcel } from "../exportUtils";
 import StageLogModal, { toRawDate } from "./components/StageLogModal";
 import "./Deals.css";
 
-const DUMMY_STAGE_LOG = [
-  { stage: "Sourcing", date: "Jan 10, 2024", changedBy: "Hadeel" },
-  { stage: "Briefing", date: "Feb 03, 2024", changedBy: "Ziad Omar" },
-  { stage: "IC 1", date: "Mar 15, 2024", changedBy: "Ahmed Amer" },
-  { stage: "IC 2", date: "Apr 22, 2024", changedBy: "Ziad Omar" },
-  { stage: "Invested", date: "May 30, 2024", changedBy: "Hadeel" },
-];
-
 const COLS = [
   { key: "name", label: "Name", center: false },
   { key: "code", label: "Code", center: false },
@@ -98,7 +90,7 @@ function Deals() {
   );
 
   const getStageLog = useCallback(
-    (deal) => (Array.isArray(deal.stageLog) && deal.stageLog.length > 0 ? deal.stageLog : DUMMY_STAGE_LOG),
+    (deal) => (Array.isArray(deal?.stageLog) ? deal.stageLog : []),
     []
   );
 
@@ -118,12 +110,12 @@ function Deals() {
 
     try {
       if (isEdit && currentEntry?.id) {
-        await api.patch(`/api/dealflow/deals/${dealId}/stage-log/${currentEntry.id}/`, {
+        await api.patch(`/api/dealflow/deals/${dealId}/stage-logs/${currentEntry.id}/`, {
           stage_id: stageOption.id,
           event_date: rawDate || null,
         });
       } else {
-        await api.post(`/api/dealflow/deals/${dealId}/stage-log/`, {
+        await api.post(`/api/dealflow/deals/${dealId}/stage-logs/`, {
           stage_id: stageOption.id,
           event_date: rawDate || null,
         });
@@ -166,7 +158,7 @@ function Deals() {
     }
 
     try {
-      await api.delete(`/api/dealflow/deals/${dealId}/stage-log/${removed.id}/`);
+      await api.delete(`/api/dealflow/deals/${dealId}/stage-logs/${removed.id}/`);
       await loadDeals().catch(() => {});
       showToast({
         type: "success",
@@ -306,7 +298,7 @@ function Deals() {
           <button className="deals-btn-filter" onClick={() => setShowFilter(true)}>Filter</button>
           <button className="deals-btn-primary" onClick={() => setShowNewCompany(true)} disabled={isCreating}>
             <PlusIcon />
-            {isCreating ? "Creating..." : "New company"}
+            {isCreating ? "Creating..." : "New deal"}
           </button>
         </div>
       </div>
@@ -425,7 +417,12 @@ function Deals() {
                                         <span className="deals-status-log-avatar">
                                           {entry.changedBy.charAt(0).toUpperCase()}
                                         </span>
-                                        {entry.changedBy}
+                                        <span className="deals-status-log-by-content">
+                                          <span>{entry.changedBy}</span>
+                                          {entry.createdAtLabel && (
+                                            <span className="deals-status-log-meta">{entry.createdAtLabel}</span>
+                                          )}
+                                        </span>
                                       </span>
                                     )}
                                     <div className="deals-sl-entry-actions">
