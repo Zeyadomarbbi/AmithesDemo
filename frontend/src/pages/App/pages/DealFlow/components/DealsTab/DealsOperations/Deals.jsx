@@ -94,14 +94,14 @@ function Deals() {
     []
   );
 
-  const handleSaveStageEntry = useCallback(async ({ stage, rawDate }) => {
+  const handleSaveStageEntry = useCallback(async ({ stageId, rawDate }) => {
     if (!stageLogModal) return;
     const { dealId, editIndex } = stageLogModal;
     const isEdit = editIndex !== null && editIndex !== undefined;
     const deal = sourceDeals.find((d) => d.id === dealId);
     const current = deal ? getStageLog(deal) : [];
     const currentEntry = isEdit ? current[editIndex] : null;
-    const stageOption = stages.find((item) => item.name === stage);
+    const stageOption = stages.find((item) => String(item.id) === String(stageId));
 
     if (!stageOption?.id) {
       showToast({ type: "error", title: "Stage missing", message: "Please select a valid stage." });
@@ -132,8 +132,8 @@ function Deals() {
         type: "success",
         title: isEdit ? "Stage updated" : "Stage added",
         message: isEdit
-          ? `The stage log entry was updated to "${stage}".`
-          : `A new stage entry for "${stage}" was added successfully.`,
+          ? `The stage log entry was updated to "${stageOption.name}".`
+          : `A new stage entry for "${stageOption.name}" was added successfully.`,
       });
     } catch (err) {
       showToast({
@@ -181,7 +181,11 @@ function Deals() {
     const log = getStageLog(deal);
     const entry = log[stageLogModal.editIndex];
     if (!entry) return null;
-    return { stage: entry.stage, rawDate: entry.rawDate || toRawDate(entry.date) };
+    return {
+      stage: entry.stage,
+      stageId: entry.stageId || entry?.newStage?.id || null,
+      rawDate: entry.rawDate || toRawDate(entry.date),
+    };
   }, [stageLogModal, sourceDeals, getStageLog]);
 
   const filtered = sorted.filter((deal) => {
