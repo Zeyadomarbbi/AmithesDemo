@@ -603,7 +603,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
     setRowSnapshots((prev) => ({ ...prev, [entry.id]: { ...entry, values: cloneEntryValues(entry.values) } }));
   };
 
-  const confirmRowEdit = (id) => {
+  const finishRowEdit = (id) => {
     setEditingRowIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -615,7 +615,40 @@ export default function CapTable({ dealId, onSaveStateChange }) {
       return next;
     });
   };
+  
+const confirmRowEdit = async (id) => {
+    if (!activeSnapshot || !activeDraft) return;
+    const entry = (activeDraft.entries || []).find((item) => item.id === id);
+    if (!entry) return;
 
+    const payload = buildEntryPayload(entry, sortColumns(activeDraft.columns || []), entryPercentages);
+    if (!payload.shareholderName) {
+      showToast({ type: "error", title: "Save failed", message: "Shareholder name is required." });
+      return;
+    }
+
+    try {
+      if (String(entry.id).startsWith("entry-")) {
+        await createEntry(activeSnapshot.id, payload);
+      } else {
+        await updateEntry(activeSnapshot.id, entry.id, payload);
+      }
+
+      const reloadedSnapshots = await loadCapTable();
+      setDrafts((prev) => {
+        const next = { ...prev };
+        reloadedSnapshots.forEach((snapshot) => {
+          next[snapshot.id] = createDraftSnapshot(snapshot);
+        });
+        return next;
+      });
+      finishRowEdit(id);
+      showToast({ type: "success", title: "Row saved", message: "The cap table row has been updated." });
+    } catch (err) {
+      showToast({ type: "error", title: "Save failed", message: err.message || "Could not save this row." });
+    }
+  };
+  
   const cancelRowEdit = (id) => {
     const snapshot = rowSnapshots[id];
     if (snapshot && activeSnapshotId) {
@@ -627,7 +660,7 @@ export default function CapTable({ dealId, onSaveStateChange }) {
         },
       }));
     }
-    confirmRowEdit(id);
+     finishRowEdit(id);
   };
 
   const handleCancelEdit = () => {
