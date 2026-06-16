@@ -2096,11 +2096,7 @@ export function useDealflowLookupOptions() {
         legalForms: formatDropdownOptions(legalForms),
         teamRoles: formatDropdownOptions(teamRoles),
         dealflowUsers: formatDropdownOptions(dealflowUsers, {
-          labelBuilder: (row) => {
-            const name = row?.name || "";
-            const role = row?.role || "";
-            return role ? `${name} (${role})` : name;
-          },
+          labelBuilder: (row) => row?.name || "",
         }),
         funds: formatDropdownOptions(
           mapSharedFundsToDealflowId(sharedFunds, dealflowFunds),
