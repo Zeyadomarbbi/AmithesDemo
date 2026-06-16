@@ -14,14 +14,15 @@ export function toRawDate(displayDate) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+
 function StageLogModal({ stages, initialEntry, onSave, onClose }) {
   const api = useApi();
-  const [stageOptions, setStageOptions] = useState(Array.isArray(stages) ? stages : []);
+  const [selectedStage, setSelectedStage] = useState(initialEntry?.stageId || initialEntry?.stage || null);
   const [selectedStage, setSelectedStage] = useState(initialEntry?.stage || null);
   const [selectedDate, setSelectedDate] = useState(() => {
     if (!initialEntry?.rawDate) return null;
-    const [y, m, d] = initialEntry.rawDate.split("-").map(Number);
-    return new Date(y, m - 1, d);
+    const parsed = new Date(initialEntry.rawDate);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   });
   const normalizedStageOptions = useMemo(
     () => (Array.isArray(stageOptions) ? stageOptions.filter((item) => item?.name) : []),
@@ -58,7 +59,7 @@ function StageLogModal({ stages, initialEntry, onSave, onClose }) {
       month: "short", day: "2-digit", year: "numeric",
     });
     const rawDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-    onSave({ stage: selectedStage, date: formatted, rawDate });
+    onSave({ stageId: selectedStage, date: formatted, rawDate });
   };
 
   return (
@@ -77,7 +78,7 @@ function StageLogModal({ stages, initialEntry, onSave, onClose }) {
               onChange={setSelectedStage}
               placeholder="Select a stage..."
               labelKey="name"
-              valueKey="name"
+               valueKey="id"
             />
           </div>
           <div className="sl-modal-field">
