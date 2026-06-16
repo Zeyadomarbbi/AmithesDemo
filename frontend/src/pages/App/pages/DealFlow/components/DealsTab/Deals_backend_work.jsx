@@ -152,6 +152,16 @@ function formatStageLogTimestamp(value) {
   });
 }
 
+function toStageLogRawDate(value) {
+  if (!value) return "";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    const normalized = String(value).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+  }
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
 function normalizeDealRow(row) {
   const country = pickCountryInfo(row);
   const ticketAmount =
@@ -190,8 +200,9 @@ function normalizeDealRow(row) {
       id: entry?.id ?? null,
       dealId: entry?.deal_id ?? row?.id ?? row?.deal_id ?? null,
       stage: entry?.new_stage?.name ?? entry?.stage ?? "",
+      stageId: entry?.new_stage?.id ?? entry?.stage_id ?? null,
       date: formatStageLogDate(entry?.changed_at || entry?.rawDate || entry?.raw_date || entry?.date),
-      rawDate: entry?.changed_at || entry?.rawDate || entry?.raw_date || "",
+      rawDate: toStageLogRawDate(entry?.changed_at || entry?.rawDate || entry?.raw_date || entry?.date || entry?.created_at),
       changedBy: entry?.changed_by?.name ?? entry?.changedBy ?? entry?.changed_by ?? "",
       oldStage: entry?.old_stage ?? null,
       newStage: entry?.new_stage ?? null,
