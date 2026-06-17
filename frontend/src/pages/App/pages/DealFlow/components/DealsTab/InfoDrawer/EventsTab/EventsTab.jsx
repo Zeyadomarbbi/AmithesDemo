@@ -29,6 +29,7 @@ function createDraftMap(events) {
         description: event.description || "",
         eventDate: event.eventDateObject || null,
         eventTypeId: event.eventTypeId || null,
+        stageId: event.stageId || null,
       },
     ])
   );
@@ -45,11 +46,26 @@ function hasDraftChanges(event, draft) {
     String(event.title || "") !== String(draft.title || "") ||
     String(event.description || "") !== String(draft.description || "") ||
     String(event.eventTypeId || "") !== String(draft.eventTypeId || "") ||
+    String(event.stageId || "") !== String(draft.stageId || "") ||
     String(originalDate) !== String(draftDate)
   );
 }
 
-export default function EventsTab({ dealId }) {
+function formatMetaDateTime(value) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString("en-US");
+}
+
+function formatMetaDate(value) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString("en-US");
+}
+
+export default function EventsTab({ dealId, onSaved }) {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [drafts, setDrafts] = useState({});
@@ -59,6 +75,7 @@ export default function EventsTab({ dealId }) {
   const {
     events,
     eventTypes,
+    stages,
     isLoading,
     isSaving,
     error,
@@ -85,7 +102,7 @@ export default function EventsTab({ dealId }) {
     const query = search.trim().toLowerCase();
     if (!query) return events;
     return events.filter((event) =>
-      [event.title, event.description, event.eventTypeName]
+      [event.title, event.description, event.eventTypeName, event.stageName]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
     );
@@ -113,6 +130,7 @@ export default function EventsTab({ dealId }) {
         description: event.description || "",
         eventDate: event.eventDateObject || null,
         eventTypeId: event.eventTypeId || null,
+        stageId: event.stageId || null,
       },
     }));
     setEditingIds((prev) => {
@@ -124,8 +142,9 @@ export default function EventsTab({ dealId }) {
 
   const handleCreate = async (data) => {
     try {
-      await createEvent(data);
+      const created = await createEvent(data);
       setShowModal(false);
+      await onSaved?.(created);
       showToast({
         type: "success",
         title: "Event created",
@@ -144,12 +163,13 @@ export default function EventsTab({ dealId }) {
     const draft = drafts[event.id];
     if (!draft) return;
     try {
-      await updateEvent(event.id, draft);
+      const updated = await updateEvent(event.id, draft);
       setEditingIds((prev) => {
         const next = new Set(prev);
         next.delete(event.id);
         return next;
       });
+      await onSaved?.(updated);
       showToast({
         type: "success",
         title: "Event updated",
@@ -167,6 +187,7 @@ export default function EventsTab({ dealId }) {
   const handleDelete = async (event) => {
     try {
       await deleteEvent(event.id);
+      await onSaved?.(event);
       showToast({
         type: "success",
         title: "Event deleted",
@@ -188,6 +209,7 @@ export default function EventsTab({ dealId }) {
           onClose={() => setShowModal(false)}
           onSubmit={handleCreate}
           eventTypes={eventTypes}
+          stages={stages}
           isSaving={isSaving}
         />
       )}
@@ -218,9 +240,11 @@ export default function EventsTab({ dealId }) {
               description: event.description,
               eventDate: event.eventDateObject,
               eventTypeId: event.eventTypeId,
+              stageId: event.stageId || null,
             };
             const isDirty = hasDraftChanges(event, draft);
             const isCardEditing = editingIds.has(event.id);
+            const isStageChangeEvent = event.sourceType === "STAGE_LOG";
 
             return (
               <div key={event.id} className="et-card">
@@ -231,7 +255,7 @@ export default function EventsTab({ dealId }) {
                     onDateChange={(date) => updateDraft(event.id, "eventDate", date)}
                     isSingle={true}
                     dateFormat="DD/MM/YYYY"
-                    disabled={!isCardEditing}
+                    disabled={!isCardEditing || isStageChangeEvent}
                   />
 
                   <span className="et-meta-label et-docs-label">Type</span>
@@ -243,7 +267,20 @@ export default function EventsTab({ dealId }) {
                       placeholder="Select type"
                       labelKey="name"
                       valueKey="id"
-                      disabled={isSaving || !isCardEditing}
+                      disabled={isSaving || !isCardEditing || isStageChangeEvent}
+                    />
+                  </div>
+
+                  <span className="et-meta-label et-docs-label">Stage</span>
+                  <div className="et-type-wrap">
+                    <SimpleDropdown
+                      options={stages}
+                      value={draft.stageId}
+                      onChange={(value) => updateDraft(event.id, "stageId", value)}
+                      placeholder="No stage"
+                      labelKey="name"
+                      valueKey="id"
+                      disabled={isSaving || !isCardEditing || isStageChangeEvent}
                     />
                   </div>
 
@@ -275,14 +312,14 @@ export default function EventsTab({ dealId }) {
                       value={draft.title}
                       onChange={(e) => updateDraft(event.id, "title", e.target.value)}
                       placeholder="Event title"
-                      readOnly={!isCardEditing}
+                      readOnly={!isCardEditing || isStageChangeEvent}
                     />
-                    {!isCardEditing && (
+                    {!isCardEditing && !isStageChangeEvent && (
                       <button className="et-edit-btn" onClick={() => startEdit(event.id)}>
                         <EditLineIcon /> Edit
                       </button>
                     )}
-                    {isCardEditing && (
+                    {isCardEditing && !isStageChangeEvent && (
                       <button className="et-delete-btn" onClick={() => handleDelete(event)} disabled={isSaving}>
                         <TrashIcon />
                       </button>
@@ -290,7 +327,13 @@ export default function EventsTab({ dealId }) {
                   </div>
 
                   <div className="et-secondary-meta">
+                    <span className={`et-source-badge ${isStageChangeEvent ? "et-source-badge--stage" : "et-source-badge--manual"}`}>
+                      {isStageChangeEvent ? "Stage Change" : "Manual"}
+                    </span>
                     {event.createdByName && <span>Created by {event.createdByName}</span>}
+                    {event.createdAt && <span>Created at {formatMetaDateTime(event.createdAt)}</span>}
+                    {event.effectiveDate && <span>Effective date {formatMetaDate(event.effectiveDate)}</span>}
+                    {event.stageName && <span>Stage {event.stageName}</span>}
                     <span>{event.documentsCount} document{event.documentsCount === 1 ? "" : "s"}</span>
                   </div>
 
@@ -299,10 +342,10 @@ export default function EventsTab({ dealId }) {
                     value={draft.description}
                     onChange={(e) => updateDraft(event.id, "description", e.target.value)}
                     placeholder="Event description"
-                    readOnly={!isCardEditing}
+                    readOnly={!isCardEditing || isStageChangeEvent}
                   />
 
-                  {isCardEditing && (
+                  {isCardEditing && !isStageChangeEvent && (
                     <div className="et-actions">
                       <button className="et-cancel-btn" onClick={() => cancelEdit(event)}>
                         Cancel
