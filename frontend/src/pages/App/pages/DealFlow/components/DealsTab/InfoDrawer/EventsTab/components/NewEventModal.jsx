@@ -4,11 +4,12 @@ import DateInputWithPicker from "/src/components/DateComponents/DateInput.jsx";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./NewEventModal.css";
 
-function NewEventModal({ onClose, onSubmit, eventTypes = [], isSaving = false }) {
+function NewEventModal({ onClose, onSubmit, eventTypes = [], stages = [], isSaving = false }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(null);
   const [description, setDescription] = useState("");
   const [eventTypeId, setEventTypeId] = useState(null);
+  const [stageId, setStageId] = useState(null);
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -28,7 +29,7 @@ function NewEventModal({ onClose, onSubmit, eventTypes = [], isSaving = false })
   const handleDragLeave = () => setDragging(false);
 
   const handleSubmit = () => {
-    onSubmit?.({ title, eventDate: date, description, eventTypeId, file });
+    onSubmit?.({ title, eventDate: date, description, eventTypeId, stageId, file });
   };
 
   return (
@@ -76,6 +77,19 @@ function NewEventModal({ onClose, onSubmit, eventTypes = [], isSaving = false })
               value={eventTypeId}
               onChange={setEventTypeId}
               placeholder="Please select an event type"
+              labelKey="name"
+              valueKey="id"
+              disabled={isSaving}
+            />
+          </div>
+
+          <div className="nem-field">
+            <label className="nem-label">Stage</label>
+            <SimpleDropdown
+              options={stages}
+              value={stageId}
+              onChange={setStageId}
+              placeholder="Optional stage"
               labelKey="name"
               valueKey="id"
               disabled={isSaving}
