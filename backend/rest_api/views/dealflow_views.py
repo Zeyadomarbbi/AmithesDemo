@@ -76,6 +76,20 @@ def get_deal_stage_log_columns():
         return {row[0] for row in cursor.fetchall()}
 
 
+@lru_cache(maxsize=1)
+def get_deal_event_columns():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'dealflow'
+              AND table_name = 'df_events'
+            """
+        )
+        return {row[0] for row in cursor.fetchall()}
+
+
 def resolve_default_taxonomy_id(cursor, taxonomy_type, preferred_codes=(), preferred_names=()):
     cursor.execute(
         """
@@ -826,6 +840,15 @@ def serialize_event_row(row):
         "title": row.get("title") or "",
         "description": row.get("description") or "",
         "event_date": row.get("event_date"),
+        "effective_date": row.get("effective_date") or row.get("event_date"),
+        "source_type": row.get("source_type") or "MANUAL",
+        "stage_log_id": row.get("stage_log_id"),
+        "stage_id": row.get("stage_id"),
+        "stage": {
+            "id": row.get("stage_id"),
+            "name": row.get("stage_name") or "",
+            "color": row.get("stage_color"),
+        } if row.get("stage_id") else None,
         "event_type_id": row.get("event_type_id"),
         "event_type": {
             "id": row.get("event_type_id"),
@@ -842,6 +865,206 @@ def serialize_event_row(row):
         "documents_count": int(row.get("documents_count") or 0),
         "documents": row.get("documents") or [],
     }
+
+
+def build_stage_change_event_description(old_stage_name, new_stage_name):
+    previous = str(old_stage_name or "").strip()
+    current = str(new_stage_name or "").strip()
+    if previous and current:
+        return f"Stage changed from {previous} to {current}"
+    if current:
+        return f"Stage changed to {current}"
+    return "Stage changed"
+
+
+def fetch_stage_name_by_id(cursor, stage_id):
+    normalized_stage_id = normalize_uuid(stage_id)
+    if not normalized_stage_id:
+        return ""
+
+    cursor.execute(
+        """
+        SELECT name
+        FROM dealflow.df_taxonomy_items
+        WHERE id = %s
+          AND type = 'stage'
+        LIMIT 1
+        """,
+        [normalized_stage_id],
+    )
+    row = cursor.fetchone()
+    return (row[0] or "") if row else ""
+
+
+def fetch_deal_stage_id(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT stage_id
+        FROM dealflow.df_deals
+        WHERE id = %s
+          AND deleted_at IS NULL
+        LIMIT 1
+        """,
+        [str(deal_id)],
+    )
+    row = cursor.fetchone()
+    return str(row[0]) if row and row[0] else None
+
+
+def create_stage_log_record(cursor, deal_id, stage_id, event_date, changed_by=None, note="", old_stage_id=None):
+    current_stage_id = old_stage_id if old_stage_id is not None else fetch_deal_stage_id(cursor, deal_id)
+    now = timezone.now()
+    log_id = uuid4()
+    stage_log_columns = get_deal_stage_log_columns()
+    supports_updated_at = "updated_at" in stage_log_columns
+    supports_note = "note" in stage_log_columns
+
+    insert_columns = [
+        "id",
+        "deal_id",
+        "old_stage_id",
+        "new_stage_id",
+        "changed_by",
+        "changed_at",
+        "created_at",
+    ]
+    insert_values = [
+        str(log_id),
+        str(deal_id),
+        current_stage_id,
+        stage_id,
+        changed_by,
+        event_date,
+        now,
+    ]
+    if supports_updated_at:
+        insert_columns.append("updated_at")
+        insert_values.append(now)
+    if supports_note:
+        insert_columns.append("note")
+        insert_values.append(str(note or "").strip())
+
+    cursor.execute(
+        f"""
+        INSERT INTO dealflow.df_deal_stage_logs ({", ".join(insert_columns)})
+        VALUES ({", ".join(["%s"] * len(insert_values))})
+        """,
+        insert_values,
+    )
+    sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
+    return str(log_id)
+
+
+def sync_stage_log_event(cursor, deal_id, stage_log_id):
+    event_columns = get_deal_event_columns()
+    if not event_columns:
+        return None
+
+    cursor.execute(
+        """
+        SELECT
+            log.id,
+            log.deal_id,
+            log.old_stage_id,
+            old_stage.name AS old_stage_name,
+            log.new_stage_id,
+            new_stage.name AS new_stage_name,
+            log.changed_by,
+            log.changed_at
+        FROM dealflow.df_deal_stage_logs log
+        LEFT JOIN dealflow.df_taxonomy_items old_stage
+            ON old_stage.id = log.old_stage_id
+        LEFT JOIN dealflow.df_taxonomy_items new_stage
+            ON new_stage.id = log.new_stage_id
+        WHERE log.id = %s
+          AND log.deal_id = %s
+        LIMIT 1
+        """,
+        [str(stage_log_id), str(deal_id)],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+
+    changed_at = row[7]
+    description = build_stage_change_event_description(row[3], row[5])
+    title = "Stage Changed"
+    now = timezone.now()
+    existing_event_id = None
+
+    if "stage_log_id" in event_columns:
+        cursor.execute(
+            """
+            SELECT id
+            FROM dealflow.df_events
+            WHERE deal_id = %s
+              AND stage_log_id = %s
+              AND deleted_at IS NULL
+            ORDER BY created_at DESC NULLS LAST
+            LIMIT 1
+            """,
+            [str(deal_id), str(stage_log_id)],
+        )
+        existing = cursor.fetchone()
+        existing_event_id = str(existing[0]) if existing and existing[0] else None
+
+    if existing_event_id:
+        set_clauses = [
+            "title = %s",
+            "description = %s",
+            "event_date = %s",
+            "updated_at = %s",
+        ]
+        params = [title, description, changed_at, now]
+        if "effective_date" in event_columns:
+            set_clauses.append("effective_date = %s")
+            params.append(changed_at)
+        if "source_type" in event_columns:
+            set_clauses.append("source_type = %s")
+            params.append("STAGE_LOG")
+        if "stage_id" in event_columns:
+            set_clauses.append("stage_id = %s")
+            params.append(str(row[4]) if row[4] else None)
+        if "created_by" in event_columns:
+            set_clauses.append("created_by = %s")
+            params.append(str(row[6]) if row[6] else None)
+        cursor.execute(
+            f"""
+            UPDATE dealflow.df_events
+            SET {", ".join(set_clauses)}
+            WHERE id = %s
+            """,
+            [*params, existing_event_id],
+        )
+        return existing_event_id
+
+    event_id = str(uuid4())
+    insert_columns = ["id", "deal_id", "title", "description", "event_date", "created_at", "updated_at"]
+    insert_values = [event_id, str(deal_id), title, description, changed_at, now, now]
+    if "effective_date" in event_columns:
+        insert_columns.append("effective_date")
+        insert_values.append(changed_at)
+    if "source_type" in event_columns:
+        insert_columns.append("source_type")
+        insert_values.append("STAGE_LOG")
+    if "stage_log_id" in event_columns:
+        insert_columns.append("stage_log_id")
+        insert_values.append(str(stage_log_id))
+    if "stage_id" in event_columns:
+        insert_columns.append("stage_id")
+        insert_values.append(str(row[4]) if row[4] else None)
+    if "created_by" in event_columns:
+        insert_columns.append("created_by")
+        insert_values.append(str(row[6]) if row[6] else None)
+
+    cursor.execute(
+        f"""
+        INSERT INTO dealflow.df_events ({", ".join(insert_columns)})
+        VALUES ({", ".join(["%s"] * len(insert_values))})
+        """,
+        insert_values,
+    )
+    return event_id
 
 
 def parse_boolean_query(value, default=False):
@@ -1250,26 +1473,39 @@ def sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=None):
 
 
 def fetch_deal_events(cursor, deal_id):
+    event_columns = get_deal_event_columns()
+    effective_date_sql = "e.effective_date AS effective_date," if "effective_date" in event_columns else "e.event_date AS effective_date,"
+    source_type_sql = "e.source_type AS source_type," if "source_type" in event_columns else "'MANUAL' AS source_type,"
+    stage_log_id_sql = "e.stage_log_id AS stage_log_id," if "stage_log_id" in event_columns else "NULL AS stage_log_id,"
+    stage_id_sql = "e.stage_id AS stage_id," if "stage_id" in event_columns else "NULL AS stage_id,"
+    stage_name_sql = "st.name AS stage_name, st.color AS stage_color" if "stage_id" in event_columns else "NULL AS stage_name, NULL AS stage_color"
+    stage_join_sql = "LEFT JOIN dealflow.df_taxonomy_items st ON st.id = e.stage_id" if "stage_id" in event_columns else ""
     cursor.execute(
-        """
+        f"""
         SELECT
             e.id AS event_id,
             e.deal_id,
             e.title,
             e.description,
             e.event_date,
+            {effective_date_sql}
+            {source_type_sql}
+            {stage_log_id_sql}
+            {stage_id_sql}
             e.event_type_id,
             e.created_by,
             e.created_at,
             e.updated_at,
             et.name AS event_type_name,
             et.color AS event_type_color,
-            u.name AS created_by_name
+            u.name AS created_by_name,
+            {stage_name_sql}
         FROM dealflow.df_events e
         LEFT JOIN dealflow.df_taxonomy_items et
             ON et.id = e.event_type_id
         LEFT JOIN dealflow.df_users u
             ON u.id = e.created_by
+        {stage_join_sql}
         WHERE e.deal_id = %s
           AND e.deleted_at IS NULL
         ORDER BY e.event_date DESC NULLS LAST, e.created_at DESC NULLS LAST
@@ -3460,6 +3696,7 @@ class DealflowDealEventsView(APIView):
         event_date = payload.get("event_date")
         description = str(payload.get("description") or "").strip()
         event_type_id = normalize_uuid(payload.get("event_type_id"))
+        stage_id = normalize_uuid(payload.get("stage_id"))
         document_payload = payload.get("document") or {}
 
         if not title:
@@ -3475,32 +3712,76 @@ class DealflowDealEventsView(APIView):
             with transaction.atomic():
                 with connection.cursor() as cursor:
                     company_id = fetch_deal_company_id(cursor, deal_id)
-                    cursor.execute(
-                        """
-                        INSERT INTO dealflow.df_events (
-                            id,
-                            deal_id,
-                            title,
-                            description,
-                            event_date,
-                            event_type_id,
-                            created_by,
-                            created_at,
-                            updated_at
+                    if stage_id:
+                        cursor.execute(
+                            """
+                            SELECT id
+                            FROM dealflow.df_taxonomy_items
+                            WHERE id = %s
+                              AND type = 'stage'
+                              AND is_active = TRUE
+                            LIMIT 1
+                            """,
+                            [stage_id],
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        [
-                            str(event_id),
-                            str(deal_id),
-                            title,
-                            description,
+                        if not cursor.fetchone():
+                            return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    event_columns = get_deal_event_columns()
+                    stage_log_id = None
+                    if stage_id:
+                        stage_log_id = create_stage_log_record(
+                            cursor,
+                            deal_id,
+                            stage_id,
                             event_date,
-                            event_type_id,
-                            created_by,
-                            now,
-                            now,
-                        ],
+                            changed_by=created_by,
+                            note=description,
+                        )
+
+                    insert_columns = [
+                        "id",
+                        "deal_id",
+                        "title",
+                        "description",
+                        "event_date",
+                        "event_type_id",
+                        "created_by",
+                        "created_at",
+                        "updated_at",
+                    ]
+                    insert_values = [
+                        str(event_id),
+                        str(deal_id),
+                        title,
+                        description,
+                        event_date,
+                        event_type_id,
+                        created_by,
+                        now,
+                        now,
+                    ]
+                    if "effective_date" in event_columns:
+                        insert_columns.append("effective_date")
+                        insert_values.append(event_date)
+                    if "source_type" in event_columns:
+                        insert_columns.append("source_type")
+                        insert_values.append("MANUAL")
+                    if "stage_log_id" in event_columns:
+                        insert_columns.append("stage_log_id")
+                        insert_values.append(stage_log_id)
+                    if "stage_id" in event_columns:
+                        insert_columns.append("stage_id")
+                        insert_values.append(stage_id)
+
+                    cursor.execute(
+                        f"""
+                        INSERT INTO dealflow.df_events (
+                            {", ".join(insert_columns)}
+                        )
+                        VALUES ({", ".join(["%s"] * len(insert_values))})
+                        """,
+                        insert_values,
                     )
 
                     file_name = str(document_payload.get("file_name") or "").strip()
@@ -3574,6 +3855,7 @@ class DealflowDealEventDetailView(APIView):
         event_date = payload.get("event_date")
         description = str(payload.get("description") or "").strip()
         event_type_id = normalize_uuid(payload.get("event_type_id"))
+        stage_id = normalize_uuid(payload.get("stage_id"))
 
         if not title:
             return Response({"error": "Event title is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -3585,28 +3867,93 @@ class DealflowDealEventDetailView(APIView):
         try:
             with transaction.atomic():
                 with connection.cursor() as cursor:
+                    event_columns = get_deal_event_columns()
+                    select_stage_log_id_sql = "stage_log_id," if "stage_log_id" in event_columns else "NULL AS stage_log_id,"
+                    select_source_type_sql = "source_type," if "source_type" in event_columns else "'MANUAL' AS source_type,"
+                    select_stage_id_sql = "stage_id" if "stage_id" in event_columns else "NULL AS stage_id"
                     cursor.execute(
-                        """
+                        f"""
+                        SELECT
+                            id,
+                            {select_stage_log_id_sql}
+                            {select_source_type_sql}
+                            {select_stage_id_sql}
+                        FROM dealflow.df_events
+                        WHERE id = %s
+                          AND deal_id = %s
+                          AND deleted_at IS NULL
+                        LIMIT 1
+                        """,
+                        [str(event_id), str(deal_id)],
+                    )
+                    current_event = cursor.fetchone()
+                    if not current_event:
+                        return Response({"error": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    current_stage_log_id = str(current_event[1]) if current_event[1] else None
+                    current_source_type = str(current_event[2] or "MANUAL").upper()
+                    current_stage_id = str(current_event[3]) if current_event[3] else None
+
+                    if stage_id:
+                        cursor.execute(
+                            """
+                            SELECT id
+                            FROM dealflow.df_taxonomy_items
+                            WHERE id = %s
+                              AND type = 'stage'
+                              AND is_active = TRUE
+                            LIMIT 1
+                            """,
+                            [stage_id],
+                        )
+                        if not cursor.fetchone():
+                            return Response({"error": "Stage not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+                    next_stage_log_id = current_stage_log_id
+                    if stage_id:
+                        if current_stage_id != stage_id:
+                            next_stage_log_id = create_stage_log_record(
+                                cursor,
+                                deal_id,
+                                stage_id,
+                                event_date,
+                                changed_by=resolve_dealflow_user_id(getattr(request.user, "email", None)),
+                                note=description,
+                            )
+                    elif "stage_log_id" in event_columns:
+                        next_stage_log_id = None
+
+                    set_clauses = [
+                        "title = %s",
+                        "description = %s",
+                        "event_date = %s",
+                        "event_type_id = %s",
+                        "updated_at = %s",
+                    ]
+                    params = [title, description, event_date, event_type_id, now]
+                    if "effective_date" in event_columns:
+                        set_clauses.append("effective_date = %s")
+                        params.append(event_date)
+                    if "stage_log_id" in event_columns:
+                        set_clauses.append("stage_log_id = %s")
+                        params.append(next_stage_log_id)
+                    if "stage_id" in event_columns:
+                        set_clauses.append("stage_id = %s")
+                        params.append(stage_id)
+                    if "source_type" in event_columns and current_source_type != "STAGE_LOG":
+                        set_clauses.append("source_type = %s")
+                        params.append("MANUAL")
+
+                    cursor.execute(
+                        f"""
                         UPDATE dealflow.df_events
                         SET
-                            title = %s,
-                            description = %s,
-                            event_date = %s,
-                            event_type_id = %s,
-                            updated_at = %s
+                            {", ".join(set_clauses)}
                         WHERE id = %s
                           AND deal_id = %s
                           AND deleted_at IS NULL
                         """,
-                        [
-                            title,
-                            description,
-                            event_date,
-                            event_type_id,
-                            now,
-                            str(event_id),
-                            str(deal_id),
-                        ],
+                        [*params, str(event_id), str(deal_id)],
                     )
                     if cursor.rowcount == 0:
                         return Response({"error": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -3623,6 +3970,22 @@ class DealflowDealEventDetailView(APIView):
         now = timezone.now()
         try:
             with connection.cursor() as cursor:
+                event_columns = get_deal_event_columns()
+                source_type_sql = "source_type" if "source_type" in event_columns else "'MANUAL'"
+                cursor.execute(
+                    f"""
+                    SELECT {source_type_sql}
+                    FROM dealflow.df_events
+                    WHERE id = %s
+                      AND deal_id = %s
+                      AND deleted_at IS NULL
+                    LIMIT 1
+                    """,
+                    [str(event_id), str(deal_id)],
+                )
+                existing = cursor.fetchone()
+                if not existing:
+                    return Response({"error": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
                 cursor.execute(
                     """
                     UPDATE dealflow.df_events
@@ -4117,6 +4480,7 @@ class DealflowDealStageLogView(APIView):
                         insert_values,
                     )
                     sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
+                    sync_stage_log_event(cursor, deal_id, log_id)
                     stage_logs = fetch_deal_stage_logs(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -4190,6 +4554,7 @@ class DealflowDealStageLogDetailView(APIView):
                         return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
 
                     sync_deal_stage_from_stage_log(cursor, deal_id, fallback_stage_id=stage_id)
+                    sync_stage_log_event(cursor, deal_id, event_id)
                     stage_logs = fetch_deal_stage_logs(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -4234,6 +4599,19 @@ class DealflowDealStageLogDetailView(APIView):
                         )
                     if cursor.rowcount == 0:
                         return Response({"error": "Stage log entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if "stage_log_id" in get_deal_event_columns():
+                        cursor.execute(
+                            """
+                            UPDATE dealflow.df_events
+                            SET
+                                deleted_at = %s,
+                                updated_at = %s
+                            WHERE deal_id = %s
+                              AND stage_log_id = %s
+                              AND deleted_at IS NULL
+                            """,
+                            [now, now, str(deal_id), str(event_id)],
+                        )
                     sync_deal_stage_from_stage_log(cursor, deal_id)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
