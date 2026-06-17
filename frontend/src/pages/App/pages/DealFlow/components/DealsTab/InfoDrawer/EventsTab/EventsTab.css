@@ -227,6 +227,27 @@
   padding-left: 10px;
 }
 
+.et-source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.et-source-badge--manual {
+  background: rgba(55, 90, 137, 0.12);
+  color: #375a89;
+}
+
+.et-source-badge--stage {
+  background: rgba(247, 169, 59, 0.18);
+  color: #9a5f00;
+}
+
 .et-title-input {
   flex: 1;
   font-family: "Inter", sans-serif;
