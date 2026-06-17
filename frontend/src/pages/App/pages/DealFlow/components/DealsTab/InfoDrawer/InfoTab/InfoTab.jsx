@@ -448,7 +448,15 @@ function InfoTab({ deal, onClose, onSaved }) {
         </div>
 
         <div className="it-body">
-          {activeTab === "Events" && <EventsTab dealId={deal?.id} />}
+          {activeTab === "Events" && (
+            <EventsTab
+              dealId={deal?.id}
+              onSaved={async () => {
+                const refreshed = await loadDealDetail().catch(() => null);
+                await onSaved?.(refreshed || detail || deal);
+              }}
+            />
+          )}
           {activeTab === "Cap table" && <CapTable dealId={deal?.id} onSaveStateChange={setTabSave} />}
           {activeTab === "Dataroom" && <Dataroom dealId={deal?.id} />}
           {activeTab === "KPIs" && <KPIsTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
