@@ -469,6 +469,12 @@ function normalizeDealEvent(row) {
     description: row?.description ?? "",
     eventDate: row?.event_date ?? "",
     eventDateObject: parseApiDate(row?.event_date),
+    effectiveDate: row?.effective_date ?? row?.event_date ?? "",
+    effectiveDateObject: parseApiDate(row?.effective_date ?? row?.event_date),
+    sourceType: String(row?.source_type || "MANUAL").toUpperCase(),
+    stageLogId: row?.stage_log_id ?? null,
+    stageId: row?.stage?.id ?? row?.stage_id ?? null,
+    stageName: row?.stage?.name ?? "",
     eventTypeId: row?.event_type?.id ?? row?.event_type_id ?? null,
     eventTypeName: row?.event_type?.name ?? "",
     eventTypeColor: row?.event_type?.color ?? "",
@@ -1050,6 +1056,7 @@ export function useDealEventsBackend(dealId) {
   const api = useApi();
   const [events, setEvents] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
+  const [stages, setStages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -1083,6 +1090,18 @@ export function useDealEventsBackend(dealId) {
     }
   }, [api]);
 
+  const loadStages = useCallback(async () => {
+    try {
+      const payload = await api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=stage`);
+      const normalized = formatDropdownOptions(payload);
+      setStages(normalized);
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to load stages.");
+      throw err;
+    }
+  }, [api]);
+
   const createEvent = useCallback(async (form) => {
     if (!dealId) throw new Error("Missing deal id.");
     setIsSaving(true);
@@ -1093,6 +1112,7 @@ export function useDealEventsBackend(dealId) {
         description: String(form?.description || "").trim(),
         event_date: formatDateForApi(form?.eventDate),
         event_type_id: form?.eventTypeId || null,
+        stage_id: form?.stageId || null,
         document: extractDocumentMetadata(form?.file),
       });
       const normalized = normalizeDealEvent(payload);
@@ -1116,6 +1136,7 @@ export function useDealEventsBackend(dealId) {
         description: String(form?.description || "").trim(),
         event_date: formatDateForApi(form?.eventDate),
         event_type_id: form?.eventTypeId || null,
+        stage_id: form?.stageId || null,
       });
       const normalized = normalizeDealEvent(payload);
       setEvents((prev) => prev.map((event) => (event.id === normalized.id ? normalized : event)));
@@ -1146,7 +1167,8 @@ export function useDealEventsBackend(dealId) {
 
   useEffect(() => {
     loadEventTypes().catch(() => {});
-  }, [loadEventTypes]);
+    loadStages().catch(() => {});
+  }, [loadEventTypes, loadStages]);
 
   useEffect(() => {
     loadEvents().catch(() => {});
@@ -1156,16 +1178,18 @@ export function useDealEventsBackend(dealId) {
     () => ({
       events,
       eventTypes,
+      stages,
       isLoading,
       isSaving,
       error,
       loadEvents,
       loadEventTypes,
+      loadStages,
       createEvent,
       updateEvent,
       deleteEvent,
     }),
-    [events, eventTypes, isLoading, isSaving, error, loadEvents, loadEventTypes, createEvent, updateEvent, deleteEvent]
+    [events, eventTypes, stages, isLoading, isSaving, error, loadEvents, loadEventTypes, loadStages, createEvent, updateEvent, deleteEvent]
   );
 }
 
