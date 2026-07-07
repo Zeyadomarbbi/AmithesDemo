@@ -19,7 +19,12 @@ import KPIsTab from "../KPIsTab/KPIsTab";
 import OtherTab from "../OtherTab/OtherTab";
 import "./InfoTab.css";
 
-const TABS = ["Information", "Events", "Cap table", "Dataroom", "KPIs", "Other"];
+const VISIBLE_TABS = ["Information", "Events", "Cap table", "Dataroom", "Other"];
+const NUMERIC_FIELDS = new Set(["ticket", "cashInAmount", "cashOutAmount", "coInvestorTicket"]);
+const YES_NO_OPTIONS = [
+  { id: "yes", name: "Yes" },
+  { id: "no", name: "No" },
+];
 
 const createInitialForm = (deal) => ({
   dealName: deal?.name || "",
@@ -27,18 +32,42 @@ const createInitialForm = (deal) => ({
   sector: deal?.sectorId || null,
   businessDescription: "",
   status: deal?.statusId || null,
+  statusReason: "",
   stage: deal?.stageId || null,
   fund: deal?.fundId || null,
   ticket: deal?.ticketAmount ?? "",
   currency: deal?.currencyId || null,
+  pipelineEntryDate: "",
+  latestUpdateAt: "",
+  latestUpdateByName: "",
+  legalForm: null,
+  countriesOfOperations: "",
+  valueCreationPotential: "",
+  sourceType: null,
+  operationType: null,
+  cashInAmount: "",
+  cashOutAmount: "",
+  investmentInstruments: [],
+  coInvestor: "",
+  coInvestorType: null,
+  coInvestorTicket: "",
   dealType: null,
-  relevantInfo: "",
+  exitRoute: null,
+  exitCounterparty: null,
+  exitCounterpartyOther: "",
+  exitHorizon: null,
+  twoXChallenge: "",
+  esgRisk: null,
+  esgNotes: "",
+  additionalNotes: "",
+  emergingMarketThesis: "",
   teamMembers: [],
   externalContacts: [],
-  legalForm: null,
+
+  // Legacy fields are kept in state and payload for backward compatibility.
+  relevantInfo: "",
   countryOfIncorporation: null,
   countryOfMainOperation: null,
-  sourceType: null,
   contact: "",
   sponsors: "",
   sourcingRelevantInfo: "",
@@ -64,6 +93,41 @@ function normalizeNumericInput(value) {
   return String(value ?? "").replace(/[^\d.,-]/g, "");
 }
 
+function formatDateLabel(value) {
+  if (!value) return "";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTimeLabel(value) {
+  if (!value) return "";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getOptionById(options, value) {
+  return (Array.isArray(options) ? options : []).find((option) => String(option?.id) === String(value)) || null;
+}
+
+function optionMatches(option, codes = []) {
+  if (!option) return false;
+  const candidates = [option?.code, option?.name]
+    .map((value) => String(value || "").trim().toUpperCase().replace(/\s+/g, "_").replace(/-/g, "_"));
+  return codes.some((code) => candidates.includes(String(code || "").trim().toUpperCase()));
+}
+
 function normalizeExternalContactsForCompare(contacts) {
   return (Array.isArray(contacts) ? contacts : [])
     .map((contact, index) => ({
@@ -84,6 +148,33 @@ function hasFormChanges(currentForm, loadedForm, lookupOptions) {
       JSON.stringify(mapInfoFormToPayload(loadedForm, lookupOptions)) ||
     JSON.stringify(normalizeExternalContactsForCompare(currentForm?.externalContacts)) !==
       JSON.stringify(normalizeExternalContactsForCompare(loadedForm?.externalContacts))
+  );
+}
+
+function MultiSelectField({ label, options, values, onToggle, disabled }) {
+  return (
+    <div className="it-field">
+      <label className="it-label">{label}</label>
+      <div className={`it-multi-select${disabled ? " it-multi-select--disabled" : ""}`}>
+        {(Array.isArray(options) ? options : []).map((option) => {
+          const isChecked = values.includes(option.id);
+          return (
+            <label key={option.id} className={`it-checkbox-pill${isChecked ? " is-checked" : ""}`}>
+              <input
+                type="checkbox"
+                checked={isChecked}
+                disabled={disabled}
+                onChange={() => onToggle(option.id)}
+              />
+              <span>{option.name}</span>
+            </label>
+          );
+        })}
+        {(!Array.isArray(options) || options.length === 0) && (
+          <div className="it-multi-select-empty">No instruments available yet.</div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -123,7 +214,14 @@ function InfoTab({ deal, onClose, onSaved }) {
     statuses,
     stages,
     sourceTypes,
-    exitTypes,
+    operationTypes,
+    coInvestorTypes,
+    exitRoutes,
+    exitCounterparties,
+    exitHorizons,
+    esgRisks,
+    investmentInstruments,
+    dealTypes,
     legalForms,
     countries,
     currencies,
@@ -204,6 +302,19 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [detail, lookupOptions, deal, externalContacts]);
   const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
 
+  const selectedStatus = useMemo(() => getOptionById(statuses, form.status), [statuses, form.status]);
+  const selectedExitCounterparty = useMemo(
+    () => getOptionById(exitCounterparties, form.exitCounterparty),
+    [exitCounterparties, form.exitCounterparty]
+  );
+  const selectedFund = useMemo(() => getOptionById(funds, form.fund), [funds, form.fund]);
+  const showStatusReason = optionMatches(selectedStatus, ["ON_HOLD", "DROPPED"]);
+  const showCoInvestorFields = form.coInvestor === "yes";
+  const showExitCounterpartyOther = optionMatches(selectedExitCounterparty, ["OTHER"]);
+  const showEmergingMarketThesis = String(selectedFund?.name || "").toUpperCase().includes("AEE");
+  const latestUpdateLabel = form.latestUpdateAt ? formatDateTimeLabel(form.latestUpdateAt) : "";
+  const latestUpdateBy = String(form.latestUpdateByName || "").trim();
+
   const handleCancelEdit = () => {
     setForm(detail ? mapDealDetailToForm(detail, lookupOptions) : createInitialForm(deal));
     setIsEditing(false);
@@ -217,7 +328,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   const update = (key) => (e) =>
     setForm((prev) => ({
       ...prev,
-      [key]: key === "ticket" ? normalizeNumericInput(e.target.value) : e.target.value,
+      [key]: NUMERIC_FIELDS.has(key) ? normalizeNumericInput(e.target.value) : e.target.value,
     }));
 
   const updateDirect = (key) => (value) =>
@@ -225,6 +336,17 @@ function InfoTab({ deal, onClose, onSaved }) {
       ...prev,
       [key]: value,
     }));
+
+  const toggleInvestmentInstrument = (instrumentId) =>
+    setForm((prev) => {
+      const current = Array.isArray(prev.investmentInstruments) ? prev.investmentInstruments : [];
+      return {
+        ...prev,
+        investmentInstruments: current.includes(instrumentId)
+          ? current.filter((id) => id !== instrumentId)
+          : [...current, instrumentId],
+      };
+    });
 
   const addTeamMember = () =>
     setForm((prev) => ({
@@ -238,13 +360,13 @@ function InfoTab({ deal, onClose, onSaved }) {
   const updateTeamMember = (rowId, key, value) =>
     setForm((prev) => ({
       ...prev,
-      teamMembers: prev.teamMembers.map((m) => (m.id === rowId ? { ...m, [key]: value } : m)),
+      teamMembers: prev.teamMembers.map((member) => (member.id === rowId ? { ...member, [key]: value } : member)),
     }));
 
   const removeTeamMember = (rowId) =>
     setForm((prev) => ({
       ...prev,
-      teamMembers: prev.teamMembers.filter((m) => m.id !== rowId),
+      teamMembers: prev.teamMembers.filter((member) => member.id !== rowId),
     }));
 
   const addExternalContact = () =>
@@ -267,15 +389,15 @@ function InfoTab({ deal, onClose, onSaved }) {
   const updateExternalContactField = (rowId, key, value) =>
     setForm((prev) => ({
       ...prev,
-      externalContacts: prev.externalContacts.map((c) =>
-        c.id === rowId ? { ...c, [key]: value } : c
+      externalContacts: prev.externalContacts.map((contact) =>
+        contact.id === rowId ? { ...contact, [key]: value } : contact
       ),
     }));
 
   const removeExternalContact = (rowId) =>
     setForm((prev) => ({
       ...prev,
-      externalContacts: prev.externalContacts.filter((c) => c.id !== rowId),
+      externalContacts: prev.externalContacts.filter((contact) => contact.id !== rowId),
     }));
 
   const syncExternalContacts = useCallback(async (nextContacts, previousContacts) => {
@@ -313,7 +435,45 @@ function InfoTab({ deal, onClose, onSaved }) {
     return loadExternalContacts();
   }, [createExternalContact, updateExternalContact, deleteExternalContact, loadExternalContacts]);
 
+  const validateInformationForm = useCallback(() => {
+    if (!String(form.dealName || "").trim()) return "Deal Name is required.";
+    if (!String(form.codeName || "").trim()) return "Code Name is required.";
+    if (!form.stage) return "Deal Stage is required.";
+    if (!form.legalForm) return "Legal Form is required.";
+    if (!form.status) return "Status is required.";
+    if (showStatusReason && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
+    if (!String(form.countriesOfOperations || "").trim()) return "Countries of Operations is required.";
+    if (!form.fund) return "Fund is required.";
+    if (!form.country) return "Country (HQ) is required.";
+    if (!form.sector) return "Sector is required.";
+    if (!String(form.businessDescription || "").trim()) return "Business Description is required.";
+    if (!form.sourceType) return "Sourcing is required.";
+    if (!form.operationType) return "Operation Type is required.";
+    if (!String(form.ticket || "").trim()) return "Amethis Ticket is required.";
+    if (!form.coInvestor) return "Co-investor is required.";
+    if (showCoInvestorFields && !form.coInvestorType) return "Co-investor Type is required.";
+    if (showCoInvestorFields && !String(form.coInvestorTicket || "").trim()) return "Co-investor Ticket is required.";
+    if (!form.dealType) return "Investment Type is required.";
+    if (!form.exitRoute) return "Exit Route is required.";
+    if (!form.exitCounterparty) return "Exit Counterparty is required.";
+    if (showExitCounterpartyOther && !String(form.exitCounterpartyOther || "").trim()) {
+      return "Please specify the Exit Counterparty.";
+    }
+    if (!form.exitHorizon) return "Exit Horizon is required.";
+    return null;
+  }, [form, showCoInvestorFields, showExitCounterpartyOther, showStatusReason]);
+
   const handleSave = async () => {
+    const validationMessage = validateInformationForm();
+    if (validationMessage) {
+      showToast({
+        type: "error",
+        title: "Missing information",
+        message: validationMessage,
+      });
+      return;
+    }
+
     const prevStageId = loadedReferenceForm.stage;
     const nextStageId = form.stage;
     const stageChanged = prevStageId !== nextStageId && nextStageId;
@@ -436,7 +596,7 @@ function InfoTab({ deal, onClose, onSaved }) {
         </div>
 
         <div className="it-tabs">
-          {TABS.map((tab) => (
+          {VISIBLE_TABS.map((tab) => (
             <button
               key={tab}
               className={`it-tab${activeTab === tab ? " active" : ""}`}
@@ -459,12 +619,11 @@ function InfoTab({ deal, onClose, onSaved }) {
           )}
           {activeTab === "Cap table" && <CapTable dealId={deal?.id} onSaveStateChange={setTabSave} />}
           {activeTab === "Dataroom" && <Dataroom dealId={deal?.id} />}
-          {activeTab === "KPIs" && <KPIsTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
           {activeTab === "Other" && <OtherTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
 
           {activeTab === "Information" && (
             <>
-              <SectionHeader label="General information" />
+              <SectionHeader label="General Information" />
 
               <div className="it-grid-3">
                 <div className="it-field">
@@ -476,33 +635,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   <input className="it-input" value={form.codeName} onChange={update("codeName")} placeholder="Code name" readOnly={!isEditing} />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Sector</label>
-                  <SimpleDropdown
-                    options={sectors}
-                    value={form.sector}
-                    onChange={updateDirect("sector")}
-                    placeholder="Please select a sector"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-field">
-                <label className="it-label">Business description</label>
-                <textarea
-                  className="it-textarea"
-                  value={form.businessDescription}
-                  onChange={update("businessDescription")}
-                  placeholder="Please describe the business activity"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <label className="it-label">Stage</label>
+                  <label className="it-label">Deal Stage</label>
                   <SimpleDropdown
                     options={stages}
                     value={form.stage}
@@ -511,6 +644,58 @@ function InfoTab({ deal, onClose, onSaved }) {
                     labelKey="name"
                     valueKey="id"
                     disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Legal Form</label>
+                  <SimpleDropdown
+                    options={legalForms}
+                    value={form.legalForm}
+                    onChange={updateDirect("legalForm")}
+                    placeholder="Please select a legal form"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Pipeline Entry Date</label>
+                  <input className="it-input" value={formatDateLabel(form.pipelineEntryDate)} readOnly />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Latest Update</label>
+                  <input
+                    className="it-input"
+                    value={latestUpdateBy ? `${latestUpdateLabel} by ${latestUpdateBy}` : latestUpdateLabel}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Status</label>
+                  <SimpleDropdown
+                    options={statuses}
+                    value={form.status}
+                    onChange={updateDirect("status")}
+                    placeholder="Please select a status"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Countries of Operations</label>
+                  <input
+                    className="it-input"
+                    value={form.countriesOfOperations}
+                    onChange={update("countriesOfOperations")}
+                    placeholder="List countries of operations"
+                    readOnly={!isEditing}
                   />
                 </div>
                 <div className="it-field">
@@ -527,184 +712,22 @@ function InfoTab({ deal, onClose, onSaved }) {
                 </div>
               </div>
 
-              <div className="it-grid-3">
+              {showStatusReason && (
                 <div className="it-field">
-                  <label className="it-label">Ticket (m)</label>
-                  <input className="it-input" value={form.ticket} onChange={update("ticket")} placeholder="Please enter a ticket amount" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Currency</label>
-                  <SimpleDropdown
-                    options={currencies}
-                    value={form.currency}
-                    onChange={updateDirect("currency")}
-                    placeholder="Please select a currency"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Deal type</label>
-                  <SimpleDropdown
-                    options={[{ id: "minority", name: "Minority" }, { id: "majority", name: "Majority" }]}
-                    value={form.dealType}
-                    onChange={updateDirect("dealType")}
-                    placeholder="Please select a deal type"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={!isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <label className="it-label">Legal form</label>
-                  <SimpleDropdown
-                    options={legalForms}
-                    value={form.legalForm}
-                    onChange={updateDirect("legalForm")}
-                    placeholder="Please select a legal form"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Country of incorporation</label>
-                  <SimpleDropdown
-                    options={countries}
-                    value={form.countryOfIncorporation}
-                    onChange={updateDirect("countryOfIncorporation")}
-                    placeholder="Please select a country"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Country of main operation</label>
-                  <SimpleDropdown
-                    options={countries}
-                    value={form.countryOfMainOperation}
-                    onChange={updateDirect("countryOfMainOperation")}
-                    placeholder="Please select a country"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-field">
-                <label className="it-label">Relevant information</label>
-                <textarea
-                  className="it-textarea"
-                  value={form.relevantInfo}
-                  onChange={update("relevantInfo")}
-                  placeholder="Please enter any relevant information"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <SectionHeader label="Sourcing" />
-
-              <div className="it-grid-2">
-                <div className="it-field">
-                  <label className="it-label">Source type</label>
-                  <SimpleDropdown
-                    options={sourceTypes}
-                    value={form.sourceType}
-                    onChange={updateDirect("sourceType")}
-                    placeholder="Please select a source type"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Contact</label>
-                  <input className="it-input" value={form.contact} onChange={update("contact")} placeholder="Please enter a contact" readOnly={!isEditing} />
-                </div>
-              </div>
-
-              <div className="it-field">
-                <label className="it-label">Sponsor(s)</label>
-                <input className="it-input" value={form.sponsors} onChange={update("sponsors")} placeholder="Please enter a sponsor" readOnly={!isEditing} />
-              </div>
-
-              <div className="it-field">
-                <label className="it-label">Relevant information</label>
-                <textarea
-                  className="it-textarea"
-                  value={form.sourcingRelevantInfo}
-                  onChange={update("sourcingRelevantInfo")}
-                  placeholder="Please enter any relevant information regarding the sourcing"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <SectionHeader label="Exit details" />
-
-              <div className="it-field">
-                <label className="it-label">Exit type</label>
-                <SimpleDropdown
-                  options={exitTypes}
-                  value={form.exitType}
-                  onChange={updateDirect("exitType")}
-                  placeholder="Please select an exit type"
-                  labelKey="name"
-                  valueKey="id"
-                  disabled={areLookupsLoading || !isEditing}
-                />
-              </div>
-
-              <div className="it-field">
-                <label className="it-label">Relevant information</label>
-                <textarea
-                  className="it-textarea"
-                  value={form.exitRelevantInfo}
-                  onChange={update("exitRelevantInfo")}
-                  placeholder="Please enter any relevant information regarding the exit"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <SectionHeader label="Additional information" />
-
-              <div className="it-grid-2">
-                <div className="it-field">
-                  <label className="it-label">Website</label>
-                  <input className="it-input" value={form.website} onChange={update("website")} placeholder="Please enter a website" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Registration number</label>
-                  <input
-                    className="it-input"
-                    value={form.registrationNumber}
-                    onChange={update("registrationNumber")}
-                    placeholder="Please enter a registration number"
+                  <label className="it-label">Status Reason</label>
+                  <textarea
+                    className="it-textarea"
+                    value={form.statusReason}
+                    onChange={update("statusReason")}
+                    placeholder="Provide the reason for this status"
                     readOnly={!isEditing}
                   />
                 </div>
-              </div>
+              )}
 
-              <div className="it-grid-4">
+              <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Address</label>
-                  <input className="it-input" value={form.address} onChange={update("address")} placeholder="Please enter an address" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Zip Code</label>
-                  <input className="it-input" value={form.zipCode} onChange={update("zipCode")} placeholder="Please enter a zip code" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">City</label>
-                  <input className="it-input" value={form.city} onChange={update("city")} placeholder="Please enter a city" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <label className="it-label">Country</label>
+                  <label className="it-label">Country (HQ)</label>
                   <SimpleDropdown
                     options={countries}
                     value={form.country}
@@ -715,9 +738,285 @@ function InfoTab({ deal, onClose, onSaved }) {
                     disabled={areLookupsLoading || !isEditing}
                   />
                 </div>
+                <div className="it-field">
+                  <label className="it-label">Sector</label>
+                  <SimpleDropdown
+                    options={sectors}
+                    value={form.sector}
+                    onChange={updateDirect("sector")}
+                    placeholder="Please select a sector"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Sourcing</label>
+                  <SimpleDropdown
+                    options={sourceTypes}
+                    value={form.sourceType}
+                    onChange={updateDirect("sourceType")}
+                    placeholder="Please select a sourcing type"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
               </div>
 
-              <SectionHeader label="Deal team & Support" />
+              <div className="it-field">
+                <label className="it-label">Business Description</label>
+                <textarea
+                  className="it-textarea it-textarea--lg"
+                  value={form.businessDescription}
+                  onChange={update("businessDescription")}
+                  placeholder="Describe the business activity"
+                  readOnly={!isEditing}
+                />
+              </div>
+
+              <div className="it-field">
+                <label className="it-label">Value Creation Potential</label>
+                <textarea
+                  className="it-textarea"
+                  value={form.valueCreationPotential}
+                  onChange={update("valueCreationPotential")}
+                  placeholder="Describe the value creation potential"
+                  readOnly={!isEditing}
+                />
+              </div>
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Operation Type</label>
+                  <SimpleDropdown
+                    options={operationTypes}
+                    value={form.operationType}
+                    onChange={updateDirect("operationType")}
+                    placeholder="Please select an operation type"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              <SectionHeader label="Investment & Deal Economics" />
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Amethis Ticket (m)</label>
+                  <input
+                    className="it-input"
+                    value={form.ticket}
+                    onChange={update("ticket")}
+                    placeholder="Enter the Amethis ticket"
+                    readOnly={!isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Cash-in</label>
+                  <input
+                    className="it-input"
+                    value={form.cashInAmount}
+                    onChange={update("cashInAmount")}
+                    placeholder="Cash-in amount"
+                    readOnly={!isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Cash-out</label>
+                  <input
+                    className="it-input"
+                    value={form.cashOutAmount}
+                    onChange={update("cashOutAmount")}
+                    placeholder="Cash-out amount"
+                    readOnly={!isEditing}
+                  />
+                </div>
+              </div>
+
+              <MultiSelectField
+                label="Investment Instrument"
+                options={investmentInstruments}
+                values={Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []}
+                onToggle={toggleInvestmentInstrument}
+                disabled={!isEditing}
+              />
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Co-investor</label>
+                  <SimpleDropdown
+                    options={YES_NO_OPTIONS}
+                    value={form.coInvestor}
+                    onChange={updateDirect("coInvestor")}
+                    placeholder="Please choose"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Investment Type</label>
+                  <SimpleDropdown
+                    options={dealTypes}
+                    value={form.dealType}
+                    onChange={updateDirect("dealType")}
+                    placeholder="Please select an investment type"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              {showCoInvestorFields && (
+                <div className="it-grid-3">
+                  <div className="it-field">
+                    <label className="it-label">Co-investor Type</label>
+                    <SimpleDropdown
+                      options={coInvestorTypes}
+                      value={form.coInvestorType}
+                      onChange={updateDirect("coInvestorType")}
+                      placeholder="Please select a co-investor type"
+                      labelKey="name"
+                      valueKey="id"
+                      disabled={areLookupsLoading || !isEditing}
+                    />
+                  </div>
+                  <div className="it-field">
+                    <label className="it-label">Co-investor Ticket (m)</label>
+                    <input
+                      className="it-input"
+                      value={form.coInvestorTicket}
+                      onChange={update("coInvestorTicket")}
+                      placeholder="Enter the co-investor ticket"
+                      readOnly={!isEditing}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <SectionHeader label="Exit" />
+
+              <div className="it-grid-3">
+                <div className="it-field">
+                  <label className="it-label">Exit Route</label>
+                  <SimpleDropdown
+                    options={exitRoutes}
+                    value={form.exitRoute}
+                    onChange={updateDirect("exitRoute")}
+                    placeholder="Please select an exit route"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Exit Counterparty</label>
+                  <SimpleDropdown
+                    options={exitCounterparties}
+                    value={form.exitCounterparty}
+                    onChange={updateDirect("exitCounterparty")}
+                    placeholder="Please select an exit counterparty"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">Exit Horizon</label>
+                  <SimpleDropdown
+                    options={exitHorizons}
+                    value={form.exitHorizon}
+                    onChange={updateDirect("exitHorizon")}
+                    placeholder="Please select an exit horizon"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              {showExitCounterpartyOther && (
+                <div className="it-field">
+                  <label className="it-label">Other Exit Counterparty</label>
+                  <input
+                    className="it-input"
+                    value={form.exitCounterpartyOther}
+                    onChange={update("exitCounterpartyOther")}
+                    placeholder="Please specify the counterparty"
+                    readOnly={!isEditing}
+                  />
+                </div>
+              )}
+
+              <SectionHeader label="ESG & Impact" />
+
+              <div className="it-grid-2">
+                <div className="it-field">
+                  <label className="it-label">2X Challenge</label>
+                  <input
+                    className="it-input"
+                    value={form.twoXChallenge}
+                    onChange={update("twoXChallenge")}
+                    placeholder="Enter 2X Challenge information"
+                    readOnly={!isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <label className="it-label">E&S Risk</label>
+                  <SimpleDropdown
+                    options={esgRisks}
+                    value={form.esgRisk}
+                    onChange={updateDirect("esgRisk")}
+                    placeholder="Please select an E&S risk"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              <div className="it-field">
+                <label className="it-label">Notes</label>
+                <textarea
+                  className="it-textarea"
+                  value={form.esgNotes}
+                  onChange={update("esgNotes")}
+                  placeholder="Add ESG and impact notes"
+                  readOnly={!isEditing}
+                />
+              </div>
+
+              <SectionHeader label="Additional Information" />
+
+              <div className="it-field">
+                <label className="it-label">Notes</label>
+                <textarea
+                  className="it-textarea it-textarea--lg"
+                  value={form.additionalNotes}
+                  onChange={update("additionalNotes")}
+                  placeholder="Add any additional notes"
+                  readOnly={!isEditing}
+                />
+              </div>
+
+              {showEmergingMarketThesis && (
+                <div className="it-field">
+                  <label className="it-label">Emerging Market Thesis</label>
+                  <textarea
+                    className="it-textarea"
+                    value={form.emergingMarketThesis}
+                    onChange={update("emergingMarketThesis")}
+                    placeholder="Describe the emerging market thesis"
+                    readOnly={!isEditing}
+                  />
+                </div>
+              )}
+
+              <SectionHeader label="Deal Team & Support" />
 
               <div className="it-team-container">
                 <table className="it-team-table">
@@ -735,7 +1034,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                           <SimpleDropdown
                             options={dealflowUsers}
                             value={member.userId}
-                            onChange={(v) => updateTeamMember(member.id, "userId", v)}
+                            onChange={(value) => updateTeamMember(member.id, "userId", value)}
                             placeholder="Select a person"
                             labelKey="name"
                             valueKey="id"
@@ -753,7 +1052,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                           <SimpleDropdown
                             options={teamRoles}
                             value={member.roleId}
-                            onChange={(v) => updateTeamMember(member.id, "roleId", v)}
+                            onChange={(value) => updateTeamMember(member.id, "roleId", value)}
                             placeholder="Select a position"
                             labelKey="name"
                             valueKey="id"
@@ -801,10 +1100,10 @@ function InfoTab({ deal, onClose, onSaved }) {
                 )}
               </div>
 
-              <SectionHeader label="External contacts" />
+              <SectionHeader label="External Contacts" />
 
               <div className="it-team-container">
-                <table className="it-team-table">
+                <table className="it-team-table it-team-table--wide">
                   <thead>
                     <tr>
                       <th className="it-team-th">Name</th>
@@ -889,6 +1188,12 @@ function InfoTab({ deal, onClose, onSaved }) {
                   </button>
                 )}
               </div>
+
+              <SectionHeader label="KPIs & Configuration" />
+
+              <div className="it-kpi-embed">
+                <KPIsTab dealId={deal?.id} />
+              </div>
             </>
           )}
         </div>
@@ -904,17 +1209,17 @@ function InfoTab({ deal, onClose, onSaved }) {
               </button>
             </>
           )}
-          {(activeTab === "Cap table" || activeTab === "KPIs" || activeTab === "Other") && tabSave.isEditing && (
+          {(activeTab === "Cap table" || activeTab === "Other") && tabSave.isEditing && (
             <button className="it-cancel-btn" onClick={tabSave.cancelFn}>
               Cancel
             </button>
           )}
-          {(activeTab === "Cap table" || activeTab === "KPIs" || activeTab === "Other") && tabSave.isEditing && (
+          {(activeTab === "Cap table" || activeTab === "Other") && tabSave.isEditing && (
             <button className="it-save-btn" onClick={tabSave.fn} disabled={tabSave.isSaving || !tabSave.isDirty}>
               {tabSave.isSaving ? "Saving..." : "Save"}
             </button>
           )}
-          {(activeTab === "KPIs" || activeTab === "Other") && !tabSave.isEditing && (
+          {activeTab === "Other" && !tabSave.isEditing && (
             <button className="it-save-btn" onClick={tabSave.fn} disabled={tabSave.isSaving || !tabSave.isDirty}>
               {tabSave.isSaving ? "Saving..." : "Save"}
             </button>
