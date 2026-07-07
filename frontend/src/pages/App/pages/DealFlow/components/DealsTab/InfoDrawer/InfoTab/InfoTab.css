@@ -187,6 +187,10 @@
   gap: 12px;
 }
 
+.it-grid-4--economics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 /* ---- FIELD ---- */
 .it-field {
   display: flex;
@@ -237,6 +241,11 @@
   resize: none;
 }
 
+.it-textarea--lg {
+  min-height: 92px;
+  height: auto;
+}
+
 .it-select-wrap {
   position: relative;
   display: flex;
@@ -259,6 +268,49 @@
 .it-select {
   cursor: pointer;
   appearance: none;
+}
+
+.it-multi-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.it-multi-select--disabled {
+  background: #fafafa;
+}
+
+.it-checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #d9deea;
+  border-radius: 999px;
+  background: #f8fafc;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #375a89;
+}
+
+.it-checkbox-pill input {
+  margin: 0;
+}
+
+.it-checkbox-pill.is-checked {
+  border-color: rgba(55, 90, 137, 0.35);
+  background: rgba(55, 90, 137, 0.12);
+}
+
+.it-multi-select-empty {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 /* ---- COUNTRY SELECT ---- */
@@ -325,6 +377,10 @@
   font-family: "Inter", sans-serif;
   font-size: 13px;
   vertical-align: top;
+}
+
+.it-team-table--wide {
+  width: min(100%, 980px);
 }
 
 .it-team-th {
@@ -397,6 +453,14 @@
 .it-team-empty {
   color: #6b7280;
   text-align: center;
+}
+
+.it-kpi-embed {
+  width: 100%;
+  border: 1px solid #e6e9f1;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fbfcff;
 }
 
 /* ---- EDIT / CANCEL BUTTONS ---- */
@@ -481,4 +545,40 @@
 
 .it-save-btn:not(:disabled):hover {
   background: #e8962a;
+}
+
+@media (max-width: 1200px) {
+  .it-grid-3,
+  .it-grid-4,
+  .it-grid-4--economics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .it-drawer,
+  .it-drawer--expanded {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .it-tabs {
+    overflow-x: auto;
+  }
+
+  .it-grid-2,
+  .it-grid-3,
+  .it-grid-4,
+  .it-grid-4--economics {
+    grid-template-columns: 1fr;
+  }
+
+  .it-team-container {
+    flex-direction: column;
+  }
+
+  .it-team-table,
+  .it-team-table--wide {
+    width: 100%;
+  }
 }
