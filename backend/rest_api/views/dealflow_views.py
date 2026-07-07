@@ -27,7 +27,23 @@ except ImportError:
     PdfReader = None
 
 
-SETUP_ALLOWED_TYPES = {"status", "stage", "source_type", "doc_type", "sector", "team_role"}
+SETUP_ALLOWED_TYPES = {
+    "status",
+    "stage",
+    "source_type",
+    "doc_type",
+    "sector",
+    "team_role",
+    "operation_type",
+    "co_investor_type",
+    "investment_instrument",
+    "deal_type",
+    "exit_route",
+    "exit_counterparty",
+    "exit_horizon",
+    "esg_risk",
+    "legal_form",
+}
 
 
 def dictfetchall(cursor):
@@ -397,6 +413,9 @@ def serialize_deal_row(row):
 
 def serialize_deal_detail_row(row):
     ticket_amount = row.get("ticket_amount")
+    cash_in_amount = row.get("cash_in_amount")
+    cash_out_amount = row.get("cash_out_amount")
+    co_investor_ticket_amount = row.get("co_investor_ticket_amount")
     return {
         "id": row.get("deal_id"),
         "deal_id": row.get("deal_id"),
@@ -424,11 +443,31 @@ def serialize_deal_detail_row(row):
         "status_id": row.get("status_id"),
         "stage_id": row.get("stage_id"),
         "source_type_id": row.get("source_type_id"),
+        "operation_type_id": row.get("operation_type_id"),
         "contact_id": row.get("contact_id"),
         "ticket_amount": float(ticket_amount) if ticket_amount is not None else None,
         "currency_id": row.get("currency_id"),
         "deal_date": row.get("deal_date"),
+        "pipeline_entry_date": row.get("pipeline_entry_date"),
+        "status_reason": row.get("status_reason") or "",
+        "countries_of_operations": row.get("countries_of_operations") or "",
+        "value_creation_potential": row.get("value_creation_potential") or "",
         "sourcing_relevant_information": row.get("sourcing_relevant_information") or "",
+        "cash_in_amount": float(cash_in_amount) if cash_in_amount is not None else None,
+        "cash_out_amount": float(cash_out_amount) if cash_out_amount is not None else None,
+        "co_investor": row.get("co_investor"),
+        "co_investor_type_id": row.get("co_investor_type_id"),
+        "co_investor_ticket_amount": float(co_investor_ticket_amount) if co_investor_ticket_amount is not None else None,
+        "exit_route_id": row.get("exit_route_id"),
+        "exit_counterparty_id": row.get("exit_counterparty_id"),
+        "exit_counterparty_other": row.get("exit_counterparty_other") or "",
+        "exit_horizon_id": row.get("exit_horizon_id"),
+        "two_x_challenge": row.get("two_x_challenge") or "",
+        "esg_risk_id": row.get("esg_risk_id"),
+        "esg_notes": row.get("esg_notes") or "",
+        "additional_notes": row.get("additional_notes") or "",
+        "emerging_market_thesis": row.get("emerging_market_thesis") or "",
+        "deal_type_id": row.get("deal_type_id"),
         "exit_type_id": row.get("exit_type_id"),
         "exit_relevant_information": row.get("exit_relevant_information") or "",
         "contact": {
@@ -454,11 +493,46 @@ def serialize_deal_detail_row(row):
             "name": row.get("source_type_name") or "",
             "color": row.get("source_type_color"),
         } if row.get("source_type_id") else None,
+        "operation_type": {
+            "id": row.get("operation_type_id"),
+            "name": row.get("operation_type_name") or "",
+            "color": row.get("operation_type_color"),
+        } if row.get("operation_type_id") else None,
         "currency": {
             "id": row.get("currency_id"),
             "name": row.get("currency_name") or "",
             "code": row.get("currency_code") or "",
         } if row.get("currency_id") else None,
+        "deal_type": {
+            "id": row.get("deal_type_id"),
+            "name": row.get("deal_type_name") or "",
+            "color": row.get("deal_type_color"),
+        } if row.get("deal_type_id") else None,
+        "co_investor_type": {
+            "id": row.get("co_investor_type_id"),
+            "name": row.get("co_investor_type_name") or "",
+            "color": row.get("co_investor_type_color"),
+        } if row.get("co_investor_type_id") else None,
+        "exit_route": {
+            "id": row.get("exit_route_id"),
+            "name": row.get("exit_route_name") or "",
+            "color": row.get("exit_route_color"),
+        } if row.get("exit_route_id") else None,
+        "exit_counterparty": {
+            "id": row.get("exit_counterparty_id"),
+            "name": row.get("exit_counterparty_name") or "",
+            "color": row.get("exit_counterparty_color"),
+        } if row.get("exit_counterparty_id") else None,
+        "exit_horizon": {
+            "id": row.get("exit_horizon_id"),
+            "name": row.get("exit_horizon_name") or "",
+            "color": row.get("exit_horizon_color"),
+        } if row.get("exit_horizon_id") else None,
+        "esg_risk": {
+            "id": row.get("esg_risk_id"),
+            "name": row.get("esg_risk_name") or "",
+            "color": row.get("esg_risk_color"),
+        } if row.get("esg_risk_id") else None,
         "exit_type": {
             "id": row.get("exit_type_id"),
             "name": row.get("exit_type_name") or "",
@@ -490,7 +564,12 @@ def serialize_deal_detail_row(row):
         } if row.get("address_country_id") else None,
         "created_by": row.get("created_by"),
         "created_at": row.get("created_at"),
+        "updated_by": {
+            "id": row.get("updated_by"),
+            "name": row.get("updated_by_name") or "",
+        } if row.get("updated_by") or row.get("updated_by_name") else None,
         "updated_at": row.get("updated_at"),
+        "investment_instruments": row.get("investment_instruments") or [],
         "team_members": row.get("team_members") or [],
         "external_contacts": row.get("external_contacts") or [],
     }
@@ -1679,6 +1758,38 @@ def fetch_dashboard_base_rows(cursor, filters):
     return dictfetchall(cursor)
 
 
+def fetch_deal_investment_instruments(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT
+            rel.id,
+            rel.deal_id,
+            rel.instrument_id,
+            rel.created_at,
+            t.name AS instrument_name,
+            t.code AS instrument_code,
+            t.color AS instrument_color
+        FROM dealflow.df_deal_investment_instruments rel
+        LEFT JOIN dealflow.df_taxonomy_items t
+            ON t.id = rel.instrument_id
+        WHERE rel.deal_id = %s
+        ORDER BY t.display_order ASC NULLS LAST, t.name ASC
+        """,
+        [str(deal_id)],
+    )
+    return [
+        {
+            "id": row.get("instrument_id"),
+            "instrument_id": row.get("instrument_id"),
+            "name": row.get("instrument_name") or "",
+            "code": row.get("instrument_code") or "",
+            "color": row.get("instrument_color"),
+        }
+        for row in dictfetchall(cursor)
+        if row.get("instrument_id")
+    ]
+
+
 def pick_dashboard_color(value, fallback_index, fallback_palette):
     if value:
         return value
@@ -2768,18 +2879,39 @@ def fetch_deal_detail(cursor, deal_id):
             d.name AS deal_name,
             d.code AS deal_code,
             d.company_id,
+            d.deal_type_id,
             d.fund_id,
             d.stage_id,
             d.status_id,
+            d.status_reason,
             d.source_type_id,
+            d.operation_type_id,
             d.contact_id,
             d.ticket_amount,
+            d.cash_in_amount,
+            d.cash_out_amount,
             d.currency_id,
             d.deal_date,
+            d.pipeline_entry_date,
+            d.countries_of_operations,
+            d.value_creation_potential,
             d.sourcing_relevant_information,
+            d.co_investor,
+            d.co_investor_type_id,
+            d.co_investor_ticket_amount,
+            d.exit_route_id,
+            d.exit_counterparty_id,
+            d.exit_counterparty_other,
+            d.exit_horizon_id,
+            d.two_x_challenge,
+            d.esg_risk_id,
+            d.esg_notes,
+            d.additional_notes,
+            d.emerging_market_thesis,
             d.exit_type_id,
             d.exit_relevant_information,
             d.created_by,
+            d.updated_by,
             d.created_at,
             d.updated_at,
 
@@ -2808,10 +2940,25 @@ def fetch_deal_detail(cursor, deal_id):
             ss.color AS status_color,
             src.name AS source_type_name,
             src.color AS source_type_color,
+            op.name AS operation_type_name,
+            op.color AS operation_type_color,
             cur.name AS currency_name,
             cur.code AS currency_code,
+            dt.name AS deal_type_name,
+            dt.color AS deal_type_color,
+            cit.name AS co_investor_type_name,
+            cit.color AS co_investor_type_color,
+            er.name AS exit_route_name,
+            er.color AS exit_route_color,
+            ecp.name AS exit_counterparty_name,
+            ecp.color AS exit_counterparty_color,
+            eh.name AS exit_horizon_name,
+            eh.color AS exit_horizon_color,
+            esg.name AS esg_risk_name,
+            esg.color AS esg_risk_color,
             ex.name AS exit_type_name,
             ex.color AS exit_type_color,
+            uu.name AS updated_by_name,
 
             sec.name AS sector_name,
             sec.color AS sector_color,
@@ -2837,10 +2984,26 @@ def fetch_deal_detail(cursor, deal_id):
             ON ss.id = d.status_id
         LEFT JOIN dealflow.df_taxonomy_items src
             ON src.id = d.source_type_id
+        LEFT JOIN dealflow.df_taxonomy_items op
+            ON op.id = d.operation_type_id
         LEFT JOIN dealflow.df_taxonomy_items cur
             ON cur.id = d.currency_id
+        LEFT JOIN dealflow.df_taxonomy_items dt
+            ON dt.id = d.deal_type_id
+        LEFT JOIN dealflow.df_taxonomy_items cit
+            ON cit.id = d.co_investor_type_id
+        LEFT JOIN dealflow.df_taxonomy_items er
+            ON er.id = d.exit_route_id
+        LEFT JOIN dealflow.df_taxonomy_items ecp
+            ON ecp.id = d.exit_counterparty_id
+        LEFT JOIN dealflow.df_taxonomy_items eh
+            ON eh.id = d.exit_horizon_id
+        LEFT JOIN dealflow.df_taxonomy_items esg
+            ON esg.id = d.esg_risk_id
         LEFT JOIN dealflow.df_taxonomy_items ex
             ON ex.id = d.exit_type_id
+        LEFT JOIN dealflow.df_users uu
+            ON uu.id = d.updated_by
         LEFT JOIN dealflow.df_taxonomy_items sec
             ON sec.id = c.sector_id
         LEFT JOIN dealflow.df_taxonomy_items lf
@@ -2862,6 +3025,7 @@ def fetch_deal_detail(cursor, deal_id):
     if not row:
         return None
     data = dict(zip([col[0] for col in cursor.description], row))
+    data["investment_instruments"] = fetch_deal_investment_instruments(cursor, deal_id)
     data["team_members"] = fetch_deal_team_members(cursor, deal_id)
     data["external_contacts"] = fetch_deal_external_contacts(cursor, deal_id)
     return data
@@ -3498,9 +3662,20 @@ class DealflowDealDetailView(APIView):
                     }
                 )
 
+        raw_investment_instrument_ids = payload.get("investment_instrument_ids")
+        investment_instrument_ids = []
+        if isinstance(raw_investment_instrument_ids, list):
+            seen_instrument_ids = set()
+            for value in raw_investment_instrument_ids:
+                instrument_id = normalize_uuid(value)
+                if instrument_id and instrument_id not in seen_instrument_ids:
+                    investment_instrument_ids.append(instrument_id)
+                    seen_instrument_ids.add(instrument_id)
+
         contact_name = nullable_string("contact_name")
         current_contact_id = current_row.get("contact_id")
         next_contact_id = None
+        updated_by = resolve_dealflow_user_id(getattr(request.user, "email", None))
 
         try:
             with transaction.atomic():
@@ -3583,37 +3758,101 @@ class DealflowDealDetailView(APIView):
                         UPDATE dealflow.df_deals
                         SET
                             name = %s,
+                            deal_type_id = %s,
                             code = %s,
                             fund_id = %s,
                             stage_id = %s,
                             status_id = %s,
+                            status_reason = %s,
                             source_type_id = %s,
+                            operation_type_id = %s,
                             contact_id = %s,
                             ticket_amount = %s,
+                            cash_in_amount = %s,
+                            cash_out_amount = %s,
+                            co_investor = %s,
+                            co_investor_type_id = %s,
+                            co_investor_ticket_amount = %s,
                             currency_id = %s,
+                            pipeline_entry_date = %s,
+                            countries_of_operations = %s,
+                            value_creation_potential = %s,
                             sourcing_relevant_information = %s,
+                            exit_route_id = %s,
+                            exit_counterparty_id = %s,
+                            exit_counterparty_other = %s,
+                            exit_horizon_id = %s,
+                            two_x_challenge = %s,
+                            esg_risk_id = %s,
+                            esg_notes = %s,
+                            additional_notes = %s,
+                            emerging_market_thesis = %s,
                             exit_type_id = %s,
                             exit_relevant_information = %s,
+                            updated_by = %s,
                             updated_at = %s
                         WHERE id = %s
                         """,
                         [
                             deal_name,
+                            nullable_uuid("deal_type_id"),
                             code_name,
                             resolve_dealflow_fund_id(cursor, payload.get("fund_id")),
                             nullable_uuid("stage_id"),
                             nullable_uuid("status_id"),
+                            nullable_string("status_reason"),
                             nullable_uuid("source_type_id"),
+                            nullable_uuid("operation_type_id"),
                             str(next_contact_id) if next_contact_id else None,
                             nullable_numeric("ticket_amount"),
+                            nullable_numeric("cash_in_amount"),
+                            nullable_numeric("cash_out_amount"),
+                            payload.get("co_investor"),
+                            nullable_uuid("co_investor_type_id"),
+                            nullable_numeric("co_investor_ticket_amount"),
                             resolve_currency_taxonomy_id(cursor, payload.get("currency_id")),
+                            payload.get("pipeline_entry_date"),
+                            nullable_string("countries_of_operations"),
+                            nullable_string("value_creation_potential"),
                             nullable_string("sourcing_relevant_information"),
+                            nullable_uuid("exit_route_id"),
+                            nullable_uuid("exit_counterparty_id"),
+                            nullable_string("exit_counterparty_other"),
+                            nullable_uuid("exit_horizon_id"),
+                            nullable_string("two_x_challenge"),
+                            nullable_uuid("esg_risk_id"),
+                            nullable_string("esg_notes"),
+                            nullable_string("additional_notes"),
+                            nullable_string("emerging_market_thesis"),
                             nullable_uuid("exit_type_id"),
                             nullable_string("exit_relevant_information"),
+                            updated_by,
                             now,
                             str(deal_id),
                         ],
                     )
+
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_deal_investment_instruments
+                        WHERE deal_id = %s
+                        """,
+                        [str(deal_id)],
+                    )
+                    for instrument_id in investment_instrument_ids:
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_deal_investment_instruments (
+                                id,
+                                deal_id,
+                                instrument_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            [str(uuid4()), str(deal_id), instrument_id, now, now],
+                        )
 
                     cursor.execute(
                         """
