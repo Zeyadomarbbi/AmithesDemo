@@ -2459,7 +2459,14 @@ def build_kpi_display_values(row, display_period_type):
     period_type = normalize_kpi_period_type(row.get("period_type"))
     display_type = normalize_kpi_period_type(display_period_type)
     raw_values = build_kpi_raw_values(row)
-    cannot_disaggregate = False
+    annual_tail_value = next(
+        (
+            raw_values[key]
+            for key in ["annual_y4_value", "annual_y3_value", "annual_y2_value", "annual_y1_value"]
+            if raw_values[key] is not None
+        ),
+        None,
+    )
 
     if display_type == "QUARTERLY":
         if period_type == "QUARTERLY":
@@ -2469,6 +2476,26 @@ def build_kpi_display_values(row, display_period_type):
                     "q2_value": raw_values["q2_value"],
                     "q3_value": raw_values["q3_value"],
                     "q4_value": raw_values["q4_value"],
+                },
+                False,
+            )
+        if period_type == "SEMI_ANNUALLY":
+            return (
+                {
+                    "q1_value": None,
+                    "q2_value": raw_values["h1_value"],
+                    "q3_value": None,
+                    "q4_value": raw_values["h2_value"],
+                },
+                False,
+            )
+        if period_type == "ANNUALLY":
+            return (
+                {
+                    "q1_value": None,
+                    "q2_value": None,
+                    "q3_value": None,
+                    "q4_value": annual_tail_value,
                 },
                 False,
             )
@@ -2498,6 +2525,14 @@ def build_kpi_display_values(row, display_period_type):
                 {
                     "h1_value": h1,
                     "h2_value": h2,
+                },
+                False,
+            )
+        if period_type == "ANNUALLY":
+            return (
+                {
+                    "h1_value": None,
+                    "h2_value": annual_tail_value,
                 },
                 False,
             )
