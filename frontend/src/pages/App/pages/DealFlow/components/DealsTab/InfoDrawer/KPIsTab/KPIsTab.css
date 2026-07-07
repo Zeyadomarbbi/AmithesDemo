@@ -744,3 +744,8 @@
   border: none;
   padding: 0;
 }
+
+.kpi-total-row .kpi-cell-text {
+  color: #ffffff;
+  font-weight: 600;
+}
