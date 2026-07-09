@@ -6534,3 +6534,4 @@ class DealflowBoardMemberDetailView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+        
