@@ -19,7 +19,7 @@ import KPIsTab from "../KPIsTab/KPIsTab";
 import OtherTab from "../OtherTab/OtherTab";
 import "./InfoTab.css";
 
-const VISIBLE_TABS = ["Information", "Events", "Cap table", "Dataroom", "Other"];
+const VISIBLE_TABS = ["Information"];
 const NUMERIC_FIELDS = new Set(["ticket", "cashInAmount", "cashOutAmount", "coInvestorTicket"]);
 const YES_NO_OPTIONS = [
   { id: "yes", name: "Yes" },
@@ -89,6 +89,15 @@ function SectionHeader({ label }) {
   );
 }
 
+function FieldLabel({ children, required = false }) {
+  return (
+    <label className="it-label">
+      {children}
+      {required && <span className="it-label-required"> *</span>}
+    </label>
+  );
+}
+
 function normalizeNumericInput(value) {
   return String(value ?? "").replace(/[^\d.,-]/g, "");
 }
@@ -154,7 +163,7 @@ function hasFormChanges(currentForm, loadedForm, lookupOptions) {
 function MultiSelectField({ label, options, values, onToggle, disabled }) {
   return (
     <div className="it-field">
-      <label className="it-label">{label}</label>
+      <FieldLabel>{label}</FieldLabel>
       <div className={`it-multi-select${disabled ? " it-multi-select--disabled" : ""}`}>
         {(Array.isArray(options) ? options : []).map((option) => {
           const isChecked = values.includes(option.id);
@@ -627,15 +636,15 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Deal Name</label>
+                  <FieldLabel required>Deal Name</FieldLabel>
                   <input className="it-input" value={form.dealName} onChange={update("dealName")} placeholder="Deal name" readOnly={!isEditing} />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Code Name</label>
+                  <FieldLabel required>Code Name</FieldLabel>
                   <input className="it-input" value={form.codeName} onChange={update("codeName")} placeholder="Code name" readOnly={!isEditing} />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Deal Stage</label>
+                  <FieldLabel required>Deal Stage</FieldLabel>
                   <SimpleDropdown
                     options={stages}
                     value={form.stage}
@@ -650,7 +659,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Legal Form</label>
+                  <FieldLabel required>Legal Form</FieldLabel>
                   <SimpleDropdown
                     options={legalForms}
                     value={form.legalForm}
@@ -662,11 +671,11 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Pipeline Entry Date</label>
+                  <FieldLabel>Pipeline Entry Date</FieldLabel>
                   <input className="it-input" value={formatDateLabel(form.pipelineEntryDate)} readOnly />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Latest Update</label>
+                  <FieldLabel>Latest Update</FieldLabel>
                   <input
                     className="it-input"
                     value={latestUpdateBy ? `${latestUpdateLabel} by ${latestUpdateBy}` : latestUpdateLabel}
@@ -677,7 +686,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Status</label>
+                  <FieldLabel required>Status</FieldLabel>
                   <SimpleDropdown
                     options={statuses}
                     value={form.status}
@@ -689,7 +698,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Countries of Operations</label>
+                  <FieldLabel required>Countries of Operations</FieldLabel>
                   <input
                     className="it-input"
                     value={form.countriesOfOperations}
@@ -699,7 +708,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Fund</label>
+                  <FieldLabel required>Fund</FieldLabel>
                   <SimpleDropdown
                     options={funds}
                     value={form.fund}
@@ -714,7 +723,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showStatusReason && (
                 <div className="it-field">
-                  <label className="it-label">Status Reason</label>
+                  <FieldLabel required>Status Reason</FieldLabel>
                   <textarea
                     className="it-textarea"
                     value={form.statusReason}
@@ -727,7 +736,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Country (HQ)</label>
+                  <FieldLabel required>Country (HQ)</FieldLabel>
                   <SimpleDropdown
                     options={countries}
                     value={form.country}
@@ -739,7 +748,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Sector</label>
+                  <FieldLabel required>Sector</FieldLabel>
                   <SimpleDropdown
                     options={sectors}
                     value={form.sector}
@@ -751,7 +760,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Sourcing</label>
+                  <FieldLabel required>Sourcing</FieldLabel>
                   <SimpleDropdown
                     options={sourceTypes}
                     value={form.sourceType}
@@ -765,7 +774,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-field">
-                <label className="it-label">Business Description</label>
+                <FieldLabel required>Business Description</FieldLabel>
                 <textarea
                   className="it-textarea it-textarea--lg"
                   value={form.businessDescription}
@@ -776,7 +785,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-field">
-                <label className="it-label">Value Creation Potential</label>
+                <FieldLabel>Value Creation Potential</FieldLabel>
                 <textarea
                   className="it-textarea"
                   value={form.valueCreationPotential}
@@ -788,7 +797,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Operation Type</label>
+                  <FieldLabel required>Operation Type</FieldLabel>
                   <SimpleDropdown
                     options={operationTypes}
                     value={form.operationType}
@@ -805,7 +814,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Amethis Ticket (m)</label>
+                  <FieldLabel required>Amethis Ticket (m)</FieldLabel>
                   <input
                     className="it-input"
                     value={form.ticket}
@@ -815,7 +824,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Cash-in</label>
+                  <FieldLabel>Cash-in</FieldLabel>
                   <input
                     className="it-input"
                     value={form.cashInAmount}
@@ -825,7 +834,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Cash-out</label>
+                  <FieldLabel>Cash-out</FieldLabel>
                   <input
                     className="it-input"
                     value={form.cashOutAmount}
@@ -846,7 +855,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Co-investor</label>
+                  <FieldLabel required>Co-investor</FieldLabel>
                   <SimpleDropdown
                     options={YES_NO_OPTIONS}
                     value={form.coInvestor}
@@ -858,7 +867,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Investment Type</label>
+                  <FieldLabel required>Investment Type</FieldLabel>
                   <SimpleDropdown
                     options={dealTypes}
                     value={form.dealType}
@@ -874,7 +883,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               {showCoInvestorFields && (
                 <div className="it-grid-3">
                   <div className="it-field">
-                    <label className="it-label">Co-investor Type</label>
+                    <FieldLabel required>Co-investor Type</FieldLabel>
                     <SimpleDropdown
                       options={coInvestorTypes}
                       value={form.coInvestorType}
@@ -886,7 +895,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                     />
                   </div>
                   <div className="it-field">
-                    <label className="it-label">Co-investor Ticket (m)</label>
+                    <FieldLabel required>Co-investor Ticket (m)</FieldLabel>
                     <input
                       className="it-input"
                       value={form.coInvestorTicket}
@@ -902,7 +911,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <label className="it-label">Exit Route</label>
+                  <FieldLabel required>Exit Route</FieldLabel>
                   <SimpleDropdown
                     options={exitRoutes}
                     value={form.exitRoute}
@@ -914,7 +923,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Exit Counterparty</label>
+                  <FieldLabel required>Exit Counterparty</FieldLabel>
                   <SimpleDropdown
                     options={exitCounterparties}
                     value={form.exitCounterparty}
@@ -926,7 +935,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">Exit Horizon</label>
+                  <FieldLabel required>Exit Horizon</FieldLabel>
                   <SimpleDropdown
                     options={exitHorizons}
                     value={form.exitHorizon}
@@ -941,7 +950,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showExitCounterpartyOther && (
                 <div className="it-field">
-                  <label className="it-label">Other Exit Counterparty</label>
+                  <FieldLabel required>Other Exit Counterparty</FieldLabel>
                   <input
                     className="it-input"
                     value={form.exitCounterpartyOther}
@@ -956,7 +965,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-2">
                 <div className="it-field">
-                  <label className="it-label">2X Challenge</label>
+                  <FieldLabel>2X Challenge</FieldLabel>
                   <input
                     className="it-input"
                     value={form.twoXChallenge}
@@ -966,7 +975,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <label className="it-label">E&S Risk</label>
+                  <FieldLabel>E&S Risk</FieldLabel>
                   <SimpleDropdown
                     options={esgRisks}
                     value={form.esgRisk}
@@ -980,7 +989,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-field">
-                <label className="it-label">Notes</label>
+                <FieldLabel>Notes</FieldLabel>
                 <textarea
                   className="it-textarea"
                   value={form.esgNotes}
@@ -993,7 +1002,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               <SectionHeader label="Additional Information" />
 
               <div className="it-field">
-                <label className="it-label">Notes</label>
+                <FieldLabel>Notes</FieldLabel>
                 <textarea
                   className="it-textarea it-textarea--lg"
                   value={form.additionalNotes}
@@ -1005,7 +1014,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showEmergingMarketThesis && (
                 <div className="it-field">
-                  <label className="it-label">Emerging Market Thesis</label>
+                  <FieldLabel>Emerging Market Thesis</FieldLabel>
                   <textarea
                     className="it-textarea"
                     value={form.emergingMarketThesis}
