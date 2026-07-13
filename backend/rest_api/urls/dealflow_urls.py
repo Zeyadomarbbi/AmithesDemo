@@ -39,6 +39,7 @@ from ..views.dealflow_views import (
     DealflowSetupItemsView,
     DealflowTaxonomyListView,
     DealflowUserListView,
+    DealflowUserDetailView,
 )
 
 
@@ -90,5 +91,6 @@ urlpatterns = [
     path("dealflow/setup/<str:taxonomy_type>/<uuid:item_id>/", DealflowSetupItemDetailView.as_view(), name="dealflow-setup-item-detail"),
     path("dealflow/funds/", DealflowFundListView.as_view(), name="dealflow-funds-list"),
     path("dealflow/users/", DealflowUserListView.as_view(), name="dealflow-users-list"),
+    path("dealflow/users/<uuid:user_id>/", DealflowUserDetailView.as_view(), name="dealflow-users-detail"),
     path("dealflow/taxonomy/", DealflowTaxonomyListView.as_view(), name="dealflow-taxonomy-list"),
 ]
