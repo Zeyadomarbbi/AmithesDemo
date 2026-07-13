@@ -32,7 +32,6 @@ function getValueColumns(periodType, year) {
 }
 
 function NewKPIModal({
-  kpiCategories = [],
   currencies = [],
   periodTypes = [],
   year: periodYear,
@@ -41,12 +40,9 @@ function NewKPIModal({
   onSubmit,
 }) {
   const [kpiName, setKpiName] = useState("");
-  const [kpiCategoryId, setKpiCategoryId] = useState(null);
   const [periodType, setPeriodType] = useState("QUARTERLY");
   const [currencyId, setCurrencyId] = useState(null);
   const [unit, setUnit] = useState("");
-  const [order, setOrder] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("");
   const [values, setValues] = useState({});
 
   const valueColumns = useMemo(() => getValueColumns(periodType, periodYear), [periodType, periodYear]);
@@ -60,12 +56,9 @@ function NewKPIModal({
     if (!canSubmit) return;
     onSubmit?.({
       kpiName: kpiName.trim(),
-      kpiCategoryId,
       periodType,
       currencyId,
       unit: unit.trim(),
-      kpiOrder: order,
-      displayOrder,
       q1Value: values.q1Value ?? null,
       q2Value: values.q2Value ?? null,
       q3Value: values.q3Value ?? null,
@@ -97,18 +90,6 @@ function NewKPIModal({
                 placeholder="Enter KPI item"
                 value={kpiName}
                 onChange={(e) => setKpiName(e.target.value)}
-              />
-            </div>
-            <div className="nkm-field">
-              <label className="nkm-label">Category</label>
-              <SimpleDropdown
-                options={kpiCategories}
-                value={kpiCategoryId}
-                onChange={setKpiCategoryId}
-                placeholder="Select category"
-                labelKey="name"
-                valueKey="id"
-                disabled={isSaving}
               />
             </div>
           </div>
@@ -151,29 +132,6 @@ function NewKPIModal({
                 placeholder="EUR, %, count..."
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-              />
-            </div>
-            <div className="nkm-field">
-              <label className="nkm-label">Order</label>
-              <input
-                className="nkm-input"
-                type="number"
-                placeholder="e.g. 1"
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="nkm-row">
-            <div className="nkm-field">
-              <label className="nkm-label">Display Order</label>
-              <input
-                className="nkm-input"
-                type="number"
-                placeholder="e.g. 1"
-                value={displayOrder}
-                onChange={(e) => setDisplayOrder(e.target.value)}
               />
             </div>
           </div>
