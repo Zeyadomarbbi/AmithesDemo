@@ -60,12 +60,9 @@ function createDraftEntry(entry, columns, displayMode) {
 function buildEntryPatchPayload(entry) {
   return {
     kpiName: entry.kpiName,
-    kpiCategoryId: entry.kpiCategoryId,
     periodType: entry.periodType,
     currencyId: entry.currencyId,
     unit: entry.unit,
-    kpiOrder: entry.kpiOrder,
-    displayOrder: entry.displayOrder,
     q1Value: entry.periodType === "QUARTERLY" ? entry.editableValues?.q1_value ?? null : entry.rawValues?.q1_value ?? null,
     q2Value: entry.periodType === "QUARTERLY" ? entry.editableValues?.q2_value ?? null : entry.rawValues?.q2_value ?? null,
     q3Value: entry.periodType === "QUARTERLY" ? entry.editableValues?.q3_value ?? null : entry.rawValues?.q3_value ?? null,
@@ -81,11 +78,9 @@ function buildEntryPatchPayload(entry) {
 
 function NewPeriodModal({ currencies, isSaving, onClose, onSubmit }) {
   const currentYear = new Date().getFullYear();
-  const [name, setName] = useState("");
   const [year, setYear] = useState(currentYear);
   const [currencyId, setCurrencyId] = useState(null);
-  const [displayOrder, setDisplayOrder] = useState("");
-  const canSubmit = name.trim() !== "" && Number(year) > 1900;
+  const canSubmit = Number(year) > 1900;
 
   return (
     <div className="kpi-modal-overlay" onClick={onClose}>
@@ -95,16 +90,6 @@ function NewPeriodModal({ currencies, isSaving, onClose, onSubmit }) {
           <button className="kpi-modal-close" onClick={onClose}><CloseIcon /></button>
         </div>
         <div className="kpi-modal-body">
-          <div className="kpi-modal-field">
-            <label className="kpi-modal-label">Period name *</label>
-            <input
-              className="kpi-modal-input"
-              placeholder="e.g. Forecast"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
           <div className="kpi-modal-row">
             <div className="kpi-modal-field">
               <label className="kpi-modal-label">Year *</label>
@@ -129,22 +114,12 @@ function NewPeriodModal({ currencies, isSaving, onClose, onSubmit }) {
               />
             </div>
           </div>
-          <div className="kpi-modal-field">
-            <label className="kpi-modal-label">Display Order</label>
-            <input
-              className="kpi-modal-input"
-              type="number"
-              value={displayOrder}
-              onChange={(e) => setDisplayOrder(e.target.value)}
-              disabled={isSaving}
-            />
-          </div>
         </div>
         <div className="kpi-modal-footer">
           <button className="kpi-modal-btn-cancel" onClick={onClose} disabled={isSaving}>Cancel</button>
           <button
             className="kpi-modal-btn-create"
-            onClick={() => canSubmit && onSubmit({ name: name.trim(), year, currencyId, displayOrder })}
+            onClick={() => canSubmit && onSubmit({ name: String(year), year, currencyId })}
             disabled={!canSubmit || isSaving}
           >
             {isSaving ? "Creating..." : "Create"}
@@ -168,7 +143,6 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
   const {
     periods,
     periodEntries,
-    kpiCategories,
     currencies,
     periodTypes,
     isLoading,
@@ -319,7 +293,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
     try {
       await createPeriod(payload);
       setShowNewPeriod(false);
-      showToast({ type: "success", title: "Period created", message: `"${payload.name}" has been created.` });
+      showToast({ type: "success", title: "Period created", message: `"${payload.year}" has been created.` });
     } catch (err) {
       showToast({ type: "error", title: "Create failed", message: err.message || "Could not create the period." });
     }
@@ -327,10 +301,10 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   const handleDeletePeriod = async () => {
     if (!activePeriod) return;
-    if (!window.confirm(`Delete period "${activePeriod.name}"?`)) return;
+    if (!window.confirm(`Delete period "${activePeriod.year || activePeriod.name}"?`)) return;
     try {
       await deletePeriod(activePeriod.id);
-      showToast({ type: "success", title: "Period deleted", message: `"${activePeriod.name}" has been removed.` });
+      showToast({ type: "success", title: "Period deleted", message: `"${activePeriod.year || activePeriod.name}" has been removed.` });
     } catch (err) {
       showToast({ type: "error", title: "Delete failed", message: err.message || "Could not delete the period." });
     }
@@ -363,13 +337,12 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
 
   const periodYear = activePeriod?.year || new Date().getFullYear();
   const yearRangeLabel = activeDisplayMode === "ANNUALLY" ? `${periodYear - 3} - ${periodYear}` : String(periodYear);
-  const totalColSpan = 3 + activeColumns.length;
+  const totalColSpan = 2 + activeColumns.length;
 
   return (
     <div className="kpi-wrapper">
       {showNewKPI && (
         <NewKPIModal
-          kpiCategories={kpiCategories}
           currencies={currencies}
           periodTypes={periodTypes.length > 0 ? periodTypes : DISPLAY_MODE_OPTIONS}
           year={periodYear}
@@ -396,8 +369,7 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               className={`kpi-period-btn${activePeriodId === period.id ? " kpi-period-btn--active" : ""}`}
               onClick={() => setActivePeriodId(period.id)}
             >
-              <span className="kpi-period-label">{period.name}</span>
-              <span className="kpi-period-date">{period.year || ""}</span>
+              <span className="kpi-period-label">{period.year || period.name}</span>
             </button>
           ))}
         </div>
@@ -457,7 +429,6 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               <thead>
                 <tr>
                   <th className="kpi-th kpi-th--label">KPI</th>
-                  <th className="kpi-th kpi-th--category">Category</th>
                   {activeColumns.map((column) => (
                     <th key={column.key} className="kpi-th kpi-th--period-col">{column.label}</th>
                   ))}
@@ -485,17 +456,6 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                           onChange={(e) => updateDraftEntry(entry.id, "kpiName", e.target.value)}
                           readOnly={!isRowEditing}
                           disabled={isSaving}
-                        />
-                      </td>
-                      <td className="kpi-td kpi-td--category">
-                        <SimpleDropdown
-                          options={kpiCategories}
-                          value={entry.kpiCategoryId}
-                          onChange={(value) => updateDraftEntry(entry.id, "kpiCategoryId", value)}
-                          placeholder="-"
-                          labelKey="name"
-                          valueKey="id"
-                          disabled={!isRowEditing || isSaving}
                         />
                       </td>
                       {activeColumns.map((column) => (
@@ -544,7 +504,6 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
               </tbody>
               <tfoot>
                 <tr className="kpi-total-row">
-                  <td className="kpi-td" />
                   <td className="kpi-td" />
                   {activeColumns.map((column) => (
                     <td key={column.key} className="kpi-td kpi-td--value">
