@@ -8,9 +8,20 @@ export const DEAL_TEAM_KEY = "deal_team";
 
 export const SETUP_CATEGORIES = [
   { key: "stage", label: "Stage", itemLabel: "stage", taxonomyType: "stage", hasColor: true },
+  { key: "status", label: "Status", itemLabel: "status", taxonomyType: "status", hasColor: true },
   { key: "source", label: "Source", itemLabel: "source type", taxonomyType: "source_type", hasColor: false },
+  { key: "legal_form", label: "Legal Form", itemLabel: "legal form", taxonomyType: "legal_form", hasColor: false },
   { key: "doctype", label: "Type of document", itemLabel: "type of document", taxonomyType: "doc_type", hasColor: true },
   { key: "sector", label: "Sector", itemLabel: "sector", taxonomyType: "sector", hasColor: false },
+  { key: "operation_type", label: "Operation Type", itemLabel: "operation type", taxonomyType: "operation_type", hasColor: false },
+  { key: "investment_instrument", label: "Investment Instrument", itemLabel: "investment instrument", taxonomyType: "investment_instrument", hasColor: false },
+  { key: "co_investor_type", label: "Co-investor Type", itemLabel: "co-investor type", taxonomyType: "co_investor_type", hasColor: false },
+  { key: "deal_type", label: "Investment Type", itemLabel: "investment type", taxonomyType: "deal_type", hasColor: false },
+  { key: "exit_route", label: "Exit Route", itemLabel: "exit route", taxonomyType: "exit_route", hasColor: false },
+  { key: "exit_counterparty", label: "Exit Counterparty", itemLabel: "exit counterparty", taxonomyType: "exit_counterparty", hasColor: false },
+  { key: "exit_horizon", label: "Exit Horizon", itemLabel: "exit horizon", taxonomyType: "exit_horizon", hasColor: false },
+  { key: "esg_risk", label: "E&S Risk", itemLabel: "risk level", taxonomyType: "esg_risk", hasColor: false },
+  { key: "team_role", label: "Deal Team Positions", itemLabel: "position", taxonomyType: "team_role", hasColor: false },
 ];
 
 function toSafeArray(value) {
@@ -147,6 +158,22 @@ export function useSetupBackend(activeType) {
     });
   }, [updateItem]);
 
+  const deleteItem = useCallback(async (itemId) => {
+    if (!activeType || !itemId) throw new Error("Missing setup item information.");
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.delete(`${DEALFLOW_SETUP_ENDPOINT}${activeType}/${itemId}/`);
+      setItems((prev) => prev.filter((item) => item.id !== itemId));
+      return true;
+    } catch (err) {
+      setError(err.message || "Failed to delete setup item.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api, activeType]);
+
   useEffect(() => {
     loadItems().catch(() => {});
   }, [loadItems]);
@@ -161,8 +188,9 @@ export function useSetupBackend(activeType) {
       createItem,
       updateItem,
       toggleItemActive,
+      deleteItem,
     }),
-    [items, isLoading, isSaving, error, loadItems, createItem, updateItem, toggleItemActive]
+    [items, isLoading, isSaving, error, loadItems, createItem, updateItem, toggleItemActive, deleteItem]
   );
 }
 
