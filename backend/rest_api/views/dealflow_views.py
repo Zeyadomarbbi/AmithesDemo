@@ -235,7 +235,18 @@ def resolve_currency_taxonomy_id(cursor, value):
 
     as_uuid = normalize_uuid(value)
     if as_uuid:
-        return as_uuid
+        cursor.execute(
+            """
+            SELECT id
+            FROM dealflow.df_taxonomy_items
+            WHERE id = %s
+              AND type = 'currency'
+            LIMIT 1
+            """,
+            [as_uuid],
+        )
+        if cursor.fetchone():
+            return as_uuid
 
     currency = Currency.objects.filter(currency_id=value).first()
     if not currency:
@@ -264,7 +275,18 @@ def resolve_country_taxonomy_id(cursor, value):
 
     as_uuid = normalize_uuid(value)
     if as_uuid:
-        return as_uuid
+        cursor.execute(
+            """
+            SELECT id
+            FROM dealflow.df_taxonomy_items
+            WHERE id = %s
+              AND type = 'country'
+            LIMIT 1
+            """,
+            [as_uuid],
+        )
+        if cursor.fetchone():
+            return as_uuid
 
     country = Country.objects.filter(country_id=value).select_related("currency").first()
     if not country:
@@ -293,7 +315,17 @@ def resolve_dealflow_fund_id(cursor, value):
 
     as_uuid = normalize_uuid(value)
     if as_uuid:
-        return as_uuid
+        cursor.execute(
+            """
+            SELECT id
+            FROM dealflow.df_funds
+            WHERE id = %s
+            LIMIT 1
+            """,
+            [as_uuid],
+        )
+        if cursor.fetchone():
+            return as_uuid
 
     fund = Fund.objects.filter(fund_id=value, is_deleted=False).select_related("currency").first()
     if not fund:
@@ -451,10 +483,12 @@ def serialize_deal_detail_row(row):
         "pipeline_entry_date": row.get("pipeline_entry_date"),
         "status_reason": row.get("status_reason") or "",
         "countries_of_operations": row.get("countries_of_operations") or "",
+        "operation_countries": row.get("operation_countries") or [],
         "value_creation_potential": row.get("value_creation_potential") or "",
         "sourcing_relevant_information": row.get("sourcing_relevant_information") or "",
         "cash_in_amount": float(cash_in_amount) if cash_in_amount is not None else None,
         "cash_out_amount": float(cash_out_amount) if cash_out_amount is not None else None,
+        "investment_instrument_other_text": row.get("investment_instrument_other_text") or "",
         "co_investor": row.get("co_investor"),
         "co_investor_type_id": row.get("co_investor_type_id"),
         "co_investor_ticket_amount": float(co_investor_ticket_amount) if co_investor_ticket_amount is not None else None,
@@ -1790,6 +1824,33 @@ def fetch_deal_investment_instruments(cursor, deal_id):
     ]
 
 
+def fetch_deal_operation_countries(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT
+            rel.country_id,
+            t.name AS country_name,
+            t.code AS country_code
+        FROM dealflow.df_deal_operation_countries rel
+        LEFT JOIN dealflow.df_taxonomy_items t
+            ON t.id = rel.country_id
+        WHERE rel.deal_id = %s
+        ORDER BY t.display_order ASC NULLS LAST, t.name ASC
+        """,
+        [str(deal_id)],
+    )
+    return [
+        {
+            "id": row.get("country_id"),
+            "country_id": row.get("country_id"),
+            "name": row.get("country_name") or "",
+            "code": row.get("country_code") or "",
+        }
+        for row in dictfetchall(cursor)
+        if row.get("country_id")
+    ]
+
+
 def pick_dashboard_color(value, fallback_index, fallback_palette):
     if value:
         return value
@@ -2921,6 +2982,7 @@ def fetch_deal_detail(cursor, deal_id):
             d.status_reason,
             d.source_type_id,
             d.operation_type_id,
+            d.investment_instrument_other_text,
             d.contact_id,
             d.ticket_amount,
             d.cash_in_amount,
@@ -3061,6 +3123,7 @@ def fetch_deal_detail(cursor, deal_id):
         return None
     data = dict(zip([col[0] for col in cursor.description], row))
     data["investment_instruments"] = fetch_deal_investment_instruments(cursor, deal_id)
+    data["operation_countries"] = fetch_deal_operation_countries(cursor, deal_id)
     data["team_members"] = fetch_deal_team_members(cursor, deal_id)
     data["external_contacts"] = fetch_deal_external_contacts(cursor, deal_id)
     return data
@@ -3375,6 +3438,95 @@ class DealflowUserListView(APIView):
         return Response(created or {}, status=status.HTTP_201_CREATED)
 
 
+class DealflowUserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, user_id):
+        payload = request.data or {}
+        name = str(payload.get("name") or "").strip()
+        email = str(payload.get("email") or "").strip() or None
+        role = str(payload.get("role") or "").strip() or "Member"
+
+        if not name:
+            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT id
+                        FROM dealflow.df_users
+                        WHERE lower(email) = lower(%s)
+                          AND id <> %s
+                        LIMIT 1
+                        """,
+                        [email, str(user_id)],
+                    )
+                    if cursor.fetchone():
+                        return Response(
+                            {"error": "A user with this email already exists."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_users
+                        SET
+                            name = %s,
+                            email = %s,
+                            role = %s,
+                            updated_at = %s
+                        WHERE id = %s
+                        """,
+                        [name, email, role, now, str(user_id)],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                    cursor.execute(
+                        """
+                        SELECT id, name, email, role, is_active, created_at, updated_at
+                        FROM dealflow.df_users
+                        WHERE id = %s
+                        LIMIT 1
+                        """,
+                        [str(user_id)],
+                    )
+                    row = cursor.fetchone()
+                    updated = dict(zip([col[0] for col in cursor.description], row)) if row else None
+        except IntegrityError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+    def delete(self, request, user_id):
+        now = timezone.now()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE dealflow.df_users
+                    SET
+                        is_active = FALSE,
+                        updated_at = %s
+                    WHERE id = %s
+                    """,
+                    [now, str(user_id)],
+                )
+                if cursor.rowcount == 0:
+                    return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class DealflowSetupItemsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -3601,6 +3753,33 @@ class DealflowSetupItemDetailView(APIView):
 
         return Response(updated or {}, status=status.HTTP_200_OK)
 
+    def delete(self, request, taxonomy_type, item_id):
+        if not is_supported_setup_type(taxonomy_type):
+            return Response({"error": "Unsupported setup type."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_taxonomy_items
+                        WHERE id = %s
+                          AND type = %s
+                        """,
+                        [str(item_id), taxonomy_type],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "Setup item not found."}, status=status.HTTP_404_NOT_FOUND)
+        except IntegrityError:
+            return Response(
+                {"error": "This value is already used in existing records and cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class DealflowDashboardView(APIView):
     permission_classes = [IsAuthenticated]
@@ -3707,6 +3886,16 @@ class DealflowDealDetailView(APIView):
                     investment_instrument_ids.append(instrument_id)
                     seen_instrument_ids.add(instrument_id)
 
+        raw_operation_country_ids = payload.get("operation_country_ids")
+        operation_country_ids = []
+        if isinstance(raw_operation_country_ids, list):
+            seen_operation_country_ids = set()
+            for value in raw_operation_country_ids:
+                normalized_country_id = normalize_uuid(value)
+                if normalized_country_id and normalized_country_id not in seen_operation_country_ids:
+                    operation_country_ids.append(normalized_country_id)
+                    seen_operation_country_ids.add(normalized_country_id)
+
         contact_name = nullable_string("contact_name")
         current_contact_id = current_row.get("contact_id")
         next_contact_id = None
@@ -3808,6 +3997,7 @@ class DealflowDealDetailView(APIView):
                             co_investor = %s,
                             co_investor_type_id = %s,
                             co_investor_ticket_amount = %s,
+                            investment_instrument_other_text = %s,
                             currency_id = %s,
                             pipeline_entry_date = %s,
                             countries_of_operations = %s,
@@ -3845,6 +4035,7 @@ class DealflowDealDetailView(APIView):
                             payload.get("co_investor"),
                             nullable_uuid("co_investor_type_id"),
                             nullable_numeric("co_investor_ticket_amount"),
+                            nullable_string("investment_instrument_other_text"),
                             resolve_currency_taxonomy_id(cursor, payload.get("currency_id")),
                             payload.get("pipeline_entry_date"),
                             nullable_string("countries_of_operations"),
@@ -3887,6 +4078,31 @@ class DealflowDealDetailView(APIView):
                             VALUES (%s, %s, %s, %s, %s)
                             """,
                             [str(uuid4()), str(deal_id), instrument_id, now, now],
+                        )
+
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_deal_operation_countries
+                        WHERE deal_id = %s
+                        """,
+                        [str(deal_id)],
+                    )
+                    for raw_country_id in operation_country_ids:
+                        resolved_country_id = resolve_country_taxonomy_id(cursor, raw_country_id)
+                        if not resolved_country_id:
+                            continue
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_deal_operation_countries (
+                                id,
+                                deal_id,
+                                country_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            [str(uuid4()), str(deal_id), resolved_country_id, now, now],
                         )
 
                     cursor.execute(
@@ -6534,4 +6750,3 @@ class DealflowBoardMemberDetailView(APIView):
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-        
