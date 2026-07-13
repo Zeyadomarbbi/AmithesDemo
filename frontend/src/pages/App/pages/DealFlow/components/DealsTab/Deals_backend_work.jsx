@@ -431,7 +431,7 @@ function normalizeDealDetail(payload) {
     legalForm: row?.company?.legal_form_id ?? row?.legal_form?.id ?? null,
     countryOfIncorporation: row?.company?.country_of_incorporation_id ?? row?.country_of_incorporation?.id ?? null,
     countryOfMainOperation: row?.company?.country_of_main_operation_id ?? row?.country_of_main_operation?.id ?? null,
-    countriesOfOperations: row?.countries_of_operations ?? "",
+    countriesOfOperations: toSafeArray(row?.operation_countries).map((item) => item?.id ?? item?.country_id ?? item).filter(Boolean),
     valueCreationPotential: row?.value_creation_potential ?? "",
     sourceType: row?.source_type?.id ?? row?.source_type_id ?? null,
     operationType: row?.operation_type?.id ?? row?.operation_type_id ?? null,
@@ -442,6 +442,7 @@ function normalizeDealDetail(payload) {
     cashInAmount: row?.cash_in_amount ?? "",
     cashOutAmount: row?.cash_out_amount ?? "",
     investmentInstruments: toSafeArray(row?.investment_instruments).map((item) => item?.id ?? item?.instrument_id ?? item).filter(Boolean),
+    investmentInstrumentOtherText: row?.investment_instrument_other_text ?? "",
     coInvestor: row?.co_investor === true ? "yes" : row?.co_investor === false ? "no" : "",
     coInvestorType: row?.co_investor_type?.id ?? row?.co_investor_type_id ?? null,
     coInvestorTicket: row?.co_investor_ticket_amount ?? "",
@@ -774,6 +775,7 @@ export function mapDealDetailToForm(detail, { countries = [], currencies = [], f
     countryOfIncorporation: mapDealflowIdToSourceId(detail.countryOfIncorporation, countries),
     countryOfMainOperation: mapDealflowIdToSourceId(detail.countryOfMainOperation, countries),
     country: mapDealflowIdToSourceId(detail.country, countries),
+    countriesOfOperations: toSafeArray(detail.countriesOfOperations).map((value) => mapDealflowIdToSourceId(value, countries)).filter(Boolean),
     teamMembers: toSafeArray(detail.teamMembers).map((member) => ({
       ...member,
       positionOrder: member?.positionOrder ?? "",
@@ -812,7 +814,10 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     legal_form_id: normalizeNullable(form.legalForm),
     country_of_incorporation_id: null,
     country_of_main_operation_id: null,
-    countries_of_operations: normalizeText(form.countriesOfOperations),
+    countries_of_operations: "",
+    operation_country_ids: toSafeArray(form.countriesOfOperations)
+      .map((value) => mapSourceIdToDealflowId(value, countries))
+      .filter(Boolean),
     value_creation_potential: normalizeText(form.valueCreationPotential),
     source_type_id: normalizeNullable(form.sourceType),
     operation_type_id: normalizeNullable(form.operationType),
@@ -822,6 +827,7 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     cash_in_amount: normalizeNumber(form.cashInAmount),
     cash_out_amount: normalizeNumber(form.cashOutAmount),
     investment_instrument_ids: toSafeArray(form.investmentInstruments).map((id) => normalizeNullable(id)).filter(Boolean),
+    investment_instrument_other_text: normalizeText(form.investmentInstrumentOtherText),
     co_investor: normalizeBoolean(form.coInvestor),
     co_investor_type_id: normalizeNullable(form.coInvestorType),
     co_investor_ticket_amount: normalizeNumber(form.coInvestorTicket),
@@ -1720,7 +1726,7 @@ export function useKpisBackend(dealId) {
           name: row?.label ?? "",
         }))
       );
-      setKpiCategories(formatDropdownOptions(payload?.categories ?? []));
+      setKpiCategories([]);
       setCurrencies(formatDropdownOptions(payload?.currencies ?? [], {
         labelBuilder: (row) => {
           const name = row?.name || "";
@@ -1740,10 +1746,9 @@ export function useKpisBackend(dealId) {
     setError(null);
     try {
       const response = await api.post(kpiPeriodsEndpoint, {
-        name: String(payload?.name || "").trim(),
+        name: String(payload?.name || payload?.year || "").trim(),
         year: payload?.year,
         currency_id: payload?.currencyId || null,
-        display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
       });
       const normalized = normalizeKpiPeriod(response);
       setPeriods((prev) => [...prev, normalized]);
@@ -1762,10 +1767,9 @@ export function useKpisBackend(dealId) {
     setError(null);
     try {
       const response = await api.patch(`${kpiPeriodsEndpoint}${periodId}/`, {
-        name: String(payload?.name || "").trim(),
+        name: String(payload?.name || payload?.year || "").trim(),
         year: payload?.year,
         currency_id: payload?.currencyId || null,
-        display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
       });
       const normalized = normalizeKpiPeriod(response);
       setPeriods((prev) => prev.map((period) => (period.id === normalized.id ? normalized : period)));
@@ -1806,12 +1810,9 @@ export function useKpisBackend(dealId) {
     try {
       const response = await api.post(`${kpiPeriodsEndpoint}${periodId}/entries/`, {
         kpi_name: String(payload?.kpiName || "").trim(),
-        kpi_category_id: payload?.kpiCategoryId || null,
         period_type: payload?.periodType || "QUARTERLY",
         currency_id: payload?.currencyId || null,
         unit: String(payload?.unit || "").trim(),
-        kpi_order: payload?.kpiOrder === "" ? null : payload?.kpiOrder ?? null,
-        display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
         q1_value: payload?.q1Value ?? null,
         q2_value: payload?.q2Value ?? null,
         q3_value: payload?.q3Value ?? null,
@@ -1851,12 +1852,9 @@ export function useKpisBackend(dealId) {
     try {
       const response = await api.patch(`${kpiPeriodsEndpoint}${periodId}/entries/${entryId}/`, {
         kpi_name: String(payload?.kpiName || "").trim(),
-        kpi_category_id: payload?.kpiCategoryId || null,
         period_type: payload?.periodType || "QUARTERLY",
         currency_id: payload?.currencyId || null,
         unit: String(payload?.unit || "").trim(),
-        kpi_order: payload?.kpiOrder === "" ? null : payload?.kpiOrder ?? null,
-        display_order: payload?.displayOrder === "" ? null : payload?.displayOrder ?? null,
         q1_value: payload?.q1Value ?? null,
         q2_value: payload?.q2Value ?? null,
         q3_value: payload?.q3Value ?? null,
