@@ -5,6 +5,7 @@ import {
   EditLineIcon,
   DoneIcon,
   CloseIcon,
+  TrashIcon,
 } from "/src/components/Icons/InteractiveIcons";
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
@@ -51,7 +52,7 @@ function SetupStatusBadge({ isActive }) {
   );
 }
 
-function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdate, onToggleActive, onErrorToast, searchQuery }) {
+function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdate, onToggleActive, onDelete, onErrorToast, searchQuery }) {
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(createEmptyDraft());
 
@@ -129,6 +130,16 @@ function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdat
       cancelEdit();
     } catch {
       // Error toast already handled by caller.
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!item?.id) return;
+    if (!window.confirm(`Delete "${item.name}"?`)) return;
+    try {
+      await onDelete(item);
+    } catch {
+      // Toast handled by caller.
     }
   };
 
@@ -266,6 +277,7 @@ function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdat
                       ) : (
                         <>
                           <button className="setup-icon-btn" onClick={() => startEdit(item)} aria-label="Edit" disabled={isSaving}><EditLineIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--delete" onClick={() => handleDelete(item)} aria-label="Delete" disabled={isSaving}><TrashIcon /></button>
                           <button
                             className={`setup-toggle-btn${item.isActive ? "" : " setup-toggle-btn--inactive"}`}
                             onClick={() => onToggleActive(item)}
@@ -308,7 +320,7 @@ function buildInitials(name) {
 }
 
 function DealTeamPanel({ onSuccessToast, onErrorToast }) {
-  const { members, isLoading, isSaving, createMember, updateMember } = useDealTeamBackend();
+  const { members, isLoading, isSaving, createMember, updateMember, deleteMember } = useDealTeamBackend();
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState({ name: "", email: "" });
 
@@ -340,6 +352,17 @@ function DealTeamPanel({ onSuccessToast, onErrorToast }) {
       cancelEdit();
     } catch {
       onErrorToast("Could not save. Please try again.");
+    }
+  };
+
+  const handleDelete = async (member) => {
+    if (!member?.id) return;
+    if (!window.confirm(`Delete "${member.name}"?`)) return;
+    try {
+      await deleteMember(member.id);
+      onSuccessToast(`"${member.name}" removed from the deal team list.`);
+    } catch {
+      onErrorToast("Could not delete this member.");
     }
   };
 
@@ -412,7 +435,10 @@ function DealTeamPanel({ onSuccessToast, onErrorToast }) {
                           <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
                         </>
                       ) : (
-                        <button className="setup-icon-btn" onClick={() => startEdit(member)} disabled={isSaving} aria-label="Edit"><EditLineIcon /></button>
+                        <>
+                          <button className="setup-icon-btn" onClick={() => startEdit(member)} disabled={isSaving} aria-label="Edit"><EditLineIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--delete" onClick={() => handleDelete(member)} disabled={isSaving} aria-label="Delete"><TrashIcon /></button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -437,7 +463,7 @@ export default function SetupTab() {
 
   const isDealTeam = activeKey === DEAL_TEAM_KEY;
   const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
-  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive } = useSetupBackend(isDealTeam ? null : activeCategory.taxonomyType);
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam ? null : activeCategory.taxonomyType);
 
   useEffect(() => {
     if (error) {
@@ -487,6 +513,15 @@ export default function SetupTab() {
     }
   };
 
+  const handleDelete = async (item) => {
+    await deleteItem(item.id);
+    showToast({
+      type: "success",
+      title: "Item deleted",
+      message: `"${item.name}" has been deleted successfully.`,
+    });
+  };
+
   const handleErrorToast = (message) => {
     showToast({
       type: "error",
@@ -534,6 +569,7 @@ export default function SetupTab() {
           onCreate={handleCreate}
           onUpdate={handleUpdate}
           onToggleActive={handleToggleActive}
+          onDelete={handleDelete}
           onErrorToast={handleErrorToast}
           searchQuery={searchQuery}
         />
