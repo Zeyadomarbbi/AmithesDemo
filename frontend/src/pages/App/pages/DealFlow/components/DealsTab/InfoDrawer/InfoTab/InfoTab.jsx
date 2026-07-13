@@ -41,13 +41,14 @@ const createInitialForm = (deal) => ({
   latestUpdateAt: "",
   latestUpdateByName: "",
   legalForm: null,
-  countriesOfOperations: "",
+  countriesOfOperations: [],
   valueCreationPotential: "",
   sourceType: null,
   operationType: null,
   cashInAmount: "",
   cashOutAmount: "",
   investmentInstruments: [],
+  investmentInstrumentOtherText: "",
   coInvestor: "",
   coInvestorType: null,
   coInvestorTicket: "",
@@ -160,10 +161,10 @@ function hasFormChanges(currentForm, loadedForm, lookupOptions) {
   );
 }
 
-function MultiSelectField({ label, options, values, onToggle, disabled }) {
+function MultiSelectField({ label, options, values, onToggle, disabled, required = false, emptyText = "No options available yet." }) {
   return (
     <div className="it-field">
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel required={required}>{label}</FieldLabel>
       <div className={`it-multi-select${disabled ? " it-multi-select--disabled" : ""}`}>
         {(Array.isArray(options) ? options : []).map((option) => {
           const isChecked = values.includes(option.id);
@@ -180,7 +181,7 @@ function MultiSelectField({ label, options, values, onToggle, disabled }) {
           );
         })}
         {(!Array.isArray(options) || options.length === 0) && (
-          <div className="it-multi-select-empty">No instruments available yet.</div>
+          <div className="it-multi-select-empty">{emptyText}</div>
         )}
       </div>
     </div>
@@ -317,9 +318,16 @@ function InfoTab({ deal, onClose, onSaved }) {
     [exitCounterparties, form.exitCounterparty]
   );
   const selectedFund = useMemo(() => getOptionById(funds, form.fund), [funds, form.fund]);
+  const selectedInvestmentInstrumentOptions = useMemo(
+    () => (Array.isArray(investmentInstruments) ? investmentInstruments : []).filter((option) =>
+      (Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []).includes(option.id)
+    ),
+    [investmentInstruments, form.investmentInstruments]
+  );
   const showStatusReason = optionMatches(selectedStatus, ["ON_HOLD", "DROPPED"]);
   const showCoInvestorFields = form.coInvestor === "yes";
   const showExitCounterpartyOther = optionMatches(selectedExitCounterparty, ["OTHER"]);
+  const showInvestmentInstrumentOther = selectedInvestmentInstrumentOptions.some((option) => optionMatches(option, ["OTHER"]));
   const showEmergingMarketThesis = String(selectedFund?.name || "").toUpperCase().includes("AEE");
   const latestUpdateLabel = form.latestUpdateAt ? formatDateTimeLabel(form.latestUpdateAt) : "";
   const latestUpdateBy = String(form.latestUpdateByName || "").trim();
@@ -349,11 +357,18 @@ function InfoTab({ deal, onClose, onSaved }) {
   const toggleInvestmentInstrument = (instrumentId) =>
     setForm((prev) => {
       const current = Array.isArray(prev.investmentInstruments) ? prev.investmentInstruments : [];
+      const nextValues = current.includes(instrumentId)
+        ? current.filter((id) => id !== instrumentId)
+        : [...current, instrumentId];
+      const selectedOptions = (Array.isArray(investmentInstruments) ? investmentInstruments : []).filter((option) =>
+        nextValues.includes(option.id)
+      );
       return {
         ...prev,
-        investmentInstruments: current.includes(instrumentId)
-          ? current.filter((id) => id !== instrumentId)
-          : [...current, instrumentId],
+        investmentInstruments: nextValues,
+        investmentInstrumentOtherText: selectedOptions.some((option) => optionMatches(option, ["OTHER"]))
+          ? prev.investmentInstrumentOtherText
+          : "",
       };
     });
 
@@ -451,7 +466,7 @@ function InfoTab({ deal, onClose, onSaved }) {
     if (!form.legalForm) return "Legal Form is required.";
     if (!form.status) return "Status is required.";
     if (showStatusReason && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
-    if (!String(form.countriesOfOperations || "").trim()) return "Countries of Operations is required.";
+    if (!Array.isArray(form.countriesOfOperations) || form.countriesOfOperations.length === 0) return "Countries of Operations is required.";
     if (!form.fund) return "Fund is required.";
     if (!form.country) return "Country (HQ) is required.";
     if (!form.sector) return "Sector is required.";
@@ -459,18 +474,20 @@ function InfoTab({ deal, onClose, onSaved }) {
     if (!form.sourceType) return "Sourcing is required.";
     if (!form.operationType) return "Operation Type is required.";
     if (!String(form.ticket || "").trim()) return "Amethis Ticket is required.";
+    if (showInvestmentInstrumentOther && !String(form.investmentInstrumentOtherText || "").trim()) {
+      return "Please specify the other investment instrument.";
+    }
     if (!form.coInvestor) return "Co-investor is required.";
     if (showCoInvestorFields && !form.coInvestorType) return "Co-investor Type is required.";
     if (showCoInvestorFields && !String(form.coInvestorTicket || "").trim()) return "Co-investor Ticket is required.";
     if (!form.dealType) return "Investment Type is required.";
     if (!form.exitRoute) return "Exit Route is required.";
-    if (!form.exitCounterparty) return "Exit Counterparty is required.";
     if (showExitCounterpartyOther && !String(form.exitCounterpartyOther || "").trim()) {
       return "Please specify the Exit Counterparty.";
     }
     if (!form.exitHorizon) return "Exit Horizon is required.";
     return null;
-  }, [form, showCoInvestorFields, showExitCounterpartyOther, showStatusReason]);
+  }, [form, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
 
   const handleSave = async () => {
     const validationMessage = validateInformationForm();
@@ -699,12 +716,16 @@ function InfoTab({ deal, onClose, onSaved }) {
                 </div>
                 <div className="it-field">
                   <FieldLabel required>Countries of Operations</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.countriesOfOperations}
-                    onChange={update("countriesOfOperations")}
-                    placeholder="List countries of operations"
-                    readOnly={!isEditing}
+                  <SimpleDropdown
+                    options={countries}
+                    value={Array.isArray(form.countriesOfOperations) ? form.countriesOfOperations : []}
+                    onChange={updateDirect("countriesOfOperations")}
+                    placeholder="Select countries of operations"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                    isSingle={false}
+                    searchLabel="Search countries..."
                   />
                 </div>
                 <div className="it-field">
@@ -723,7 +744,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showStatusReason && (
                 <div className="it-field">
-                  <FieldLabel required>Status Reason</FieldLabel>
+                  <FieldLabel required>Reason</FieldLabel>
                   <textarea
                     className="it-textarea"
                     value={form.statusReason}
@@ -851,7 +872,21 @@ function InfoTab({ deal, onClose, onSaved }) {
                 values={Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []}
                 onToggle={toggleInvestmentInstrument}
                 disabled={!isEditing}
+                emptyText="No investment instruments available yet."
               />
+
+              {showInvestmentInstrumentOther && (
+                <div className="it-field">
+                  <FieldLabel required>Other Investment Instrument</FieldLabel>
+                  <input
+                    className="it-input"
+                    value={form.investmentInstrumentOtherText}
+                    onChange={update("investmentInstrumentOtherText")}
+                    placeholder="Please specify the instrument"
+                    readOnly={!isEditing}
+                  />
+                </div>
+              )}
 
               <div className="it-grid-3">
                 <div className="it-field">
@@ -923,7 +958,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Exit Counterparty</FieldLabel>
+                  <FieldLabel>Exit Counterparty</FieldLabel>
                   <SimpleDropdown
                     options={exitCounterparties}
                     value={form.exitCounterparty}
