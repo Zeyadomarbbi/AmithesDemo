@@ -11,6 +11,7 @@ export const SETUP_CATEGORIES = [
   { key: "status", label: "Status", itemLabel: "status", taxonomyType: "status", hasColor: true },
   { key: "source", label: "Source", itemLabel: "source type", taxonomyType: "source_type", hasColor: false },
   { key: "legal_form", label: "Legal Form", itemLabel: "legal form", taxonomyType: "legal_form", hasColor: false },
+  { key: "region_of_operation", label: "Region of Operation", itemLabel: "region", taxonomyType: "region_of_operation", hasColor: false },
   { key: "doctype", label: "Type of document", itemLabel: "type of document", taxonomyType: "doc_type", hasColor: true },
   { key: "sector", label: "Sector", itemLabel: "sector", taxonomyType: "sector", hasColor: false },
   { key: "operation_type", label: "Operation Type", itemLabel: "operation type", taxonomyType: "operation_type", hasColor: false },
