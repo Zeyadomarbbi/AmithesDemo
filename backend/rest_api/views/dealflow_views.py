@@ -43,6 +43,7 @@ SETUP_ALLOWED_TYPES = {
     "exit_horizon",
     "esg_risk",
     "legal_form",
+    "region_of_operation",
 }
 
 
@@ -53,6 +54,15 @@ def dictfetchall(cursor):
 
 def is_supported_setup_type(value):
     return str(value or "").strip() in SETUP_ALLOWED_TYPES
+
+
+DEFAULT_FIELD_CONFIG = [
+    {"field_key": "legal_form", "field_label": "Legal Form", "is_mandatory": False},
+    {"field_key": "deal_team", "field_label": "Deal Team & Support", "is_mandatory": True},
+    {"field_key": "external_contacts", "field_label": "External Contacts", "is_mandatory": True},
+    {"field_key": "countries_of_operations", "field_label": "Countries of Operations", "is_mandatory": False},
+    {"field_key": "region_of_operations", "field_label": "Region of Operations", "is_mandatory": False},
+]
 
 
 DASHBOARD_SERIES_COLORS = ["#375A89", "#F9A8B4", "#FD9640", "#7B6FC6", "#4A5568", "#67C6E3"]
@@ -489,6 +499,7 @@ def serialize_deal_detail_row(row):
         "cash_in_amount": float(cash_in_amount) if cash_in_amount is not None else None,
         "cash_out_amount": float(cash_out_amount) if cash_out_amount is not None else None,
         "investment_instrument_other_text": row.get("investment_instrument_other_text") or "",
+        "region_of_operations": row.get("region_of_operations") or "",
         "co_investor": row.get("co_investor"),
         "co_investor_type_id": row.get("co_investor_type_id"),
         "co_investor_ticket_amount": float(co_investor_ticket_amount) if co_investor_ticket_amount is not None else None,
@@ -557,6 +568,7 @@ def serialize_deal_detail_row(row):
             "name": row.get("exit_counterparty_name") or "",
             "color": row.get("exit_counterparty_color"),
         } if row.get("exit_counterparty_id") else None,
+        "exit_counterparties": row.get("exit_counterparties") or [],
         "exit_horizon": {
             "id": row.get("exit_horizon_id"),
             "name": row.get("exit_horizon_name") or "",
@@ -1851,6 +1863,122 @@ def fetch_deal_operation_countries(cursor, deal_id):
     ]
 
 
+def fetch_deal_exit_counterparties(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT
+            rel.exit_counterparty_id,
+            item.name,
+            item.code,
+            item.color
+        FROM dealflow.df_deal_exit_counterparties rel
+        INNER JOIN dealflow.df_taxonomy_items item
+            ON item.id = rel.exit_counterparty_id
+        WHERE rel.deal_id = %s
+        ORDER BY item.display_order ASC NULLS LAST, item.name ASC
+        """,
+        [str(deal_id)],
+    )
+    return [
+        {
+            "id": row.get("exit_counterparty_id"),
+            "name": row.get("name") or "",
+            "code": row.get("code") or "",
+            "color": row.get("color"),
+        }
+        for row in dictfetchall(cursor)
+        if row.get("exit_counterparty_id")
+    ]
+
+
+def ensure_default_field_config(cursor):
+    now = timezone.now()
+    for item in DEFAULT_FIELD_CONFIG:
+        cursor.execute(
+            """
+            INSERT INTO dealflow.df_field_config (
+                id,
+                field_key,
+                field_label,
+                is_mandatory,
+                created_at,
+                updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (field_key) DO NOTHING
+            """,
+            [
+                str(uuid4()),
+                item["field_key"],
+                item["field_label"],
+                item["is_mandatory"],
+                now,
+                now,
+            ],
+        )
+
+
+def fetch_field_config(cursor):
+    ensure_default_field_config(cursor)
+    cursor.execute(
+        """
+        SELECT id, field_key, field_label, is_mandatory, created_at, updated_at
+        FROM dealflow.df_field_config
+        ORDER BY field_label ASC, field_key ASC
+        """
+    )
+    return [
+        {
+            "id": row.get("id"),
+            "field_key": row.get("field_key") or "",
+            "field_label": row.get("field_label") or "",
+            "is_mandatory": bool(row.get("is_mandatory")),
+            "created_at": row.get("created_at"),
+            "updated_at": row.get("updated_at"),
+        }
+        for row in dictfetchall(cursor)
+    ]
+
+
+def seed_default_kpi_entries(cursor, deal_id, period_id, company_id, currency_id, now):
+    default_entries = [
+        {"name": "Revenues", "unit": "", "period_type": "ANNUALLY"},
+        {"name": "EBITDA", "unit": "", "period_type": "ANNUALLY"},
+        {"name": "FTE", "unit": "Count", "period_type": "ANNUALLY"},
+        {"name": "Net debt", "unit": "", "period_type": "ANNUALLY"},
+    ]
+    for entry in default_entries:
+        cursor.execute(
+            """
+            INSERT INTO dealflow.df_kpi_entries (
+                id,
+                deal_id,
+                company_id,
+                period_id,
+                kpi_name,
+                period_type,
+                currency_id,
+                unit,
+                created_at,
+                updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            [
+                str(uuid4()),
+                str(deal_id),
+                company_id,
+                str(period_id),
+                entry["name"],
+                entry["period_type"],
+                currency_id,
+                entry["unit"],
+                now,
+                now,
+            ],
+        )
+
+
 def pick_dashboard_color(value, fallback_index, fallback_palette):
     if value:
         return value
@@ -2983,6 +3111,7 @@ def fetch_deal_detail(cursor, deal_id):
             d.source_type_id,
             d.operation_type_id,
             d.investment_instrument_other_text,
+            d.region_of_operations,
             d.contact_id,
             d.ticket_amount,
             d.cash_in_amount,
@@ -3124,6 +3253,7 @@ def fetch_deal_detail(cursor, deal_id):
     data = dict(zip([col[0] for col in cursor.description], row))
     data["investment_instruments"] = fetch_deal_investment_instruments(cursor, deal_id)
     data["operation_countries"] = fetch_deal_operation_countries(cursor, deal_id)
+    data["exit_counterparties"] = fetch_deal_exit_counterparties(cursor, deal_id)
     data["team_members"] = fetch_deal_team_members(cursor, deal_id)
     data["external_contacts"] = fetch_deal_external_contacts(cursor, deal_id)
     return data
@@ -3781,6 +3911,51 @@ class DealflowSetupItemDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class DealflowFieldConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        with connection.cursor() as cursor:
+            rows = fetch_field_config(cursor)
+        return Response(rows, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        payload = request.data or {}
+        field_key = str(payload.get("field_key") or "").strip()
+        if not field_key:
+            return Response({"error": "Field key is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        is_mandatory = payload.get("is_mandatory")
+        if isinstance(is_mandatory, str):
+            is_mandatory = is_mandatory.strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            is_mandatory = bool(is_mandatory)
+
+        now = timezone.now()
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    ensure_default_field_config(cursor)
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_field_config
+                        SET
+                            is_mandatory = %s,
+                            updated_at = %s
+                        WHERE field_key = %s
+                        """,
+                        [is_mandatory, now, field_key],
+                    )
+                    if cursor.rowcount == 0:
+                        return Response({"error": "Field config not found."}, status=status.HTTP_404_NOT_FOUND)
+                    rows = fetch_field_config(cursor)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        updated = next((row for row in rows if row.get("field_key") == field_key), None)
+        return Response(updated or {}, status=status.HTTP_200_OK)
+
+
 class DealflowDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -3896,6 +4071,18 @@ class DealflowDealDetailView(APIView):
                     operation_country_ids.append(normalized_country_id)
                     seen_operation_country_ids.add(normalized_country_id)
 
+        raw_exit_counterparty_ids = payload.get("exit_counterparty_ids")
+        exit_counterparty_ids = []
+        if isinstance(raw_exit_counterparty_ids, list):
+            seen_exit_counterparty_ids = set()
+            for value in raw_exit_counterparty_ids:
+                normalized_counterparty_id = normalize_uuid(value)
+                if normalized_counterparty_id and normalized_counterparty_id not in seen_exit_counterparty_ids:
+                    exit_counterparty_ids.append(normalized_counterparty_id)
+                    seen_exit_counterparty_ids.add(normalized_counterparty_id)
+
+        region_of_operations = str(payload.get("region_of_operations") or "").strip()
+
         contact_name = nullable_string("contact_name")
         current_contact_id = current_row.get("contact_id")
         next_contact_id = None
@@ -4001,6 +4188,7 @@ class DealflowDealDetailView(APIView):
                             currency_id = %s,
                             pipeline_entry_date = %s,
                             countries_of_operations = %s,
+                            region_of_operations = %s,
                             value_creation_potential = %s,
                             sourcing_relevant_information = %s,
                             exit_route_id = %s,
@@ -4039,10 +4227,11 @@ class DealflowDealDetailView(APIView):
                             resolve_currency_taxonomy_id(cursor, payload.get("currency_id")),
                             payload.get("pipeline_entry_date"),
                             nullable_string("countries_of_operations"),
+                            region_of_operations,
                             nullable_string("value_creation_potential"),
                             nullable_string("sourcing_relevant_information"),
                             nullable_uuid("exit_route_id"),
-                            nullable_uuid("exit_counterparty_id"),
+                            exit_counterparty_ids[0] if exit_counterparty_ids else nullable_uuid("exit_counterparty_id"),
                             nullable_string("exit_counterparty_other"),
                             nullable_uuid("exit_horizon_id"),
                             nullable_string("two_x_challenge"),
@@ -4103,6 +4292,28 @@ class DealflowDealDetailView(APIView):
                             VALUES (%s, %s, %s, %s, %s)
                             """,
                             [str(uuid4()), str(deal_id), resolved_country_id, now, now],
+                        )
+
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_deal_exit_counterparties
+                        WHERE deal_id = %s
+                        """,
+                        [str(deal_id)],
+                    )
+                    for exit_counterparty_id in exit_counterparty_ids:
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_deal_exit_counterparties (
+                                id,
+                                deal_id,
+                                exit_counterparty_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            [str(uuid4()), str(deal_id), exit_counterparty_id, now, now],
                         )
 
                     cursor.execute(
@@ -6076,7 +6287,6 @@ class DealflowKpisView(APIView):
         name = str(payload.get("name") or "").strip()
         year = payload.get("year")
         currency_id = normalize_uuid(payload.get("currency_id"))
-        display_order = payload.get("display_order")
 
         if not name:
             return Response({"error": "KPI period name is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -6087,11 +6297,6 @@ class DealflowKpisView(APIView):
 
         now = timezone.now()
         period_id = uuid4()
-
-        try:
-            display_order = int(display_order) if display_order not in ("", None) else None
-        except (TypeError, ValueError):
-            display_order = None
 
         try:
             with transaction.atomic():
@@ -6108,11 +6313,10 @@ class DealflowKpisView(APIView):
                             name,
                             year,
                             currency_id,
-                            display_order,
                             created_at,
                             updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
                             str(period_id),
@@ -6121,11 +6325,11 @@ class DealflowKpisView(APIView):
                             name,
                             year,
                             currency_id,
-                            display_order,
                             now,
                             now,
                         ],
                     )
+                    seed_default_kpi_entries(cursor, deal_id, period_id, company_id, currency_id, now)
                     periods = fetch_kpi_periods(cursor, deal_id)
         except IntegrityError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -6144,7 +6348,6 @@ class DealflowKpiPeriodDetailView(APIView):
         name = str(payload.get("name") or "").strip()
         year = payload.get("year")
         currency_id = normalize_uuid(payload.get("currency_id"))
-        display_order = payload.get("display_order")
 
         if not name:
             return Response({"error": "KPI period name is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -6154,10 +6357,6 @@ class DealflowKpiPeriodDetailView(APIView):
             return Response({"error": "Year is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
-        try:
-            display_order = int(display_order) if display_order not in ("", None) else None
-        except (TypeError, ValueError):
-            display_order = None
 
         try:
             with transaction.atomic():
@@ -6169,12 +6368,11 @@ class DealflowKpiPeriodDetailView(APIView):
                             name = %s,
                             year = %s,
                             currency_id = %s,
-                            display_order = %s,
                             updated_at = %s
                         WHERE id = %s
                           AND deal_id = %s
                         """,
-                        [name, year, currency_id, display_order, now, str(period_id), str(deal_id)],
+                        [name, year, currency_id, now, str(period_id), str(deal_id)],
                     )
                     if cursor.rowcount == 0:
                         return Response({"error": "KPI period not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -6228,26 +6426,15 @@ class DealflowKpiEntriesView(APIView):
     def post(self, request, deal_id, period_id):
         payload = request.data or {}
         kpi_name = str(payload.get("kpi_name") or "").strip()
-        kpi_category_id = normalize_uuid(payload.get("kpi_category_id"))
         period_type = normalize_kpi_period_type(payload.get("period_type"))
         currency_id = normalize_uuid(payload.get("currency_id"))
         unit = str(payload.get("unit") or "").strip()
-        kpi_order = payload.get("kpi_order")
-        display_order = payload.get("display_order")
 
         if not kpi_name:
             return Response({"error": "KPI name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
         entry_id = uuid4()
-        try:
-            kpi_order = int(kpi_order) if kpi_order not in ("", None) else None
-        except (TypeError, ValueError):
-            return Response({"error": "Order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            display_order = int(display_order) if display_order not in ("", None) else None
-        except (TypeError, ValueError):
-            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
@@ -6263,12 +6450,9 @@ class DealflowKpiEntriesView(APIView):
                             company_id,
                             period_id,
                             kpi_name,
-                            kpi_category_id,
                             period_type,
                             currency_id,
                             unit,
-                            kpi_order,
-                            display_order,
                             q1_value,
                             q2_value,
                             q3_value,
@@ -6282,7 +6466,7 @@ class DealflowKpiEntriesView(APIView):
                             created_at,
                             updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
                             str(entry_id),
@@ -6290,12 +6474,9 @@ class DealflowKpiEntriesView(APIView):
                             period_relation["company_id"] or fetch_deal_company_id(cursor, deal_id),
                             str(period_id),
                             kpi_name,
-                            kpi_category_id,
                             period_type,
                             currency_id,
                             unit,
-                            kpi_order,
-                            display_order,
                             normalize_numeric_or_none(payload.get("q1_value")),
                             normalize_numeric_or_none(payload.get("q2_value")),
                             normalize_numeric_or_none(payload.get("q3_value")),
@@ -6326,25 +6507,14 @@ class DealflowKpiEntryDetailView(APIView):
     def patch(self, request, deal_id, entry_id, period_id=None):
         payload = request.data or {}
         kpi_name = str(payload.get("kpi_name") or "").strip()
-        kpi_category_id = normalize_uuid(payload.get("kpi_category_id"))
         period_type = normalize_kpi_period_type(payload.get("period_type"))
         currency_id = normalize_uuid(payload.get("currency_id"))
         unit = str(payload.get("unit") or "").strip()
-        kpi_order = payload.get("kpi_order")
-        display_order = payload.get("display_order")
 
         if not kpi_name:
             return Response({"error": "KPI name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
-        try:
-            kpi_order = int(kpi_order) if kpi_order not in ("", None) else None
-        except (TypeError, ValueError):
-            return Response({"error": "Order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            display_order = int(display_order) if display_order not in ("", None) else None
-        except (TypeError, ValueError):
-            return Response({"error": "Display order must be a number."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
@@ -6359,12 +6529,9 @@ class DealflowKpiEntryDetailView(APIView):
                         UPDATE dealflow.df_kpi_entries
                         SET
                             kpi_name = %s,
-                            kpi_category_id = %s,
                             period_type = %s,
                             currency_id = %s,
                             unit = %s,
-                            kpi_order = %s,
-                            display_order = %s,
                             q1_value = %s,
                             q2_value = %s,
                             q3_value = %s,
@@ -6381,12 +6548,9 @@ class DealflowKpiEntryDetailView(APIView):
                         """,
                         [
                             kpi_name,
-                            kpi_category_id,
                             period_type,
                             currency_id,
                             unit,
-                            kpi_order,
-                            display_order,
                             normalize_numeric_or_none(payload.get("q1_value")),
                             normalize_numeric_or_none(payload.get("q2_value")),
                             normalize_numeric_or_none(payload.get("q3_value")),
