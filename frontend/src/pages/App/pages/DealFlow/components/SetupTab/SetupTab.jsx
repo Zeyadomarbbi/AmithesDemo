@@ -10,7 +10,10 @@ import {
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
 import { SETUP_CATEGORIES, DEAL_TEAM_KEY, buildSetupCode, useSetupBackend, useDealTeamBackend } from "./setupbackend.jsx";
+import { useDealflowFieldConfig } from "../DealsTab/Deals_backend_work";
 import "./SetupTab.css";
+
+const FIELD_RULES_KEY = "field_rules";
 
 const COLOR_PALETTE = [
   "#c4b5fd", "#a7f3d0", "#bae6fd", "#fde68a",
@@ -456,14 +459,75 @@ function DealTeamPanel({ onSuccessToast, onErrorToast }) {
   );
 }
 
+function FieldRulesPanel({ onSuccessToast, onErrorToast }) {
+  const { fields, isLoading, isSaving, updateField } = useDealflowFieldConfig();
+
+  const handleToggle = async (field) => {
+    try {
+      const updated = await updateField(field.fieldKey, !field.isMandatory);
+      onSuccessToast(`"${updated.fieldLabel}" is now ${updated.isMandatory ? "mandatory" : "optional"}.`);
+    } catch {
+      onErrorToast("Could not update this field rule.");
+    }
+  };
+
+  return (
+    <div className="setup-panel">
+      <div className="setup-panel-header">
+        <h2 className="setup-panel-title">Field Rules</h2>
+      </div>
+
+      <div className="setup-table-wrap">
+        <table className="setup-table">
+          <thead>
+            <tr>
+              <th className="setup-th setup-th--name">Field</th>
+              <th className="setup-th setup-th--status">Mandatory</th>
+              <th className="setup-th setup-th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr><td className="setup-empty" colSpan={3}>Loading field rules...</td></tr>
+            )}
+            {!isLoading && fields.map((field) => (
+              <tr key={field.fieldKey} className="setup-row">
+                <td className="setup-td">{field.fieldLabel}</td>
+                <td className="setup-td">
+                  <SetupStatusBadge isActive={field.isMandatory} />
+                </td>
+                <td className="setup-td setup-td--actions">
+                  <div className="setup-actions">
+                    <button
+                      className={`setup-toggle-btn${field.isMandatory ? "" : " setup-toggle-btn--inactive"}`}
+                      onClick={() => handleToggle(field)}
+                      disabled={isSaving}
+                    >
+                      {field.isMandatory ? "Make optional" : "Make mandatory"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!isLoading && fields.length === 0 && (
+              <tr><td className="setup-empty" colSpan={3}>No field rules found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function SetupTab() {
   const [activeKey, setActiveKey] = useState(SETUP_CATEGORIES[0].key);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast, showToast, closeToast } = useToast();
 
   const isDealTeam = activeKey === DEAL_TEAM_KEY;
+  const isFieldRules = activeKey === FIELD_RULES_KEY;
   const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
-  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam ? null : activeCategory.taxonomyType);
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam || isFieldRules ? null : activeCategory.taxonomyType);
 
   useEffect(() => {
     if (error) {
@@ -553,11 +617,22 @@ export default function SetupTab() {
         >
           Deal team & Support
         </button>
+        <button
+          className={`setup-subtab${activeKey === FIELD_RULES_KEY ? " active" : ""}`}
+          onClick={() => setActiveKey(FIELD_RULES_KEY)}
+        >
+          Field Rules
+        </button>
       </div>
 
       {isDealTeam ? (
         <DealTeamPanel
           onSuccessToast={(msg) => showToast({ type: "success", title: "Team updated", message: msg })}
+          onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
+        />
+      ) : isFieldRules ? (
+        <FieldRulesPanel
+          onSuccessToast={(msg) => showToast({ type: "success", title: "Field rule updated", message: msg })}
           onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
         />
       ) : (
