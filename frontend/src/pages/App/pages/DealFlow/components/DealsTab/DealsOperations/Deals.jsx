@@ -42,6 +42,13 @@ function Deals() {
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState({
+    stage: [],
+    fund: [],
+    sector: [],
+    country: [],
+    status: [],
+  });
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [expandedDeals, setExpandedDeals] = useState(new Set());
@@ -59,7 +66,7 @@ function Deals() {
   const { deals, isLoading, isCreating, isDeleting, error, createDeal, deleteDeals, loadDeals } = useDealsBackend({
     keyword: debouncedKeyword,
   });
-  const { stages } = useDealflowLookupOptions();
+  const { stages, statuses, funds } = useDealflowLookupOptions();
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -88,6 +95,9 @@ function Deals() {
     () => [...new Set(sourceDeals.map((d) => d.country).filter(Boolean))].sort(),
     [sourceDeals]
   );
+  const stageOptions = useMemo(() => stages.map((stage) => stage.name).filter(Boolean), [stages]);
+  const fundOptions = useMemo(() => funds.map((fund) => fund.name).filter(Boolean), [funds]);
+  const statusOptions = useMemo(() => statuses.map((status) => status.name).filter(Boolean), [statuses]);
 
   const getStageLog = useCallback(
     (deal) => (Array.isArray(deal?.stageLog) ? deal.stageLog : []),
@@ -191,7 +201,7 @@ function Deals() {
   const filtered = sorted.filter((deal) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return (
+    const matchesSearch = (
       String(deal.name || "").toLowerCase().includes(q) ||
       String(deal.code || "").toLowerCase().includes(q) ||
       String(deal.fund || "").toLowerCase().includes(q) ||
@@ -199,6 +209,21 @@ function Deals() {
       String(deal.stage || "").toLowerCase().includes(q) ||
       String(deal.sector || "").toLowerCase().includes(q) ||
       String(deal.country || "").toLowerCase().includes(q)
+    );
+    if (!matchesSearch) return false;
+
+    const matchesMultiFilter = (key, value) => {
+      const selected = Array.isArray(selectedFilters[key]) ? selectedFilters[key] : [];
+      if (selected.length === 0) return true;
+      return selected.includes(value || "");
+    };
+
+    return (
+      matchesMultiFilter("stage", deal.stage) &&
+      matchesMultiFilter("fund", deal.fund) &&
+      matchesMultiFilter("sector", deal.sector) &&
+      matchesMultiFilter("country", deal.country) &&
+      matchesMultiFilter("status", deal.status)
     );
   });
 
@@ -272,7 +297,18 @@ function Deals() {
   return (
     <div className="deals-wrapper">
       {showFilter && (
-        <FilterModal onClose={() => setShowFilter(false)} sectorOptions={sectorOptions} countryOptions={countryOptions} />
+        <FilterModal
+          onClose={() => setShowFilter(false)}
+          onApply={setSelectedFilters}
+          initialSelected={selectedFilters}
+          filters={{
+            stage: stageOptions,
+            fund: fundOptions,
+            sector: sectorOptions,
+            country: countryOptions,
+            status: statusOptions,
+          }}
+        />
       )}
       {showNewCompany && (
         <NewCompanyModal onClose={() => setShowNewCompany(false)} onNext={handleCreateDeal} />
