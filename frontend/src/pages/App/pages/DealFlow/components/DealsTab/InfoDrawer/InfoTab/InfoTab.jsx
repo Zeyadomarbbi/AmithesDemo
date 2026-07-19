@@ -6,6 +6,7 @@ import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import useApi from "/src/hooks/api/useApi";
 import {
+  useDealflowFieldConfig,
   mapDealDetailToForm,
   mapInfoFormToPayload,
   useDealExternalContactsBackend,
@@ -42,6 +43,7 @@ const createInitialForm = (deal) => ({
   latestUpdateByName: "",
   legalForm: null,
   countriesOfOperations: [],
+  regionOfOperations: "",
   valueCreationPotential: "",
   sourceType: null,
   operationType: null,
@@ -54,7 +56,7 @@ const createInitialForm = (deal) => ({
   coInvestorTicket: "",
   dealType: null,
   exitRoute: null,
-  exitCounterparty: null,
+  exitCounterparty: [],
   exitCounterpartyOther: "",
   exitHorizon: null,
   twoXChallenge: "",
@@ -233,6 +235,7 @@ function InfoTab({ deal, onClose, onSaved }) {
     investmentInstruments,
     dealTypes,
     legalForms,
+    regionOptions,
     countries,
     currencies,
     funds,
@@ -244,6 +247,11 @@ function InfoTab({ deal, onClose, onSaved }) {
     createDealflowUser,
     createTeamRole,
   } = useDealflowLookupOptions();
+  const {
+    fields: fieldConfig,
+    isLoading: areFieldConfigLoading,
+    error: fieldConfigError,
+  } = useDealflowFieldConfig();
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -289,6 +297,16 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [lookupError, showToast]);
 
   useEffect(() => {
+    if (fieldConfigError) {
+      showToast({
+        type: "error",
+        title: "Field config failed",
+        message: fieldConfigError,
+      });
+    }
+  }, [fieldConfigError, showToast]);
+
+  useEffect(() => {
     if (externalContactsError) {
       showToast({
         type: "error",
@@ -299,7 +317,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [externalContactsError, showToast]);
 
   const currentTitle = useMemo(() => form.dealName || deal?.name || "Deal", [form.dealName, deal?.name]);
-  const isBusy = isDetailLoading || areLookupsLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
+  const isBusy = isDetailLoading || areLookupsLoading || areFieldConfigLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
   const lookupOptions = useMemo(() => ({ countries, currencies, funds }), [countries, currencies, funds]);
   const loadedReferenceForm = useMemo(() => {
     const base = detail
@@ -313,8 +331,10 @@ function InfoTab({ deal, onClose, onSaved }) {
   const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
 
   const selectedStatus = useMemo(() => getOptionById(statuses, form.status), [statuses, form.status]);
-  const selectedExitCounterparty = useMemo(
-    () => getOptionById(exitCounterparties, form.exitCounterparty),
+  const selectedExitCounterpartyOptions = useMemo(
+    () => (Array.isArray(exitCounterparties) ? exitCounterparties : []).filter((option) =>
+      (Array.isArray(form.exitCounterparty) ? form.exitCounterparty : []).includes(option.id)
+    ),
     [exitCounterparties, form.exitCounterparty]
   );
   const selectedFund = useMemo(() => getOptionById(funds, form.fund), [funds, form.fund]);
@@ -326,11 +346,21 @@ function InfoTab({ deal, onClose, onSaved }) {
   );
   const showStatusReason = optionMatches(selectedStatus, ["ON_HOLD", "DROPPED"]);
   const showCoInvestorFields = form.coInvestor === "yes";
-  const showExitCounterpartyOther = optionMatches(selectedExitCounterparty, ["OTHER"]);
+  const showExitCounterpartyOther = selectedExitCounterpartyOptions.some((option) => optionMatches(option, ["OTHER"]));
   const showInvestmentInstrumentOther = selectedInvestmentInstrumentOptions.some((option) => optionMatches(option, ["OTHER"]));
   const showEmergingMarketThesis = String(selectedFund?.name || "").toUpperCase().includes("AEE");
   const latestUpdateLabel = form.latestUpdateAt ? formatDateTimeLabel(form.latestUpdateAt) : "";
   const latestUpdateBy = String(form.latestUpdateByName || "").trim();
+  const fieldConfigMap = useMemo(
+    () => Object.fromEntries((Array.isArray(fieldConfig) ? fieldConfig : []).map((field) => [field.fieldKey, field])),
+    [fieldConfig]
+  );
+  const isFieldMandatory = useCallback((fieldKey, fallback = false) => {
+    if (Object.prototype.hasOwnProperty.call(fieldConfigMap, fieldKey)) {
+      return Boolean(fieldConfigMap[fieldKey]?.isMandatory);
+    }
+    return fallback;
+  }, [fieldConfigMap]);
 
   const handleCancelEdit = () => {
     setForm(detail ? mapDealDetailToForm(detail, lookupOptions) : createInitialForm(deal));
@@ -463,10 +493,15 @@ function InfoTab({ deal, onClose, onSaved }) {
     if (!String(form.dealName || "").trim()) return "Deal Name is required.";
     if (!String(form.codeName || "").trim()) return "Code Name is required.";
     if (!form.stage) return "Deal Stage is required.";
-    if (!form.legalForm) return "Legal Form is required.";
+    if (isFieldMandatory("legal_form") && !form.legalForm) return "Legal Form is required.";
     if (!form.status) return "Status is required.";
     if (showStatusReason && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
-    if (!Array.isArray(form.countriesOfOperations) || form.countriesOfOperations.length === 0) return "Countries of Operations is required.";
+    if (isFieldMandatory("countries_of_operations") && (!Array.isArray(form.countriesOfOperations) || form.countriesOfOperations.length === 0)) {
+      return "Countries of Operations is required.";
+    }
+    if (isFieldMandatory("region_of_operations") && !String(form.regionOfOperations || "").trim()) {
+      return "Region of Operations is required.";
+    }
     if (!form.fund) return "Fund is required.";
     if (!form.country) return "Country (HQ) is required.";
     if (!form.sector) return "Sector is required.";
@@ -474,6 +509,7 @@ function InfoTab({ deal, onClose, onSaved }) {
     if (!form.sourceType) return "Sourcing is required.";
     if (!form.operationType) return "Operation Type is required.";
     if (!String(form.ticket || "").trim()) return "Amethis Ticket is required.";
+    if (!form.currency) return "Ticket Currency is required.";
     if (showInvestmentInstrumentOther && !String(form.investmentInstrumentOtherText || "").trim()) {
       return "Please specify the other investment instrument.";
     }
@@ -486,8 +522,20 @@ function InfoTab({ deal, onClose, onSaved }) {
       return "Please specify the Exit Counterparty.";
     }
     if (!form.exitHorizon) return "Exit Horizon is required.";
+    if (isFieldMandatory("deal_team")) {
+      const hasValidTeamMember = (Array.isArray(form.teamMembers) ? form.teamMembers : []).some(
+        (member) => member?.userId && member?.roleId
+      );
+      if (!hasValidTeamMember) return "Deal Team & Support is required.";
+    }
+    if (isFieldMandatory("external_contacts")) {
+      const hasValidExternalContact = (Array.isArray(form.externalContacts) ? form.externalContacts : []).some(
+        (contact) => String(contact?.name || "").trim()
+      );
+      if (!hasValidExternalContact) return "External Contacts is required.";
+    }
     return null;
-  }, [form, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
+  }, [form, isFieldMandatory, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
 
   const handleSave = async () => {
     const validationMessage = validateInformationForm();
@@ -676,7 +724,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Legal Form</FieldLabel>
+                  <FieldLabel required={isFieldMandatory("legal_form")}>Legal Form</FieldLabel>
                   <SimpleDropdown
                     options={legalForms}
                     value={form.legalForm}
@@ -715,7 +763,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Countries of Operations</FieldLabel>
+                  <FieldLabel required={isFieldMandatory("countries_of_operations")}>Countries of Operations</FieldLabel>
                   <SimpleDropdown
                     options={countries}
                     value={Array.isArray(form.countriesOfOperations) ? form.countriesOfOperations : []}
@@ -728,6 +776,21 @@ function InfoTab({ deal, onClose, onSaved }) {
                     searchLabel="Search countries..."
                   />
                 </div>
+                <div className="it-field">
+                  <FieldLabel required={isFieldMandatory("region_of_operations")}>Region of Operations</FieldLabel>
+                  <SimpleDropdown
+                    options={regionOptions}
+                    value={form.regionOfOperations}
+                    onChange={updateDirect("regionOfOperations")}
+                    placeholder="Please select a region"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
+                  />
+                </div>
+              </div>
+
+              <div className="it-grid-3">
                 <div className="it-field">
                   <FieldLabel required>Fund</FieldLabel>
                   <SimpleDropdown
@@ -842,6 +905,18 @@ function InfoTab({ deal, onClose, onSaved }) {
                     onChange={update("ticket")}
                     placeholder="Enter the Amethis ticket"
                     readOnly={!isEditing}
+                  />
+                </div>
+                <div className="it-field">
+                  <FieldLabel required>Currency</FieldLabel>
+                  <SimpleDropdown
+                    options={currencies}
+                    value={form.currency}
+                    onChange={updateDirect("currency")}
+                    placeholder="Please select a currency"
+                    labelKey="name"
+                    valueKey="id"
+                    disabled={areLookupsLoading || !isEditing}
                   />
                 </div>
                 <div className="it-field">
@@ -967,6 +1042,8 @@ function InfoTab({ deal, onClose, onSaved }) {
                     labelKey="name"
                     valueKey="id"
                     disabled={areLookupsLoading || !isEditing}
+                    isSingle={false}
+                    searchLabel="Search counterparties..."
                   />
                 </div>
                 <div className="it-field">
@@ -1060,7 +1137,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                 </div>
               )}
 
-              <SectionHeader label="Deal Team & Support" />
+              <SectionHeader label={`Deal Team & Support${isFieldMandatory("deal_team") ? " *" : ""}`} />
 
               <div className="it-team-container">
                 <table className="it-team-table">
@@ -1144,7 +1221,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                 )}
               </div>
 
-              <SectionHeader label="External Contacts" />
+              <SectionHeader label={`External Contacts${isFieldMandatory("external_contacts") ? " *" : ""}`} />
 
               <div className="it-team-container">
                 <table className="it-team-table it-team-table--wide">
