@@ -1,1365 +1,665 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CloseIcon, PlusIcon, TrashIcon, EditLineIcon } from "/src/components/Icons/InteractiveIcons";
-import { ChevronDoubleLeftIcon } from "/src/components/Icons/DirectionIcons";
-import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
-import Toast from "../../../../../../components/Toast/Toast";
-import { useToast } from "../../../../../../components/Toast/useToast";
-import useApi from "/src/hooks/api/useApi";
+import React, { useEffect, useMemo, useState } from "react";
+import SearchBar from "/src/components/SearchBar/SearchBar";
 import {
-  useDealflowFieldConfig,
-  mapDealDetailToForm,
-  mapInfoFormToPayload,
-  useDealExternalContactsBackend,
-  useDealInfoBackend,
-  useDealflowLookupOptions,
-} from "../../Deals_backend_work";
-import EventsTab from "../EventsTab/EventsTab";
-import CapTable from "../CapTab/CapTable";
-import Dataroom from "../DataroomTab/Dataroom";
-import KPIsTab from "../KPIsTab/KPIsTab";
-import OtherTab from "../OtherTab/OtherTab";
-import "./InfoTab.css";
+  PlusIcon,
+  EditLineIcon,
+  DoneIcon,
+  CloseIcon,
+  TrashIcon,
+} from "/src/components/Icons/InteractiveIcons";
+import Toast from "../../../../components/Toast/Toast";
+import { useToast } from "../../../../components/Toast/useToast";
+import { SETUP_CATEGORIES, DEAL_TEAM_KEY, buildSetupCode, useSetupBackend, useDealTeamBackend } from "./setupbackend.jsx";
+import { useDealflowFieldConfig } from "../DealsTab/Deals_backend_work";
+import "./SetupTab.css";
 
-const VISIBLE_TABS = ["Information"];
-const NUMERIC_FIELDS = new Set(["ticket", "cashInAmount", "cashOutAmount", "coInvestorTicket"]);
-const YES_NO_OPTIONS = [
-  { id: "yes", name: "Yes" },
-  { id: "no", name: "No" },
+const FIELD_RULES_KEY = "field_rules";
+
+const COLOR_PALETTE = [
+  "#c4b5fd", "#a7f3d0", "#bae6fd", "#fde68a",
+  "#fca5a5", "#fdba74", "#67e8f9", "#f9a8d4",
 ];
 
-const createInitialForm = (deal) => ({
-  dealName: deal?.name || "",
-  codeName: deal?.code || "",
-  sector: deal?.sectorId || null,
-  businessDescription: "",
-  status: deal?.statusId || null,
-  statusReason: "",
-  stage: deal?.stageId || null,
-  fund: deal?.fundId || null,
-  ticket: deal?.ticketAmount ?? "",
-  currency: deal?.currencyId || null,
-  pipelineEntryDate: "",
-  latestUpdateAt: "",
-  latestUpdateByName: "",
-  legalForm: null,
-  countriesOfOperations: [],
-  regionOfOperations: "",
-  valueCreationPotential: "",
-  sourceType: null,
-  operationType: null,
-  cashInAmount: "",
-  cashOutAmount: "",
-  investmentInstruments: [],
-  investmentInstrumentOtherText: "",
-  coInvestor: "",
-  coInvestorType: null,
-  coInvestorTicket: "",
-  dealType: null,
-  exitRoute: null,
-  exitCounterparty: [],
-  exitCounterpartyOther: "",
-  exitHorizon: null,
-  twoXChallenge: "",
-  esgRisk: null,
-  esgNotes: "",
-  additionalNotes: "",
-  emergingMarketThesis: "",
-  teamMembers: [],
-  externalContacts: [],
+function createEmptyDraft() {
+  return {
+    name: "",
+    code: "",
+    color: COLOR_PALETTE[0],
+    displayOrder: "",
+    isActive: true,
+  };
+}
 
-  // Legacy fields are kept in state and payload for backward compatibility.
-  relevantInfo: "",
-  countryOfIncorporation: null,
-  countryOfMainOperation: null,
-  contact: "",
-  sponsors: "",
-  sourcingRelevantInfo: "",
-  exitType: null,
-  exitRelevantInfo: "",
-  website: "",
-  registrationNumber: "",
-  address: "",
-  zipCode: "",
-  city: "",
-  country: null,
-});
-
-function SectionHeader({ label }) {
+function ColorPicker({ value, onChange }) {
   return (
-    <div className="it-section-header">
-      <span className="it-section-label">{label}</span>
+    <div className="setup-color-picker">
+      {COLOR_PALETTE.map((color) => (
+        <button
+          key={color}
+          type="button"
+          className={`setup-color-dot${value === color ? " setup-color-dot--active" : ""}`}
+          style={{ backgroundColor: color }}
+          onClick={() => onChange(color)}
+          aria-label={`Pick color ${color}`}
+        />
+      ))}
     </div>
   );
 }
 
-function FieldLabel({ children, required = false }) {
+function SetupStatusBadge({ isActive }) {
   return (
-    <label className="it-label">
-      {children}
-      {required && <span className="it-label-required"> *</span>}
-    </label>
+    <span className={`setup-status-badge${isActive ? "" : " setup-status-badge--inactive"}`}>
+      {isActive ? "Active" : "Inactive"}
+    </span>
   );
 }
 
-function normalizeNumericInput(value) {
-  return String(value ?? "").replace(/[^\d.,-]/g, "");
-}
+function CategoryPanel({ category, items, isLoading, isSaving, onCreate, onUpdate, onToggleActive, onDelete, onErrorToast, searchQuery }) {
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(createEmptyDraft());
 
-function formatDateLabel(value) {
-  if (!value) return "";
-  const parsed = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(parsed.getTime())) return String(value);
-  return parsed.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+  useEffect(() => {
+    setEditingId(null);
+    setDraft(createEmptyDraft());
+  }, [category.key]);
 
-function formatDateTimeLabel(value) {
-  if (!value) return "";
-  const parsed = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(parsed.getTime())) return String(value);
-  return parsed.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+  const filteredItems = useMemo(() => {
+    const query = String(searchQuery || "").trim().toLowerCase();
+    if (!query) return items;
+    return items.filter((item) =>
+      [item.name, item.code]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [items, searchQuery]);
 
-function getOptionById(options, value) {
-  return (Array.isArray(options) ? options : []).find((option) => String(option?.id) === String(value)) || null;
-}
+  const startCreate = () => {
+    setEditingId("__new__");
+    setDraft(createEmptyDraft());
+  };
 
-function optionMatches(option, codes = []) {
-  if (!option) return false;
-  const candidates = [option?.code, option?.name]
-    .map((value) => String(value || "").trim().toUpperCase().replace(/\s+/g, "_").replace(/-/g, "_"));
-  return codes.some((code) => candidates.includes(String(code || "").trim().toUpperCase()));
-}
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setDraft({
+      name: item.name || "",
+      code: item.code || "",
+      color: item.color || COLOR_PALETTE[0],
+      displayOrder: item.displayOrder ?? "",
+      isActive: item.isActive !== false,
+    });
+  };
 
-function normalizeExternalContactsForCompare(contacts) {
-  return (Array.isArray(contacts) ? contacts : [])
-    .map((contact, index) => ({
-      id: contact?.id ?? null,
-      name: String(contact?.name ?? "").trim(),
-      role: String(contact?.role ?? "").trim(),
-      email: String(contact?.email ?? "").trim(),
-      phone: String(contact?.phone ?? "").trim(),
-      notes: String(contact?.notes ?? "").trim(),
-      displayOrder: contact?.displayOrder ?? contact?.display_order ?? index + 1,
-    }))
-    .filter((contact) => contact.name || contact.role || contact.email || contact.phone || contact.notes);
-}
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(createEmptyDraft());
+  };
 
-function hasFormChanges(currentForm, loadedForm, lookupOptions) {
+  const handleDraftNameChange = (value) => {
+    setDraft((prev) => {
+      const nextName = value;
+      const shouldAutofillCode = !prev.code || prev.code === buildSetupCode(prev.name);
+      return {
+        ...prev,
+        name: nextName,
+        code: shouldAutofillCode ? buildSetupCode(nextName) : prev.code,
+      };
+    });
+  };
+
+  const saveDraft = async (itemId) => {
+    const payload = {
+      ...draft,
+      name: String(draft.name || "").trim(),
+      code: String(draft.code || "").trim().toUpperCase(),
+      color: category.hasColor ? draft.color : "",
+    };
+
+    if (!payload.name) {
+      onErrorToast("Name is required.");
+      return;
+    }
+    if (!payload.code) {
+      onErrorToast("Code is required.");
+      return;
+    }
+
+    try {
+      if (itemId === "__new__") {
+        await onCreate(payload);
+      } else {
+        await onUpdate(itemId, payload);
+      }
+      cancelEdit();
+    } catch {
+      // Error toast already handled by caller.
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!item?.id) return;
+    if (!window.confirm(`Delete "${item.name}"?`)) return;
+    try {
+      await onDelete(item);
+    } catch {
+      // Toast handled by caller.
+    }
+  };
+
   return (
-    JSON.stringify(mapInfoFormToPayload(currentForm, lookupOptions)) !==
-      JSON.stringify(mapInfoFormToPayload(loadedForm, lookupOptions)) ||
-    JSON.stringify(normalizeExternalContactsForCompare(currentForm?.externalContacts)) !==
-      JSON.stringify(normalizeExternalContactsForCompare(loadedForm?.externalContacts))
-  );
-}
+    <div className="setup-panel">
+      <div className="setup-panel-header">
+        <h2 className="setup-panel-title">{category.label}</h2>
+        <button className="setup-add-btn" onClick={startCreate} disabled={editingId === "__new__" || isSaving}>
+          <PlusIcon /> New {category.itemLabel}
+        </button>
+      </div>
 
-function MultiSelectField({ label, options, values, onToggle, disabled, required = false, emptyText = "No options available yet." }) {
-  return (
-    <div className="it-field">
-      <FieldLabel required={required}>{label}</FieldLabel>
-      <div className={`it-multi-select${disabled ? " it-multi-select--disabled" : ""}`}>
-        {(Array.isArray(options) ? options : []).map((option) => {
-          const isChecked = values.includes(option.id);
-          return (
-            <label key={option.id} className={`it-checkbox-pill${isChecked ? " is-checked" : ""}`}>
-              <input
-                type="checkbox"
-                checked={isChecked}
-                disabled={disabled}
-                onChange={() => onToggle(option.id)}
-              />
-              <span>{option.name}</span>
-            </label>
-          );
-        })}
-        {(!Array.isArray(options) || options.length === 0) && (
-          <div className="it-multi-select-empty">{emptyText}</div>
-        )}
+      <div className="setup-table-wrap">
+        <table className="setup-table">
+          <thead>
+            <tr>
+              <th className="setup-th setup-th--name">Name</th>
+              <th className="setup-th setup-th--code">Code</th>
+              {category.hasColor && <th className="setup-th setup-th--color">Color</th>}
+              <th className="setup-th setup-th--order">Display order</th>
+              <th className="setup-th setup-th--status">Status</th>
+              <th className="setup-th setup-th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {editingId === "__new__" && (
+              <tr className="setup-row setup-row--editing">
+                <td className="setup-td">
+                  <input
+                    autoFocus
+                    className="setup-input"
+                    placeholder={`New ${category.itemLabel}`}
+                    value={draft.name}
+                    onChange={(e) => handleDraftNameChange(e.target.value)}
+                  />
+                </td>
+                <td className="setup-td">
+                  <input
+                    className="setup-input"
+                    placeholder="CODE_NAME"
+                    value={draft.code}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                  />
+                </td>
+                {category.hasColor && (
+                  <td className="setup-td">
+                    <ColorPicker value={draft.color} onChange={(color) => setDraft((prev) => ({ ...prev, color }))} />
+                  </td>
+                )}
+                <td className="setup-td">
+                  <input
+                    className="setup-input"
+                    placeholder="Order"
+                    value={draft.displayOrder}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, displayOrder: e.target.value.replace(/[^\d-]/g, "") }))}
+                  />
+                </td>
+                <td className="setup-td">
+                  <SetupStatusBadge isActive={draft.isActive} />
+                </td>
+                <td className="setup-td setup-td--actions">
+                  <div className="setup-actions">
+                    <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveDraft("__new__")}><DoneIcon /></button>
+                    <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {isLoading && (
+              <tr>
+                <td className="setup-empty" colSpan={category.hasColor ? 6 : 5}>Loading {category.itemLabel}s...</td>
+              </tr>
+            )}
+
+            {!isLoading && filteredItems.map((item) => {
+              const isEditing = editingId === item.id;
+              return (
+                <tr key={item.id} className={`setup-row${isEditing ? " setup-row--editing" : ""}${item.isActive ? "" : " setup-row--inactive"}`}>
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        className="setup-input"
+                        value={draft.name}
+                        onChange={(e) => handleDraftNameChange(e.target.value)}
+                      />
+                    ) : (
+                      item.name
+                    )}
+                  </td>
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input
+                        className="setup-input"
+                        value={draft.code}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                      />
+                    ) : (
+                      <code className="setup-code">{item.code}</code>
+                    )}
+                  </td>
+                  {category.hasColor && (
+                    <td className="setup-td">
+                      {isEditing ? (
+                        <ColorPicker value={draft.color} onChange={(color) => setDraft((prev) => ({ ...prev, color }))} />
+                      ) : item.color ? (
+                        <span className="setup-color-swatch" style={{ backgroundColor: item.color }} />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                  )}
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input
+                        className="setup-input"
+                        value={draft.displayOrder}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, displayOrder: e.target.value.replace(/[^\d-]/g, "") }))}
+                      />
+                    ) : (
+                      item.displayOrder === "" || item.displayOrder === null ? "-" : item.displayOrder
+                    )}
+                  </td>
+                  <td className="setup-td">
+                    <SetupStatusBadge isActive={isEditing ? draft.isActive : item.isActive} />
+                  </td>
+                  <td className="setup-td setup-td--actions">
+                    <div className="setup-actions">
+                      {isEditing ? (
+                        <>
+                          <button className="setup-icon-btn setup-icon-btn--save" onClick={() => saveDraft(item.id)}><DoneIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="setup-icon-btn" onClick={() => startEdit(item)} aria-label="Edit" disabled={isSaving}><EditLineIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--delete" onClick={() => handleDelete(item)} aria-label="Delete" disabled={isSaving}><TrashIcon /></button>
+                          <button
+                            className={`setup-toggle-btn${item.isActive ? "" : " setup-toggle-btn--inactive"}`}
+                            onClick={() => onToggleActive(item)}
+                            disabled={isSaving}
+                          >
+                            {item.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {!isLoading && editingId !== "__new__" && filteredItems.length === 0 && (
+              <tr>
+                <td className="setup-empty" colSpan={category.hasColor ? 6 : 5}>
+                  {searchQuery
+                    ? `No ${category.itemLabel} matches your search.`
+                    : `No ${category.itemLabel} yet. Click "New ${category.itemLabel}" to add one.`}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-function InfoTab({ deal, onClose, onSaved }) {
-  const [activeTab, setActiveTab] = useState("Information");
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(createInitialForm(deal));
-  const [tabSave, setTabSave] = useState({ fn: null, cancelFn: null, isDirty: false, isSaving: false, isEditing: false });
-  const [isCreatingTeamUser, setIsCreatingTeamUser] = useState(false);
-  const [isCreatingTeamRole, setIsCreatingTeamRole] = useState(false);
-  const { toast, showToast, closeToast } = useToast();
-  const api = useApi();
+function buildInitials(name) {
+  return String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join("") || "?";
+}
 
-  const {
-    detail,
-    isLoading: isDetailLoading,
-    isSaving,
-    error: detailError,
-    loadDealDetail,
-    saveDealDetail,
-  } = useDealInfoBackend(deal?.id);
+function DealTeamPanel({ onSuccessToast, onErrorToast }) {
+  const { members, isLoading, isSaving, createMember, updateMember, deleteMember } = useDealTeamBackend();
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ name: "", email: "" });
 
-  const {
-    contacts: externalContacts,
-    isLoading: areExternalContactsLoading,
-    isSaving: areExternalContactsSaving,
-    error: externalContactsError,
-    loadExternalContacts,
-    createExternalContact,
-    updateExternalContact,
-    deleteExternalContact,
-  } = useDealExternalContactsBackend(deal?.id);
-
-  const {
-    sectors,
-    statuses,
-    stages,
-    sourceTypes,
-    operationTypes,
-    coInvestorTypes,
-    exitRoutes,
-    exitCounterparties,
-    exitHorizons,
-    esgRisks,
-    investmentInstruments,
-    dealTypes,
-    legalForms,
-    regionOptions,
-    countries,
-    currencies,
-    funds,
-    teamRoles,
-    dealflowUsers,
-    isLoading: areLookupsLoading,
-    isSaving: areLookupsSaving,
-    error: lookupError,
-    createDealflowUser,
-    createTeamRole,
-  } = useDealflowLookupOptions();
-  const {
-    fields: fieldConfig,
-    isLoading: areFieldConfigLoading,
-    error: fieldConfigError,
-  } = useDealflowFieldConfig();
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (detail) {
-      setForm(mapDealDetailToForm(detail, { countries, currencies, funds }));
-      return;
-    }
-    setForm(createInitialForm(deal));
-  }, [detail, deal?.id, countries, currencies, funds]);
-
-  useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      externalContacts: Array.isArray(externalContacts) ? externalContacts : [],
-    }));
-  }, [externalContacts]);
-
-  useEffect(() => {
-    if (detailError) {
-      showToast({
-        type: "error",
-        title: "Load failed",
-        message: detailError,
-      });
-    }
-  }, [detailError, showToast]);
-
-  useEffect(() => {
-    if (lookupError) {
-      showToast({
-        type: "error",
-        title: "Options failed",
-        message: lookupError,
-      });
-    }
-  }, [lookupError, showToast]);
-
-  useEffect(() => {
-    if (fieldConfigError) {
-      showToast({
-        type: "error",
-        title: "Field config failed",
-        message: fieldConfigError,
-      });
-    }
-  }, [fieldConfigError, showToast]);
-
-  useEffect(() => {
-    if (externalContactsError) {
-      showToast({
-        type: "error",
-        title: "External contacts failed",
-        message: externalContactsError,
-      });
-    }
-  }, [externalContactsError, showToast]);
-
-  const currentTitle = useMemo(() => form.dealName || deal?.name || "Deal", [form.dealName, deal?.name]);
-  const isBusy = isDetailLoading || areLookupsLoading || areFieldConfigLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
-  const lookupOptions = useMemo(() => ({ countries, currencies, funds }), [countries, currencies, funds]);
-  const loadedReferenceForm = useMemo(() => {
-    const base = detail
-      ? mapDealDetailToForm(detail, lookupOptions)
-      : createInitialForm(deal);
-    return {
-      ...base,
-      externalContacts: Array.isArray(externalContacts) ? externalContacts : [],
-    };
-  }, [detail, lookupOptions, deal, externalContacts]);
-  const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
-
-  const selectedStatus = useMemo(() => getOptionById(statuses, form.status), [statuses, form.status]);
-  const selectedExitCounterpartyOptions = useMemo(
-    () => (Array.isArray(exitCounterparties) ? exitCounterparties : []).filter((option) =>
-      (Array.isArray(form.exitCounterparty) ? form.exitCounterparty : []).includes(option.id)
-    ),
-    [exitCounterparties, form.exitCounterparty]
-  );
-  const selectedFund = useMemo(() => getOptionById(funds, form.fund), [funds, form.fund]);
-  const selectedInvestmentInstrumentOptions = useMemo(
-    () => (Array.isArray(investmentInstruments) ? investmentInstruments : []).filter((option) =>
-      (Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []).includes(option.id)
-    ),
-    [investmentInstruments, form.investmentInstruments]
-  );
-  const showStatusReason = optionMatches(selectedStatus, ["ON_HOLD", "DROPPED"]);
-  const showCoInvestorFields = form.coInvestor === "yes";
-  const showExitCounterpartyOther = selectedExitCounterpartyOptions.some((option) => optionMatches(option, ["OTHER"]));
-  const showInvestmentInstrumentOther = selectedInvestmentInstrumentOptions.some((option) => optionMatches(option, ["OTHER"]));
-  const showEmergingMarketThesis = String(selectedFund?.name || "").toUpperCase().includes("AEE");
-  const latestUpdateLabel = form.latestUpdateAt ? formatDateTimeLabel(form.latestUpdateAt) : "";
-  const latestUpdateBy = String(form.latestUpdateByName || "").trim();
-  const fieldConfigMap = useMemo(
-    () => Object.fromEntries((Array.isArray(fieldConfig) ? fieldConfig : []).map((field) => [field.fieldKey, field])),
-    [fieldConfig]
-  );
-  const isFieldMandatory = useCallback((fieldKey, fallback = false) => {
-    if (Object.prototype.hasOwnProperty.call(fieldConfigMap, fieldKey)) {
-      return Boolean(fieldConfigMap[fieldKey]?.isMandatory);
-    }
-    return fallback;
-  }, [fieldConfigMap]);
-
-  const handleCancelEdit = () => {
-    setForm(detail ? mapDealDetailToForm(detail, lookupOptions) : createInitialForm(deal));
-    setIsEditing(false);
+  const startCreate = () => {
+    setEditingId("__new__");
+    setDraft({ name: "", email: "" });
   };
 
-  const handleTabChange = (tab) => {
-    if (isEditing && activeTab === "Information") handleCancelEdit();
-    setActiveTab(tab);
+  const startEdit = (member) => {
+    setEditingId(member.id);
+    setDraft({ name: member.name, email: member.email });
   };
 
-  const update = (key) => (e) =>
-    setForm((prev) => ({
-      ...prev,
-      [key]: NUMERIC_FIELDS.has(key) ? normalizeNumericInput(e.target.value) : e.target.value,
-    }));
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft({ name: "", email: "" });
+  };
 
-  const updateDirect = (key) => (value) =>
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-
-  const toggleInvestmentInstrument = (instrumentId) =>
-    setForm((prev) => {
-      const current = Array.isArray(prev.investmentInstruments) ? prev.investmentInstruments : [];
-      const nextValues = current.includes(instrumentId)
-        ? current.filter((id) => id !== instrumentId)
-        : [...current, instrumentId];
-      const selectedOptions = (Array.isArray(investmentInstruments) ? investmentInstruments : []).filter((option) =>
-        nextValues.includes(option.id)
-      );
-      return {
-        ...prev,
-        investmentInstruments: nextValues,
-        investmentInstrumentOtherText: selectedOptions.some((option) => optionMatches(option, ["OTHER"]))
-          ? prev.investmentInstrumentOtherText
-          : "",
-      };
-    });
-
-  const addTeamMember = () =>
-    setForm((prev) => ({
-      ...prev,
-      teamMembers: [
-        ...prev.teamMembers,
-        { id: `tm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, userId: null, roleId: null, positionOrder: "" },
-      ],
-    }));
-
-  const updateTeamMember = (rowId, key, value) =>
-    setForm((prev) => ({
-      ...prev,
-      teamMembers: prev.teamMembers.map((member) => (member.id === rowId ? { ...member, [key]: value } : member)),
-    }));
-
-  const removeTeamMember = (rowId) =>
-    setForm((prev) => ({
-      ...prev,
-      teamMembers: prev.teamMembers.filter((member) => member.id !== rowId),
-    }));
-
-  const addExternalContact = () =>
-    setForm((prev) => ({
-      ...prev,
-      externalContacts: [
-        ...prev.externalContacts,
-        {
-          id: `ec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          name: "",
-          role: "",
-          email: "",
-          phone: "",
-          notes: "",
-          displayOrder: prev.externalContacts.length + 1,
-        },
-      ],
-    }));
-
-  const updateExternalContactField = (rowId, key, value) =>
-    setForm((prev) => ({
-      ...prev,
-      externalContacts: prev.externalContacts.map((contact) =>
-        contact.id === rowId ? { ...contact, [key]: value } : contact
-      ),
-    }));
-
-  const removeExternalContact = (rowId) =>
-    setForm((prev) => ({
-      ...prev,
-      externalContacts: prev.externalContacts.filter((contact) => contact.id !== rowId),
-    }));
-
-  const syncExternalContacts = useCallback(async (nextContacts, previousContacts) => {
-    const previousById = new Map(
-      normalizeExternalContactsForCompare(previousContacts)
-        .filter((contact) => contact.id)
-        .map((contact) => [String(contact.id), contact])
-    );
-    const nextNormalized = normalizeExternalContactsForCompare(nextContacts);
-    const nextIds = new Set(nextNormalized.filter((contact) => contact.id).map((contact) => String(contact.id)));
-
-    for (let index = 0; index < nextNormalized.length; index += 1) {
-      const contact = nextNormalized[index];
-      const payload = {
-        name: contact.name,
-        role: contact.role,
-        email: contact.email,
-        phone: contact.phone,
-        notes: contact.notes,
-        display_order: index + 1,
-      };
-
-      if (contact.id && previousById.has(String(contact.id))) {
-        await updateExternalContact(contact.id, payload);
+  const handleSave = async (memberId) => {
+    if (!draft.name.trim()) { onErrorToast("Name is required."); return; }
+    try {
+      if (memberId === "__new__") {
+        const created = await createMember(draft);
+        onSuccessToast(`"${created.name}" added to the deal team.`);
       } else {
-        await createExternalContact(payload);
+        const updated = await updateMember(memberId, draft);
+        onSuccessToast(`"${updated.name}" updated.`);
       }
-    }
-
-    for (const previousContact of normalizeExternalContactsForCompare(previousContacts)) {
-      if (!previousContact.id || nextIds.has(String(previousContact.id))) continue;
-      await deleteExternalContact(previousContact.id);
-    }
-
-    return loadExternalContacts();
-  }, [createExternalContact, updateExternalContact, deleteExternalContact, loadExternalContacts]);
-
-  const validateInformationForm = useCallback(() => {
-    if (!String(form.dealName || "").trim()) return "Deal Name is required.";
-    if (!String(form.codeName || "").trim()) return "Code Name is required.";
-    if (!form.stage) return "Deal Stage is required.";
-    if (isFieldMandatory("legal_form") && !form.legalForm) return "Legal Form is required.";
-    if (!form.status) return "Status is required.";
-    if (showStatusReason && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
-    if (isFieldMandatory("countries_of_operations") && (!Array.isArray(form.countriesOfOperations) || form.countriesOfOperations.length === 0)) {
-      return "Countries of Operations is required.";
-    }
-    if (isFieldMandatory("region_of_operations") && !String(form.regionOfOperations || "").trim()) {
-      return "Region of Operations is required.";
-    }
-    if (!form.fund) return "Fund is required.";
-    if (!form.country) return "Country (HQ) is required.";
-    if (!form.sector) return "Sector is required.";
-    if (!String(form.businessDescription || "").trim()) return "Business Description is required.";
-    if (!form.sourceType) return "Sourcing is required.";
-    if (!form.operationType) return "Operation Type is required.";
-    if (!String(form.ticket || "").trim()) return "Amethis Ticket is required.";
-    if (!form.currency) return "Ticket Currency is required.";
-    if (showInvestmentInstrumentOther && !String(form.investmentInstrumentOtherText || "").trim()) {
-      return "Please specify the other investment instrument.";
-    }
-    if (!form.coInvestor) return "Co-investor is required.";
-    if (showCoInvestorFields && !form.coInvestorType) return "Co-investor Type is required.";
-    if (showCoInvestorFields && !String(form.coInvestorTicket || "").trim()) return "Co-investor Ticket is required.";
-    if (!form.dealType) return "Investment Type is required.";
-    if (!form.exitRoute) return "Exit Route is required.";
-    if (showExitCounterpartyOther && !String(form.exitCounterpartyOther || "").trim()) {
-      return "Please specify the Exit Counterparty.";
-    }
-    if (!form.exitHorizon) return "Exit Horizon is required.";
-    if (isFieldMandatory("deal_team")) {
-      const hasValidTeamMember = (Array.isArray(form.teamMembers) ? form.teamMembers : []).some(
-        (member) => member?.userId && member?.roleId
-      );
-      if (!hasValidTeamMember) return "Deal Team & Support is required.";
-    }
-    if (isFieldMandatory("external_contacts")) {
-      const hasValidExternalContact = (Array.isArray(form.externalContacts) ? form.externalContacts : []).some(
-        (contact) => String(contact?.name || "").trim()
-      );
-      if (!hasValidExternalContact) return "External Contacts is required.";
-    }
-    return null;
-  }, [form, isFieldMandatory, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
-
-  const handleSave = async () => {
-    const validationMessage = validateInformationForm();
-    if (validationMessage) {
-      showToast({
-        type: "error",
-        title: "Missing information",
-        message: validationMessage,
-      });
-      return;
-    }
-
-    const prevStageId = loadedReferenceForm.stage;
-    const nextStageId = form.stage;
-    const stageChanged = prevStageId !== nextStageId && nextStageId;
-
-    try {
-      const saved = await saveDealDetail(form, lookupOptions);
-      const syncedExternalContacts = await syncExternalContacts(form.externalContacts, loadedReferenceForm.externalContacts);
-      const refreshed = await loadDealDetail().catch(() => saved);
-      const nextForm = mapDealDetailToForm(refreshed || saved, lookupOptions);
-      setForm({
-        ...nextForm,
-        externalContacts: Array.isArray(syncedExternalContacts) ? syncedExternalContacts : nextForm.externalContacts,
-      });
-      setIsEditing(false);
-      showToast({
-        type: "success",
-        title: "Saved",
-        message: `"${saved.dealName}" has been updated successfully.`,
-      });
-      if (stageChanged && deal?.id) {
-        const today = new Date().toISOString().slice(0, 10);
-        await api.post(`/api/dealflow/deals/${deal.id}/stage-logs/`, {
-          stage_id: nextStageId,
-          event_date: today,
-        }).catch(() => {});
-      }
-      await onSaved?.(refreshed || saved);
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "Save failed",
-        message: err.message || "Could not save deal information.",
-      });
+      cancelEdit();
+    } catch {
+      onErrorToast("Could not save. Please try again.");
     }
   };
 
-  const handleCreateTeamUser = useCallback(async (payload) => {
-    const normalizedName = String(payload?.name || "").trim();
-    const normalizedEmail = String(payload?.email || "").trim();
-    if (!normalizedName) return null;
-    if (!normalizedEmail) {
-      showToast({
-        type: "error",
-        title: "Email required",
-        message: "Please enter an email for the new user.",
-      });
-      return null;
-    }
-
-    setIsCreatingTeamUser(true);
+  const handleDelete = async (member) => {
+    if (!member?.id) return;
+    if (!window.confirm(`Delete "${member.name}"?`)) return;
     try {
-      const created = await createDealflowUser({
-        name: normalizedName,
-        email: normalizedEmail,
-        role: "Member",
-      });
-      showToast({
-        type: "success",
-        title: "User created",
-        message: `"${created.name}" has been added successfully.`,
-      });
-      return created.id;
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "User creation failed",
-        message: err.message || "Could not create the user.",
-      });
-      return null;
-    } finally {
-      setIsCreatingTeamUser(false);
+      await deleteMember(member.id);
+      onSuccessToast(`"${member.name}" removed from the deal team list.`);
+    } catch {
+      onErrorToast("Could not delete this member.");
     }
-  }, [createDealflowUser, showToast]);
-
-  const handleCreateTeamRole = useCallback(async (payload) => {
-    const normalizedName = String(payload?.name || payload || "").trim();
-    if (!normalizedName) return null;
-
-    setIsCreatingTeamRole(true);
-    try {
-      const created = await createTeamRole(normalizedName);
-      showToast({
-        type: "success",
-        title: "Position created",
-        message: `"${created.name}" has been added successfully.`,
-      });
-      return created.id;
-    } catch (err) {
-      showToast({
-        type: "error",
-        title: "Position creation failed",
-        message: err.message || "Could not create the position.",
-      });
-      return null;
-    } finally {
-      setIsCreatingTeamRole(false);
-    }
-  }, [createTeamRole, showToast]);
+  };
 
   return (
-    <div className="it-overlay" onClick={onClose}>
-      <aside className={`it-drawer${isExpanded ? " it-drawer--expanded" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div className="it-header">
-          <button
-            className="it-expand-btn"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.3s ease" }}
-          >
-            <ChevronDoubleLeftIcon />
-          </button>
-          <h2 className="it-company-name">{currentTitle}</h2>
-          {activeTab === "Information" && !isEditing && (
-            <button className="it-edit-btn" onClick={() => setIsEditing(true)} disabled={isDetailLoading}>
-              <EditLineIcon /> Edit
-            </button>
-          )}
-          <button className="it-close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
+    <div className="setup-panel">
+      <div className="setup-panel-header">
+        <h2 className="setup-panel-title">Deal team &amp; support</h2>
+        <button className="setup-add-btn" onClick={startCreate} disabled={editingId === "__new__" || isSaving}>
+          <PlusIcon /> New member
+        </button>
+      </div>
 
-        <div className="it-tabs">
-          {VISIBLE_TABS.map((tab) => (
-            <button
-              key={tab}
-              className={`it-tab${activeTab === tab ? " active" : ""}`}
-              onClick={() => handleTabChange(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <div className="it-body">
-          {activeTab === "Events" && (
-            <EventsTab
-              dealId={deal?.id}
-              onSaved={async () => {
-                const refreshed = await loadDealDetail().catch(() => null);
-                await onSaved?.(refreshed || detail || deal);
-              }}
-            />
-          )}
-          {activeTab === "Cap table" && <CapTable dealId={deal?.id} onSaveStateChange={setTabSave} />}
-          {activeTab === "Dataroom" && <Dataroom dealId={deal?.id} />}
-          {activeTab === "Other" && <OtherTab dealId={deal?.id} onSaveStateChange={setTabSave} />}
-
-          {activeTab === "Information" && (
-            <>
-              <SectionHeader label="General Information" />
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Deal Name</FieldLabel>
-                  <input className="it-input" value={form.dealName} onChange={update("dealName")} placeholder="Deal name" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Code Name</FieldLabel>
-                  <input className="it-input" value={form.codeName} onChange={update("codeName")} placeholder="Code name" readOnly={!isEditing} />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Deal Stage</FieldLabel>
-                  <SimpleDropdown
-                    options={stages}
-                    value={form.stage}
-                    onChange={updateDirect("stage")}
-                    placeholder="Please select a stage"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("legal_form")}>Legal Form</FieldLabel>
-                  <SimpleDropdown
-                    options={legalForms}
-                    value={form.legalForm}
-                    onChange={updateDirect("legalForm")}
-                    placeholder="Please select a legal form"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>Pipeline Entry Date</FieldLabel>
-                  <input className="it-input" value={formatDateLabel(form.pipelineEntryDate)} readOnly />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>Latest Update</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={latestUpdateBy ? `${latestUpdateLabel} by ${latestUpdateBy}` : latestUpdateLabel}
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Status</FieldLabel>
-                  <SimpleDropdown
-                    options={statuses}
-                    value={form.status}
-                    onChange={updateDirect("status")}
-                    placeholder="Please select a status"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("countries_of_operations")}>Countries of Operations</FieldLabel>
-                  <SimpleDropdown
-                    options={countries}
-                    value={Array.isArray(form.countriesOfOperations) ? form.countriesOfOperations : []}
-                    onChange={updateDirect("countriesOfOperations")}
-                    placeholder="Select countries of operations"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                    isSingle={false}
-                    searchLabel="Search countries..."
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("region_of_operations")}>Region of Operations</FieldLabel>
-                  <SimpleDropdown
-                    options={regionOptions}
-                    value={form.regionOfOperations}
-                    onChange={updateDirect("regionOfOperations")}
-                    placeholder="Please select a region"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Fund</FieldLabel>
-                  <SimpleDropdown
-                    options={funds}
-                    value={form.fund}
-                    onChange={updateDirect("fund")}
-                    placeholder="Please select a fund"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              {showStatusReason && (
-                <div className="it-field">
-                  <FieldLabel required>Reason</FieldLabel>
-                  <textarea
-                    className="it-textarea"
-                    value={form.statusReason}
-                    onChange={update("statusReason")}
-                    placeholder="Provide the reason for this status"
-                    readOnly={!isEditing}
-                  />
-                </div>
-              )}
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Country (HQ)</FieldLabel>
-                  <SimpleDropdown
-                    options={countries}
-                    value={form.country}
-                    onChange={updateDirect("country")}
-                    placeholder="Please select a country"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Sector</FieldLabel>
-                  <SimpleDropdown
-                    options={sectors}
-                    value={form.sector}
-                    onChange={updateDirect("sector")}
-                    placeholder="Please select a sector"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Sourcing</FieldLabel>
-                  <SimpleDropdown
-                    options={sourceTypes}
-                    value={form.sourceType}
-                    onChange={updateDirect("sourceType")}
-                    placeholder="Please select a sourcing type"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-field">
-                <FieldLabel required>Business Description</FieldLabel>
-                <textarea
-                  className="it-textarea it-textarea--lg"
-                  value={form.businessDescription}
-                  onChange={update("businessDescription")}
-                  placeholder="Describe the business activity"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <div className="it-field">
-                <FieldLabel>Value Creation Potential</FieldLabel>
-                <textarea
-                  className="it-textarea"
-                  value={form.valueCreationPotential}
-                  onChange={update("valueCreationPotential")}
-                  placeholder="Describe the value creation potential"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Operation Type</FieldLabel>
-                  <SimpleDropdown
-                    options={operationTypes}
-                    value={form.operationType}
-                    onChange={updateDirect("operationType")}
-                    placeholder="Please select an operation type"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <SectionHeader label="Investment & Deal Economics" />
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Amethis Ticket (m)</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.ticket}
-                    onChange={update("ticket")}
-                    placeholder="Enter the Amethis ticket"
-                    readOnly={!isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Currency</FieldLabel>
-                  <SimpleDropdown
-                    options={currencies}
-                    value={form.currency}
-                    onChange={updateDirect("currency")}
-                    placeholder="Please select a currency"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>Cash-in</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.cashInAmount}
-                    onChange={update("cashInAmount")}
-                    placeholder="Cash-in amount"
-                    readOnly={!isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>Cash-out</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.cashOutAmount}
-                    onChange={update("cashOutAmount")}
-                    placeholder="Cash-out amount"
-                    readOnly={!isEditing}
-                  />
-                </div>
-              </div>
-
-              <MultiSelectField
-                label="Investment Instrument"
-                options={investmentInstruments}
-                values={Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []}
-                onToggle={toggleInvestmentInstrument}
-                disabled={!isEditing}
-                emptyText="No investment instruments available yet."
-              />
-
-              {showInvestmentInstrumentOther && (
-                <div className="it-field">
-                  <FieldLabel required>Other Investment Instrument</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.investmentInstrumentOtherText}
-                    onChange={update("investmentInstrumentOtherText")}
-                    placeholder="Please specify the instrument"
-                    readOnly={!isEditing}
-                  />
-                </div>
-              )}
-
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Co-investor</FieldLabel>
-                  <SimpleDropdown
-                    options={YES_NO_OPTIONS}
-                    value={form.coInvestor}
-                    onChange={updateDirect("coInvestor")}
-                    placeholder="Please choose"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={!isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Investment Type</FieldLabel>
-                  <SimpleDropdown
-                    options={dealTypes}
-                    value={form.dealType}
-                    onChange={updateDirect("dealType")}
-                    placeholder="Please select an investment type"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              {showCoInvestorFields && (
-                <div className="it-grid-3">
-                  <div className="it-field">
-                    <FieldLabel required>Co-investor Type</FieldLabel>
-                    <SimpleDropdown
-                      options={coInvestorTypes}
-                      value={form.coInvestorType}
-                      onChange={updateDirect("coInvestorType")}
-                      placeholder="Please select a co-investor type"
-                      labelKey="name"
-                      valueKey="id"
-                      disabled={areLookupsLoading || !isEditing}
-                    />
+      <div className="setup-table-wrap">
+        <table className="setup-table">
+          <thead>
+            <tr>
+              <th className="setup-th setup-th--name">Member</th>
+              <th className="setup-th">Email</th>
+              <th className="setup-th setup-th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {editingId === "__new__" && (
+              <tr className="setup-row setup-row--editing">
+                <td className="setup-td">
+                  <input autoFocus className="setup-input" placeholder="Full name" value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} />
+                </td>
+                <td className="setup-td">
+                  <input className="setup-input" type="email" placeholder="email@example.com" value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} />
+                </td>
+                <td className="setup-td setup-td--actions">
+                  <div className="setup-actions">
+                    <button className="setup-icon-btn setup-icon-btn--save" onClick={() => handleSave("__new__")}><DoneIcon /></button>
+                    <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
                   </div>
-                  <div className="it-field">
-                    <FieldLabel required>Co-investor Ticket (m)</FieldLabel>
-                    <input
-                      className="it-input"
-                      value={form.coInvestorTicket}
-                      onChange={update("coInvestorTicket")}
-                      placeholder="Enter the co-investor ticket"
-                      readOnly={!isEditing}
-                    />
-                  </div>
-                </div>
-              )}
+                </td>
+              </tr>
+            )}
 
-              <SectionHeader label="Exit" />
+            {isLoading && (
+              <tr><td className="setup-empty" colSpan={3}>Loading team members...</td></tr>
+            )}
 
-              <div className="it-grid-3">
-                <div className="it-field">
-                  <FieldLabel required>Exit Route</FieldLabel>
-                  <SimpleDropdown
-                    options={exitRoutes}
-                    value={form.exitRoute}
-                    onChange={updateDirect("exitRoute")}
-                    placeholder="Please select an exit route"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>Exit Counterparty</FieldLabel>
-                  <SimpleDropdown
-                    options={exitCounterparties}
-                    value={form.exitCounterparty}
-                    onChange={updateDirect("exitCounterparty")}
-                    placeholder="Please select an exit counterparty"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                    isSingle={false}
-                    searchLabel="Search counterparties..."
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel required>Exit Horizon</FieldLabel>
-                  <SimpleDropdown
-                    options={exitHorizons}
-                    value={form.exitHorizon}
-                    onChange={updateDirect("exitHorizon")}
-                    placeholder="Please select an exit horizon"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              {showExitCounterpartyOther && (
-                <div className="it-field">
-                  <FieldLabel required>Other Exit Counterparty</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.exitCounterpartyOther}
-                    onChange={update("exitCounterpartyOther")}
-                    placeholder="Please specify the counterparty"
-                    readOnly={!isEditing}
-                  />
-                </div>
-              )}
-
-              <SectionHeader label="ESG & Impact" />
-
-              <div className="it-grid-2">
-                <div className="it-field">
-                  <FieldLabel>2X Challenge</FieldLabel>
-                  <input
-                    className="it-input"
-                    value={form.twoXChallenge}
-                    onChange={update("twoXChallenge")}
-                    placeholder="Enter 2X Challenge information"
-                    readOnly={!isEditing}
-                  />
-                </div>
-                <div className="it-field">
-                  <FieldLabel>E&S Risk</FieldLabel>
-                  <SimpleDropdown
-                    options={esgRisks}
-                    value={form.esgRisk}
-                    onChange={updateDirect("esgRisk")}
-                    placeholder="Please select an E&S risk"
-                    labelKey="name"
-                    valueKey="id"
-                    disabled={areLookupsLoading || !isEditing}
-                  />
-                </div>
-              </div>
-
-              <div className="it-field">
-                <FieldLabel>Notes</FieldLabel>
-                <textarea
-                  className="it-textarea"
-                  value={form.esgNotes}
-                  onChange={update("esgNotes")}
-                  placeholder="Add ESG and impact notes"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              <SectionHeader label="Additional Information" />
-
-              <div className="it-field">
-                <FieldLabel>Notes</FieldLabel>
-                <textarea
-                  className="it-textarea it-textarea--lg"
-                  value={form.additionalNotes}
-                  onChange={update("additionalNotes")}
-                  placeholder="Add any additional notes"
-                  readOnly={!isEditing}
-                />
-              </div>
-
-              {showEmergingMarketThesis && (
-                <div className="it-field">
-                  <FieldLabel>Emerging Market Thesis</FieldLabel>
-                  <textarea
-                    className="it-textarea"
-                    value={form.emergingMarketThesis}
-                    onChange={update("emergingMarketThesis")}
-                    placeholder="Describe the emerging market thesis"
-                    readOnly={!isEditing}
-                  />
-                </div>
-              )}
-
-              <SectionHeader label={`Deal Team & Support${isFieldMandatory("deal_team") ? " *" : ""}`} />
-
-              <div className="it-team-container">
-                <table className="it-team-table">
-                  <thead>
-                    <tr>
-                      <th className="it-team-th">Name</th>
-                      <th className="it-team-th">Position</th>
-                      {isEditing && <th className="it-team-th it-team-th--actions" />}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.teamMembers.map((member) => (
-                      <tr key={member.id} className="it-team-row">
-                        <td className="it-team-td">
-                          <SimpleDropdown
-                            options={dealflowUsers}
-                            value={member.userId}
-                            onChange={(value) => updateTeamMember(member.id, "userId", value)}
-                            placeholder="Select a person"
-                            labelKey="name"
-                            valueKey="id"
-                            disabled={(areLookupsLoading || areLookupsSaving) || !isEditing}
-                            createOptionLabel="Add user"
-                            onCreateOption={handleCreateTeamUser}
-                            isCreatingOption={isCreatingTeamUser}
-                            createFields={[
-                              { key: "name", label: "Name", placeholder: "Full name", required: true },
-                              { key: "email", label: "Email", placeholder: "Email address", required: true, type: "email" },
-                            ]}
-                          />
-                        </td>
-                        <td className="it-team-td">
-                          <SimpleDropdown
-                            options={teamRoles}
-                            value={member.roleId}
-                            onChange={(value) => updateTeamMember(member.id, "roleId", value)}
-                            placeholder="Select a position"
-                            labelKey="name"
-                            valueKey="id"
-                            disabled={(areLookupsLoading || areLookupsSaving) || !isEditing}
-                            createOptionLabel="Add position"
-                            onCreateOption={handleCreateTeamRole}
-                            isCreatingOption={isCreatingTeamRole}
-                            createFields={[
-                              { key: "name", label: "Position", placeholder: "Position name", required: true },
-                            ]}
-                          />
-                        </td>
-                        {isEditing && (
-                          <td className="it-team-td it-team-td--actions">
-                            <button
-                              type="button"
-                              className="it-team-icon-btn"
-                              onClick={() => removeTeamMember(member.id)}
-                              aria-label="Remove member"
-                            >
-                              <TrashIcon />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    {form.teamMembers.length === 0 && (
-                      <tr className="it-team-row">
-                        <td className="it-team-td it-team-empty" colSpan={isEditing ? 3 : 2}>
-                          No deal team members added yet.
-                        </td>
-                      </tr>
+            {!isLoading && members.map((member) => {
+              const isEditing = editingId === member.id;
+              return (
+                <tr key={member.id} className={`setup-row${isEditing ? " setup-row--editing" : ""}`}>
+                  <td className="setup-td">
+                    <div className="setup-team-member-cell">
+                      <span className="setup-team-avatar">{buildInitials(isEditing ? draft.name : member.name)}</span>
+                      {isEditing ? (
+                        <input autoFocus className="setup-input" value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} />
+                      ) : (
+                        <span>{member.name}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="setup-td">
+                    {isEditing ? (
+                      <input className="setup-input" type="email" value={draft.email} onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))} />
+                    ) : (
+                      <span className="setup-team-email">{member.email || "—"}</span>
                     )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="it-team-footer-row">
-                      <td colSpan={isEditing ? 3 : 2} />
-                    </tr>
-                  </tfoot>
-                </table>
-                {isEditing && (
-                  <button type="button" className="it-new-user-btn" onClick={addTeamMember}>
-                    <PlusIcon /> Add member
-                  </button>
-                )}
-              </div>
+                  </td>
+                  <td className="setup-td setup-td--actions">
+                    <div className="setup-actions">
+                      {isEditing ? (
+                        <>
+                          <button className="setup-icon-btn setup-icon-btn--save" onClick={() => handleSave(member.id)}><DoneIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--cancel" onClick={cancelEdit}><CloseIcon /></button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="setup-icon-btn" onClick={() => startEdit(member)} disabled={isSaving} aria-label="Edit"><EditLineIcon /></button>
+                          <button className="setup-icon-btn setup-icon-btn--delete" onClick={() => handleDelete(member)} disabled={isSaving} aria-label="Delete"><TrashIcon /></button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
-              <SectionHeader label={`External Contacts${isFieldMandatory("external_contacts") ? " *" : ""}`} />
-
-              <div className="it-team-container">
-                <table className="it-team-table it-team-table--wide">
-                  <thead>
-                    <tr>
-                      <th className="it-team-th">Name</th>
-                      <th className="it-team-th">Role</th>
-                      <th className="it-team-th">Email</th>
-                      <th className="it-team-th">Phone</th>
-                      {isEditing && <th className="it-team-th it-team-th--actions" />}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.externalContacts.map((contact) => (
-                      <tr key={contact.id} className="it-team-row">
-                        <td className="it-team-td">
-                          <input
-                            className="it-input"
-                            value={contact.name}
-                            onChange={(e) => updateExternalContactField(contact.id, "name", e.target.value)}
-                            placeholder="Full name"
-                            readOnly={!isEditing}
-                          />
-                        </td>
-                        <td className="it-team-td">
-                          <input
-                            className="it-input"
-                            value={contact.role}
-                            onChange={(e) => updateExternalContactField(contact.id, "role", e.target.value)}
-                            placeholder="e.g. CFO, CEO"
-                            readOnly={!isEditing}
-                          />
-                        </td>
-                        <td className="it-team-td">
-                          <input
-                            className="it-input"
-                            type="email"
-                            value={contact.email}
-                            onChange={(e) => updateExternalContactField(contact.id, "email", e.target.value)}
-                            placeholder="email@example.com"
-                            readOnly={!isEditing}
-                          />
-                        </td>
-                        <td className="it-team-td">
-                          <input
-                            className="it-input"
-                            type="tel"
-                            value={contact.phone}
-                            onChange={(e) => updateExternalContactField(contact.id, "phone", e.target.value)}
-                            placeholder="+1 234 567 890"
-                            readOnly={!isEditing}
-                          />
-                        </td>
-                        {isEditing && (
-                          <td className="it-team-td it-team-td--actions">
-                            <button
-                              type="button"
-                              className="it-team-icon-btn"
-                              onClick={() => removeExternalContact(contact.id)}
-                              aria-label="Remove contact"
-                            >
-                              <TrashIcon />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    {form.externalContacts.length === 0 && (
-                      <tr className="it-team-row">
-                        <td className="it-team-td it-team-empty" colSpan={isEditing ? 5 : 4}>
-                          No external contacts added yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="it-team-footer-row">
-                      <td colSpan={isEditing ? 5 : 4} />
-                    </tr>
-                  </tfoot>
-                </table>
-                {isEditing && (
-                  <button type="button" className="it-new-user-btn" onClick={addExternalContact}>
-                    <PlusIcon /> New contact
-                  </button>
-                )}
-              </div>
-
-              <SectionHeader label="KPIs & Configuration" />
-
-              <div className="it-kpi-embed">
-                <KPIsTab dealId={deal?.id} />
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="it-footer">
-          {activeTab === "Information" && isEditing && (
-            <>
-              <button className="it-cancel-btn" onClick={handleCancelEdit}>
-                Cancel
-              </button>
-              <button className="it-save-btn" onClick={handleSave} disabled={isBusy || !isDirty}>
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            </>
-          )}
-          {(activeTab === "Cap table" || activeTab === "Other") && tabSave.isEditing && (
-            <button className="it-cancel-btn" onClick={tabSave.cancelFn}>
-              Cancel
-            </button>
-          )}
-          {(activeTab === "Cap table" || activeTab === "Other") && tabSave.isEditing && (
-            <button className="it-save-btn" onClick={tabSave.fn} disabled={tabSave.isSaving || !tabSave.isDirty}>
-              {tabSave.isSaving ? "Saving..." : "Save"}
-            </button>
-          )}
-          {activeTab === "Other" && !tabSave.isEditing && (
-            <button className="it-save-btn" onClick={tabSave.fn} disabled={tabSave.isSaving || !tabSave.isDirty}>
-              {tabSave.isSaving ? "Saving..." : "Save"}
-            </button>
-          )}
-        </div>
-
-        {toast && (
-          <Toast
-            key={toast.key}
-            title={toast.title}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            onClose={closeToast}
-          />
-        )}
-      </aside>
+            {!isLoading && editingId !== "__new__" && members.length === 0 && (
+              <tr><td className="setup-empty" colSpan={3}>No team members yet. Click "New member" to add one.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-export default InfoTab;
+function FieldRulesPanel({ onSuccessToast, onErrorToast }) {
+  const { fields, isLoading, isSaving, updateField } = useDealflowFieldConfig();
+
+  const handleToggle = async (field) => {
+    try {
+      const updated = await updateField(field.fieldKey, !field.isMandatory);
+      onSuccessToast(`"${updated.fieldLabel}" is now ${updated.isMandatory ? "mandatory" : "optional"}.`);
+    } catch {
+      onErrorToast("Could not update this field rule.");
+    }
+  };
+
+  return (
+    <div className="setup-panel">
+      <div className="setup-panel-header">
+        <h2 className="setup-panel-title">Field Rules</h2>
+      </div>
+
+      <div className="setup-table-wrap">
+        <table className="setup-table">
+          <thead>
+            <tr>
+              <th className="setup-th setup-th--name">Field</th>
+              <th className="setup-th setup-th--status">Mandatory</th>
+              <th className="setup-th setup-th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr><td className="setup-empty" colSpan={3}>Loading field rules...</td></tr>
+            )}
+            {!isLoading && fields.map((field) => (
+              <tr key={field.fieldKey} className="setup-row">
+                <td className="setup-td">{field.fieldLabel}</td>
+                <td className="setup-td">
+                  <SetupStatusBadge isActive={field.isMandatory} />
+                </td>
+                <td className="setup-td setup-td--actions">
+                  <div className="setup-actions">
+                    <button
+                      className={`setup-toggle-btn${field.isMandatory ? "" : " setup-toggle-btn--inactive"}`}
+                      onClick={() => handleToggle(field)}
+                      disabled={isSaving}
+                    >
+                      {field.isMandatory ? "Make optional" : "Make mandatory"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!isLoading && fields.length === 0 && (
+              <tr><td className="setup-empty" colSpan={3}>No field rules found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default function SetupTab() {
+  const [activeKey, setActiveKey] = useState(SETUP_CATEGORIES[0].key);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { toast, showToast, closeToast } = useToast();
+
+  const isDealTeam = activeKey === DEAL_TEAM_KEY;
+  const isFieldRules = activeKey === FIELD_RULES_KEY;
+  const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam || isFieldRules ? null : activeCategory.taxonomyType);
+
+  useEffect(() => {
+    if (error) {
+      showToast({
+        type: "error",
+        title: "Setup failed",
+        message: error,
+      });
+    }
+  }, [error, showToast]);
+
+  const countsByKey = useMemo(
+    () => Object.fromEntries(SETUP_CATEGORIES.map((category) => [category.key, category.key === activeKey ? items.length : null])),
+    [activeKey, items.length]
+  );
+
+  const handleCreate = async (payload) => {
+    const created = await createItem(payload);
+    showToast({
+      type: "success",
+      title: "Item created",
+      message: `"${created.name}" has been created successfully.`,
+    });
+    return created;
+  };
+
+  const handleUpdate = async (itemId, payload) => {
+    const updated = await updateItem(itemId, payload);
+    showToast({
+      type: "success",
+      title: "Item updated",
+      message: `"${updated.name}" has been updated successfully.`,
+    });
+    return updated;
+  };
+
+  const handleToggleActive = async (item) => {
+    try {
+      const updated = await toggleItemActive(item);
+      showToast({
+        type: "success",
+        title: updated.isActive ? "Item activated" : "Item deactivated",
+        message: `"${updated.name}" is now ${updated.isActive ? "active" : "inactive"}.`,
+      });
+    } catch {
+      // Toast comes from hook error effect.
+    }
+  };
+
+  const handleDelete = async (item) => {
+    await deleteItem(item.id);
+    showToast({
+      type: "success",
+      title: "Item deleted",
+      message: `"${item.name}" has been deleted successfully.`,
+    });
+  };
+
+  const handleErrorToast = (message) => {
+    showToast({
+      type: "error",
+      title: "Validation failed",
+      message,
+    });
+  };
+
+  return (
+    <div className="setup-wrapper">
+      <div className="setup-topbar">
+        <SearchBar placeholder="Search by name or code..." onSearch={setSearchQuery} />
+      </div>
+
+      <div className="setup-subtabs">
+        {SETUP_CATEGORIES.map((category) => (
+          <button
+            key={category.key}
+            className={`setup-subtab${activeKey === category.key ? " active" : ""}`}
+            onClick={() => setActiveKey(category.key)}
+          >
+            {category.label}
+            <span className="setup-subtab-count">{countsByKey[category.key] ?? "-"}</span>
+          </button>
+        ))}
+        <button
+          className={`setup-subtab${activeKey === DEAL_TEAM_KEY ? " active" : ""}`}
+          onClick={() => setActiveKey(DEAL_TEAM_KEY)}
+        >
+          Deal team & Support
+        </button>
+        <button
+          className={`setup-subtab${activeKey === FIELD_RULES_KEY ? " active" : ""}`}
+          onClick={() => setActiveKey(FIELD_RULES_KEY)}
+        >
+          Field Rules
+        </button>
+      </div>
+
+      {isDealTeam ? (
+        <DealTeamPanel
+          onSuccessToast={(msg) => showToast({ type: "success", title: "Team updated", message: msg })}
+          onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
+        />
+      ) : isFieldRules ? (
+        <FieldRulesPanel
+          onSuccessToast={(msg) => showToast({ type: "success", title: "Field rule updated", message: msg })}
+          onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
+        />
+      ) : (
+        <CategoryPanel
+          category={activeCategory}
+          items={items}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          onToggleActive={handleToggleActive}
+          onDelete={handleDelete}
+          onErrorToast={handleErrorToast}
+          searchQuery={searchQuery}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          key={toast.key}
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={closeToast}
+        />
+      )}
+    </div>
+  );
+}
