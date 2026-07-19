@@ -1,35 +1,25 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "/src/components/Icons/DirectionIcons";
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import "./FilterModal.css";
 
-const STATIC_SECTIONS = [
-  {
-    key: "stage",
-    label: "Stage",
-    options: ["Preliminary discussions", "Briefing", "IC 1", "IC 2"],
-    defaultOpen: true,
-  },
-  {
-    key: "fund",
-    label: "Fund",
-    options: ["Amethis MENA II", "Amethis Fund II", "Amethis Europe Expansion", "Amethis Fund III"],
-    defaultOpen: true,
-  },
-];
-
-function FilterModal({ onClose, onApply, sectorOptions = [], countryOptions = [] }) {
-  const FILTER_SECTIONS = [
-    ...STATIC_SECTIONS,
-    { key: "sector",  label: "Sector",  options: sectorOptions,  defaultOpen: sectorOptions.length > 0 },
-    { key: "country", label: "Country", options: countryOptions, defaultOpen: countryOptions.length > 0 },
-  ];
+function FilterModal({ onClose, onApply, filters = {}, initialSelected = {} }) {
+  const FILTER_SECTIONS = useMemo(
+    () => [
+      { key: "stage", label: "Stage", options: filters.stage || [], defaultOpen: true },
+      { key: "fund", label: "Fund", options: filters.fund || [], defaultOpen: true },
+      { key: "sector", label: "Sector", options: filters.sector || [], defaultOpen: (filters.sector || []).length > 0 },
+      { key: "country", label: "Country", options: filters.country || [], defaultOpen: (filters.country || []).length > 0 },
+      { key: "status", label: "Status", options: filters.status || [], defaultOpen: (filters.status || []).length > 0 },
+    ],
+    [filters]
+  );
 
   const [openSections, setOpenSections] = useState(
     Object.fromEntries(FILTER_SECTIONS.map((s) => [s.key, s.defaultOpen]))
   );
   const [selected, setSelected] = useState(
-    Object.fromEntries(FILTER_SECTIONS.map((s) => [s.key, []]))
+    Object.fromEntries(FILTER_SECTIONS.map((s) => [s.key, Array.isArray(initialSelected[s.key]) ? initialSelected[s.key] : []]))
   );
 
   const toggleSection = (key) =>
