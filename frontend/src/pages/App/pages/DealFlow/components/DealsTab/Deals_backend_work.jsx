@@ -8,6 +8,7 @@ const DEALFLOW_TAXONOMY_ENDPOINT = "/api/dealflow/taxonomy/";
 const DEALFLOW_FUNDS_ENDPOINT = "/api/dealflow/funds/";
 const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
 const DEALFLOW_SETUP_ENDPOINT = "/api/dealflow/setup/";
+const DEALFLOW_FIELD_CONFIG_ENDPOINT = "/api/dealflow/field-config/";
 const DEALFLOW_EXTERNAL_CONTACTS_SUFFIX = "/external-contacts/";
 const SHARED_FUNDS_ENDPOINT = "/api/funds/";
 
@@ -432,6 +433,7 @@ function normalizeDealDetail(payload) {
     countryOfIncorporation: row?.company?.country_of_incorporation_id ?? row?.country_of_incorporation?.id ?? null,
     countryOfMainOperation: row?.company?.country_of_main_operation_id ?? row?.country_of_main_operation?.id ?? null,
     countriesOfOperations: toSafeArray(row?.operation_countries).map((item) => item?.id ?? item?.country_id ?? item).filter(Boolean),
+    regionOfOperations: row?.region_of_operations ?? "",
     valueCreationPotential: row?.value_creation_potential ?? "",
     sourceType: row?.source_type?.id ?? row?.source_type_id ?? null,
     operationType: row?.operation_type?.id ?? row?.operation_type_id ?? null,
@@ -447,7 +449,7 @@ function normalizeDealDetail(payload) {
     coInvestorType: row?.co_investor_type?.id ?? row?.co_investor_type_id ?? null,
     coInvestorTicket: row?.co_investor_ticket_amount ?? "",
     exitRoute: row?.exit_route?.id ?? row?.exit_route_id ?? null,
-    exitCounterparty: row?.exit_counterparty?.id ?? row?.exit_counterparty_id ?? null,
+    exitCounterparty: toSafeArray(row?.exit_counterparties).map((item) => item?.id ?? item).filter(Boolean),
     exitCounterpartyOther: row?.exit_counterparty_other ?? "",
     exitHorizon: row?.exit_horizon?.id ?? row?.exit_horizon_id ?? null,
     twoXChallenge: row?.two_x_challenge ?? "",
@@ -776,6 +778,7 @@ export function mapDealDetailToForm(detail, { countries = [], currencies = [], f
     countryOfMainOperation: mapDealflowIdToSourceId(detail.countryOfMainOperation, countries),
     country: mapDealflowIdToSourceId(detail.country, countries),
     countriesOfOperations: toSafeArray(detail.countriesOfOperations).map((value) => mapDealflowIdToSourceId(value, countries)).filter(Boolean),
+    regionOfOperations: detail.regionOfOperations || "",
     teamMembers: toSafeArray(detail.teamMembers).map((member) => ({
       ...member,
       positionOrder: member?.positionOrder ?? "",
@@ -809,7 +812,7 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     stage_id: normalizeNullable(form.stage),
     fund_id: normalizeNullable(form.fund),
     ticket_amount: normalizeNumber(form.ticket),
-    currency_id: null,
+    currency_id: mapSourceIdToDealflowId(form.currency, currencies),
     pipeline_entry_date: formatDateForApi(form.pipelineEntryDate),
     legal_form_id: normalizeNullable(form.legalForm),
     country_of_incorporation_id: null,
@@ -818,6 +821,7 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     operation_country_ids: toSafeArray(form.countriesOfOperations)
       .map((value) => mapSourceIdToDealflowId(value, countries))
       .filter(Boolean),
+    region_of_operations: normalizeText(form.regionOfOperations),
     value_creation_potential: normalizeText(form.valueCreationPotential),
     source_type_id: normalizeNullable(form.sourceType),
     operation_type_id: normalizeNullable(form.operationType),
@@ -832,7 +836,8 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     co_investor_type_id: normalizeNullable(form.coInvestorType),
     co_investor_ticket_amount: normalizeNumber(form.coInvestorTicket),
     exit_route_id: normalizeNullable(form.exitRoute),
-    exit_counterparty_id: normalizeNullable(form.exitCounterparty),
+    exit_counterparty_id: normalizeNullable(toSafeArray(form.exitCounterparty)[0] ?? null),
+    exit_counterparty_ids: toSafeArray(form.exitCounterparty).map((id) => normalizeNullable(id)).filter(Boolean),
     exit_counterparty_other: normalizeText(form.exitCounterpartyOther),
     exit_horizon_id: normalizeNullable(form.exitHorizon),
     two_x_challenge: normalizeText(form.twoXChallenge),
@@ -2139,6 +2144,7 @@ export function useDealflowLookupOptions() {
     investmentInstruments: [],
     dealTypes: [],
     legalForms: [],
+    regionOptions: [],
     teamRoles: [],
     dealflowUsers: [],
     funds: [],
@@ -2169,6 +2175,7 @@ export function useDealflowLookupOptions() {
         investmentInstruments,
         dealTypes,
         legalForms,
+        regionOptions,
         teamRoles,
         dealflowUsers,
         dealflowCountries,
@@ -2190,6 +2197,7 @@ export function useDealflowLookupOptions() {
         api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=investment_instrument`),
         api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=deal_type`),
         api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=legal_form`),
+        api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=region_of_operation`),
         api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=team_role`),
         api.get(DEALFLOW_USERS_ENDPOINT),
         api.get(`${DEALFLOW_TAXONOMY_ENDPOINT}?type=country`),
@@ -2213,6 +2221,7 @@ export function useDealflowLookupOptions() {
         investmentInstruments: formatDropdownOptions(investmentInstruments),
         dealTypes: formatDropdownOptions(dealTypes),
         legalForms: formatDropdownOptions(legalForms),
+        regionOptions: formatDropdownOptions(regionOptions),
         teamRoles: formatDropdownOptions(teamRoles),
         dealflowUsers: formatDropdownOptions(dealflowUsers, {
           labelBuilder: (row) => row?.name || "",
@@ -2353,5 +2362,71 @@ export function useDealflowLookupOptions() {
       createTeamRole,
       loadOptions,
     ]
+  );
+}
+
+export function useDealflowFieldConfig() {
+  const api = useApi();
+  const [fields, setFields] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadFields = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const payload = await api.get(DEALFLOW_FIELD_CONFIG_ENDPOINT);
+      const normalized = toSafeArray(payload).map((row) => ({
+        id: row?.id ?? null,
+        fieldKey: row?.field_key ?? "",
+        fieldLabel: row?.field_label ?? "",
+        isMandatory: Boolean(row?.is_mandatory),
+      }));
+      setFields(normalized);
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to load field configuration.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api]);
+
+  const updateField = useCallback(async (fieldKey, isMandatory) => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await api.patch(DEALFLOW_FIELD_CONFIG_ENDPOINT, {
+        field_key: fieldKey,
+        is_mandatory: isMandatory,
+      });
+      const normalized = {
+        id: response?.id ?? null,
+        fieldKey: response?.field_key ?? fieldKey,
+        fieldLabel: response?.field_label ?? "",
+        isMandatory: Boolean(response?.is_mandatory),
+      };
+      setFields((prev) => {
+        const hasExisting = prev.some((field) => field.fieldKey === fieldKey);
+        if (!hasExisting) return [...prev, normalized];
+        return prev.map((field) => (field.fieldKey === fieldKey ? normalized : field));
+      });
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to update field configuration.");
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    loadFields().catch(() => {});
+  }, [loadFields]);
+
+  return useMemo(
+    () => ({ fields, isLoading, isSaving, error, loadFields, updateField }),
+    [fields, isLoading, isSaving, error, loadFields, updateField]
   );
 }
