@@ -38,6 +38,15 @@ function displayCellValue(value) {
   return value;
 }
 
+function isFteKpi(entry) {
+  return String(entry?.kpiName || "").trim().toUpperCase() === "FTE";
+}
+
+function getKpiUnitLabel(entry, period) {
+  if (isFteKpi(entry)) return "Headcount";
+  return entry?.currencyCode || period?.currencyCode || entry?.unit || period?.currencyName || "";
+}
+
 function createEditableValues(entry, columns) {
   const values = {};
   columns.forEach((column) => {
@@ -53,6 +62,8 @@ function canEditEntryInMode(entry, displayMode) {
 function createDraftEntry(entry, columns, displayMode) {
   return {
     ...entry,
+    currencyId: isFteKpi(entry) ? null : (entry?.currencyId || null),
+    unit: isFteKpi(entry) ? "Headcount" : (entry?.unit || ""),
     editableValues: canEditEntryInMode(entry, displayMode) ? createEditableValues(entry, columns) : {},
   };
 }
@@ -219,7 +230,15 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
     setDraftEntriesByPeriod((prev) => ({
       ...prev,
       [activePeriodId]: (prev[activePeriodId] || []).map((entry) =>
-        entry.id === entryId ? { ...entry, [field]: value } : entry
+        entry.id === entryId
+          ? {
+              ...entry,
+              [field]: field === "kpiName" ? value : value,
+              ...(field === "kpiName" && String(value || "").trim().toUpperCase() === "FTE"
+                ? { currencyId: null, unit: "Headcount" }
+                : {}),
+            }
+          : entry
       ),
     }));
   };
@@ -346,6 +365,8 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
           currencies={currencies}
           periodTypes={periodTypes.length > 0 ? periodTypes : DISPLAY_MODE_OPTIONS}
           year={periodYear}
+          periodCurrencyId={activePeriod?.currencyId || null}
+          periodCurrencyLabel={activePeriod?.currencyCode || activePeriod?.currencyName || ""}
           isSaving={isSaving}
           onClose={() => setShowNewKPI(false)}
           onSubmit={handleCreateKPI}
@@ -450,13 +471,43 @@ export default function KPIsTab({ dealId, onSaveStateChange }) {
                   return (
                     <tr key={entry.id} className={`kpi-row${isRowEditing ? " kpi-row--editing" : ""}`}>
                       <td className="kpi-td kpi-td--label">
-                        <input
-                          className="kpi-cell-input kpi-cell-input--text"
-                          value={entry.kpiName || ""}
-                          onChange={(e) => updateDraftEntry(entry.id, "kpiName", e.target.value)}
-                          readOnly={!isRowEditing}
-                          disabled={isSaving}
-                        />
+                        <div className="kpi-label-cell">
+                          <input
+                            className="kpi-cell-input kpi-cell-input--text"
+                            value={entry.kpiName || ""}
+                            onChange={(e) => updateDraftEntry(entry.id, "kpiName", e.target.value)}
+                            readOnly={!isRowEditing}
+                            disabled={isSaving}
+                          />
+                          {isRowEditing ? (
+                            <div className="kpi-label-meta">
+                              <div className="kpi-label-meta-field">
+                                <span className="kpi-label-meta-title">Currency</span>
+                                <SimpleDropdown
+                                  options={currencies}
+                                  value={entry.currencyId}
+                                  onChange={(value) => updateDraftEntry(entry.id, "currencyId", value)}
+                                  placeholder={activePeriod?.currencyCode || "Currency"}
+                                  labelKey="name"
+                                  valueKey="id"
+                                  disabled={isSaving || isFteKpi(entry)}
+                                />
+                              </div>
+                              <div className="kpi-label-meta-field">
+                                <span className="kpi-label-meta-title">Unit</span>
+                                <input
+                                  className="kpi-cell-input kpi-cell-input--text"
+                                  value={isFteKpi(entry) ? "Headcount" : (entry.unit || "")}
+                                  onChange={(e) => updateDraftEntry(entry.id, "unit", e.target.value)}
+                                  readOnly={isFteKpi(entry)}
+                                  disabled={isSaving}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="kpi-label-unit">{getKpiUnitLabel(entry, activePeriod)}</span>
+                          )}
+                        </div>
                       </td>
                       {activeColumns.map((column) => (
                         <td key={column.key} className="kpi-td kpi-td--value">
