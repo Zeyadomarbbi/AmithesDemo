@@ -6,10 +6,10 @@ import Toast from "../../../../../../components/Toast/Toast";
 import { useToast } from "../../../../../../components/Toast/useToast";
 import useApi from "/src/hooks/api/useApi";
 import {
-  useDealflowFieldConfig,
   mapDealDetailToForm,
   mapInfoFormToPayload,
   useDealExternalContactsBackend,
+  useDealflowFieldConfig,
   useDealInfoBackend,
   useDealflowLookupOptions,
 } from "../../Deals_backend_work";
@@ -26,6 +26,46 @@ const YES_NO_OPTIONS = [
   { id: "yes", name: "Yes" },
   { id: "no", name: "No" },
 ];
+const DEFAULT_MANDATORY_FIELDS = {
+  deal_name: true,
+  code_name: true,
+  deal_stage: true,
+  legal_form: false,
+  pipeline_entry_date: false,
+  latest_update: false,
+  status: true,
+  status_reason: true,
+  fund: true,
+  country_hq: true,
+  sector: true,
+  business_description: true,
+  value_creation_potential: false,
+  sourcing: true,
+  deal_team: true,
+  external_contacts: true,
+  countries_of_operations: false,
+  region_of_operations: false,
+  operation_type: true,
+  amethis_ticket: true,
+  ticket_currency: true,
+  cash_in: false,
+  cash_out: false,
+  investment_instrument: false,
+  investment_instrument_other: true,
+  co_investor: true,
+  co_investor_type: true,
+  co_investor_ticket: true,
+  investment_type: true,
+  exit_route: true,
+  exit_counterparty: false,
+  exit_counterparty_other: true,
+  exit_horizon: true,
+  two_x_challenge: false,
+  esg_risk: false,
+  esg_notes: false,
+  additional_notes: false,
+  emerging_market_thesis: false,
+};
 
 const createInitialForm = (deal) => ({
   dealName: deal?.name || "",
@@ -43,7 +83,7 @@ const createInitialForm = (deal) => ({
   latestUpdateByName: "",
   legalForm: null,
   countriesOfOperations: [],
-  regionOfOperations: "",
+  regionOfOperations: [],
   valueCreationPotential: "",
   sourceType: null,
   operationType: null,
@@ -200,6 +240,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   const [isCreatingTeamRole, setIsCreatingTeamRole] = useState(false);
   const { toast, showToast, closeToast } = useToast();
   const api = useApi();
+  const { fields: fieldConfig } = useDealflowFieldConfig();
 
   const {
     detail,
@@ -247,12 +288,6 @@ function InfoTab({ deal, onClose, onSaved }) {
     createDealflowUser,
     createTeamRole,
   } = useDealflowLookupOptions();
-  const {
-    fields: fieldConfig,
-    isLoading: areFieldConfigLoading,
-    error: fieldConfigError,
-  } = useDealflowFieldConfig();
-
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -297,16 +332,6 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [lookupError, showToast]);
 
   useEffect(() => {
-    if (fieldConfigError) {
-      showToast({
-        type: "error",
-        title: "Field config failed",
-        message: fieldConfigError,
-      });
-    }
-  }, [fieldConfigError, showToast]);
-
-  useEffect(() => {
     if (externalContactsError) {
       showToast({
         type: "error",
@@ -317,7 +342,7 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [externalContactsError, showToast]);
 
   const currentTitle = useMemo(() => form.dealName || deal?.name || "Deal", [form.dealName, deal?.name]);
-  const isBusy = isDetailLoading || areLookupsLoading || areFieldConfigLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
+  const isBusy = isDetailLoading || areLookupsLoading || areExternalContactsLoading || isSaving || areExternalContactsSaving;
   const lookupOptions = useMemo(() => ({ countries, currencies, funds }), [countries, currencies, funds]);
   const loadedReferenceForm = useMemo(() => {
     const base = detail
@@ -329,6 +354,15 @@ function InfoTab({ deal, onClose, onSaved }) {
     };
   }, [detail, lookupOptions, deal, externalContacts]);
   const isDirty = hasFormChanges(form, loadedReferenceForm, lookupOptions);
+  const mandatoryFieldMap = useMemo(() => {
+    const next = { ...DEFAULT_MANDATORY_FIELDS };
+    for (const field of Array.isArray(fieldConfig) ? fieldConfig : []) {
+      if (!field?.fieldKey) continue;
+      next[field.fieldKey] = Boolean(field.isMandatory);
+    }
+    return next;
+  }, [fieldConfig]);
+  const isMandatoryField = useCallback((fieldKey) => Boolean(mandatoryFieldMap[fieldKey]), [mandatoryFieldMap]);
 
   const selectedStatus = useMemo(() => getOptionById(statuses, form.status), [statuses, form.status]);
   const selectedExitCounterpartyOptions = useMemo(
@@ -351,17 +385,6 @@ function InfoTab({ deal, onClose, onSaved }) {
   const showEmergingMarketThesis = String(selectedFund?.name || "").toUpperCase().includes("AEE");
   const latestUpdateLabel = form.latestUpdateAt ? formatDateTimeLabel(form.latestUpdateAt) : "";
   const latestUpdateBy = String(form.latestUpdateByName || "").trim();
-  const fieldConfigMap = useMemo(
-    () => Object.fromEntries((Array.isArray(fieldConfig) ? fieldConfig : []).map((field) => [field.fieldKey, field])),
-    [fieldConfig]
-  );
-  const isFieldMandatory = useCallback((fieldKey, fallback = false) => {
-    if (Object.prototype.hasOwnProperty.call(fieldConfigMap, fieldKey)) {
-      return Boolean(fieldConfigMap[fieldKey]?.isMandatory);
-    }
-    return fallback;
-  }, [fieldConfigMap]);
-
   const handleCancelEdit = () => {
     setForm(detail ? mapDealDetailToForm(detail, lookupOptions) : createInitialForm(deal));
     setIsEditing(false);
@@ -490,52 +513,56 @@ function InfoTab({ deal, onClose, onSaved }) {
   }, [createExternalContact, updateExternalContact, deleteExternalContact, loadExternalContacts]);
 
   const validateInformationForm = useCallback(() => {
-    if (!String(form.dealName || "").trim()) return "Deal Name is required.";
-    if (!String(form.codeName || "").trim()) return "Code Name is required.";
-    if (!form.stage) return "Deal Stage is required.";
-    if (isFieldMandatory("legal_form") && !form.legalForm) return "Legal Form is required.";
-    if (!form.status) return "Status is required.";
-    if (showStatusReason && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
-    if (isFieldMandatory("countries_of_operations") && (!Array.isArray(form.countriesOfOperations) || form.countriesOfOperations.length === 0)) {
+    if (isMandatoryField("deal_name") && !String(form.dealName || "").trim()) return "Deal Name is required.";
+    if (isMandatoryField("code_name") && !String(form.codeName || "").trim()) return "Code Name is required.";
+    if (isMandatoryField("deal_stage") && !form.stage) return "Deal Stage is required.";
+    if (isMandatoryField("status") && !form.status) return "Status is required.";
+    if (showStatusReason && isMandatoryField("status_reason") && !String(form.statusReason || "").trim()) return "Please provide the reason for this status.";
+    if (isMandatoryField("fund") && !form.fund) return "Fund is required.";
+    if (isMandatoryField("country_hq") && !form.country) return "Country (HQ) is required.";
+    if (isMandatoryField("sector") && !form.sector) return "Sector is required.";
+    if (isMandatoryField("legal_form") && !form.legalForm) return "Legal Form is required.";
+    if (isMandatoryField("business_description") && !String(form.businessDescription || "").trim()) return "Business Description is required.";
+    if (isMandatoryField("sourcing") && !form.sourceType) return "Sourcing is required.";
+    if (isMandatoryField("operation_type") && !form.operationType) return "Operation Type is required.";
+    if (isMandatoryField("amethis_ticket") && !String(form.ticket || "").trim()) return "Amethis Ticket is required.";
+    if (isMandatoryField("ticket_currency") && !form.currency) return "Ticket Currency is required.";
+    if (isMandatoryField("cash_in") && !String(form.cashInAmount || "").trim()) return "Cash-in is required.";
+    if (isMandatoryField("cash_out") && !String(form.cashOutAmount || "").trim()) return "Cash-out is required.";
+    if (isMandatoryField("countries_of_operations") && !(Array.isArray(form.countriesOfOperations) && form.countriesOfOperations.length > 0)) {
       return "Countries of Operations is required.";
     }
-    if (isFieldMandatory("region_of_operations") && !String(form.regionOfOperations || "").trim()) {
+    if (isMandatoryField("region_of_operations") && !(Array.isArray(form.regionOfOperations) && form.regionOfOperations.length > 0)) {
       return "Region of Operations is required.";
     }
-    if (!form.fund) return "Fund is required.";
-    if (!form.country) return "Country (HQ) is required.";
-    if (!form.sector) return "Sector is required.";
-    if (!String(form.businessDescription || "").trim()) return "Business Description is required.";
-    if (!form.sourceType) return "Sourcing is required.";
-    if (!form.operationType) return "Operation Type is required.";
-    if (!String(form.ticket || "").trim()) return "Amethis Ticket is required.";
-    if (!form.currency) return "Ticket Currency is required.";
-    if (showInvestmentInstrumentOther && !String(form.investmentInstrumentOtherText || "").trim()) {
+    if (isMandatoryField("investment_instrument") && !(Array.isArray(form.investmentInstruments) && form.investmentInstruments.length > 0)) {
+      return "Investment Instrument is required.";
+    }
+    if (showInvestmentInstrumentOther && isMandatoryField("investment_instrument_other") && !String(form.investmentInstrumentOtherText || "").trim()) {
       return "Please specify the other investment instrument.";
     }
-    if (!form.coInvestor) return "Co-investor is required.";
-    if (showCoInvestorFields && !form.coInvestorType) return "Co-investor Type is required.";
-    if (showCoInvestorFields && !String(form.coInvestorTicket || "").trim()) return "Co-investor Ticket is required.";
-    if (!form.dealType) return "Investment Type is required.";
-    if (!form.exitRoute) return "Exit Route is required.";
-    if (showExitCounterpartyOther && !String(form.exitCounterpartyOther || "").trim()) {
+    if (isMandatoryField("co_investor") && !form.coInvestor) return "Co-investor is required.";
+    if (showCoInvestorFields && isMandatoryField("co_investor_type") && !form.coInvestorType) return "Co-investor Type is required.";
+    if (showCoInvestorFields && isMandatoryField("co_investor_ticket") && !String(form.coInvestorTicket || "").trim()) return "Co-investor Ticket is required.";
+    if (isMandatoryField("investment_type") && !form.dealType) return "Investment Type is required.";
+    if (isMandatoryField("exit_route") && !form.exitRoute) return "Exit Route is required.";
+    if (isMandatoryField("exit_counterparty") && !(Array.isArray(form.exitCounterparty) && form.exitCounterparty.length > 0)) {
+      return "Exit Counterparty is required.";
+    }
+    if (showExitCounterpartyOther && isMandatoryField("exit_counterparty_other") && !String(form.exitCounterpartyOther || "").trim()) {
       return "Please specify the Exit Counterparty.";
     }
-    if (!form.exitHorizon) return "Exit Horizon is required.";
-    if (isFieldMandatory("deal_team")) {
-      const hasValidTeamMember = (Array.isArray(form.teamMembers) ? form.teamMembers : []).some(
-        (member) => member?.userId && member?.roleId
-      );
-      if (!hasValidTeamMember) return "Deal Team & Support is required.";
-    }
-    if (isFieldMandatory("external_contacts")) {
-      const hasValidExternalContact = (Array.isArray(form.externalContacts) ? form.externalContacts : []).some(
-        (contact) => String(contact?.name || "").trim()
-      );
-      if (!hasValidExternalContact) return "External Contacts is required.";
-    }
+    if (isMandatoryField("exit_horizon") && !form.exitHorizon) return "Exit Horizon is required.";
+    const hasValidTeamMember = (Array.isArray(form.teamMembers) ? form.teamMembers : []).some(
+      (member) => member?.userId && member?.roleId
+    );
+    if (isMandatoryField("deal_team") && !hasValidTeamMember) return "Deal Team & Support is required.";
+    const hasValidExternalContact = (Array.isArray(form.externalContacts) ? form.externalContacts : []).some(
+      (contact) => String(contact?.name || "").trim()
+    );
+    if (isMandatoryField("external_contacts") && !hasValidExternalContact) return "External Contacts is required.";
     return null;
-  }, [form, isFieldMandatory, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
+  }, [form, isMandatoryField, showCoInvestorFields, showExitCounterpartyOther, showInvestmentInstrumentOther, showStatusReason]);
 
   const handleSave = async () => {
     const validationMessage = validateInformationForm();
@@ -701,15 +728,15 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Deal Name</FieldLabel>
+                  <FieldLabel required={isMandatoryField("deal_name")}>Deal Name</FieldLabel>
                   <input className="it-input" value={form.dealName} onChange={update("dealName")} placeholder="Deal name" readOnly={!isEditing} />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Code Name</FieldLabel>
+                  <FieldLabel required={isMandatoryField("code_name")}>Code Name</FieldLabel>
                   <input className="it-input" value={form.codeName} onChange={update("codeName")} placeholder="Code name" readOnly={!isEditing} />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Deal Stage</FieldLabel>
+                  <FieldLabel required={isMandatoryField("deal_stage")}>Deal Stage</FieldLabel>
                   <SimpleDropdown
                     options={stages}
                     value={form.stage}
@@ -724,7 +751,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("legal_form")}>Legal Form</FieldLabel>
+                  <FieldLabel required={isMandatoryField("legal_form")}>Legal Form</FieldLabel>
                   <SimpleDropdown
                     options={legalForms}
                     value={form.legalForm}
@@ -751,7 +778,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Status</FieldLabel>
+                  <FieldLabel required={isMandatoryField("status")}>Status</FieldLabel>
                   <SimpleDropdown
                     options={statuses}
                     value={form.status}
@@ -763,7 +790,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("countries_of_operations")}>Countries of Operations</FieldLabel>
+                  <FieldLabel required={isMandatoryField("countries_of_operations")}>Countries of Operations</FieldLabel>
                   <SimpleDropdown
                     options={countries}
                     value={Array.isArray(form.countriesOfOperations) ? form.countriesOfOperations : []}
@@ -777,22 +804,24 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required={isFieldMandatory("region_of_operations")}>Region of Operations</FieldLabel>
+                  <FieldLabel required={isMandatoryField("region_of_operations")}>Region of Operations</FieldLabel>
                   <SimpleDropdown
                     options={regionOptions}
-                    value={form.regionOfOperations}
+                    value={Array.isArray(form.regionOfOperations) ? form.regionOfOperations : []}
                     onChange={updateDirect("regionOfOperations")}
-                    placeholder="Please select a region"
+                    placeholder="Please select regions"
                     labelKey="name"
                     valueKey="id"
                     disabled={areLookupsLoading || !isEditing}
+                    isSingle={false}
+                    searchLabel="Search regions..."
                   />
                 </div>
               </div>
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Fund</FieldLabel>
+                  <FieldLabel required={isMandatoryField("fund")}>Fund</FieldLabel>
                   <SimpleDropdown
                     options={funds}
                     value={form.fund}
@@ -807,7 +836,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showStatusReason && (
                 <div className="it-field">
-                  <FieldLabel required>Reason</FieldLabel>
+                  <FieldLabel required={isMandatoryField("status_reason")}>Reason</FieldLabel>
                   <textarea
                     className="it-textarea"
                     value={form.statusReason}
@@ -820,7 +849,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Country (HQ)</FieldLabel>
+                  <FieldLabel required={isMandatoryField("country_hq")}>Country (HQ)</FieldLabel>
                   <SimpleDropdown
                     options={countries}
                     value={form.country}
@@ -832,7 +861,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Sector</FieldLabel>
+                  <FieldLabel required={isMandatoryField("sector")}>Sector</FieldLabel>
                   <SimpleDropdown
                     options={sectors}
                     value={form.sector}
@@ -844,7 +873,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Sourcing</FieldLabel>
+                  <FieldLabel required={isMandatoryField("sourcing")}>Sourcing</FieldLabel>
                   <SimpleDropdown
                     options={sourceTypes}
                     value={form.sourceType}
@@ -858,7 +887,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-field">
-                <FieldLabel required>Business Description</FieldLabel>
+                <FieldLabel required={isMandatoryField("business_description")}>Business Description</FieldLabel>
                 <textarea
                   className="it-textarea it-textarea--lg"
                   value={form.businessDescription}
@@ -881,7 +910,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Operation Type</FieldLabel>
+                  <FieldLabel required={isMandatoryField("operation_type")}>Operation Type</FieldLabel>
                   <SimpleDropdown
                     options={operationTypes}
                     value={form.operationType}
@@ -898,7 +927,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Amethis Ticket (m)</FieldLabel>
+                  <FieldLabel required={isMandatoryField("amethis_ticket")}>Amethis Ticket (m)</FieldLabel>
                   <input
                     className="it-input"
                     value={form.ticket}
@@ -908,7 +937,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Currency</FieldLabel>
+                  <FieldLabel required={isMandatoryField("ticket_currency")}>Currency</FieldLabel>
                   <SimpleDropdown
                     options={currencies}
                     value={form.currency}
@@ -920,7 +949,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel>Cash-in</FieldLabel>
+                  <FieldLabel required={isMandatoryField("cash_in")}>Cash-in</FieldLabel>
                   <input
                     className="it-input"
                     value={form.cashInAmount}
@@ -930,7 +959,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel>Cash-out</FieldLabel>
+                  <FieldLabel required={isMandatoryField("cash_out")}>Cash-out</FieldLabel>
                   <input
                     className="it-input"
                     value={form.cashOutAmount}
@@ -947,12 +976,13 @@ function InfoTab({ deal, onClose, onSaved }) {
                 values={Array.isArray(form.investmentInstruments) ? form.investmentInstruments : []}
                 onToggle={toggleInvestmentInstrument}
                 disabled={!isEditing}
+                required={isMandatoryField("investment_instrument")}
                 emptyText="No investment instruments available yet."
               />
 
               {showInvestmentInstrumentOther && (
                 <div className="it-field">
-                  <FieldLabel required>Other Investment Instrument</FieldLabel>
+                  <FieldLabel required={isMandatoryField("investment_instrument_other")}>Other Investment Instrument</FieldLabel>
                   <input
                     className="it-input"
                     value={form.investmentInstrumentOtherText}
@@ -965,7 +995,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Co-investor</FieldLabel>
+                  <FieldLabel required={isMandatoryField("co_investor")}>Co-investor</FieldLabel>
                   <SimpleDropdown
                     options={YES_NO_OPTIONS}
                     value={form.coInvestor}
@@ -977,7 +1007,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Investment Type</FieldLabel>
+                  <FieldLabel required={isMandatoryField("investment_type")}>Investment Type</FieldLabel>
                   <SimpleDropdown
                     options={dealTypes}
                     value={form.dealType}
@@ -993,7 +1023,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               {showCoInvestorFields && (
                 <div className="it-grid-3">
                   <div className="it-field">
-                    <FieldLabel required>Co-investor Type</FieldLabel>
+                    <FieldLabel required={isMandatoryField("co_investor_type")}>Co-investor Type</FieldLabel>
                     <SimpleDropdown
                       options={coInvestorTypes}
                       value={form.coInvestorType}
@@ -1005,7 +1035,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                     />
                   </div>
                   <div className="it-field">
-                    <FieldLabel required>Co-investor Ticket (m)</FieldLabel>
+                    <FieldLabel required={isMandatoryField("co_investor_ticket")}>Co-investor Ticket (m)</FieldLabel>
                     <input
                       className="it-input"
                       value={form.coInvestorTicket}
@@ -1021,7 +1051,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-3">
                 <div className="it-field">
-                  <FieldLabel required>Exit Route</FieldLabel>
+                  <FieldLabel required={isMandatoryField("exit_route")}>Exit Route</FieldLabel>
                   <SimpleDropdown
                     options={exitRoutes}
                     value={form.exitRoute}
@@ -1033,7 +1063,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel>Exit Counterparty</FieldLabel>
+                  <FieldLabel required={isMandatoryField("exit_counterparty")}>Exit Counterparty</FieldLabel>
                   <SimpleDropdown
                     options={exitCounterparties}
                     value={form.exitCounterparty}
@@ -1047,7 +1077,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel required>Exit Horizon</FieldLabel>
+                  <FieldLabel required={isMandatoryField("exit_horizon")}>Exit Horizon</FieldLabel>
                   <SimpleDropdown
                     options={exitHorizons}
                     value={form.exitHorizon}
@@ -1062,7 +1092,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showExitCounterpartyOther && (
                 <div className="it-field">
-                  <FieldLabel required>Other Exit Counterparty</FieldLabel>
+                  <FieldLabel required={isMandatoryField("exit_counterparty_other")}>Other Exit Counterparty</FieldLabel>
                   <input
                     className="it-input"
                     value={form.exitCounterpartyOther}
@@ -1077,7 +1107,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               <div className="it-grid-2">
                 <div className="it-field">
-                  <FieldLabel>2X Challenge</FieldLabel>
+                  <FieldLabel required={isMandatoryField("two_x_challenge")}>2X Challenge</FieldLabel>
                   <input
                     className="it-input"
                     value={form.twoXChallenge}
@@ -1087,7 +1117,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                   />
                 </div>
                 <div className="it-field">
-                  <FieldLabel>E&S Risk</FieldLabel>
+                  <FieldLabel required={isMandatoryField("esg_risk")}>E&S Risk</FieldLabel>
                   <SimpleDropdown
                     options={esgRisks}
                     value={form.esgRisk}
@@ -1101,7 +1131,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               </div>
 
               <div className="it-field">
-                <FieldLabel>Notes</FieldLabel>
+                <FieldLabel required={isMandatoryField("esg_notes")}>Notes</FieldLabel>
                 <textarea
                   className="it-textarea"
                   value={form.esgNotes}
@@ -1114,7 +1144,7 @@ function InfoTab({ deal, onClose, onSaved }) {
               <SectionHeader label="Additional Information" />
 
               <div className="it-field">
-                <FieldLabel>Notes</FieldLabel>
+                <FieldLabel required={isMandatoryField("additional_notes")}>Notes</FieldLabel>
                 <textarea
                   className="it-textarea it-textarea--lg"
                   value={form.additionalNotes}
@@ -1126,7 +1156,7 @@ function InfoTab({ deal, onClose, onSaved }) {
 
               {showEmergingMarketThesis && (
                 <div className="it-field">
-                  <FieldLabel>Emerging Market Thesis</FieldLabel>
+                  <FieldLabel required={isMandatoryField("emerging_market_thesis")}>Emerging Market Thesis</FieldLabel>
                   <textarea
                     className="it-textarea"
                     value={form.emergingMarketThesis}
@@ -1137,7 +1167,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                 </div>
               )}
 
-              <SectionHeader label={`Deal Team & Support${isFieldMandatory("deal_team") ? " *" : ""}`} />
+              <SectionHeader label={`Deal Team & Support${isMandatoryField("deal_team") ? " *" : ""}`} />
 
               <div className="it-team-container">
                 <table className="it-team-table">
@@ -1221,7 +1251,7 @@ function InfoTab({ deal, onClose, onSaved }) {
                 )}
               </div>
 
-              <SectionHeader label={`External Contacts${isFieldMandatory("external_contacts") ? " *" : ""}`} />
+              <SectionHeader label={`External Contacts${isMandatoryField("external_contacts") ? " *" : ""}`} />
 
               <div className="it-team-container">
                 <table className="it-team-table it-team-table--wide">
