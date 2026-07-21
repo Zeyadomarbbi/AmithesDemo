@@ -9,6 +9,7 @@ const DEALFLOW_FUNDS_ENDPOINT = "/api/dealflow/funds/";
 const DEALFLOW_USERS_ENDPOINT = "/api/dealflow/users/";
 const DEALFLOW_SETUP_ENDPOINT = "/api/dealflow/setup/";
 const DEALFLOW_FIELD_CONFIG_ENDPOINT = "/api/dealflow/field-config/";
+const DEALFLOW_FIELD_CONFIG_EVENT = "dealflow-field-config-updated";
 const DEALFLOW_EXTERNAL_CONTACTS_SUFFIX = "/external-contacts/";
 const SHARED_FUNDS_ENDPOINT = "/api/funds/";
 
@@ -433,7 +434,7 @@ function normalizeDealDetail(payload) {
     countryOfIncorporation: row?.company?.country_of_incorporation_id ?? row?.country_of_incorporation?.id ?? null,
     countryOfMainOperation: row?.company?.country_of_main_operation_id ?? row?.country_of_main_operation?.id ?? null,
     countriesOfOperations: toSafeArray(row?.operation_countries).map((item) => item?.id ?? item?.country_id ?? item).filter(Boolean),
-    regionOfOperations: row?.region_of_operations ?? "",
+    regionOfOperations: toSafeArray(row?.operation_regions).map((item) => item?.id ?? item).filter(Boolean),
     valueCreationPotential: row?.value_creation_potential ?? "",
     sourceType: row?.source_type?.id ?? row?.source_type_id ?? null,
     operationType: row?.operation_type?.id ?? row?.operation_type_id ?? null,
@@ -778,7 +779,7 @@ export function mapDealDetailToForm(detail, { countries = [], currencies = [], f
     countryOfMainOperation: mapDealflowIdToSourceId(detail.countryOfMainOperation, countries),
     country: mapDealflowIdToSourceId(detail.country, countries),
     countriesOfOperations: toSafeArray(detail.countriesOfOperations).map((value) => mapDealflowIdToSourceId(value, countries)).filter(Boolean),
-    regionOfOperations: detail.regionOfOperations || "",
+    regionOfOperations: toSafeArray(detail.regionOfOperations).filter(Boolean),
     teamMembers: toSafeArray(detail.teamMembers).map((member) => ({
       ...member,
       positionOrder: member?.positionOrder ?? "",
@@ -821,7 +822,8 @@ export function mapInfoFormToPayload(form, { countries = [], currencies = [] } =
     operation_country_ids: toSafeArray(form.countriesOfOperations)
       .map((value) => mapSourceIdToDealflowId(value, countries))
       .filter(Boolean),
-    region_of_operations: normalizeText(form.regionOfOperations),
+    region_of_operations: "",
+    operation_region_ids: toSafeArray(form.regionOfOperations).map((id) => normalizeNullable(id)).filter(Boolean),
     value_creation_potential: normalizeText(form.valueCreationPotential),
     source_type_id: normalizeNullable(form.sourceType),
     operation_type_id: normalizeNullable(form.operationType),
@@ -2409,8 +2411,17 @@ export function useDealflowFieldConfig() {
       };
       setFields((prev) => {
         const hasExisting = prev.some((field) => field.fieldKey === fieldKey);
-        if (!hasExisting) return [...prev, normalized];
-        return prev.map((field) => (field.fieldKey === fieldKey ? normalized : field));
+        const nextFields = !hasExisting
+          ? [...prev, normalized]
+          : prev.map((field) => (field.fieldKey === fieldKey ? normalized : field));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(DEALFLOW_FIELD_CONFIG_EVENT, {
+              detail: { fields: nextFields, updatedField: normalized },
+            })
+          );
+        }
+        return nextFields;
       });
       return normalized;
     } catch (err) {
@@ -2424,6 +2435,26 @@ export function useDealflowFieldConfig() {
   useEffect(() => {
     loadFields().catch(() => {});
   }, [loadFields]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleFieldConfigUpdate = (event) => {
+      const nextFields = Array.isArray(event?.detail?.fields) ? event.detail.fields : null;
+      const updatedField = event?.detail?.updatedField || null;
+      setFields((prev) => {
+        if (nextFields) return nextFields;
+        if (!updatedField?.fieldKey) return prev;
+        const hasExisting = prev.some((field) => field.fieldKey === updatedField.fieldKey);
+        return hasExisting
+          ? prev.map((field) => (field.fieldKey === updatedField.fieldKey ? updatedField : field))
+          : [...prev, updatedField];
+      });
+    };
+
+    window.addEventListener(DEALFLOW_FIELD_CONFIG_EVENT, handleFieldConfigUpdate);
+    return () => window.removeEventListener(DEALFLOW_FIELD_CONFIG_EVENT, handleFieldConfigUpdate);
+  }, []);
 
   return useMemo(
     () => ({ fields, isLoading, isSaving, error, loadFields, updateField }),
