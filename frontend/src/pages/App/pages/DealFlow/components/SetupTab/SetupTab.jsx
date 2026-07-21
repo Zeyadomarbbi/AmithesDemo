@@ -10,14 +10,53 @@ import {
 import Toast from "../../../../components/Toast/Toast";
 import { useToast } from "../../../../components/Toast/useToast";
 import { SETUP_CATEGORIES, DEAL_TEAM_KEY, buildSetupCode, useSetupBackend, useDealTeamBackend } from "./setupbackend.jsx";
-import { useDealflowFieldConfig } from "../DealsTab/Deals_backend_work";
+import { useDealflowFieldConfig } from "../DealsTab/Deals_backend_work.jsx";
 import "./SetupTab.css";
-
-const FIELD_RULES_KEY = "field_rules";
 
 const COLOR_PALETTE = [
   "#c4b5fd", "#a7f3d0", "#bae6fd", "#fde68a",
   "#fca5a5", "#fdba74", "#67e8f9", "#f9a8d4",
+];
+const FIELD_RULES_KEY = "field_rules";
+const FIELD_RULES_ORDER = [
+  "deal_name",
+  "code_name",
+  "deal_stage",
+  "legal_form",
+  "pipeline_entry_date",
+  "latest_update",
+  "status",
+  "status_reason",
+  "countries_of_operations",
+  "region_of_operations",
+  "fund",
+  "country_hq",
+  "sector",
+  "business_description",
+  "value_creation_potential",
+  "sourcing",
+  "operation_type",
+  "amethis_ticket",
+  "ticket_currency",
+  "cash_in",
+  "cash_out",
+  "investment_instrument",
+  "investment_instrument_other",
+  "co_investor",
+  "co_investor_type",
+  "co_investor_ticket",
+  "investment_type",
+  "exit_route",
+  "exit_counterparty",
+  "exit_counterparty_other",
+  "exit_horizon",
+  "two_x_challenge",
+  "esg_risk",
+  "esg_notes",
+  "additional_notes",
+  "deal_team",
+  "external_contacts",
+  "emerging_market_thesis",
 ];
 
 function createEmptyDraft() {
@@ -459,58 +498,52 @@ function DealTeamPanel({ onSuccessToast, onErrorToast }) {
   );
 }
 
-function FieldRulesPanel({ onSuccessToast, onErrorToast }) {
-  const { fields, isLoading, isSaving, updateField } = useDealflowFieldConfig();
-
-  const handleToggle = async (field) => {
-    try {
-      const updated = await updateField(field.fieldKey, !field.isMandatory);
-      onSuccessToast(`"${updated.fieldLabel}" is now ${updated.isMandatory ? "mandatory" : "optional"}.`);
-    } catch {
-      onErrorToast("Could not update this field rule.");
-    }
-  };
-
+function FieldRulesPanel({ fields, isLoading, isSaving, onToggleMandatory }) {
   return (
     <div className="setup-panel">
       <div className="setup-panel-header">
-        <h2 className="setup-panel-title">Field Rules</h2>
+        <div>
+          <h2 className="setup-panel-title">Mandatory fields</h2>
+          <p className="setup-panel-subtitle">Choose which optional information fields should become mandatory in the Information tab.</p>
+        </div>
       </div>
 
       <div className="setup-table-wrap">
         <table className="setup-table">
           <thead>
             <tr>
-              <th className="setup-th setup-th--name">Field</th>
-              <th className="setup-th setup-th--status">Mandatory</th>
-              <th className="setup-th setup-th--actions">Actions</th>
+              <th className="setup-th setup-th--name setup-th--field-rule">Field</th>
+              <th className="setup-th setup-th--mandatory">Mandatory</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td className="setup-empty" colSpan={3}>Loading field rules...</td></tr>
+              <tr>
+                <td className="setup-empty" colSpan={2}>Loading field rules...</td>
+              </tr>
             )}
+
             {!isLoading && fields.map((field) => (
               <tr key={field.fieldKey} className="setup-row">
-                <td className="setup-td">{field.fieldLabel}</td>
-                <td className="setup-td">
-                  <SetupStatusBadge isActive={field.isMandatory} />
+                <td className="setup-td setup-td--field-rule">
+                  <div className="setup-field-rule-name">{field.fieldLabel}</div>
                 </td>
-                <td className="setup-td setup-td--actions">
-                  <div className="setup-actions">
-                    <button
-                      className={`setup-toggle-btn${field.isMandatory ? "" : " setup-toggle-btn--inactive"}`}
-                      onClick={() => handleToggle(field)}
-                      disabled={isSaving}
-                    >
-                      {field.isMandatory ? "Make optional" : "Make mandatory"}
-                    </button>
-                  </div>
+                <td className="setup-td setup-td--mandatory">
+                  <button
+                    className={`setup-toggle-btn setup-toggle-btn--mandatory${field.isMandatory ? "" : " setup-toggle-btn--inactive"}`}
+                    onClick={() => onToggleMandatory(field)}
+                    disabled={isSaving}
+                  >
+                    {field.isMandatory ? "On" : "Off"}
+                  </button>
                 </td>
               </tr>
             ))}
+
             {!isLoading && fields.length === 0 && (
-              <tr><td className="setup-empty" colSpan={3}>No field rules found.</td></tr>
+              <tr>
+                <td className="setup-empty" colSpan={2}>No configurable fields found.</td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -523,11 +556,18 @@ export default function SetupTab() {
   const [activeKey, setActiveKey] = useState(SETUP_CATEGORIES[0].key);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast, showToast, closeToast } = useToast();
+  const {
+    fields: fieldConfig,
+    isLoading: isFieldConfigLoading,
+    isSaving: isFieldConfigSaving,
+    error: fieldConfigError,
+    updateField,
+  } = useDealflowFieldConfig();
 
   const isDealTeam = activeKey === DEAL_TEAM_KEY;
   const isFieldRules = activeKey === FIELD_RULES_KEY;
   const activeCategory = SETUP_CATEGORIES.find((category) => category.key === activeKey) || SETUP_CATEGORIES[0];
-  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam || isFieldRules ? null : activeCategory.taxonomyType);
+  const { items, isLoading, isSaving, error, createItem, updateItem, toggleItemActive, deleteItem } = useSetupBackend(isDealTeam ? null : activeCategory.taxonomyType);
 
   useEffect(() => {
     if (error) {
@@ -539,10 +579,29 @@ export default function SetupTab() {
     }
   }, [error, showToast]);
 
+  useEffect(() => {
+    if (fieldConfigError) {
+      showToast({
+        type: "error",
+        title: "Field rules failed",
+        message: fieldConfigError,
+      });
+    }
+  }, [fieldConfigError, showToast]);
+
   const countsByKey = useMemo(
     () => Object.fromEntries(SETUP_CATEGORIES.map((category) => [category.key, category.key === activeKey ? items.length : null])),
     [activeKey, items.length]
   );
+  const orderedFieldConfig = useMemo(() => {
+    const rank = new Map(FIELD_RULES_ORDER.map((key, index) => [key, index]));
+    return [...fieldConfig].sort((a, b) => {
+      const orderA = rank.has(a.fieldKey) ? rank.get(a.fieldKey) : Number.MAX_SAFE_INTEGER;
+      const orderB = rank.has(b.fieldKey) ? rank.get(b.fieldKey) : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.fieldLabel || "").localeCompare(String(b.fieldLabel || ""));
+    });
+  }, [fieldConfig]);
 
   const handleCreate = async (payload) => {
     const created = await createItem(payload);
@@ -594,6 +653,15 @@ export default function SetupTab() {
     });
   };
 
+  const handleToggleMandatory = async (field) => {
+    const updated = await updateField(field.fieldKey, !field.isMandatory);
+    showToast({
+      type: "success",
+      title: "Field rule updated",
+      message: `"${updated.fieldLabel}" is now ${updated.isMandatory ? "mandatory" : "optional"}.`,
+    });
+  };
+
   return (
     <div className="setup-wrapper">
       <div className="setup-topbar">
@@ -621,18 +689,20 @@ export default function SetupTab() {
           className={`setup-subtab${activeKey === FIELD_RULES_KEY ? " active" : ""}`}
           onClick={() => setActiveKey(FIELD_RULES_KEY)}
         >
-          Field Rules
+          Mandatory Fields
         </button>
       </div>
 
-      {isDealTeam ? (
+      {isFieldRules ? (
+        <FieldRulesPanel
+          fields={orderedFieldConfig}
+          isLoading={isFieldConfigLoading}
+          isSaving={isFieldConfigSaving}
+          onToggleMandatory={handleToggleMandatory}
+        />
+      ) : isDealTeam ? (
         <DealTeamPanel
           onSuccessToast={(msg) => showToast({ type: "success", title: "Team updated", message: msg })}
-          onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
-        />
-      ) : isFieldRules ? (
-        <FieldRulesPanel
-          onSuccessToast={(msg) => showToast({ type: "success", title: "Field rule updated", message: msg })}
           onErrorToast={(msg) => showToast({ type: "error", title: "Error", message: msg })}
         />
       ) : (
