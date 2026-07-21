@@ -57,11 +57,44 @@ def is_supported_setup_type(value):
 
 
 DEFAULT_FIELD_CONFIG = [
+    {"field_key": "deal_name", "field_label": "Deal Name", "is_mandatory": True},
+    {"field_key": "code_name", "field_label": "Code Name", "is_mandatory": True},
+    {"field_key": "deal_stage", "field_label": "Deal Stage", "is_mandatory": True},
     {"field_key": "legal_form", "field_label": "Legal Form", "is_mandatory": False},
+    {"field_key": "pipeline_entry_date", "field_label": "Pipeline Entry Date", "is_mandatory": False},
+    {"field_key": "latest_update", "field_label": "Latest Update", "is_mandatory": False},
+    {"field_key": "status", "field_label": "Status", "is_mandatory": True},
+    {"field_key": "status_reason", "field_label": "Reason", "is_mandatory": True},
+    {"field_key": "fund", "field_label": "Fund", "is_mandatory": True},
+    {"field_key": "country_hq", "field_label": "Country (HQ)", "is_mandatory": True},
+    {"field_key": "sector", "field_label": "Sector", "is_mandatory": True},
+    {"field_key": "business_description", "field_label": "Business Description", "is_mandatory": True},
+    {"field_key": "value_creation_potential", "field_label": "Value Creation Potential", "is_mandatory": False},
+    {"field_key": "sourcing", "field_label": "Sourcing", "is_mandatory": True},
     {"field_key": "deal_team", "field_label": "Deal Team & Support", "is_mandatory": True},
     {"field_key": "external_contacts", "field_label": "External Contacts", "is_mandatory": True},
     {"field_key": "countries_of_operations", "field_label": "Countries of Operations", "is_mandatory": False},
     {"field_key": "region_of_operations", "field_label": "Region of Operations", "is_mandatory": False},
+    {"field_key": "operation_type", "field_label": "Operation Type", "is_mandatory": True},
+    {"field_key": "amethis_ticket", "field_label": "Amethis Ticket (m)", "is_mandatory": True},
+    {"field_key": "ticket_currency", "field_label": "Currency", "is_mandatory": True},
+    {"field_key": "cash_in", "field_label": "Cash-in", "is_mandatory": False},
+    {"field_key": "cash_out", "field_label": "Cash-out", "is_mandatory": False},
+    {"field_key": "investment_instrument", "field_label": "Investment Instrument", "is_mandatory": False},
+    {"field_key": "investment_instrument_other", "field_label": "Other Investment Instrument", "is_mandatory": True},
+    {"field_key": "co_investor", "field_label": "Co-investor", "is_mandatory": True},
+    {"field_key": "co_investor_type", "field_label": "Co-investor Type", "is_mandatory": True},
+    {"field_key": "co_investor_ticket", "field_label": "Co-investor Ticket (m)", "is_mandatory": True},
+    {"field_key": "investment_type", "field_label": "Investment Type", "is_mandatory": True},
+    {"field_key": "exit_route", "field_label": "Exit Route", "is_mandatory": True},
+    {"field_key": "exit_counterparty", "field_label": "Exit Counterparty", "is_mandatory": False},
+    {"field_key": "exit_counterparty_other", "field_label": "Other Exit Counterparty", "is_mandatory": True},
+    {"field_key": "exit_horizon", "field_label": "Exit Horizon", "is_mandatory": True},
+    {"field_key": "two_x_challenge", "field_label": "2X Challenge", "is_mandatory": False},
+    {"field_key": "esg_risk", "field_label": "E&S Risk", "is_mandatory": False},
+    {"field_key": "esg_notes", "field_label": "ESG Notes", "is_mandatory": False},
+    {"field_key": "additional_notes", "field_label": "Additional Notes", "is_mandatory": False},
+    {"field_key": "emerging_market_thesis", "field_label": "Emerging Market Thesis", "is_mandatory": False},
 ]
 
 
@@ -494,6 +527,7 @@ def serialize_deal_detail_row(row):
         "status_reason": row.get("status_reason") or "",
         "countries_of_operations": row.get("countries_of_operations") or "",
         "operation_countries": row.get("operation_countries") or [],
+        "operation_regions": row.get("operation_regions") or [],
         "value_creation_potential": row.get("value_creation_potential") or "",
         "sourcing_relevant_information": row.get("sourcing_relevant_information") or "",
         "cash_in_amount": float(cash_in_amount) if cash_in_amount is not None else None,
@@ -1891,6 +1925,34 @@ def fetch_deal_exit_counterparties(cursor, deal_id):
     ]
 
 
+def fetch_deal_operation_regions(cursor, deal_id):
+    cursor.execute(
+        """
+        SELECT
+            rel.region_id,
+            item.name,
+            item.code,
+            item.color
+        FROM dealflow.df_deal_operation_regions rel
+        INNER JOIN dealflow.df_taxonomy_items item
+            ON item.id = rel.region_id
+        WHERE rel.deal_id = %s
+        ORDER BY item.display_order ASC NULLS LAST, item.name ASC
+        """,
+        [str(deal_id)],
+    )
+    return [
+        {
+            "id": row.get("region_id"),
+            "name": row.get("name") or "",
+            "code": row.get("code") or "",
+            "color": row.get("color"),
+        }
+        for row in dictfetchall(cursor)
+        if row.get("region_id")
+    ]
+
+
 def ensure_default_field_config(cursor):
     now = timezone.now()
     for item in DEFAULT_FIELD_CONFIG:
@@ -1942,10 +2004,10 @@ def fetch_field_config(cursor):
 
 def seed_default_kpi_entries(cursor, deal_id, period_id, company_id, currency_id, now):
     default_entries = [
-        {"name": "Revenues", "unit": "", "period_type": "ANNUALLY"},
-        {"name": "EBITDA", "unit": "", "period_type": "ANNUALLY"},
-        {"name": "FTE", "unit": "Count", "period_type": "ANNUALLY"},
-        {"name": "Net debt", "unit": "", "period_type": "ANNUALLY"},
+        {"name": "Revenues", "unit": "", "period_type": "QUARTERLY"},
+        {"name": "EBITDA", "unit": "", "period_type": "QUARTERLY"},
+        {"name": "FTE", "unit": "Headcount", "period_type": "QUARTERLY"},
+        {"name": "Net debt", "unit": "", "period_type": "QUARTERLY"},
     ]
     for entry in default_entries:
         cursor.execute(
@@ -1971,12 +2033,140 @@ def seed_default_kpi_entries(cursor, deal_id, period_id, company_id, currency_id
                 str(period_id),
                 entry["name"],
                 entry["period_type"],
-                currency_id,
+                None if entry["name"] == "FTE" else currency_id,
                 entry["unit"],
                 now,
                 now,
             ],
         )
+
+
+def row_has_any_kpi_value(row):
+    value_keys = [
+        "q1_value",
+        "q2_value",
+        "q3_value",
+        "q4_value",
+        "h1_value",
+        "h2_value",
+        "annual_y1_value",
+        "annual_y2_value",
+        "annual_y3_value",
+        "annual_y4_value",
+    ]
+    return any(row.get(key) is not None for key in value_keys)
+
+
+def is_fte_kpi_name(value):
+    return str(value or "").strip().upper() == "FTE"
+
+
+def ensure_default_kpi_entries_for_period(cursor, deal_id, period_id, company_id, period_currency_id, now):
+    default_specs = {
+        "revenues": {"name": "Revenues", "unit": "", "period_type": "QUARTERLY", "currency_id": period_currency_id},
+        "ebitda": {"name": "EBITDA", "unit": "", "period_type": "QUARTERLY", "currency_id": period_currency_id},
+        "fte": {"name": "FTE", "unit": "Headcount", "period_type": "QUARTERLY", "currency_id": None},
+        "net debt": {"name": "Net debt", "unit": "", "period_type": "QUARTERLY", "currency_id": period_currency_id},
+    }
+    cursor.execute(
+        """
+        SELECT
+            id,
+            kpi_name,
+            period_type,
+            currency_id,
+            unit,
+            q1_value,
+            q2_value,
+            q3_value,
+            q4_value,
+            h1_value,
+            h2_value,
+            annual_y1_value,
+            annual_y2_value,
+            annual_y3_value,
+            annual_y4_value
+        FROM dealflow.df_kpi_entries
+        WHERE deal_id = %s
+          AND period_id = %s
+        """,
+        [str(deal_id), str(period_id)],
+    )
+    existing_rows = dictfetchall(cursor)
+    existing_by_name = {
+        str(row.get("kpi_name") or "").strip().lower(): row
+        for row in existing_rows
+        if str(row.get("kpi_name") or "").strip()
+    }
+
+    for key, spec in default_specs.items():
+        existing = existing_by_name.get(key)
+        if not existing:
+            cursor.execute(
+                """
+                INSERT INTO dealflow.df_kpi_entries (
+                    id,
+                    deal_id,
+                    company_id,
+                    period_id,
+                    kpi_name,
+                    period_type,
+                    currency_id,
+                    unit,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                [
+                    str(uuid4()),
+                    str(deal_id),
+                    company_id,
+                    str(period_id),
+                    spec["name"],
+                    spec["period_type"],
+                    spec["currency_id"],
+                    spec["unit"],
+                    now,
+                    now,
+                ],
+            )
+            continue
+
+        updates = []
+        params = []
+        if key == "fte":
+            if str(existing.get("unit") or "").strip() != spec["unit"]:
+                updates.append("unit = %s")
+                params.append(spec["unit"])
+            if existing.get("currency_id") is not None:
+                updates.append("currency_id = %s")
+                params.append(None)
+        else:
+            if existing.get("currency_id") != spec["currency_id"]:
+                updates.append("currency_id = %s")
+                params.append(spec["currency_id"])
+            if str(existing.get("unit") or "").strip():
+                updates.append("unit = %s")
+                params.append("")
+
+        if not row_has_any_kpi_value(existing) and normalize_kpi_period_type(existing.get("period_type")) != spec["period_type"]:
+            updates.append("period_type = %s")
+            params.append(spec["period_type"])
+
+        if updates:
+            updates.append("updated_at = %s")
+            params.append(now)
+            params.extend([str(existing["id"]), str(deal_id)])
+            cursor.execute(
+                f"""
+                UPDATE dealflow.df_kpi_entries
+                SET {", ".join(updates)}
+                WHERE id = %s
+                  AND deal_id = %s
+                """,
+                params,
+            )
 
 
 def pick_dashboard_color(value, fallback_index, fallback_palette):
@@ -2855,6 +3045,14 @@ def fetch_kpi_period_entry_payload(cursor, deal_id, period_id, display_period_ty
 
     normalized_display_type = normalize_kpi_period_type(display_period_type)
     period = serialize_kpi_period(period_row)
+    ensure_default_kpi_entries_for_period(
+        cursor,
+        deal_id,
+        period_id,
+        period.get("company_id"),
+        period.get("currency_id"),
+        timezone.now(),
+    )
     columns = build_kpi_display_columns(period.get("year"), normalized_display_type)
 
     cursor.execute(
@@ -3253,6 +3451,7 @@ def fetch_deal_detail(cursor, deal_id):
     data = dict(zip([col[0] for col in cursor.description], row))
     data["investment_instruments"] = fetch_deal_investment_instruments(cursor, deal_id)
     data["operation_countries"] = fetch_deal_operation_countries(cursor, deal_id)
+    data["operation_regions"] = fetch_deal_operation_regions(cursor, deal_id)
     data["exit_counterparties"] = fetch_deal_exit_counterparties(cursor, deal_id)
     data["team_members"] = fetch_deal_team_members(cursor, deal_id)
     data["external_contacts"] = fetch_deal_external_contacts(cursor, deal_id)
@@ -4071,6 +4270,16 @@ class DealflowDealDetailView(APIView):
                     operation_country_ids.append(normalized_country_id)
                     seen_operation_country_ids.add(normalized_country_id)
 
+        raw_operation_region_ids = payload.get("operation_region_ids")
+        operation_region_ids = []
+        if isinstance(raw_operation_region_ids, list):
+            seen_operation_region_ids = set()
+            for value in raw_operation_region_ids:
+                normalized_region_id = normalize_uuid(value)
+                if normalized_region_id and normalized_region_id not in seen_operation_region_ids:
+                    operation_region_ids.append(normalized_region_id)
+                    seen_operation_region_ids.add(normalized_region_id)
+
         raw_exit_counterparty_ids = payload.get("exit_counterparty_ids")
         exit_counterparty_ids = []
         if isinstance(raw_exit_counterparty_ids, list):
@@ -4081,7 +4290,7 @@ class DealflowDealDetailView(APIView):
                     exit_counterparty_ids.append(normalized_counterparty_id)
                     seen_exit_counterparty_ids.add(normalized_counterparty_id)
 
-        region_of_operations = str(payload.get("region_of_operations") or "").strip()
+        region_of_operations = ""
 
         contact_name = nullable_string("contact_name")
         current_contact_id = current_row.get("contact_id")
@@ -4293,6 +4502,53 @@ class DealflowDealDetailView(APIView):
                             """,
                             [str(uuid4()), str(deal_id), resolved_country_id, now, now],
                         )
+
+                    cursor.execute(
+                        """
+                        DELETE FROM dealflow.df_deal_operation_regions
+                        WHERE deal_id = %s
+                        """,
+                        [str(deal_id)],
+                    )
+                    resolved_region_names = []
+                    for region_id in operation_region_ids:
+                        cursor.execute(
+                            """
+                            SELECT id, name
+                            FROM dealflow.df_taxonomy_items
+                            WHERE id = %s
+                              AND type = 'region_of_operation'
+                            LIMIT 1
+                            """,
+                            [region_id],
+                        )
+                        region_row = cursor.fetchone()
+                        if not region_row:
+                            continue
+                        resolved_region_names.append(str(region_row[1] or "").strip())
+                        cursor.execute(
+                            """
+                            INSERT INTO dealflow.df_deal_operation_regions (
+                                id,
+                                deal_id,
+                                region_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (%s, %s, %s, %s, %s)
+                            """,
+                            [str(uuid4()), str(deal_id), str(region_row[0]), now, now],
+                        )
+
+                    region_of_operations = ", ".join(name for name in resolved_region_names if name)
+                    cursor.execute(
+                        """
+                        UPDATE dealflow.df_deals
+                        SET region_of_operations = %s
+                        WHERE id = %s
+                        """,
+                        [region_of_operations, str(deal_id)],
+                    )
 
                     cursor.execute(
                         """
@@ -6442,6 +6698,11 @@ class DealflowKpiEntriesView(APIView):
                     period_relation = fetch_kpi_period_relation(cursor, deal_id, period_id)
                     if not period_relation:
                         return Response({"error": "KPI period not found."}, status=status.HTTP_404_NOT_FOUND)
+                    if is_fte_kpi_name(kpi_name):
+                        currency_id = None
+                        unit = "Headcount"
+                    elif not currency_id:
+                        currency_id = period_relation.get("currency_id")
                     cursor.execute(
                         """
                         INSERT INTO dealflow.df_kpi_entries (
@@ -6524,6 +6785,12 @@ class DealflowKpiEntryDetailView(APIView):
                         return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
                     if period_id and not kpi_entry_belongs_to_period(cursor, deal_id, period_id, entry_id):
                         return Response({"error": "KPI entry not found."}, status=status.HTTP_404_NOT_FOUND)
+                    period_relation = fetch_kpi_period_relation(cursor, deal_id, relation["period_id"])
+                    if is_fte_kpi_name(kpi_name):
+                        currency_id = None
+                        unit = "Headcount"
+                    elif not currency_id and period_relation:
+                        currency_id = period_relation.get("currency_id")
                     cursor.execute(
                         """
                         UPDATE dealflow.df_kpi_entries
