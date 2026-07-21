@@ -90,6 +90,13 @@
   margin: 0;
 }
 
+.setup-panel-subtitle {
+  margin: 4px 0 0;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .setup-add-btn {
   display: inline-flex;
   align-items: center;
@@ -152,6 +159,10 @@
 .setup-th--order { width: 140px; }
 .setup-th--status { width: 120px; }
 .setup-th--actions { width: 180px; text-align: right !important; }
+.setup-th--field-rule,
+.setup-th--mandatory {
+  text-align: center !important;
+}
 
 .setup-table tbody tr {
   border-bottom: 1px solid #edf0f7;
@@ -175,6 +186,10 @@
 }
 
 .setup-td--actions { text-align: right; }
+.setup-td--field-rule,
+.setup-td--mandatory {
+  text-align: center;
+}
 
 .setup-code {
   font-family: "Inter", sans-serif;
@@ -265,6 +280,40 @@
   color: #166534;
 }
 
+.setup-toggle-btn--mandatory {
+  min-width: 88px;
+  height: 34px;
+  padding: 0 18px;
+  border: 1px solid #d8dee8;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #375a89 0%, #2e4d76 100%);
+  box-shadow: 0 8px 18px rgba(55, 90, 137, 0.16);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.setup-toggle-btn--mandatory:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(55, 90, 137, 0.22);
+}
+
+.setup-toggle-btn--mandatory.setup-toggle-btn--inactive {
+  border-color: #d7dee8;
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  color: #5f6b7a;
+  box-shadow: none;
+}
+
+.setup-toggle-btn--mandatory:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .setup-status-badge {
   display: inline-flex;
   align-items: center;
@@ -347,6 +396,31 @@
   font-family: "Inter", sans-serif;
   font-size: 13px;
   color: #6b7280;
+}
+
+.setup-field-rule-name {
+  font-weight: 600;
+  color: #1c1917;
+  text-align: center;
+}
+
+.setup-mandatory-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.setup-mandatory-badge.is-active {
+  background: #fff7ea;
+  color: #9a6700;
 }
 
 /* ---- EMPTY STATE ---- */
