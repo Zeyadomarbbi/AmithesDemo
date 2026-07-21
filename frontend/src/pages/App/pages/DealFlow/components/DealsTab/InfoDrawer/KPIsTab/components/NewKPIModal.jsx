@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CloseIcon } from "/src/components/Icons/InteractiveIcons";
 import SimpleDropdown from "/src/components/SearchBar/SimpleDropdown/SimpleDropdown.jsx";
 import "./NewKPIModal.css";
@@ -35,18 +35,31 @@ function NewKPIModal({
   currencies = [],
   periodTypes = [],
   year: periodYear,
+  periodCurrencyId = null,
+  periodCurrencyLabel = "",
   isSaving = false,
   onClose,
   onSubmit,
 }) {
   const [kpiName, setKpiName] = useState("");
   const [periodType, setPeriodType] = useState("QUARTERLY");
-  const [currencyId, setCurrencyId] = useState(null);
+  const [currencyId, setCurrencyId] = useState(periodCurrencyId);
   const [unit, setUnit] = useState("");
   const [values, setValues] = useState({});
+  const isFte = String(kpiName || "").trim().toUpperCase() === "FTE";
 
   const valueColumns = useMemo(() => getValueColumns(periodType, periodYear), [periodType, periodYear]);
   const canSubmit = kpiName.trim() !== "" && !!periodType;
+
+  useEffect(() => {
+    if (isFte) {
+      setCurrencyId(null);
+      setUnit("Headcount");
+      return;
+    }
+    setUnit((prev) => (prev === "Headcount" ? "" : prev));
+    setCurrencyId((prev) => prev || periodCurrencyId || null);
+  }, [isFte, periodCurrencyId]);
 
   const handleChangeValue = (key, value) => {
     setValues((prev) => ({ ...prev, [key]: value.replace(/[^\d.,-]/g, "") }));
@@ -57,8 +70,8 @@ function NewKPIModal({
     onSubmit?.({
       kpiName: kpiName.trim(),
       periodType,
-      currencyId,
-      unit: unit.trim(),
+      currencyId: isFte ? null : (currencyId || periodCurrencyId || null),
+      unit: isFte ? "Headcount" : unit.trim(),
       q1Value: values.q1Value ?? null,
       q2Value: values.q2Value ?? null,
       q3Value: values.q3Value ?? null,
@@ -116,10 +129,10 @@ function NewKPIModal({
                 options={currencies}
                 value={currencyId}
                 onChange={setCurrencyId}
-                placeholder="Select currency"
+                placeholder={periodCurrencyLabel || "Select currency"}
                 labelKey="name"
                 valueKey="id"
-                disabled={isSaving}
+                disabled={isSaving || isFte}
               />
             </div>
           </div>
@@ -129,9 +142,10 @@ function NewKPIModal({
               <label className="nkm-label">Unit</label>
               <input
                 className="nkm-input"
-                placeholder="EUR, %, count..."
+                placeholder={isFte ? "Headcount" : (periodCurrencyLabel || "EUR, USD, %, count...")}
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
+                disabled={isSaving || isFte}
               />
             </div>
           </div>
